@@ -1,0 +1,13 @@
+# Metric: the value HeatPumpOptimizerCoordinator._async_load_energy_totals adopts as `_energy_totals_since` (published
+#   as data["energy_totals_counting_since"]) after a restart whose energy-totals store holds a corrupt, truthy,
+#   non-string `since` (the document is written to the stub Store's disk and read through the real QuarantiningStore
+#   and store.load_mapping), on a real coordinator from tests/harness.py.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_16f76653.py
+# EXPECTED RESULT since_<form>_baseline=None (ignored; the payload then stamps today) ; since_<form>_mutant=the corrupt value
+# EXPECTED RESULT forms_moved=4 count (int 12345, list ["2026-01-01"], dict {"d": 1}, empty string "")
+# EXPECTED RESULT null_delta=0 count (since "2026-01-01" and since null: both arms agree)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_load_energy_totals,
+#   line 8419 `if isinstance(since, str) and since:`.
+# Perturbation: key 16f7665306eebdf3 BOOLOP `and` -> `or`, in memory. Direction: None -> the corrupt value.
+# Null control: a valid ISO date string and a null `since`.

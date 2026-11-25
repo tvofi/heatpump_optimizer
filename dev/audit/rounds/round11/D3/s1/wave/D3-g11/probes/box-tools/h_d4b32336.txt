@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# Metric: what HeatPumpOptimizerCoordinator.month_channel_totals returns for a ledger channel, through the production
+#   ledger (ledger.py:MonthlyLedger.line): None = "no data" (the docstring's contract) or a (kWh, SEK) tuple.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_d4b32336.py
+# Expected: through MonthlyLedger every arm agrees (moved_production=0 count): MonthlyLedger.line returns
+#   {"kwh": 0.0, "sek": 0.0} for an empty month, a dict that is never falsy, so the guard never fires on the baseline
+#   either (fresh_ledger baseline (0.0, 0.0)). Only a stub ledger returning {} or None moves (None -> (0.0, 0.0) /
+#   AttributeError), which the production ledger never returns.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.month_channel_totals
+#   (line 8457, `        if not entry:`), over custom_components.heatpump_optimizer.ledger:MonthlyLedger.
+# Perturbation: mutant d4b32336085935df, `if not entry:` -> `if False:`, in memory (the method recompiled from its own
+#   source, called on a SimpleNamespace carrying a real MonthlyLedger). Direction: none through production
+#   (equivalent-candidate); the stub arms show the guard's only reachable effect.
+# Null control: a booked line (add 3.5 kWh / 4.2 SEK this month), where both arms return (3.5, 4.2).

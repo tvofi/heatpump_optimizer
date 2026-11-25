@@ -1,0 +1,98 @@
+{
+ "key": "6f5898d327366799",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:3101 CMP_BOUND",
+ "patch": "precip > 1e-9, -> precip >= 1e-9,",
+ "function": "_liquid_fraction",
+ "cluster": "coordinator.py:_liquid_fraction",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2895.5,
+  "load1_start": 0.87,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/6f5898d327366799.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6f5898d327366799",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py",
+  "rc": 0,
+  "results": [
+   "RESULT precip_1e-9_snow_baseline=1.0 mutant=0.0",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.004",
+   "RESULT load1=0.86",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "1.0",
+  "mutant_value": "0.0",
+  "inputs_tried": [
+   "RESULT precip_1e-9_snow_baseline=1.0 mutant=0.0",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.004",
+   "RESULT load1=0.86",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/entities.py and tests/features.py execute line 3101; none feeds precipitation exactly at the 1e-9 threshold",
+ "class": "candidate",
+ "finding": {
+  "title": "No check pins _liquid_fraction's dry threshold at precip == 1e-9; > -> >= is unseen",
+  "claim": "For one step with precipitation exactly 1e-9 mm/h and a snowfall of at least that water equivalent, _liquid_fraction returns 1.0 on the baseline and 0.0 with `>` -> `>=`; the step's wetting contribution is ~1e-9 either way.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_liquid_fraction for precip == 1e-9 mm/h with snow water equivalent 1e-9 mm",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_liquid_fraction",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py",
+   "value": "0.0",
+   "baseline_value": "1.0",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g11: Linux x86_64, nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "tolerance": "exact",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "mutant 6f5898d327366799 at custom_components/heatpump_optimizer/coordinator.py:3101: `precip > 1e-9,` -> `precip >= 1e-9,`, applied in memory by the probe",
+   "expected_direction": "to_zero",
+   "observed_value": "1.0 -> 0.0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_6f5898d3.py",
+   "value": "null_moved=0 count",
+   "note": "the probe's null arm (inputs where both arms must agree); the full-gate null is PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)"
+  },
+  "gate_null_control": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)",
+  "phenomenon_property": "a step whose precipitation is at or below the dry threshold is treated as fully liquid",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6f5898d327366799",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "proposed_fix_scope": "a check in the closure script named in should_fail that drives _liquid_fraction on the probe's distinguishing input and asserts the baseline value",
+  "should_have_failed": "tests/entities.py and tests/features.py execute line 3101; none feeds precipitation exactly at the 1e-9 threshold"
+ }
+}

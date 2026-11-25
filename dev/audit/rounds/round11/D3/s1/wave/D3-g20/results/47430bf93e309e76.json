@@ -1,0 +1,80 @@
+{
+ "key": "47430bf93e309e76",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4766 GUARD_OFF",
+ "patch": "if f.size < n_steps: -> if False:",
+ "function": "HeatPumpOptimizer._build_comfort_bounds",
+ "cluster": "optimizer.py:HeatPumpOptimizer._build_comfort_bounds@4766-4766",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2701.5,
+  "load1_start": 0.86,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/47430bf93e309e76.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_47430bf93e309e76.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_47430bf93e309e76.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=66 count",
+   "RESULT inputs_moved=33 count",
+   "RESULT inputs_moved_beyond_exception_type=31 count (rows where both arms raise, differing only in the exception type: 2)",
+   "RESULT moved n=1 floors.size=0 fill=18.0: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))",
+   "RESULT moved n=1 floors.size=0 fill=25.0: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))",
+   "RESULT moved n=1 floors.size=0 fill=nan: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))",
+   "RESULT moved n=1 floors.size=0 fill=-inf: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))",
+   "RESULT moved n=1 floors=list[18.0]*0 margins=0.5: baseline=(shape(1,) first=[19.5], shape(1,) first=[17.0], shape(1,) first=[23.0], (shape(1,) first=[17.0], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[17.0], shape(0,) first=[]))",
+   "RESULT null_delta=0 count (n=96 floors=None margins=None)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.02",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "min bounds shape (n,) with the short mold-floor series padded by -inf",
+  "mutant_value": "min bounds shape (0,) for an empty series (silent), ValueError for 2..n-1 floors, the one floor broadcast over all n steps for a single floor",
+  "inputs_tried": "66 (as 19141bef); moved 33"
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py / tests/entities.py / tests/env_drift.py (execute line 4766) never pass min_temp_floors shorter than n_steps; lacks a padding assertion (short floors -> trailing -inf, bounds shape (n,))",
+ "finding": {
+  "title": "Mold-floor padding in _build_comfort_bounds is unpinned: without it a short floor series silently empties or mis-broadcasts the comfort band",
+  "claim": "With the `f.size < n_steps` padding disabled, HeatPumpOptimizer._build_comfort_bounds returns a (0,)-shaped minimum-bound array for an empty mold-floor series and raises ValueError for a series of 2..n-1 floors (33 of 66 probe inputs move), and the full gate stays green.",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "metric_definition": "the (targets, min, max, (comfort floors, mold floors)) tuple _build_comfort_bounds returns, compared by shape and value",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._build_comfort_bounds",
+  "perturbation": {
+   "change": "the key's one-line mutant, applied in memory by the probe",
+   "expected_direction": "shape (n,) -> (0,) / ValueError under the mutant"
+  },
+  "null_control": "min_temp_floors None (branch not entered): null_delta 0",
+  "stop_rule_class": "bug",
+  "proposed_fix_scope": "tests: one short-floors assertion; production floors come from _mold_floor_series over the horizon's outdoor temps, so reach needs a horizon shorter than n_steps",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_47430bf93e309e76.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_47430bf93e309e76.py"
+ }
+}

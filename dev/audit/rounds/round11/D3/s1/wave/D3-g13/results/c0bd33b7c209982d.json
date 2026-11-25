@@ -1,0 +1,98 @@
+{
+ "key": "c0bd33b7c209982d",
+ "site": "defrost.py:181 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/defrost.py",
+ "line": 181,
+ "patch": "if value <= centers[0]: -> if value < centers[0]:",
+ "function": "_interp_position",
+ "cluster": "defrost.py:_interp_position@181-184",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach": "executed",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 2789.8,
+  "child_cpu_s": 4636.6,
+  "load1_start": 0.86,
+  "load1_end": 0.93,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/gates/c0bd33b7c209982d.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c0bd33b7c209982d",
+ "m4_carried": {
+  "source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+  "answer": {
+   "anchor": "custom_components/heatpump_optimizer/defrost.py:_interp_position CMP_BOUND 7b9d8278",
+   "file": "custom_components/heatpump_optimizer/defrost.py",
+   "line": 181,
+   "kind": "CMP_BOUND",
+   "old": "if value <= centers[0]:",
+   "new": "if value < centers[0]:",
+   "fast_net_ran": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/env_drift.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ],
+   "deferred_slow": [
+    "tests/harness_headers.py",
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "should_have_failed": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ],
+   "full_net": "SURVIVED",
+   "full_net_killed_by": []
+  }
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_c0bd33b7c209982d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_c0bd33b7c209982d.py",
+  "rc": 0,
+  "results": [
+   "RESULT at_first_centre baseline=(0, 0.0) mutant=(0, 0.0)",
+   "RESULT interp_tuple_moves=0 of 76 count",
+   "RESULT factor_max_abs_delta=0.0 over 8892 (t,h) pairs x 6 learners",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.86",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": [
+   "every temperature and humidity centre, +-1e-9 around each, its negation, +-100, 0, +-inf, nan, on 6 fully learned learners (8892 factor pairs)"
+  ],
+  "baseline_value": null,
+  "mutant_value": null,
+  "load1": 0.86,
+  "thread_factor": 1.0
+ },
+ "should_fail": "none: at value == centers[0] the loop's first cell returns (0, (c0 - c0)/span) = (0, 0.0), the tuple the guard returns",
+ "equivalence": "identical (i, u) at the boundary; factor_max_abs_delta 0.0"
+}

@@ -1,0 +1,51 @@
+{
+ "key": "8fbdb8a5c1e67d5e",
+ "site": "dhw_planner.py:1343 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1343,
+ "patch": "horizon = min(n_steps, max(1, int(round(2.0 / max(dt, 1e-6))))) -> horizon = min(n_steps, max(1, int(round(2.0 / (dt)))))",
+ "function": "DhwPlanner._build_dhw_requirements",
+ "cluster": "dhw_planner.py:DhwPlanner._build_dhw_requirements@1138-1348",
+ "slice": "u1c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3531.3,
+  "load1_start": 0.93,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/gates/8fbdb8a5c1e67d5e.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8fbdb8a5c1e67d5e"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_8fbdb8a5c1e67d5e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_8fbdb8a5c1e67d5e.py",
+  "baseline_value": "inputs_separating=0 of 100",
+  "mutant_value": "inputs_separating=0 of 100",
+  "inputs_tried": [
+   "dt 0.25, 1.0, 1e-7, 1e-9, 0 (ZeroDivisionError at line 1214 in both arms), -0.25, -1.0, -1e-9, NaN (ValueError in both), +inf",
+   "tanks 30/44/46/50/60 C",
+   "n 8 and 24",
+   "all-day window, external heat on"
+  ],
+  "production_reach": "none found: only dt <= 0 can differ; dt == 0 and NaN raise earlier in both arms, and for dt < 0 the planners plan nothing to suppress"
+ },
+ "should_fail": {
+  "script": "none: no input separates the arms",
+  "assertion": "n/a"
+ }
+}

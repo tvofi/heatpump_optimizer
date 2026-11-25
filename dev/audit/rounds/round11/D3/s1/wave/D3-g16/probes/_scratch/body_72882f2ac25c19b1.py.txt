@@ -1,0 +1,35 @@
+OLD = "surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None)"
+NEW = "surplus = (surplus - space_demand[: len(prices)])"
+MUT = mutant_method("_dhw_planning_prices", OLD, NEW)
+from custom_components.heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+from custom_components.heatpump_optimizer.optimizer import OptimizationConfig  # noqa: E402
+
+CFG = OptimizationConfig(horizon_hours=4, time_step_minutes=60)  # pv_export_price default 0.0
+MODEL = ThermalModel(ThermalParameters(dhw_enabled=True))
+
+
+def planning_prices(prices, surplus, space_demand=None, p_run=3.0, fn=None):
+    """DhwPlanner._dhw_planning_prices: the per-step prices the DHW planners rank steps by."""
+    planner = DhwPlanner(MODEL, CFG, None if surplus is None else np.asarray(surplus, dtype=float), None)
+    return (fn or DhwPlanner._dhw_planning_prices)(planner, np.asarray(prices, dtype=float), p_run, space_demand)
+
+# Co-optimization replan: 1 kW of PV surplus at step 0, but the space-heating profile already takes 3 kW there.
+prices = [2.0, 2.5, 3.0, 3.5]
+surplus = [1.0, 0.0, 0.0, 0.0]
+space = np.array([3.0, 0.0, 0.0, 0.0])
+b = planning_prices(prices, surplus, space)
+m = planning_prices(prices, surplus, space, fn=MUT)
+print(f"# baseline={np.round(b, 4).tolist()} mutant={np.round(m, 4).tolist()}")
+print(f"RESULT step0_price_baseline={b[0]:.6f} per-kWh")
+print(f"RESULT step0_price_mutant={m[0]:.6f} per-kWh")
+print(f"RESULT cheapest_step_baseline={int(np.argmin(b))}")
+print(f"RESULT cheapest_step_mutant={int(np.argmin(m))}")
+inputs = {"space_below_surplus": np.array([0.5, 0, 0, 0]), "space_equals_surplus": np.array([1.0, 0, 0, 0]),
+          "no_space_profile": None, "space_zero": np.zeros(4)}
+moved = []
+for name, sd in inputs.items():
+    bb, mm = planning_prices(prices, surplus, sd), planning_prices(prices, surplus, sd, fn=MUT)
+    if not np.array_equal(bb, mm):
+        moved.append(name)
+print(f"RESULT null_inputs_moved={len(moved)} of {len(inputs)} ({','.join(moved) or '-'})")
+footer()

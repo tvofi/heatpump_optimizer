@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_efea9d49d605beaa.py: pins efea9d49d605beaa (equivalent-candidate if the full gate survives): moves only at pin == 0.5 (2 of 54 grid inputs); 0 of 18 production-domain inputs and 0 of 6 production calls move

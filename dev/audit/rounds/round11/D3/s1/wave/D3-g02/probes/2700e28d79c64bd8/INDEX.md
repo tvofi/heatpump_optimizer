@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_2700e28d79c64bd8.py: pins buffer-cooling samples taken (and rate written) from one quiet interval ending exactly 4.0 K above ambient, 24.5 -> 24.0 C over 3 h (implied 0.98 C/h, inside the 35 L bounds) (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

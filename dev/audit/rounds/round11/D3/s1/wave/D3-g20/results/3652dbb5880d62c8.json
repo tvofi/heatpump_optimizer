@@ -1,0 +1,79 @@
+{
+ "key": "3652dbb5880d62c8",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3969 CMP_BOUND",
+ "patch": "pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3) -> pinned = (dhw_power > 1e-6) & (space_power > headroom - 1e-3)",
+ "function": "HeatPumpOptimizer._co_optimize",
+ "cluster": "optimizer.py:HeatPumpOptimizer._co_optimize@3969-3997",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2823.3,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/3652dbb5880d62c8.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_3652dbb5880d62c8.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_3652dbb5880d62c8.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=42 count",
+   "RESULT inputs_moved=4 count",
+   "RESULT moved dhw=1.0000000000000002e-06 space=tie head-1e-3 (4.9989989999999995): baseline(status,pinned)=('replanned', 1) mutant=('ok', 0)",
+   "RESULT moved dhw=1.0 space=tie head-1e-3 (3.999): baseline(status,pinned)=('replanned', 1) mutant=('ok', 0)",
+   "RESULT moved dhw=4.0 space=tie head-1e-3 (0.999): baseline(status,pinned)=('replanned', 1) mutant=('ok', 0)",
+   "RESULT moved dhw=5.0 space=tie head-1e-3 (-0.001): baseline(status,pinned)=('replanned', 1) mutant=('ok', 0)",
+   "RESULT focus dhw=1.0 space=tie head-1e-3 (3.999): baseline(status,pinned)=('replanned', 1) mutant=('ok', 0)",
+   "RESULT null_delta=0 count (dhw=1.0 space=1.0: far from both edges)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "(replanned, 1 pinned step) at space == headroom - 1e-3 exactly, dhw 1.0 kW",
+  "mutant_value": "(ok, 0): the DHW re-plan is skipped",
+  "inputs_tried": "42: dhw {0,1e-6,next/prev(1e-6),1,4,5} kW x space {head-2e-3, head-1e-3 (tie), prev/next of the tie, head, 0}; moved 4, exactly the tie rows with dhw > 1e-6"
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py (one of tests/block_duty, doc_claims, entities, env_drift, features, manual_plan, optimality, plan_view, validate.py) has no co-optimize case with space power at exactly headroom - 1e-3",
+ "finding": {
+  "title": "DHW co-optimize pin test `space >= headroom - 1e-3` is unpinned at its tolerance edge",
+  "claim": "With >= made >, HeatPumpOptimizer._co_optimize no longer pins a step whose space power is exactly headroom - 1e-3 and skips the DHW re-plan (status replanned -> ok), and the full gate stays green.",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "metric_definition": "(status, pinned steps handed to the DHW re-plan) from _co_optimize on a one-step input, recording planner stand-in",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._co_optimize",
+  "perturbation": {
+   "change": "the key's one-line mutant, applied in memory by the probe",
+   "expected_direction": "(replanned, 1) -> (ok, 0) under the mutant"
+  },
+  "null_control": "dhw 1.0, space 1.0: null_delta 0",
+  "stop_rule_class": "bug",
+  "proposed_fix_scope": "tests: a tolerance-edge case; measure-zero in production",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_3652dbb5880d62c8.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_3652dbb5880d62c8.py"
+ }
+}

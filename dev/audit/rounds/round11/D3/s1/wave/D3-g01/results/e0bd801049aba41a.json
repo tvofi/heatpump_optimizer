@@ -1,0 +1,48 @@
+{
+ "key": "e0bd801049aba41a",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4524 CLAMP_DROP",
+ "patch": "dt_hours = max(ctx._opt_config.dt_hours, 1e-6) -> dt_hours = (ctx._opt_config.dt_hours)",
+ "function": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps@4497-4538",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3226.8,
+  "child_cpu_s": 5458.2,
+  "load1_start": 0.86,
+  "load1_end": 1.0,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e0bd801049aba41a",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/gates/e0bd801049aba41a.json",
+ "provisional": "wall/cpu/load are provisional (nproc 4, Intel Xeon @ 2.30GHz, box alone); counts final",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_e0bd801049aba41a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_e0bd801049aba41a.py",
+  "metric": "space-pump service calls with a fresh plan, across plan step lengths",
+  "baseline_value": "[('turn_on', 'switch.space')] at the production 15-min step",
+  "mutant_value": "identical (moved 0 at every production step)",
+  "inputs_tried": [
+   "production dt_hours 0.25 for configs {}, time_step_minutes 0 / 5, horizon 48 (time_step_minutes is never read from config)",
+   "direct frozen-ctx writes: step 15, 5, 1, 1e-5, 6e-5, 1e-6 min (identical)",
+   "step 0 min (baseline turn_on, mutant ZeroDivisionError: unreachable)"
+  ],
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps"
+ },
+ "should_fail": "none through production: OptimizationConfig.time_step_minutes is the 15.0 default (optimizer.py:2667) and no config key sets it",
+ "non_finding": "mutant e0bd801049aba41a at custom_components/heatpump_optimizer/coordinator.py:4524 is not killed by the full gate (verdict RED-AS-NULL) and is equivalent on every input tried: none through production: OptimizationConfig.time_step_minutes is the 15.0 default (optimizer.py:2667) and no config key sets it"
+}

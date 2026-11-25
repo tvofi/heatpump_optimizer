@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_0ea7620ce058c489.py: Metric: the learned weekday shape factor at 08:00 after N alternating observed days (PriceShapeModel.observe_day), and predict() there. (output probe_0ea7620ce058c489.out; shared reach: reach_sweep.py)

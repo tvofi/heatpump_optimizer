@@ -1,0 +1,61 @@
+{
+ "key": "ee2d5a67d9d3a7f9",
+ "site": "grid_fee.py:329 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/grid_fee.py",
+ "line": 329,
+ "patch": "if self.mode == MODE_NONE or n == 0: -> if False:",
+ "function": "GridFeeSchedule.fee_vector",
+ "cluster": "grid_fee.py:GridFeeSchedule.fee_vector@329-329",
+ "slice": "u1d",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "m4_carried": "ee2d5a67d9d3a7f9 (u1d): falls through for MODE_NONE; likely near-equivalent. Should fail: a fee_vector check with mode none and a stale rules list asserting all zeros.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2889.8,
+  "load1_start": 0.72,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/ee2d5a67d9d3a7f9.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/ee2d5a67d9d3a7f9.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ee2d5a67d9d3a7f9",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_ee2d5a67d9d3a7f9.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_ee2d5a67d9d3a7f9.py",
+  "baseline_value": "differing_cases=0 (self); mode_none_active=0",
+  "mutant_value": "differing_cases=4 of 36, all entity mode with n == 0 (IndexError on step_starts[0]); differing_mode_none_cases=0; production_deliverable_differing=0",
+  "inputs_tried": "mode in {none, rules, entity} x n in {0, 1, 96} x entity value in {None, 0.4} x rules in {[], [Nov-Mar Mon-Fri 06-22 = 0.5, = 0.1]}",
+  "reach": "Mode none with stale rules returns zeros either way (current_fee returns 0.0 in mode none), refuting the carried M4 test idea; only n == 0 in entity mode moves, and the one production caller (coordinator.py:7272 via _fee_series) is gated on schedule.active and passes n_steps > 0. Equivalent at the production seam.",
+  "result_lines": [
+   "RESULT cases_tried=36 count",
+   "RESULT differing_cases=4 count",
+   "RESULT differing_mode_none_cases=0 count",
+   "RESULT production_deliverable_differing=0 count",
+   "RESULT mode_none_active=0 count",
+   "RESULT thread_factor=1.000 ratio",
+   "RESULT load1=1.65",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none at the production seam: the caller never passes n == 0."
+}

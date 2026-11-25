@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_b028ad9d6c702965.py: step-4 probe for b028ad9d6c702965; pins length of the warm-start plan _warm_seeded hands the fresh per-solve optimizer (`_prev_shipped_plan`) when the coordinator holds a previous plan (0 = no warm st (output beside it, .out)

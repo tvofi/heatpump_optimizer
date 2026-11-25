@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_201955bf671ce8aa.py: Metric: _dhw_mixed_water()'s outcome at shower_flow_lpm = 0 (baseline omits shower_minutes; mutant divides by zero), and whether the options flow lets 0 (or anything below 4) be stored.

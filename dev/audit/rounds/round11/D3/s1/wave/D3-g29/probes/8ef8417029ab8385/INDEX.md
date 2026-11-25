@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_8ef8417029ab8385.py: Metric: the survival fraction stored_heat_survival(ua, cap, demand) returns when the tank cap equals the reference ambient (span 0). (output probe_8ef8417029ab8385.out; shared reach: reach_sweep.py)

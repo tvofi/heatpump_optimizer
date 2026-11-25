@@ -1,0 +1,35 @@
+{
+ "key": "1f4a10ae90bbf2d9",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1705 CMP_BOUND",
+ "patch": "dt = utc_elapsed_seconds(rows[-1].when, rows[-2].when) / 3600.0 if len(rows) > 1 else 0.25 -> dt = utc_elapsed_seconds(rows[-1].when, rows[-2].when) / 3600.0 if len(rows) >= 1 else 0.25",
+ "function": "SystemIdentification._unadoptable",
+ "cluster": "sysid.py:SystemIdentification._unadoptable@1705-1715",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3601.2,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/1f4a10ae90bbf2d9.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1f4a10ae90bbf2d9",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_1f4a10ae90bbf2d9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_1f4a10ae90bbf2d9.py",
+  "baseline_value": "refusal string (dt 0.25 h default) at 1 settling row",
+  "mutant_value": "raised IndexError at 1 settling row",
+  "inputs_tried": "0/1/2/4 settling rows called directly: only 1 row moves (IndexError from rows[-2]); driving step() from SETTLING at 15/30/60/90-min cadence, _unadoptable is reached 4 times, always with >= 2 settling rows (the first settling call has elapsed 0 < settle_hours 1.0, a constant the coordinator never sets), so the one-row input is unreachable",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_1f4a10ae90bbf2d9.out"
+ },
+ "should_fail": "none reachable: production reaches _unadoptable only with >= 2 settling rows"
+}

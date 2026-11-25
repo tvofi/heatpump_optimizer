@@ -1,0 +1,16 @@
+# re-fire run 2026-11-25T00:48:50Z, baseline scratch copy (git archive 92d38ecb), nproc 4,  Intel(R) Xeon(R) Processor @ 2.10GHz, load1 1.10
+RESULT production_shaped_moved=0 of 144 []
+RESULT baseline_paths joint_shortcut=48 per_slot=96 count
+RESULT slot_at_1e-06_tank_room baseline=1e-06 mutant=0.6
+RESULT slot_at_9.999999999999997e-07_tank_room baseline=9.999999999999997e-07 mutant=9.999999999999997e-07
+RESULT slot_at_1.0000000000000002e-06_tank_room baseline=0.6 mutant=0.6
+RESULT slot_at_1e-06_tank_full baseline=1e-06 mutant=0.0
+RESULT slot_at_9.999999999999997e-07_tank_full baseline=9.999999999999997e-07 mutant=9.999999999999997e-07
+RESULT slot_at_1.0000000000000002e-06_tank_full baseline=0.0 mutant=0.0
+RESULT slot_kw_at_1e-6_baseline=1e-06
+RESULT slot_kw_at_1e-6_mutant=0.6
+RESULT boundary_inputs_moved=2 of 6
+RESULT thread_factor=1.000
+RESULT load1=1.10
+RESULT swapins=0
+rc=0

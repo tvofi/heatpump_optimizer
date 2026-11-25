@@ -1,0 +1,62 @@
+{
+ "key": "e11dcf62611a5d1c",
+ "site": "dhw_planner.py:1872 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1872,
+ "patch": "if runnable > plan[j] + room_kw + 1e-9: -> if runnable >= plan[j] + room_kw + 1e-9:",
+ "function": "DhwPlanner._repair_dhw_floor",
+ "cluster": "dhw_planner.py:DhwPlanner._repair_dhw_floor@1800-1893",
+ "slice": "u1d",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "m4_carried": "e11dcf62611a5d1c (u1d): `>` -> `>=` with a 1e-9 epsilon: exact-boundary only; near-equivalent.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2995.5,
+  "load1_start": 0.78,
+  "load1_end": 0.96,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/e11dcf62611a5d1c.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/e11dcf62611a5d1c.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e11dcf62611a5d1c",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_e11dcf62611a5d1c.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_e11dcf62611a5d1c.py",
+  "baseline_value": "exact_ties=0 at 89 bisected crossings (17978 inputs tried); comparisons_not_positive_plain=0 of 2510 reached",
+  "mutant_value": "differing_at_ties=0; identical plans on every input tried",
+  "inputs_tried": "89 double-precision crossings of line 1870's boundary bisected over 400 seeded near-ceiling calls, 100 doubles either side (17978 inputs); 1500 seeded calls (2510 comparisons reached)",
+  "reach": "Inside the line-1870 branch new_level < min_run_power - 1e-9 and, with min_run_power <= p_dhw_max, runnable - (plan[j] + room_kw) is never on the 1e-9 boundary: no exact tie exists in the inputs tried. Equivalent-candidate.",
+  "result_lines": [
+   "RESULT crossings_bisected=89 count",
+   "RESULT inputs_tried_at_crossings=17978 count",
+   "RESULT exact_ties=0 count",
+   "RESULT differing_at_ties=0 count",
+   "RESULT comparisons_reached_plain=2510 count",
+   "RESULT comparisons_not_positive_plain=0 count",
+   "RESULT thread_factor=1.000 ratio",
+   "RESULT load1=1.68",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none: no input found where runnable == plan[j] + room_kw + 1e-9."
+}

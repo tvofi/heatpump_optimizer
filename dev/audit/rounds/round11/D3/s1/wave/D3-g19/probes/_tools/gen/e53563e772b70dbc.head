@@ -1,0 +1,15 @@
+# Metric: number of solar_peak_indices _analyze_forecast_trajectory returns for an 8-step forecast with exactly 200.0 W/m2 at step 3.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_e53563e772b70dbc.py
+# EXPECTED RESULT peaks_baseline=0 count
+# EXPECTED RESULT peaks_mutant=1 count
+# EXPECTED RESULT moved=1 count
+# EXPECTED RESULT other_keys_delta=0 count  (solar_peak_indices is the only output that moves)
+# EXPECTED RESULT null_delta=0 count  (199.9 and 200.1 W/m2)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory (line 4229
+#   `solar_peak_mask = solar_radiation > 200.0`), called once per solve at optimizer.py:4377; its dict shapes the initial guess and is
+#   published as the plan's predictive_info (solar_reduction_factor, pre_heat_urgency, ...).
+# Perturbation: `solar_peak_mask = solar_radiation > 200.0` -> `solar_peak_mask = solar_radiation >= 200.0` (CMP_BOUND e53563e772b70dbc), applied in memory (method recompiled from its own
+#   source, called on the same optimizer instance for the mutant arm only). Direction: peak count 0 -> 1 at exactly 200 W/m2.
+# Null control: the same forecast at 199.9 and at 200.1 W/m2.
+# Inputs tried: 200.0 at one step; 199.9; 200.1.

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_031dba68286ccfbf.py: pins comfort_learned_weight after _apply_learner_payloads restores a snapshot whose comfort learner differs from the fresh state; baseline 8.0, mutant 5.0 (the snapshot's comfort learner is ignored) (candidate)

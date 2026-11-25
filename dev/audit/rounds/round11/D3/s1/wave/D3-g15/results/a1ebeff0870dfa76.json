@@ -1,0 +1,118 @@
+{
+ "key": "a1ebeff0870dfa76",
+ "site": "dhw_planner.py:784 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 784,
+ "patch": "if need > boost_top: -> if need >= boost_top:",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3381.9,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5588.8,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/a1ebeff0870dfa76.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a1ebeff0870dfa76"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+  "baseline_value": "tie_runup_steps_baseline=6 count",
+  "mutant_value": "tie_runup_steps_mutant=0 count",
+  "results": {
+   "boost_top": "60.0 C",
+   "tie_inputs_tried": "601 count",
+   "tie_hits": "16 count",
+   "moved_near_tie": "16 count",
+   "moved_under_tie": "16 count",
+   "tie_draw_kw": "7.246988794418304",
+   "tie_runup_steps_baseline": "6 count",
+   "tie_runup_steps_mutant": "0 count",
+   "tie_ceiling_step39_baseline": "60.0 C  tie_ceiling_step39_mutant=55.0 C",
+   "tie_requirement_step39_baseline": "60.0000 C  mutant=20.0000 C",
+   "moved_random": "0 count",
+   "sweep_configs_with_ties": "16/30 count",
+   "sweep_ties_moved": "267 count",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.46",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "draw at the cycle step bisected to the need == 60 C crossing and +-300 floats (601 inputs), 200 L tank 55/60 C, cooling 0.1 C/h, 4 kW run, 0 C outdoor; a 30-configuration sweep (sweep_configs_with_ties) found ties in 16 of them; 60 seeded random draws",
+  "reading": "at an exact tie need == boost_top (16 of 601 draws scanned at the crossing, in-range parameters) the baseline keeps the run-up (6 steps; ceiling at step 39 60 C, requirement 60 C), the mutant cuts it (0 steps; 55 C, 20 C); off the tie no draw separates (moved_near_tie=16 = the ties; moved_random=0)",
+  "thread_factor": 1.0,
+  "load1": 3.46
+ },
+ "should_fail": "tests/features.py (executes line 784 on its traced baseline; its check 'legionella ceilings: with the rating at the charge limit no step's ceiling moves ...' at line 12109 drives _dhw_legionella_ceilings directly) lacks an assertion at the need == boost_top boundary that the run-up is kept",
+ "finding": {
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "title": "No check pins the legionella run-up walk at need == boost top (`>` vs `>=`)",
+  "severity": "low",
+  "claim": "Mutant a1ebeff0870dfa76 at dhw_planner.py:784 (if need > boost_top: -> if need >= boost_top:) survives the full gate (RED-AS-NULL), yet the probe moves: run-up steps the ceilings stage writes at an exact need == boost_top tie: baseline 6, mutant 0.",
+  "mechanism": "at an exact tie need == boost_top (16 of 601 draws scanned at the crossing, in-range parameters) the baseline keeps the run-up (6 steps; ceiling at step 39 60 C, requirement 60 C), the mutant cuts it (0 steps; 55 C, 20 C); off the tie no draw separates (moved_near_tie=16 = the ties; moved_random=0). Check that should have failed (D3.M4): tests/features.py (executes line 784 on its traced baseline; its check 'legionella ceilings: with the rating at the charge limit no step's ceiling moves ...' at line 12109 drives _dhw_legionella_ceilings directly) lacks an assertion at the need == boost_top boundary that the run-up is kept.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "count of run-up floor steps _dhw_legionella_ceilings writes when the walk's first need equals the boost top exactly",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_ceilings",
+  "phenomenon_property": "At need == boost_top the pump can still carry the ramp, so the run-up walk continues and writes its floors and ceilings",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+   "value": "0 count",
+   "unit": "count of run-up floor steps _dhw_legionella_ceilings writes when the walk's first need equals the boost top exactly",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 3.46,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the mutant edit at dhw_planner.py:784 (if need > boost_top: -> if need >= boost_top:) applied in memory by the probe; full gate: fullgate.py run --src complete --key a1ebeff0870dfa76",
+   "expected_direction": "to_zero",
+   "observed_value": "0 count"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+   "value": 0,
+   "note": "off-tie draws (scanned floats that are not exact ties, and 60 seeded random draws): 0 inputs differ"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_a1ebeff0870dfa76.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a1ebeff0870dfa76"
+  ],
+  "proposed_fix_scope": "tests only: a features.py check at an exact need == boost_top draw (the probe's tie_draw_kw) pinning the run-up the baseline writes",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}

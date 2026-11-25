@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_845155d368e8b524.py: step-4 probe for 845155d368e8b524; pins what _outage_reading reports at a restart whose heartbeat gap is exactly OUTAGE_GAP_MINUTES (90 min); None means 'no outage'. (output beside it, .out)

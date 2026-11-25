@@ -1,0 +1,35 @@
+{
+ "key": "9d455ff4aaf3f3e0",
+ "mutant": {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 3328,
+  "old": "                    deficit / max(cop_end, 1e-6)",
+  "new": "                    deficit / (cop_end)",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_terminal_row_cost.row_cost CLAMP_DROP 1a5e5be6"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 4
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3467.1,
+ "child_cpu_s": 5705.5,
+ "load1_start": 0.53,
+ "load1_end": 1.02,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

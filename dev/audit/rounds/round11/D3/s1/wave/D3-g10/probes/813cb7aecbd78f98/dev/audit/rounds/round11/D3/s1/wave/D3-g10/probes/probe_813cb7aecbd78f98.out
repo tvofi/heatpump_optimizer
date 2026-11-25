@@ -1,0 +1,8 @@
+RESULT tie_baseline=(accum_cm,damped)(2.0, True)
+RESULT tie_mutant=(accum_cm,damped)(2.0, False)
+RESULT null_moved=0 count over 2 null inputs (accum, gap_h, rate) [(1.5, 0.0, 0.0), (2.5, 0.0, 0.0)]
+RESULT inputs_tried=3 count
+RESULT probe_cpu_s=0.01 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0

@@ -1,0 +1,6 @@
+RESULT production_dt_h=0.25 min_idx=4
+RESULT moved_lengths_at_production_dt=0 of 201 count
+RESULT offgrid_step180min baseline_leads=4 mutant_leads=5 count
+RESULT thread_factor=1.009 ratio
+RESULT load1=1.24
+RESULT swapins=0 count

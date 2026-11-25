@@ -1,0 +1,12 @@
+RESULT tie_temp=60.01999856691201 C max_temp_step3=61.11999856691201 C
+RESULT plan_baseline=[0,0,0,0,0,0,0,0,1.13391471,2.03671589,0,0]
+RESULT plan_mutant=[0,0,0,0.1,0,0,0,0,1.07658536,2.03677205,0,0]
+RESULT step3_baseline=0 kW
+RESULT step3_mutant=0.1 kW
+RESULT delta_kw=0.1 kW
+RESULT null_delta_kw=0 kW
+RESULT sweep_inputs=120 sweep_differing_inputs=0
+RESULT inputs_tried=exact tie temps[4]==ceiling[3]-0.1 (max_temp searched by nextafter); ceiling 2 ulp up (null); 120 random (0 differ)
+RESULT thread_factor=1.000
+RESULT load1=1.18
+RESULT swapins=0

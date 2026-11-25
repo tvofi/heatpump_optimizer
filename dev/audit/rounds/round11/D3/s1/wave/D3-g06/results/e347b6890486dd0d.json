@@ -1,0 +1,123 @@
+{
+ "key": "e347b6890486dd0d",
+ "site": "coordinator.py:9447 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/coordinator.py",
+ "patch": "if not np.isfinite(y): -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains@9437-9452",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3133.3,
+  "load1_start": 0.34,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/e347b6890486dd0d.json",
+  "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e347b6890486dd0d",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+  "rc": 0,
+  "baseline_value": "0.3",
+  "mutant_value": "nan",
+  "cases": {
+   "res_nan": [
+    "0.3",
+    "nan"
+   ],
+   "res_inf": [
+    "0.3",
+    "0.9"
+   ]
+  },
+  "cases_moved": 2,
+  "null_moved": 0,
+  "nulls": {
+   "res0p1": "0.4",
+   "res0": "0.3"
+  },
+  "inputs_tried": [
+   "res_nan: residual=float('nan')",
+   "res_inf: residual=float('inf')",
+   "null res0p1: residual=0.1",
+   "null res0: residual=0.0"
+  ],
+  "thread_factor": "1.000",
+  "load1": "0.80",
+  "metric": "hour 19 of the learned internal-gains profile after one dark fold",
+  "reach": "the production caller drops a non-finite residual first (coordinator.py:5805 `if not np.isfinite(residual): return clean`) and capacity/dt_h are finite, so a non-finite y needs a direct call or an overflow"
+ },
+ "should_fail": "tests/features.py #53 internal-gains block; no check feeds a non-finite residual and asserts the profile stays finite",
+ "class": "candidate",
+ "finding": {
+  "title": "No check feeds _fold_internal_gains a non-finite residual; dropping the isfinite guard is unseen",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "severity_claimed": "low",
+  "severity": "low",
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "claim": "Mutant e347b6890486dd0d at coordinator.py:9447 GUARD_OFF (if not np.isfinite(y): -> if False:) RED-AS-NULL the full GATE_SCOPE=full GOLDEN_MODE=drift gate on box D3-g06, yet its probe moves on 2 of 2 inputs: res_nan baseline 0.3, mutant nan.",
+  "mechanism": "Direction: baseline keeps hour 19 at the prior 0.3; the mutant writes NaN into it (np.clip passes NaN), permanently. Reach: the production caller drops a non-finite residual first (coordinator.py:5805 `if not np.isfinite(residual): return clean`) and capacity/dt_h are finite, so a non-finite y needs a direct call or an overflow. Check that should have failed (D3.M4): tests/features.py #53 internal-gains block; no check feeds a non-finite residual and asserts the profile stays finite.",
+  "metric_definition": "hour 19 of the learned internal-gains profile after one dark fold",
+  "phenomenon_property": "_fold_internal_gains never writes a non-finite or unclipped value into the hourly profile",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivor wave list; full-gate survivors are its keys whose gates/<key>.json verdict is SURVIVED or RED-AS-NULL)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_internal_gains",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+   "value": "nan",
+   "unit": "hour 19 of the learned internal-gains profile after one dark fold (input res_nan; baseline 0.3)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g06: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's full gates ran (one gate at a time)",
+   "tolerance": "exact",
+   "load1": 0.8,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant if not np.isfinite(y): -> if False: at coordinator.py:9447 GUARD_OFF, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e347b6890486dd0d",
+   "expected_direction": "up",
+   "observed_value": "nan"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+   "value": "0 count",
+   "note": "null inputs res0p1, res0: both arms agree; full-gate null on this box: gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_e347b6890486dd0d.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e347b6890486dd0d"
+  ],
+  "proposed_fix_scope": "tests only: a check at the input above that pins the baseline outcome (res_nan: 0.3)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

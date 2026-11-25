@@ -1,0 +1,10 @@
+INPUTS production(from_dict) var x days=[(0.0, 0), (0.0, 1), (0.0, 5), (0.0, 9), (-0.0, 0), (-0.0, 1), (-0.0, 5), (-0.0, 9), (1e-12, 0), (1e-12, 1), (1e-12, 5), (1e-12, 9), (0.04, 0), (0.04, 1), (0.04, 5), (0.04, 9), (-0.01, 0), (-0.01, 1), (-0.01, 5), (-0.01, 9), (-5.0, 0), (-5.0, 1), (-5.0, 5), (-5.0, 9)] x levels=(0.0, -0.0, 0.5, 2.0, -0.3, 1e-300, 1e+300) x 5 instants
+RESULT prod_differ=0 count (of 840 calls)
+RESULT null_differ=0 count (var 0.04, trust 1)
+RESULT direct_var-1e-3_level0.5 baseline=0.0 mutant=0.0 differ=0
+RESULT direct_var0_level_inf baseline=0.0 mutant=nan differ=5
+RESULT direct_var0_level_nan baseline=0.0 mutant=nan differ=5
+RESULT direct_var-0.0_level_inf baseline=0.0 mutant=nan differ=5
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

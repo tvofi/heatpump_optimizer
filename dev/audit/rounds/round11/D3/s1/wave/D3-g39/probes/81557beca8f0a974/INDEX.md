@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_81557beca8f0a974.py (+ _mutload.py): pins PeakTracker weighted accumulators and closed peak when samples carry dt_hours 0.0 / -0.0 (the only values the swap admits); baseline skips them.

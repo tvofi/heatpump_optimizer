@@ -1,0 +1,35 @@
+{
+ "key": "0aa6eaace756da92",
+ "mutant": {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+  "line": 2285,
+  "old": "                if 0.0 < plan[j] < min_run_power:",
+  "new": "                if 0.0 < plan[j] <= min_run_power:",
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first CMP_BOUND 2befee09"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3286.1,
+ "child_cpu_s": 5465.6,
+ "load1_start": 0.87,
+ "load1_end": 0.97,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

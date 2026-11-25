@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g29/probes/probe_2aff1f5c0b10dffa.py: Metric: the reason classify_space_steps gives an active step whose PV surplus is exactly 1e-6 kW. (output probe_2aff1f5c0b10dffa.out; shared reach: reach_sweep.py)

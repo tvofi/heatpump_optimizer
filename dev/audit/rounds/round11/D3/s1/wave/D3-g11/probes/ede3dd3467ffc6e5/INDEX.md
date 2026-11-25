@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_ede3dd34.py: pins HeatPumpOptimizerCoordinator.async_simulate line 11214 (CMP_BOUND `if len(horizon.prices) < 4:` -> `if len(horizon.prices) <= 4:`): equivalence search: tests/config_flow_steps.py, tests/features.py execute line 11214; none can fail: the horizon is 0 or opt_config.n_steps (96) steps long, and no config

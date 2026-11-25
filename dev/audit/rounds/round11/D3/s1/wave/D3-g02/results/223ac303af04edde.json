@@ -1,0 +1,90 @@
+{
+ "key": "223ac303af04edde",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5671 GUARD_OFF",
+ "patch": "if not np.isfinite(observed): -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling@5654-5679",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3349.3,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/223ac303af04edde.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 223ac303af04edde",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_223ac303af04edde.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_223ac303af04edde.py",
+  "baseline_value": "direct call: samples 0 (both inf, both nan, prev nan, end nan); reach_nonfinite_delivered=0 of 4",
+  "mutant_value": "direct call: samples 1 and 1 save on those 4; unreachable through InputReader",
+  "inputs_tried": [
+   "prev_inf_end50",
+   "both_inf",
+   "both_nan",
+   "prev_huge",
+   "prev_huge_end_huge",
+   "prev_nan_end50",
+   "end_nan",
+   "cool_null"
+  ],
+  "result_lines": [
+   "RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)",
+   "RESULT prev_inf_end50_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_inf_end50_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_inf_end50_moved=0 count",
+   "RESULT both_inf_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT both_inf_mutant_samples=1 count rate=0.39587982935374616 saves=1",
+   "RESULT both_inf_moved=1 count",
+   "RESULT both_nan_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT both_nan_mutant_samples=1 count rate=0.39587982935374616 saves=1",
+   "RESULT both_nan_moved=1 count",
+   "RESULT prev_huge_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_huge_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_huge_moved=0 count",
+   "RESULT prev_huge_end_huge_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_huge_end_huge_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_huge_end_huge_moved=0 count",
+   "RESULT prev_nan_end50_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT prev_nan_end50_mutant_samples=1 count rate=0.39587982935374616 saves=1",
+   "RESULT prev_nan_end50_moved=1 count",
+   "RESULT end_nan_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT end_nan_mutant_samples=1 count rate=0.39587982935374616 saves=1",
+   "RESULT end_nan_moved=1 count",
+   "RESULT cool_null_baseline_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_mutant_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_moved=0 count",
+   "RESULT reach_state_nan_ok=0 problem=not_numeric",
+   "RESULT reach_state_inf_ok=0 problem=not_numeric",
+   "RESULT reach_state_minus_inf_ok=0 problem=not_numeric",
+   "RESULT reach_state_1e308_ok=0 problem=implausible",
+   "RESULT reach_nonfinite_delivered=0 count of 4",
+   "RESULT inputs_moved=4 count of 8",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.89",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "none",
+  "assertion_it_lacks": "none possible on a reachable input: moves only on non-finite temperatures passed by a direct call (4 of 8: samples 0 -> 1 and one save, rate held by @_refuses_non_finite); the sole production caller (coordinator.py:6829-6830) passes only an ok InputReader value, and InputReader refuses nan/inf/-inf (not_numeric) and 1e308 (implausible): reach 0 of 4, so no reachable input distinguishes the arms"
+ },
+ "m4_carried": null,
+ "equivalent_reason": "moves only on non-finite temperatures passed by a direct call (4 of 8: samples 0 -> 1 and one save, rate held by @_refuses_non_finite); the sole production caller (coordinator.py:6829-6830) passes only an ok InputReader value, and InputReader refuses nan/inf/-inf (not_numeric) and 1e308 (implausible): reach 0 of 4, so no reachable input distinguishes the arms"
+}

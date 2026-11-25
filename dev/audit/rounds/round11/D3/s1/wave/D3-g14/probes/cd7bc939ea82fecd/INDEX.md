@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_cd7bc939ea82fecd.py: Metric: worst simulated tank shortfall (C) below the plan's own floor/ready requirement, for a plan built with manual DHW pins forcing the cheap night steps 8-15 OFF. (needs _g14lib.py beside it; _mk.py regenerates the probes)

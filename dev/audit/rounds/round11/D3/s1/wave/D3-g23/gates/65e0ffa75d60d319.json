@@ -1,0 +1,35 @@
+{
+ "key": "65e0ffa75d60d319",
+ "mutant": {
+  "kind": "GUARD_OFF",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 6038,
+  "old": "        if p.two_tank_modelled:",
+  "new": "        if False:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps GUARD_OFF 495d6b24"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 4
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3362.3,
+ "child_cpu_s": 5553.3,
+ "load1_start": 0.85,
+ "load1_end": 0.85,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

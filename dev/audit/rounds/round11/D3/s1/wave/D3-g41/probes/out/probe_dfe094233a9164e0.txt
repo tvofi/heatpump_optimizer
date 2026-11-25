@@ -1,0 +1,12 @@
+RESULT derate_factor_m2_h90=0.7
+RESULT cop_m2_h90_baseline=np.float64(1.8987499999999997)
+RESULT cop_m2_h90_mutant=np.float64(2.7125)
+RESULT cop_m2_h90_scalar=1.8987499999999997
+RESULT inputs_tried=36 count
+RESULT moved_inputs=36 count
+RESULT null_moved=0 count
+RESULT parity_breaks_baseline=0 count
+RESULT parity_breaks_mutant=36 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=1.14
+RESULT swapins=0 count

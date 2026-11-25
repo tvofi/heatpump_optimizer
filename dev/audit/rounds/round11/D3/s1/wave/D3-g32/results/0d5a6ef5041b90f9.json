@@ -1,0 +1,84 @@
+{
+ "key": "0d5a6ef5041b90f9",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1606 GUARD_OFF",
+ "patch": "if fits(q, bound): -> if False:",
+ "function": "SystemIdentification._size_step_power",
+ "cluster": "sysid.py:SystemIdentification._size_step_power@1573-1626",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "wall_s": 3253.3,
+  "load1_start": 0.91,
+  "load1_end": 0.92,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/gates/0d5a6ef5041b90f9.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0d5a6ef5041b90f9",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+  "baseline_value": "4.353515625 kW (peak 0.6499 C under bound 0.65)",
+  "mutant_value": "4.3125 kW (peak 0.6402 C)",
+  "inputs_tried": "6 argument sets x 4 houses: 7 of 24 moved (every one where fits(q_max) fails and a grid point fits); the D2-s4-02 cell (6 kW, COP 3, 21 C, 2 C, ua 0.20, C 8.0, gains 0.3) is one of them",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.out"
+ },
+ "should_fail": "tests/features.py ~2582-2600 (D2-s4-02) sizes exactly this cell but accepts bound - 0.05 <= peak <= bound: the mutant's peak 0.6402 C lies inside [0.60, 0.65]; the assertion lacking is a tolerance at the sizer's own 0.01 kW resolution (peak within ~0.005 C of the bound), or the sized step against an independent bisection",
+ "finding": {
+  "title": "The sizer's bisection branch can be disabled unseen: the D2-s4-02 check accepts a step 0.04 kW short",
+  "claim": "Mutant 0d5a6ef5041b90f9 at sysid.py:1606 (`if fits(q, bound):` -> `if False:`) survives the full gate, yet the probe's sized step moves on 7 of 24 inputs; on tests/features.py's own D2-s4-02 cell the step falls from 4.3535 to 4.3125 kW and its peak from 0.6499 to 0.6402 C, inside that check's 0.05 C tolerance.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "electrical step power (kW) _size_step_power returns on the D2-s4-02 cell (6 kW, COP 3, 21 C base, 2 C outdoor, ua 0.20, C 8.0, gains 0.3)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+   "value": "4.3125",
+   "unit": "kW (baseline 4.353515625)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g32: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; probes ran while this box's gates ran (load1 ~1)"
+  },
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._size_step_power",
+  "perturbation": {
+   "change": "the mutant edit at sysid.py:1606 applied in memory by the probe; full gate: fullgate.py run --src complete --key 0d5a6ef5041b90f9",
+   "expected_direction": "down",
+   "observed_value": "4.3125"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+   "value": "0 count",
+   "note": "the probe's null arm, where the edit cannot matter, moves 0; the gate's null control is gates/null.json"
+  },
+  "phenomenon_property": "The sized step is the largest power whose predicted peak fits the bound, to the bisection's 0.01 kW thermal resolution",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list; this box's slice is dev/audit/rounds/round11/D3/s1/wave/D3-g32/keys.tsv)",
+  "should_fail": "tests/features.py ~2582-2600 (D2-s4-02) sizes exactly this cell but accepts bound - 0.05 <= peak <= bound: the mutant's peak 0.6402 C lies inside [0.60, 0.65]; the assertion lacking is a tolerance at the sizer's own 0.01 kW resolution (peak within ~0.005 C of the bound), or the sized step against an independent bisection",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0d5a6ef5041b90f9"
+  ],
+  "proposed_fix_scope": "tests only: tighten D2-s4-02's lower tolerance to the sizer's resolution, or compare against an independent bisection",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ]
+ }
+}

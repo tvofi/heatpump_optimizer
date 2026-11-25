@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_b020c93535a7f9e6.py: mutant b020c93535a7f9e6; pins: count of inputs (10 window sequences + a fresh window peeked with 5 stamp shapes) on which

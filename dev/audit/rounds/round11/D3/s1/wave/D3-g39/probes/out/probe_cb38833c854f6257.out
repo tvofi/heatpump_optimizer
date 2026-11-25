@@ -1,0 +1,10 @@
+RESULT boundary_c_r_baseline=0.0
+RESULT boundary_c_r_mutant=1.999999999e-09
+RESULT just_above_c_r_baseline=3.999999996e-09
+RESULT just_above_c_r_mutant=3.999999996e-09
+RESULT zero_c_r_baseline=0.0
+RESULT zero_c_r_mutant=0.0
+RESULT ordinary_baseline=2.4
+RESULT ordinary_mutant=2.4
+RESULT cases_moved=1
+RESULT null_cases_moved=0

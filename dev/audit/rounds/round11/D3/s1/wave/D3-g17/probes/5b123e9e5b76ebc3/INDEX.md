@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_5b123e9e5b76ebc3.py (stored as .py.txt):  planned power (kW) at the step whose initial plan sits exactly at p_dhw_max - 1e-6, and the plan's price-weighted sum.

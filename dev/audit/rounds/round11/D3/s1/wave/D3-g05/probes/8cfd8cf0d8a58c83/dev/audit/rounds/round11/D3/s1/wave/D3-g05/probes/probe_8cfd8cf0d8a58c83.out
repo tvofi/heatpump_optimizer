@@ -1,0 +1,7 @@
+RESULT lead_idx=[4, 12, 24, 48, 96]
+RESULT moved_lengths=[4, 12, 24, 48, 96] (mutant raises IndexError at len == a lead idx)
+RESULT solved_trajectory_lengths room=97 dhw=97 count
+RESULT at_solved_length baseline_leads=5 mutant_leads=5 count
+RESULT thread_factor=1.007 ratio
+RESULT load1=1.17
+RESULT swapins=0 count

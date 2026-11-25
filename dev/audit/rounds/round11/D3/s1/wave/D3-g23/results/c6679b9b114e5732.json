@@ -1,0 +1,65 @@
+{
+ "key": "c6679b9b114e5732",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5228 CMP_BOUND",
+ "patch": "pin = float(space_pins[i]) if i < len(space_pins) else float(\"nan\") -> pin = float(space_pins[i]) if i <= len(space_pins) else float(\"nan\")",
+ "function": "HeatPumpOptimizer._safety_release_steps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps@5222-5250",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3430.1,
+  "child_cpu_s": 5704.1,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c6679b9b114e5732",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/c6679b9b114e5732.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_c6679b9b114e5732.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_c6679b9b114e5732.py",
+  "metric": "direct_short_pins",
+  "baseline_value": "([],[])",
+  "mutant_value": "IndexError",
+  "reach": "unreachable through production: optimize() pads/truncates pins to n_steps in _normalise_pins (optimizer.py:5014-5017); 0 of 3 optimize() solves with 95/50/1-long pin arrays differ; 0 of 11 release calls over 7 manual-plan solves see a pin array shorter than the schedule",
+  "inputs_tried": [
+   "space_pins one shorter than the schedule (direct)",
+   "empty space_pins (direct)",
+   "optimize() with pin arrays of length 95, 50, 1 (winter_extreme, 16.9 C, step 0 off)",
+   "reach count over the 7 REACH_SCENARIOS"
+  ],
+  "results": [
+   "RESULT direct_short_pins_baseline=([],[])",
+   "RESULT direct_short_pins_mutant=IndexError",
+   "RESULT direct_empty_pins_baseline=([],[]) direct_empty_pins_mutant=IndexError",
+   "RESULT null_full_pins_delta=0",
+   "RESULT optimize_short_pins_differing_plans=0 of 3",
+   "RESULT reach_short_space_pins_calls=0 of 11 (over 7 manual-plan solves)",
+   "RESULT thread_factor=1.001",
+   "RESULT load1=1.72",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "none through production; only a direct _safety_release_steps call with a short pin array separates (tests/manual_plan.py drives the function only through optimize())"
+}

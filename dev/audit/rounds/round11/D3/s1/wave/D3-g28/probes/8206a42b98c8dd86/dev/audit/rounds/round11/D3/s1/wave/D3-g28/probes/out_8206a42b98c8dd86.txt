@@ -1,0 +1,8 @@
+RESULT pct_baseline=0.000 %
+RESULT pct_mutant=50.000 %
+RESULT pct_abs_diff=50.000 %
+RESULT null_baseline_cost_0p02_diff=0.000 %
+RESULT null_baseline_cost_0p009_diff=0.000 %
+RESULT thread_factor=1.000
+RESULT load1=1.45
+RESULT swapins=0

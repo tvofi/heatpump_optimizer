@@ -1,0 +1,128 @@
+{
+ "key": "4542deee22df985f",
+ "site": "coordinator.py:9440 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/coordinator.py",
+ "patch": "if capacity <= 1e-6: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains@9437-9452",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3168.0,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/4542deee22df985f.json",
+  "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4542deee22df985f",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+  "rc": 0,
+  "baseline_value": "None",
+  "mutant_value": "0.3",
+  "cases": {
+   "cap0": [
+    "None",
+    "0.3"
+   ],
+   "cap0_prior0p8": [
+    "0.8",
+    "0.79"
+   ],
+   "capneg": [
+    "None",
+    "0.29"
+   ]
+  },
+  "cases_moved": 3,
+  "null_moved": 0,
+  "nulls": {
+   "cap10": "0.4",
+   "cap10_prior0p8": "0.89"
+  },
+  "inputs_tried": [
+   "cap0: capacity=0.0",
+   "cap0_prior0p8: capacity=0.0, prior19=0.8",
+   "capneg: capacity=-1.0",
+   "null cap10: capacity=10.0",
+   "null cap10_prior0p8: capacity=10.0, prior19=0.8"
+  ],
+  "thread_factor": "1.000",
+  "load1": "1.09",
+  "metric": "hour 19 of the learned internal-gains profile after one dark fold (None: no profile formed)",
+  "reach": "capacity is _zone_capacity(params), the zone's thermal mass from _house_loss_terms; zero or negative needs a degenerate room/zone mass"
+ },
+ "should_fail": "tests/features.py #53 internal-gains block folds only the default zone mass; no check folds with a zero thermal mass and asserts the profile untouched",
+ "class": "candidate",
+ "finding": {
+  "title": "No check folds internal gains with a zero zone mass; dropping the capacity guard is unseen",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "severity_claimed": "low",
+  "severity": "low",
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "claim": "Mutant 4542deee22df985f at coordinator.py:9440 GUARD_OFF (if capacity <= 1e-6: -> if False:) RED-AS-NULL the full GATE_SCOPE=full GOLDEN_MODE=drift gate on box D3-g06, yet its probe moves on 3 of 3 inputs: cap0 baseline None, mutant 0.3.",
+  "mechanism": "Direction: baseline leaves the profile untouched; the mutant forms it (None -> 0.3) or pulls a learned hour toward the prior (0.8 -> 0.79), and a negative mass learns the residual's opposite sign. Reach: capacity is _zone_capacity(params), the zone's thermal mass from _house_loss_terms; zero or negative needs a degenerate room/zone mass. Check that should have failed (D3.M4): tests/features.py #53 internal-gains block folds only the default zone mass; no check folds with a zero thermal mass and asserts the profile untouched.",
+  "metric_definition": "hour 19 of the learned internal-gains profile after one dark fold (None: no profile formed)",
+  "phenomenon_property": "_fold_internal_gains leaves the profile untouched when the zone capacity is <= 1e-6",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivor wave list; full-gate survivors are its keys whose gates/<key>.json verdict is SURVIVED or RED-AS-NULL)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_internal_gains",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+   "value": "0.3",
+   "unit": "hour 19 of the learned internal-gains profile after one dark fold (None: no profile formed) (input cap0; baseline None)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g06: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's full gates ran (one gate at a time)",
+   "tolerance": "exact",
+   "load1": 1.09,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant if capacity <= 1e-6: -> if False: at coordinator.py:9440 GUARD_OFF, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4542deee22df985f",
+   "expected_direction": "up",
+   "observed_value": "0.3"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+   "value": "0 count",
+   "note": "null inputs cap10, cap10_prior0p8: both arms agree; full-gate null on this box: gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4542deee22df985f"
+  ],
+  "proposed_fix_scope": "tests only: a check at the input above that pins the baseline outcome (cap0: None)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

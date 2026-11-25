@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_5941c09a9face079.py: mutant 5941c09a9face079; pins: count of inputs on which DefrostWindow._elapsed (and the ten window sequences that call it) answer

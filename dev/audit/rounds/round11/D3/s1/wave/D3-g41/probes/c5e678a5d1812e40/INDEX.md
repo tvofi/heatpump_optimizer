@@ -1,0 +1,1 @@
+- probe_c5e678a5d1812e40.py: Metric: ThermalModel._simulate_step_two_zone's next buffer temperature (or the exception) on a throttled single-tank

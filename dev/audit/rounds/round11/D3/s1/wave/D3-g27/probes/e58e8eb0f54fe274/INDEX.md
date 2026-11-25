@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_e58e8eb0f54fe274.py: pins e58e8eb0f54fe274 (equivalent-candidate if the full gate survives): moves only at pin == 0.5 (a pin of exactly 0.5 becomes an off pin); production pins are 1.0/0.0/NaN, so 0 of 60 production-domain grid inputs and 0 of 4 production calls move

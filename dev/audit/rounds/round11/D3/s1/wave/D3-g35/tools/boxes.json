@@ -1,0 +1,190 @@
+{
+ "g01": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 822-10331"
+ },
+ "g02": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 4525-5800"
+ },
+ "g03": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 4831-10855"
+ },
+ "g04": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 4391-10445"
+ },
+ "g05": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 5083-10231"
+ },
+ "g06": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 5382-10231"
+ },
+ "g07": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 5049-9402"
+ },
+ "g08": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 5108-10603"
+ },
+ "g09": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 8900-11091"
+ },
+ "g10": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 5234-10678"
+ },
+ "g11": {
+  "n": 16,
+  "desc": "coordinator.py 16 key(s) lines 490-11271"
+ },
+ "g12": {
+  "n": 16,
+  "desc": "coordinator.py 7 key(s) lines 467-3417; defrost.py 9 key(s) lines 124-566"
+ },
+ "g13": {
+  "n": 16,
+  "desc": "defrost.py 10 key(s) lines 169-804; dhw_planner.py 6 key(s) lines 2055-2075"
+ },
+ "g14": {
+  "n": 16,
+  "desc": "dhw_planner.py 16 key(s) lines 1138-2106"
+ },
+ "g15": {
+  "n": 16,
+  "desc": "dhw_planner.py 16 key(s) lines 596-807"
+ },
+ "g16": {
+  "n": 16,
+  "desc": "dhw_planner.py 16 key(s) lines 470-2280"
+ },
+ "g17": {
+  "n": 16,
+  "desc": "dhw_planner.py 16 key(s) lines 1510-2307"
+ },
+ "g18": {
+  "n": 16,
+  "desc": "dhw_planner.py 10 key(s) lines 1613-1893; flow_lift.py 2 key(s) lines 51-232; grid_fee.py 4 key(s) lines 187-483"
+ },
+ "g19": {
+  "n": 16,
+  "desc": "grid_fee.py 4 key(s) lines 219-496; optimizer.py 12 key(s) lines 2006-4272"
+ },
+ "g20": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 3402-6097"
+ },
+ "g21": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 3997-5962"
+ },
+ "g22": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 4876-6509"
+ },
+ "g23": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 5211-6038"
+ },
+ "g24": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 3772-6559"
+ },
+ "g25": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 6565-6655"
+ },
+ "g26": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 2412-6661"
+ },
+ "g27": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 1567-2494"
+ },
+ "g28": {
+  "n": 16,
+  "desc": "optimizer.py 16 key(s) lines 1948-2172"
+ },
+ "g29": {
+  "n": 16,
+  "desc": "optimizer.py 14 key(s) lines 2286-3338; price_model.py 2 key(s) lines 66-69"
+ },
+ "g30": {
+  "n": 16,
+  "desc": "price_model.py 16 key(s) lines 72-400"
+ },
+ "g31": {
+  "n": 16,
+  "desc": "price_model.py 16 key(s) lines 141-844"
+ },
+ "g32": {
+  "n": 16,
+  "desc": "price_model.py 4 key(s) lines 544-855; sysid.py 12 key(s) lines 549-2411"
+ },
+ "g33": {
+  "n": 16,
+  "desc": "sysid.py 16 key(s) lines 1541-1942"
+ },
+ "g34": {
+  "n": 16,
+  "desc": "sysid.py 16 key(s) lines 1942-2126"
+ },
+ "g35": {
+  "n": 16,
+  "desc": "sysid.py 16 key(s) lines 2141-2246"
+ },
+ "g36": {
+  "n": 16,
+  "desc": "sysid.py 16 key(s) lines 835-2381"
+ },
+ "g37": {
+  "n": 16,
+  "desc": "sysid.py 16 key(s) lines 129-1073"
+ },
+ "g38": {
+  "n": 15,
+  "desc": "sysid.py 15 key(s) lines 266-1279"
+ },
+ "g39": {
+  "n": 15,
+  "desc": "sysid.py 3 key(s) lines 610-610; tariff.py 12 key(s) lines 128-904"
+ },
+ "g40": {
+  "n": 15,
+  "desc": "tariff.py 15 key(s) lines 528-832"
+ },
+ "g41": {
+  "n": 15,
+  "desc": "tariff.py 4 key(s) lines 588-1225; thermal_model.py 11 key(s) lines 3328-4482"
+ },
+ "g42": {
+  "n": 15,
+  "desc": "thermal_model.py 15 key(s) lines 3366-5012"
+ },
+ "g43": {
+  "n": 15,
+  "desc": "thermal_model.py 15 key(s) lines 3389-4714"
+ },
+ "g44": {
+  "n": 15,
+  "desc": "thermal_model.py 15 key(s) lines 303-4822"
+ },
+ "g45": {
+  "n": 15,
+  "desc": "thermal_model.py 15 key(s) lines 270-2583"
+ },
+ "g46": {
+  "n": 15,
+  "desc": "thermal_model.py 15 key(s) lines 2583-2998"
+ },
+ "g47": {
+  "n": 15,
+  "desc": "thermal_model.py 15 key(s) lines 2851-3080"
+ }
+}

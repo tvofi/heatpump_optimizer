@@ -1,0 +1,8 @@
+RESULT dhw_steps_at_0p1=22 count
+RESULT dhw_active_steps_logged_baseline=0
+RESULT dhw_active_steps_logged_mutant=22
+RESULT null_delta=0 count
+RESULT plan_dhw_maxabs_diff_kw=0.0000 kW
+RESULT thread_factor=1.021
+RESULT load1=1.65
+RESULT swapins=0

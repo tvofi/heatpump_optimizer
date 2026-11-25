@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_6999e2dab9790b53.py: Metric: max |schedule| difference (kW) of _build_dhw_requirements with one DHW pin exactly 0.5 at step 13 (others free). (needs _g14lib.py beside it; _mk.py regenerates the probes)

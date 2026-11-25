@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py: pins held forecast rows after one _fetch_weather_forecast whose response lacks the configured entity, no forecast held before, the weather entity's state live. (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py; output beside it as .out)

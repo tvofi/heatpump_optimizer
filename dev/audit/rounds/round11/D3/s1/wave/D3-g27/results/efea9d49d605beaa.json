@@ -1,0 +1,58 @@
+{
+ "key": "efea9d49d605beaa",
+ "site": "optimizer.py:2494 CMP_BOUND",
+ "patch": "if _pin_is_free(pin) or pin < 0.5: -> if _pin_is_free(pin) or pin <= 0.5:",
+ "function": "_mark_manual_reasons",
+ "cluster": "optimizer.py:_mark_manual_reasons@2492-2494",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3516.0,
+  "load1_start": 0.85,
+  "load1_end": 1.02,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/efea9d49d605beaa.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key efea9d49d605beaa",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_efea9d49d605beaa.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_efea9d49d605beaa.py",
+  "baseline_value": "('ok',('manual_plan',))",
+  "mutant_value": "('ok',('idle_coasting',))",
+  "example_input": "reasons=['idle_coasting'],pins=[0.5]",
+  "results": [
+   "example_input=reasons=['idle_coasting'],pins=[0.5]",
+   "output_baseline=('ok',('manual_plan',))",
+   "output_mutant=('ok',('idle_coasting',))",
+   "grid_inputs_tried=54 count",
+   "grid_inputs_moved=2 count",
+   "domain_inputs_tried=18 count",
+   "domain_inputs_moved=0 count",
+   "production_calls=8 count",
+   "production_calls_len_mismatch=0 count",
+   "production_calls_moved=0 count",
+   "production_manual_labels_baseline=3 count",
+   "production_manual_labels_mutant=3 count",
+   "production_reason_labels_changed=0 count",
+   "null_inputs_moved=0 count",
+   "null_reason_labels_changed=0 count"
+  ],
+  "inputs_tried": "production domain: reasons and pins of equal length with pins 1.0/0.0/NaN; grid_inputs_tried=54 count; domain_inputs_tried=18 count",
+  "null": [
+   "null_inputs_moved=0 count",
+   "null_reason_labels_changed=0 count"
+  ]
+ },
+ "step4": "moves only at pin == 0.5 (2 of 54 grid inputs); 0 of 18 production-domain inputs and 0 of 6 production calls move",
+ "should_fail": "tests/manual_plan.py (executes optimizer.py:2494) has no pin == 0.5 case; none is owed through production, which never builds a 0.5 pin",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "non_finding": {
+  "claim": "optimizer.py:2494 CMP_BOUND efea9d49d605beaa survives the full gate but is equivalent at every production-reachable input tried: moves only at pin == 0.5 (2 of 54 grid inputs); 0 of 18 production-domain inputs and 0 of 6 production calls move",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_efea9d49d605beaa.py",
+  "value": "grid_inputs_moved=2 count; domain_inputs_moved=0 count; production_calls_moved=0 count; production_reason_labels_changed=0 count; null_inputs_moved=0 count; null_reason_labels_changed=0 count"
+ }
+}

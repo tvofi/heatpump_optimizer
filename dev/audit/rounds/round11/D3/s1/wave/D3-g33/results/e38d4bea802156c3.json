@@ -1,0 +1,59 @@
+{
+ "key": "e38d4bea802156c3",
+ "site": "sysid.py:1546 CMP_BOUND",
+ "patch": "in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour < hour < cfg.end_hour",
+ "function": "SystemIdentification.conditions_met",
+ "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2788.3,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e38d4bea802156c3",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/e38d4bea802156c3.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py [--mutant]",
+  "metric": "open_hours_flat",
+  "baseline_value": "4",
+  "mutant_value": "3",
+  "null_metric": "open_hours_default",
+  "null_baseline": "6",
+  "null_mutant": "6",
+  "all_results_baseline": {
+   "open_hours_default": "6",
+   "open_hours_flat": "4",
+   "start_hour_open": "1",
+   "open_hours_flat06": "6",
+   "open_hours_wrap2": "4",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "open_hours_default": "6",
+   "open_hours_flat": "3",
+   "start_hour_open": "0",
+   "open_hours_flat06": "5",
+   "open_hours_wrap2": "4",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": "windows (23,5) default, (1,5), (0,6), (22,2); each over hours 0..23",
+  "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+ },
+ "reach": "unreachable through production (open_hours_default 6 under both arms)",
+ "should_fail": "none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 3 open hours)"
+}

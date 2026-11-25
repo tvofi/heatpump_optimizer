@@ -1,0 +1,9 @@
+RESULT cop_out30_baseline=5.25
+RESULT cop_out30_mutant=5.512500000000001
+RESULT inputs_tried=12 count
+RESULT moved_inputs=3 count
+RESULT null_moved=0 count (outdoor <= 27 C)
+RESULT batch_scalar_parity_breaks_mutant=3 count
+RESULT thread_factor=0.999 ratio
+RESULT load1=1.06
+RESULT swapins=0 count

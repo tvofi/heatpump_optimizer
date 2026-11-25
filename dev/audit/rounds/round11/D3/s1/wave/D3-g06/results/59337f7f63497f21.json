@@ -1,0 +1,118 @@
+{
+ "key": "59337f7f63497f21",
+ "site": "coordinator.py:9437 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/coordinator.py",
+ "patch": "if previous_time is None or dt_h <= 1e-6: -> if previous_time is None or dt_h < 1e-6:",
+ "function": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains@9437-9452",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3196.0,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/gates/59337f7f63497f21.json",
+  "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 59337f7f63497f21",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+  "rc": 0,
+  "baseline_value": "None",
+  "mutant_value": "0.9",
+  "cases": {
+   "dt1e-6": [
+    "None",
+    "0.9"
+   ]
+  },
+  "cases_moved": 1,
+  "null_moved": 0,
+  "nulls": {
+   "dt0p5": "0.4",
+   "dt0": "None"
+  },
+  "inputs_tried": [
+   "dt1e-6: dt_h=1e-6",
+   "null dt0p5: dt_h=0.5",
+   "null dt0: dt_h=0.0"
+  ],
+  "thread_factor": "1.000",
+  "load1": "0.88",
+  "metric": "hour 19 of the learned internal-gains profile after one dark fold (None: no profile formed)",
+  "reach": "dt_h is the interval since the last learning sample (coordinator.py ~5831); exactly 1e-6 h (3.6 ms) is the boundary"
+ },
+ "should_fail": "tests/features.py #53 internal-gains block (_c53, _nf_edge) folds only dt_h 0.5; no check folds at dt_h 1e-6 and asserts no profile forms",
+ "class": "candidate",
+ "finding": {
+  "title": "No check folds internal gains at dt_h exactly 1e-6 h; the dt guard boundary is unpinned",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "severity_claimed": "low",
+  "severity": "low",
+  "stop_rule_class": "hygiene",
+  "class_guess": "new",
+  "claim": "Mutant 59337f7f63497f21 at coordinator.py:9437 CMP_BOUND (if previous_time is None or dt_h <= 1e-6: -> if previous_time is None or dt_h < 1e-6:) RED-AS-NULL the full GATE_SCOPE=full GOLDEN_MODE=drift gate on box D3-g06, yet its probe moves on 1 of 1 inputs: dt1e-6 baseline None, mutant 0.9.",
+  "mechanism": "Direction: baseline forms no profile; the mutant divides the residual by 1e-6 h and pins hour 19 at the 3x cap (0.9 kW). Reach: dt_h is the interval since the last learning sample (coordinator.py ~5831); exactly 1e-6 h (3.6 ms) is the boundary. Check that should have failed (D3.M4): tests/features.py #53 internal-gains block (_c53, _nf_edge) folds only dt_h 0.5; no check folds at dt_h 1e-6 and asserts no profile forms.",
+  "metric_definition": "hour 19 of the learned internal-gains profile after one dark fold (None: no profile formed)",
+  "phenomenon_property": "_fold_internal_gains folds nothing for an interval of dt_h <= 1e-6 h",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the u1 full-net survivor wave list; full-gate survivors are its keys whose gates/<key>.json verdict is SURVIVED or RED-AS-NULL)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_internal_gains",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+   "value": "0.9",
+   "unit": "hour 19 of the learned internal-gains profile after one dark fold (None: no profile formed) (input dt1e-6; baseline None)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g06: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; the probe ran from a separate baseline worktree while this box's full gates ran (one gate at a time)",
+   "tolerance": "exact",
+   "load1": 0.88,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the one-line mutant if previous_time is None or dt_h <= 1e-6: -> if previous_time is None or dt_h < 1e-6: at coordinator.py:9437 CMP_BOUND, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 59337f7f63497f21",
+   "expected_direction": "up",
+   "observed_value": "0.9"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+   "value": "0 count",
+   "note": "null inputs dt0p5, dt0: both arms agree; full-gate null on this box: gates/null.json"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_59337f7f63497f21.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 59337f7f63497f21"
+  ],
+  "proposed_fix_scope": "tests only: a check at the input above that pins the baseline outcome (dt1e-6: None)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

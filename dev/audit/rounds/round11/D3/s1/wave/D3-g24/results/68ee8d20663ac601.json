@@ -1,0 +1,61 @@
+{
+ "key": "68ee8d20663ac601",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND",
+ "patch": "if now_s < starts[0]: -> if now_s <= starts[0]:",
+ "function": "HeatPumpOptimizer.get_current_action",
+ "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+ "slice": "u1b",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2857.5,
+  "load1_start": 0.93,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4793.0,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/68ee8d20663ac601.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 68ee8d20663ac601",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/68ee8d20663ac601.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 0,
+  "extra": {},
+  "moving_cases": [],
+  "inputs_tried": "the 21 _action_core cases, incl. now == starts[0] on a multi-step and a one-step plan",
+  "thread_factor": "1.000",
+  "load1": "1.14"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/features.py"
+  ],
+  "assertion_lacking": "none can fail: equivalent"
+ },
+ "class": "equivalent-candidate",
+ "equivalent_reason": "at now == starts[0] the pre-horizon branch picks i = 0 (gap 0 <= one step), which is the step the loop picks too",
+ "non_finding": {
+  "claim": "custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND if now_s < starts[0]: -> if now_s <= starts[0]: survives the full gate but is equivalent on every input tried: at now == starts[0] the pre-horizon branch picks i = 0 (gap 0 <= one step), which is the step the loop picks too",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+  "value": "mutant_cases_moved=0 (null 0); "
+ }
+}

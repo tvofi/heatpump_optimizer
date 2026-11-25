@@ -1,0 +1,44 @@
+{
+ "key": "9fe0782a9839475e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5701 CLAMP_DROP",
+ "patch": "n = min(len(power), len(self._pv_surplus)) -> n = (len(power))",
+ "function": "HeatPumpOptimizer._pv_self_consumed",
+ "cluster": "optimizer.py:HeatPumpOptimizer._pv_self_consumed@5699-5701",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3930.9,
+  "load1_start": 0.8,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/9fe0782a9839475e.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9fe0782a9839475e",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_9fe0782a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_9fe0782a.py",
+  "baseline_value": "power 10 / surplus 8: 1.5 kWh",
+  "mutant_value": "ValueError (broadcast)",
+  "inputs_tried": [
+   "power longer than surplus (moves)",
+   "power shorter (delta 0)",
+   "48/48 (null_delta=0.0)",
+   "7 real solves (reach_scan.py: pvsc_power_longer_than_surplus=0)"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "unreachable through production: _prepare_series slices/pads the surplus to exactly n_steps (optimizer.py:4695-4707) and every caller passes an n_steps power schedule"
+ },
+ "should_fail": "none reachable"
+}

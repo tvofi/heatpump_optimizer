@@ -1,0 +1,11 @@
+RESULT amps_0_baseline=((), None, 0)
+RESULT amps_0_mutant=((), None, 0)
+RESULT amps_negative_baseline=((), None, 0)
+RESULT amps_negative_mutant=((), None, 0)
+RESULT amps_nan_baseline=((), None, 0)
+RESULT amps_nan_mutant=((), None, 0)
+RESULT amps_0_prior_verdict_baseline=((('candidate_kw', 13.8), ('month', '2026-06')), None, 0)
+RESULT amps_0_prior_verdict_mutant=((('candidate_kw', 13.8), ('month', '2026-06')), None, 0)
+RESULT null_amps_25_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1) mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)
+RESULT cases_moved=0 count of 4
+RESULT null_moved=0 count of 1

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_8ab42c4ab9755537.py: pins two-tank INFO count and format errors (2,0 -> 4,1) (baseline vs mutant in memory; output probe_8ab42c4ab9755537.out)

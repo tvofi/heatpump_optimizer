@@ -1,0 +1,61 @@
+{
+ "key": "3b87cd840077679e",
+ "site": "grid_fee.py:445 CONST",
+ "file": "custom_components/heatpump_optimizer/grid_fee.py",
+ "line": 445,
+ "patch": "CATALOG_VERSION = 1 -> CATALOG_VERSION = 2",
+ "function": "<module>",
+ "cluster": "grid_fee.py:<module>@445-445",
+ "slice": "u1a",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "m4_carried": "3b87cd840077679e (u1a, m4_u1a_part14.json): gap. Should fail: a test pinning the catalogue version a stored config is migrated against; no test reads CATALOG_VERSION.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2836.9,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/3b87cd840077679e.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/3b87cd840077679e.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3b87cd840077679e",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_3b87cd840077679e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_3b87cd840077679e.py",
+  "baseline_value": "differing_returns=0 of 5 ids; production_readers_of_constant=1 (grid_fee.py:497, a DEBUG line)",
+  "mutant_value": "differing_returns=0 of 5; differing_debug_text=2 ('Applying DSO catalog v1' -> 'v2'); null_delta_returns=0",
+  "inputs_tried": "'none', 'ellevio_villa_effekt_2026', 'goteborg_energi_effekt_2026', 'not_a_dso', None; AST count of Name loads of CATALOG_VERSION over every production module",
+  "reach": "The only production reader is the DEBUG record at grid_fee.py:497; no config field, store key or migration reads it, so the carried M4 premise (a stored config migrated against the version) does not exist at this baseline. Equivalent at every config output; only the DEBUG text moves, so a later seat may re-class it.",
+  "result_lines": [
+   "RESULT ids_tried=5 count",
+   "RESULT differing_returns=0 count",
+   "RESULT differing_debug_text=2 count",
+   "RESULT production_readers_of_constant=1 count",
+   "RESULT null_delta_returns=0 count",
+   "RESULT thread_factor=1.000 ratio",
+   "RESULT load1=1.65",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none: no behaviour beyond a DEBUG log string reads CATALOG_VERSION."
+}

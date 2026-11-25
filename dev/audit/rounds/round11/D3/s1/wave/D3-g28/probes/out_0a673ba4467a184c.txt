@@ -1,0 +1,7 @@
+RESULT outcome_baseline=ok:0.0
+RESULT outcome_mutant=raise:ZeroDivisionError: division by zero
+RESULT mutant_raises=1
+RESULT null_fixed_speed_diff=0.000000
+RESULT thread_factor=1.000
+RESULT load1=1.31
+RESULT swapins=0

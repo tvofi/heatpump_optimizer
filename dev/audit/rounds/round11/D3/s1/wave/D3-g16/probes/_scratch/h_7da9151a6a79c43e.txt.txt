@@ -1,0 +1,17 @@
+# Metric: the tank temperature at the need step (C) of the plan DhwPlanner._plan_dhw_cheapest_first returns when a manual Off pin covers the whole lead window.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py
+# EXPECTED RESULT dhw_kw_sum_baseline=1.9870 kW
+# EXPECTED RESULT dhw_kw_sum_mutant=0.0000 kW
+# EXPECTED RESULT tank_at_need_baseline=55.451 C (requirement 55)
+# EXPECTED RESULT tank_at_need_mutant=41.891 C
+# EXPECTED RESULT null_inputs_moved=0 of 2
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_cheapest_first (custom_components/heatpump_optimizer/dhw_planner.py:2234 `if not candidates:\n            candidates = [j for`).
+# Perturbation: mutant 7da9151a6a79c43e, `if not candidates:\n            candidates = [j for` -> `if False:\n            candidates = [j for`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: nothing bought: the requirement is marked unreachable instead of being bought before the pin (55.45 C -> 41.89 C).
+# Reach: production: forced_off carries manual pins and the quiet Off window.
+# Null control: no pin and a pin outside the lead window: 0 moved.
+# Count key: the value the production method returns (never an input attribute).

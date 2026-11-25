@@ -1,0 +1,30 @@
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import optimizer as O  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalParameters, ThermalModel  # noqa: E402
+
+H = O.HeatPumpOptimizer
+opt = H(ThermalModel(ThermalParameters()), O.OptimizationConfig(
+    horizon_hours=24, time_step_minutes=60, target_temp=21.0, min_temp=19.0, max_temp=23.0))
+mut = mutated(O, H, "_analyze_forecast_trajectory", 4271, '        if avg_future_precip > 0.1:', '        if avg_future_precip >= 0.1:')
+base = H._analyze_forecast_trajectory
+
+
+def call(fn, sr, precip, out, dt=1.0):
+    n = len(sr)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return fn(opt, np.asarray(sr, float), np.zeros(n), np.asarray(precip, float), np.asarray(out, float), dt)
+
+
+def delta(case):
+    b, m = call(base, **case), call(mut, **case)
+    return b, m, {k: (b.get(k), m.get(k)) for k in set(b) | set(m) if repr(b.get(k)) != repr(m.get(k))}
+b, m, d = delta(dict(sr=[0.0], precip=[0.1], out=[0.0]))
+moved_n = sum(int(bool(delta(dict(sr=[0.0] * n, precip=[0.1] * n, out=[0.0] * n))[2])) for n in (1, 2, 4, 24))
+nd = sum(len(delta(dict(sr=[0.0] * 4, precip=[v] * 4, out=[0.0] * 4))[2]) for v in (0.09, 0.2))
+print(f"RESULT rain_anticipation_baseline={b['rain_anticipation_factor']}")
+print(f"RESULT rain_anticipation_mutant={m['rain_anticipation_factor']}")
+print(f"RESULT moved={int(b['rain_anticipation_factor'] != m['rain_anticipation_factor'])} count")
+print(f"RESULT lengths_moved={moved_n} of 4 count")
+print(f"RESULT null_delta={nd} count")
+tail()

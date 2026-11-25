@@ -1,0 +1,12 @@
+RESULT k0_baseline=0.0
+RESULT k0_mutant=2.9654859789671595
+RESULT kneg_baseline=0.0
+RESULT kneg_mutant=2.9654859789671595
+RESULT empty_k3_baseline=0.0
+RESULT empty_k3_mutant=0.0
+RESULT empty_k0_baseline=0.0
+RESULT empty_k0_mutant=0.0
+RESULT k2_baseline=4.9654872077726875
+RESULT k2_mutant=4.9654872077726875
+RESULT cases_moved=2
+RESULT null_cases_moved=0

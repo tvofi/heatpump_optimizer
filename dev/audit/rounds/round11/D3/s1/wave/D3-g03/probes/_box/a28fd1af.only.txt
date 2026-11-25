@@ -1,0 +1,14 @@
+MUT = mutant(CLS._build_plan_views, 4851, "            result.upper_temp_trajectory and result.lower_temp_trajectory",
+             "            result.upper_temp_trajectory or result.lower_temp_trajectory")
+
+
+def upper_count(fn, **kw):
+    v = views(fn, result(4, **kw))
+    return sum(1 for s in v["space_plan"]["forecast"] if s["upper"] is not None)
+
+
+one = {"upper_temp_trajectory": [21.5] * 5}
+print(f"RESULT upper_published_baseline={upper_count(CLS._build_plan_views, **one)} count")
+print(f"RESULT upper_published_mutant={upper_count(MUT, **one)} count")
+nulls = ({"upper_temp_trajectory": [21.5] * 5, "lower_temp_trajectory": [20.5] * 5}, {})
+print(f"RESULT null_delta={sum(int(views(CLS._build_plan_views, result(4, **k)) != views(MUT, result(4, **k))) for k in nulls)} count")

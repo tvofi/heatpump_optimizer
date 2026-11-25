@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_f077d8a96cc1e3ed.py: pins f077d8a96cc1e3ed (candidate if the full gate survives): moves on 30 of 4685 production-domain inputs (x0 + 1e-4 == ub exactly); 0 of 57 production calls in the probe's solves

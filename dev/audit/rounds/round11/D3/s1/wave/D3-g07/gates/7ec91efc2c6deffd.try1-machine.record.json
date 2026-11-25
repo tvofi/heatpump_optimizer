@@ -1,0 +1,92 @@
+{
+ "key": "7ec91efc2c6deffd",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8838 CMP_BOUND",
+ "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if params.dhw_enabled and state.dhw_temperature <= params.dhw_min_temp:",
+ "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/entities.py"
+  ],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3730.9,
+  "child_cpu_s": 6070.3,
+  "load1_start": 0.48,
+  "load1_end": 1.02,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/7ec91efc2c6deffd.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7ec91efc2c6deffd",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "killed",
+ "failing_check_lines": [
+  "  FAIL a refused merge surfaces merge()'s reason, not just skip-merge-failed  [status='skip-not-under-scoped' log='']",
+  "  FAIL and a merge that succeeds carries no merge reason (null control)  [status='skip-not-under-scoped' log='']",
+  "2 of 118 closure shrink pins FAILED",
+  ">>> FAILED: python3 tests/closure.py selftest",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(",
+  "RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)",
+  "  ok   a store loaded at a newer major version with no migration raises NotImplementedError",
+  "  ok   a store saved at a newer major version than the code's raises UnsupportedStorageVersionError, with or without a migration",
+  "Traceback (most recent call last):",
+  "    raise LinAlgError(\"Singular matrix\")",
+  "numpy.linalg.LinAlgError: Singular matrix",
+  "  ok   a zero-UA install yields a finite flow setpoint, not ZeroDivisionError",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub",
+  "Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub",
+  "Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub",
+  "Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub",
+  "Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub",
+  "Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub",
+  "Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub",
+  "Traceback (most recent call last):",
+  "    raise RuntimeError(\"no HTTP session available in the test stub\")",
+  "RuntimeError: no HTTP session available in the test stub"
+ ],
+ "non_finding": "the suite fails on it: killed by python3 tests/entities.py",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py",
+  "rc": 1,
+  "baseline_value": null,
+  "mutant_value": null,
+  "baseline_result": "hold_baseline",
+  "mutant_result": "hold_mutant",
+  "all_results": {},
+  "inputs_tried": "dhw_enabled True, dhw_temperature == dhw_min_temp == 45.0 C (the tie); null 44.9 C"
+ },
+ "traced_reach": [
+  "tests/features.py"
+ ],
+ "should_fail": "tests/features.py (traced reach of coordinator.py:8838) has no _guard_floor_hold check at dhw_temperature == dhw_min_temp asserting False"
+}

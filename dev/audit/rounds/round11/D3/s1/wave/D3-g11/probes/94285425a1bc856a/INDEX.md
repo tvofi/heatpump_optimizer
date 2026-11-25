@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_94285425.py: pins HeatPumpOptimizerCoordinator.async_shutdown line 6615 (GUARD_OFF `if pending:` -> `if False:`): whether a 0.3 s background task pending at unload is done when async_shutdown returns

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_af94ce8b.py: pins the space release steps HeatPumpOptimizer._safety_release_steps returns when temp_min_bounds is one (shared: g22_rig.py, reach_scan.py)

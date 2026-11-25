@@ -1,0 +1,62 @@
+{
+ "key": "37e281ab084b40ae",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8785 CMP_BOUND",
+ "patch": "if 0.0 < spacing <= 0.25: -> if 0.0 <= spacing <= 0.25:",
+ "function": "HeatPumpOptimizerCoordinator._on_power_event",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._on_power_event@8766-8806",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3117.7,
+  "load1_start": 0.93,
+  "load1_end": 1.15,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/37e281ab084b40ae.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_37e281ab084b40ae.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_37e281ab084b40ae.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_37e281ab084b40ae.out",
+  "result_lines": [
+   "RESULT same_instant_pair_baseline=(((4.0, inf),), False, 4.0, 0.0, 0.0)",
+   "RESULT same_instant_pair_mutant=(((4.0, inf),), False, 4.0, 0.0, 0.0)",
+   "RESULT same_instant_after_weighted_baseline=(((2.0, inf), (4.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)",
+   "RESULT same_instant_after_weighted_mutant=(((2.0, inf), (4.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)",
+   "RESULT same_instant_forced_reach_baseline=(((2.0, inf), (4.0, inf), (7.933333, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)",
+   "RESULT same_instant_forced_reach_mutant=(((2.0, inf), (4.0, inf), (7.933333, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)",
+   "RESULT same_instant_fuse_forced_baseline=(((9.0, 10.0), (9.8, 10.0), (9.9, 10.0)), True, 9.566667, 0.0, 0.0)",
+   "RESULT same_instant_fuse_forced_mutant=(((9.0, 10.0), (9.8, 10.0), (9.9, 10.0)), True, 9.566667, 0.0, 0.0)",
+   "RESULT backwards_clock_forced_baseline=(((4.0, inf), (8.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)",
+   "RESULT backwards_clock_forced_mutant=(((4.0, inf), (8.0, inf), (4.0, inf)), False, 4.0, 0.133333, 0.033333)",
+   "RESULT null_spaced_60s_baseline=(((4.0, inf), (6.0, inf), (7.966667, inf)), False, 7.0, 0.233333, 0.033333) mutant=(((4.0, inf), (6.0, inf), (7.966667, inf)), False, 7.0, 0.233333, 0.033333)",
+   "RESULT cases_moved=0 count of 5",
+   "RESULT null_moved=0 count of 1"
+  ],
+  "baseline_value": "same-instant events: guard args, suppression, window mean and weighted accumulators as listed",
+  "mutant_value": "identical in all 5 cases (cases_moved=0 of 5), the throttle forced open included",
+  "inputs_tried": "same-instant pair; same-instant after a weighted fold; the same with the throttle forced open; three same-instant events near the fuse, forced; a backwards clock, forced; null 60 s spacing",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "a zero spacing is throttled before the line (MIN_EVENT_SPACING_S = 10 s; _last_event is stamped on every pass that sets _guard_last_fold)",
+ "equivalence": "spacing 0 is throttled in production, and when forced through, PeakTracker.observe ignores dt_hours <= 0 (tariff.py:279), so dt_h = 0.0 and None fold identically",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:8785)",
+  "assertion": "none: no input moves the folded window"
+ }
+}

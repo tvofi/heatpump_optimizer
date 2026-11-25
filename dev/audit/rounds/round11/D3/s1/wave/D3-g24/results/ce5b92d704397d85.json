@@ -1,0 +1,115 @@
+{
+ "key": "ce5b92d704397d85",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4717 BOOLOP",
+ "patch": "if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None or self.config.price_risk_lambda > 0.0:",
+ "function": "HeatPumpOptimizer._stash_price_horizon",
+ "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3505.2,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 6001.2,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/ce5b92d704397d85.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ce5b92d704397d85",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/ce5b92d704397d85.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 1,
+  "extra": {
+   "reach_mutant_moved": "1",
+   "reach_null_moved": "0"
+  },
+  "moving_cases": [
+   "CASE lam_pos_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('raise', 'IndexError') moved=1"
+  ],
+  "inputs_tried": "the 25 _stash_cases.CASES plus a whole HeatPumpOptimizer.optimize (6 h, price_risk_lambda 0.5, ForecastSeries without price_sigma)",
+  "thread_factor": "1.000",
+  "load1": "1.08"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/block_duty.py",
+   "tests/boost_drift_replay.py",
+   "tests/config_flow_steps.py",
+   "tests/doc_claims.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py",
+   "tests/optimality.py",
+   "tests/plan_view.py",
+   "tests/validate.py"
+  ],
+  "assertion_lacking": "tests/features.py executes line 4717 on its traced baseline but has no case with price_risk_lambda > 0 and price_sigma None asserting the prices pass through untouched (and optimize does not raise)"
+ },
+ "class": "candidate",
+ "finding": {
+  "title": "No check solves with price_risk_lambda > 0 and no price_sigma; _stash_price_horizon's and->or is unseen",
+  "claim": "Mutant ce5b92d704397d85 (optimizer.py:4717 `and` -> `or`) survives the full gate, yet HeatPumpOptimizer.optimize with price_risk_lambda=0.5 and a ForecastSeries carrying no price_sigma (its default None) returns an optimal plan on the baseline and raises IndexError under the mutant.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "severity_consequence": "optimize() raises for a caller using the dataclass default price_sigma=None with risk pricing on; the coordinator always passes an array (coordinator.py:1599, 7258), so no Home Assistant user path reaches it",
+  "stop_rule_class": "bug",
+  "metric_definition": "cases of _stash_cases.CASES whose _stash_price_horizon outcome moves under the mutant (+ whole-solve raise flag)",
+  "phenomenon_property": "With price_sigma None the risk premium is skipped whatever price_risk_lambda is (optimizer.py:4717)",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._stash_price_horizon",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+   "value": 1,
+   "unit": "count",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "tolerance": "exact",
+   "thread_factor": "1.000",
+   "load1": "1.08",
+   "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+  },
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:4717 if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None or self.config.price_risk_lambda > 0.0: applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ce5b92d704397d85",
+   "expected_direction": "up",
+   "observed_value": 1
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+   "value": "null_cases_moved=0",
+   "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "a check in tests/block_duty.py pinning the boundary the probe's moving case exercises",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ce5b92d704397d85"
+  ]
+ }
+}

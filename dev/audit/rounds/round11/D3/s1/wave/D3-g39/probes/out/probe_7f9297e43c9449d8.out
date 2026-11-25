@@ -1,0 +1,16 @@
+RESULT tie_baseline=[('2.0', '2026-01-05')]
+RESULT tie_mutant=[('2.0', '2026-01-05')]
+RESULT tie_signed_zero_baseline=[('0.0', '2026-01-05')]
+RESULT tie_signed_zero_mutant=[('0.0', '2026-01-05')]
+RESULT tie_nan_baseline=[('nan', '2026-01-05')]
+RESULT tie_nan_mutant=[('nan', '2026-01-05')]
+RESULT tie_then_lower_baseline=[('2.0', 'd')]
+RESULT tie_then_lower_mutant=[('2.0', 'd')]
+RESULT tie_billed_baseline=1.5
+RESULT tie_billed_mutant=1.5
+RESULT signbit_tie_info_baseline=[False]
+RESULT signbit_tie_info_mutant=[True]
+RESULT ordered_baseline=[('3.0', 'd')]
+RESULT ordered_mutant=[('3.0', 'd')]
+RESULT cases_moved=0
+RESULT null_cases_moved=0

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py: pins HeatPumpOptimizerCoordinator.async_simulate line 11271 (BOOLOP `if "power_cap_kw" in overrides and simulated.predictive_info` -> `if "power_cap_kw" in overrides or simulated.predictive_info`): presence of power_cap_breach_c in async_simulate's payload for a what-if without power_cap_kw

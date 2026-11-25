@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# Metric: the comfort learner weight a live coordinator holds after HeatPumpOptimizerCoordinator._apply_learner_payloads restores a
+#   learner snapshot (the drift-rollback / snapshot-restore path) whose comfort learner weight differs from the fresh state.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_031dba68286ccfbf.py
+# EXPECTED RESULT comfort_learned_weight_baseline=8.0 ; comfort_learned_weight_mutant=5.0  (the snapshot is ignored)
+# EXPECTED RESULT null_{non_dict_payload,empty,fresh_state}_delta=0 count
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._apply_learner_payloads
+#   line 9622 (`if isinstance(comfort, dict):`), on a live coordinator; the snapshot is built from a second coordinator's own as_dict()
+#   producers (_learner_snapshot_payloads' shapes) with one field changed per learner.
+# Perturbation: key 031dba68286ccfbf, `if isinstance(comfort, dict):` -> `if False:` (GUARD_OFF), in memory: the method is recompiled from its own
+#   source in the module namespace and called in place of the original for the mutant arm.
+#   Direction: snapshot value restored -> fresh value kept (the restore silently drops this learner).
+# Null control: a snapshot whose entries are not dicts, an empty snapshot, and a snapshot equal to the fresh state.

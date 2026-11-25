@@ -1,0 +1,8 @@
+RESULT gap12h_rate0.2_baseline=(accum_cm,damped)(1.2, False)
+RESULT gap12h_rate0.2_mutant=(accum_cm,damped)(2.4, True)
+RESULT null_moved=0 count over 2 null inputs (accum, gap_h, rate) [(0.0, 3.0, 0.2), (0.0, 6.0, 0.2)]
+RESULT inputs_tried=3 count
+RESULT probe_cpu_s=0.01 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.05
+RESULT swapins=0

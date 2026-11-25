@@ -1,0 +1,17 @@
+RESULT direct_quarter_nan_at_17:30 learned(days,quarter_days) baseline=(1, 0) mutant=(0, 0)
+RESULT ingress_quarter_nan_at_17:30 learned(days,quarter_days) baseline=(1, 0) mutant=(1, 0)
+RESULT direct_quarter_inf_at_03:15 learned(days,quarter_days) baseline=(1, 0) mutant=(0, 0)
+RESULT ingress_quarter_inf_at_03:15 learned(days,quarter_days) baseline=(1, 0) mutant=(1, 0)
+RESULT direct_quarter_-inf_at_00:00 learned(days,quarter_days) baseline=(1, 0) mutant=(0, 0)
+RESULT ingress_quarter_-inf_at_00:00 learned(days,quarter_days) baseline=(1, 0) mutant=(1, 0)
+RESULT direct_hourly_nan_at_17 learned(days,quarter_days) baseline=(0, 0) mutant=(0, 0)
+RESULT ingress_hourly_nan_at_17 learned(days,quarter_days) baseline=(0, 0) mutant=(0, 0)
+RESULT direct_quarter_all_finite(null) learned(days,quarter_days) baseline=(1, 1) mutant=(1, 1)
+RESULT ingress_quarter_all_finite(null) learned(days,quarter_days) baseline=(1, 1) mutant=(1, 1)
+RESULT direct_cases_differ=3 count (of 5)
+RESULT ingress_cases_differ=0 count (of 5)
+RESULT nonfinite_rows_after_tibber_ingress=0 count
+RESULT nonfinite_rows_after_entity_ingress=0 count
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

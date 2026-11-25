@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_94c2cc27ea61db25.py: Metric: number of horizons (legionella due, external heat active) on which _build_dhw_requirements' schedule or suppressed count differs between baseline and mutant. (needs _g14lib.py beside it; _mk.py regenerates the probes)

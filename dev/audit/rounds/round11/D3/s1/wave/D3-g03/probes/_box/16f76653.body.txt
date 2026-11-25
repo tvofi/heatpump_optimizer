@@ -1,0 +1,26 @@
+import json  # noqa: E402
+sys.path.insert(0, str(ROOT / "tests"))
+from harness import FakeEntry, FakeHass  # noqa: E402
+from homeassistant.helpers import storage as stub_storage  # noqa: E402
+
+MUT = mutant(CLS._async_load_energy_totals, 8419, "        if isinstance(since, str) and since:",
+             "        if isinstance(since, str) or since:")
+
+
+def restored_since(fn, since):
+    stub_storage._DISK.clear()
+    stub_storage._VERSIONS.clear()
+    coord = CLS(FakeHass(), FakeEntry(data={}))
+    stub_storage._DISK[coord._energy_store._key] = json.dumps({"since": since})
+    run(fn(coord))
+    return coord._energy_totals_since
+
+
+moved = 0
+for name, v in (("int", 12345), ("list", ["2026-01-01"]), ("dict", {"d": 1}), ("empty_str", "")):
+    b, m = restored_since(CLS._async_load_energy_totals, v), restored_since(MUT, v)
+    print(f"RESULT since_{name}_baseline={b!r}")
+    print(f"RESULT since_{name}_mutant={m!r}")
+    moved += b != m
+print(f"RESULT forms_moved={moved} count")
+print(f"RESULT null_delta={sum(int(restored_since(CLS._async_load_energy_totals, v) != restored_since(MUT, v)) for v in ('2026-01-01', None))} count")

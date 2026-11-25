@@ -1,0 +1,76 @@
+{
+ "key": "cee6857510fbe69e",
+ "site": "custom_components/heatpump_optimizer/price_model.py:275 CLAMP_DROP",
+ "patch": "updated = updated / np.maximum(updated.mean(axis=1, keepdims=True), 1e-6) -> updated = updated / (updated.mean(axis=1, keepdims=True))",
+ "function": "PriceShapeModel.observe_day_quarters",
+ "cluster": "price_model.py:PriceShapeModel.observe_day_quarters@252-275",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3411.9,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/cee6857510fbe69e.json",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+  "baseline": {
+   "qf12_production_zero_price_hour": "1.0",
+   "qf12_handbuilt_negative_bypassing_from_dict": "-760000.0"
+  },
+  "mutant": {
+   "qf12_production_zero_price_hour": "1.0",
+   "qf12_handbuilt_negative_bypassing_from_dict": "1.0"
+  },
+  "moved": {
+   "qf12_production_inputs_moved": "0 count",
+   "qf12_from_dict_inputs_moved": "0 count",
+   "qf12_handbuilt_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "negative_bypassing_from_dict",
+  "all_results": {
+   "qf12_production_zero_price_hour_baseline": "1.0",
+   "qf12_production_zero_price_hour_mutant": "1.0",
+   "qf12_production_negative_hour_two_days_baseline": "0.912",
+   "qf12_production_negative_hour_two_days_mutant": "0.912",
+   "qf12_production_spike_then_zero_baseline": "3.1238193282717797",
+   "qf12_production_spike_then_zero_mutant": "3.1238193282717797",
+   "qf12_production_inputs_moved": "0 count",
+   "null_delta": "0 count",
+   "inputs_tried": "negative_bypassing_from_dict",
+   "qf12_from_dict_stored_negative_baseline": "1.0",
+   "qf12_from_dict_stored_negative_mutant": "1.0",
+   "qf12_from_dict_stored_zero_baseline": "1.0",
+   "qf12_from_dict_stored_zero_mutant": "1.0",
+   "qf12_from_dict_inputs_moved": "0 count",
+   "qf12_handbuilt_negative_bypassing_from_dict_baseline": "-760000.0",
+   "qf12_handbuilt_negative_bypassing_from_dict_mutant": "1.0",
+   "qf12_handbuilt_inputs_moved": "1 count",
+   "thread_factor": "1.000",
+   "load1": "0.37",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Every production path keeps each hour's EWMA'd factors positive (an hour with mean <= 1e-6 gets factor 1.0, others are clipped to [0.25, 4]; from_dict's _in_domain repairs stored rows), so the hour mean never drops below 0.25 x 0.12 and the floor never binds: a zero-price hour, a negative hour after a normal day, spike/zero sequences and from_dict-restored negative/zero rows give identical factors in both arms. The carried M4 answer ('an hour whose quarter factors average 0') is not reachable: the usable mask sets such an hour to 1.0. Only a hand-built model with negative stored factors separates.",
+ "should_fail": "none through production; a direct construction PriceShapeModel(quarter_factors=[...negative...]) separates (baseline -760000.0, mutant 1.0).",
+ "non_finding": {
+  "claim": "Every production path keeps each hour's EWMA'd factors positive (an hour with mean <= 1e-6 gets factor 1.0, others are clipped to [0.25, 4]; from_dict's _in_domain repairs stored rows), so the hour mean never drops below 0.25 x 0.12 and the floor never binds: a zero-price hour, a negative hour after a normal day, spike/zero sequences and from_dict-restored negative/zero rows give identical factors in both arms. The carried M4 answer ('an hour whose quarter factors average 0') is not reachable: the usable mask sets such an hour to 1.0. Only a hand-built model with negative stored factors separates.",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cee6857510fbe69e.py",
+  "value": "qf12_production_zero_price_hour: 1.0 -> 1.0; qf12_handbuilt_negative_bypassing_from_dict: -760000.0 -> 1.0"
+ }
+}

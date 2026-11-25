@@ -1,0 +1,22 @@
+{
+ "key": "326b26f53972df61",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "high",
+ "class_guess": "P11",
+ "metric": "RESULT ha_none_{baseline,mutant}: outcome of _pv_forecast(solar, 8), PV enabled 6 kWp, no production entity, under Home Assistant's StateMachine.get (transcribed from homeassistant 2025.1.0 core.py:2151-2158)",
+ "base": "ha_none: surplus_sum=8.72",
+ "mut": "ha_none: raised AttributeError ('NoneType' object has no attribute 'lower')",
+ "inputs": [
+  "FakeStates + entity None",
+  "FakeStates + entity '' (resolves to None)",
+  "HA get + None",
+  "HA get + ''",
+  "HA get + meter 3.0 kW"
+ ],
+ "null": "FakeStates arms (equal: why the suite cannot fail) and the metered arm (guard not taken)",
+ "should": "tests/config_flow_steps.py, env_drift.py and features.py execute line 9810, but every one runs on tests/harness.py:FakeStates.get, a plain dict.get that answers None for entity_id None where Home Assistant's StateMachine.get calls entity_id.lower() and raises; no check runs _pv_measured_production with no entity against a state machine that rejects None (or asserts states.get is never called with a falsy id)",
+ "title": "The no-entity guard of _pv_measured_production is untestable on FakeStates: without it every un-metered PV install raises under Home Assistant",
+ "claim": "HeatPumpOptimizerCoordinator._pv_measured_production (coordinator.py:9810) may lose its `if not entity_id: return None` guard and the full gate passes, because the suite's FakeStates.get tolerates None; under Home Assistant's own StateMachine.get (entity_id.lower()) the mutant raises AttributeError in _pv_forecast for every PV install without a production meter (the default, pv_production_entity None), while the baseline answers (probe). The slice box's M4 answer read this key as equivalent on the stub.",
+ "direction": "forecast answers -> raises AttributeError"
+}

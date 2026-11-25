@@ -1,0 +1,28 @@
+{
+ "cls": "candidate",
+ "base": "401/403 text/html body -> verdict reauth; 502 text/html -> fail",
+ "mut": "401/403/502 text/html -> aiohttp.ContentTypeError raised out of pull_prices (the coordinator catches it as an ordinary ClientError fetch failure, no reauth)",
+ "inputs": "fake aiohttp session: 401, 403, 502 with a text/html body (resp.json() raises ContentTypeError), 500 and 401 with JSON error bodies, 200 with no homes",
+ "should_fail": "tests/features.py's 'a refused token asks for REAUTH while a broken API is an ordinary failure' (_g8_pull) replaces _tibber_post with a scripted stub, so no check drives the real _tibber_post with a non-200 response; it lacks a case whose resp.json() raises",
+ "finding": {
+  "title": "No check drives _tibber_post with a non-200 reply; reading its body anyway loses reauth on a non-JSON 401",
+  "claim": "With price_model.py:844 `if resp.status != 200:` -> `if False:`, pull_prices raises ContentTypeError instead of returning reauth for a 401/403 whose body is not JSON (3 of 6 reply shapes move), and the full gate stays green",
+  "severity": "medium",
+  "metric_definition": "pull_prices' verdict per scripted Tibber reply (status, body) through the real _tibber_post",
+  "perturbation": {
+   "change": "price_model.py:844 `if resp.status != 200:` -> `if False:`",
+   "expected_direction": "sign_flip",
+   "observed_value": "raised:ContentTypeError"
+  },
+  "null_control": {
+   "command": "the same probe's JSON-bodied 401/500 and 200 cases",
+   "value": "identical verdicts",
+   "note": "a JSON error body parses in both arms"
+  },
+  "phenomenon_property": "A non-200 Tibber reply is classified by its status alone, never by parsing its body",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py"
+  ],
+  "proposed_fix_scope": "tests/features.py: a fake session reply with status 401 and a non-JSON body asserting ('reauth', ...)"
+ }
+}

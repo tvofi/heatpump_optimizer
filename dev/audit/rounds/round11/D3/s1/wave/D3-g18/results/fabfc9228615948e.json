@@ -1,0 +1,49 @@
+{
+ "key": "fabfc9228615948e",
+ "site": "dhw_planner.py:1803 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1803,
+ "patch": "usable = headroom > 1e-6 -> usable = headroom >= 1e-6",
+ "function": "DhwPlanner._repair_dhw_floor",
+ "cluster": "dhw_planner.py:DhwPlanner._repair_dhw_floor@1800-1893",
+ "slice": "u1d",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3231.9,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/fabfc9228615948e.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/fabfc9228615948e.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fabfc9228615948e",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_fabfc9228615948e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_fabfc9228615948e.py",
+  "baseline_value": "exact_ties_in_envelope=0 of 802000 (p_dhw_max, plan) pairs; differing_in_envelope=0 of 1500",
+  "mutant_value": "differing only outside the envelope: p_dhw_max=1e-6 -> 266 of 300 differ",
+  "inputs_tried": "p_dhw_max over 2000 values in [0.1, 10] x the 401 doubles around p_dhw_max - 1e-6; 1500 seeded production-envelope calls; 300 seeded calls with p_dhw_max = 1e-6",
+  "reach": "headroom = p_dhw_max - plan equals 1e-6 exactly only if p_dhw_max < 0.0625 (Sterbenz: for p >= 0.0625 the difference is an exact multiple of 2^-56, and 1e-6 is not); _build_dhw_requirements sets p_dhw_max = p_dhw_run >= 0.1 (dhw_planner.py:1138-1140). Equivalent at the production seam."
+ },
+ "should_fail": "none through production: no producer delivers p_dhw_max < 0.1; a direct unit call with p_dhw_max = 1e-6 separates."
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py, dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_guard_common.py): _guard_floor_hold() verdict (1 hold, 0 none) with the room exactly at min_temp (17.0 == 17.0 C), hot water off.

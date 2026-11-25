@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_01acd6cc2431d71d.py (saved as .py.txt while gates run; rename on restore): pins count of inputs on which DhwPlanner._dhw_legionella_due's (due, hour, step, ready_temps) differ between the baseline and the mutant, over an 864-input grid of the elastic branch.

@@ -1,0 +1,4 @@
+# build.sh <key8>: header file + preamble + body -> probe
+k=$1; D=$HOME/probe-tree/dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes
+{ echo '#!/usr/bin/env python3'; cat $HOME/pbody/$k.hdr; cat $HOME/pbody/_pre.py; echo; cat $HOME/pbody/$k.body; echo 'tail()'; } > $D/probe_$k.py
+cd $HOME/probe-tree && PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 $D/probe_$k.py

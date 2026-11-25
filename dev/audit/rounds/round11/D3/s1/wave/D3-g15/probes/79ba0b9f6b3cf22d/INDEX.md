@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_79ba0b9f6b3cf22d.py -- pins: DhwPlanner._dhw_legionella_due's (due, step) at a legionella interval of exactly 0 days, baseline vs mutant, and the smallest interval each production write path accepts (config/options flow selector, the set_parameters service schema).

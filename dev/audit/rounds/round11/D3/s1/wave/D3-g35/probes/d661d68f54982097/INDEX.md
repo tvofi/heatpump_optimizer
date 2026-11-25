@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_d661d68f54982097.py (+ sysid_probe_common.py, probe_d661d68f54982097.out): pins identify()'s published result under mutant d661d68f54982097 vs baseline (metric differing_cases; key case per results/d661d68f54982097.json)

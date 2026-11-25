@@ -1,0 +1,19 @@
+{
+ "key": "1785780ac9dd1b18",
+ "pre_gate_class": "candidate",
+ "cls": "candidate",
+ "severity": "medium",
+ "class_guess": "I1",
+ "metric": "RESULT measured_production_kw_meter_{baseline,mutant}: _pv_forecast(...)[1].get('measured_production_kw') with a 3.0 kW production meter",
+ "base": "measured_production_kw=3.0",
+ "mut": "measured_production_kw=None (key absent from _pv_summary)",
+ "inputs": [
+  "meter 3.0 kW",
+  "no meter"
+ ],
+ "null": "no-meter cell: both None",
+ "should": "tests/config_flow_steps.py and env_drift.py fixtures execute line 9836 but no check reads the PV summary's measured_production_kw with a production meter configured",
+ "title": "The PV summary's measured_production_kw can vanish and the gate passes",
+ "claim": "HeatPumpOptimizerCoordinator._pv_forecast (coordinator.py:9836) may drop the measured_production_kw key (`if ...:` -> `if False:`) and the full gate passes; with a 3.0 kW production meter the baseline publishes measured_production_kw 3.0 and the mutant publishes no key (probe).",
+ "direction": "key present (3.0) -> absent"
+}

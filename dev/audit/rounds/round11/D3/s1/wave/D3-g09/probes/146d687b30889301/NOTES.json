@@ -1,0 +1,17 @@
+{
+ "key": "146d687b30889301",
+ "pre_gate_class": "equivalent-candidate",
+ "cls": "equivalent-candidate",
+ "metric": "RESULT settle_saves_* and receipt_frozen_at_last_save: ledger saves per _accumulate_energy settlement crossing into February (the only caller of _roll_month, coordinator.py:10306), and whether the frozen receipt precedes the last save",
+ "base": "direct _roll_month: saves_close=1; settlement: 2 saves, receipt frozen at last save 1",
+ "mut": "direct: saves_close=0; settlement: 1 save, receipt frozen at last save 1 (same stored state)",
+ "inputs": [
+  "direct _roll_month across Jan->Feb",
+  "direct within January",
+  "settlement energy 2 kW",
+  "settlement energy 0",
+  "settlement with an injected fault after the roll"
+ ],
+ "null": "the within-January cell",
+ "should": "none on a reachable path: the settlement saves the ledger unconditionally after the roll (coordinator.py:10332 for energy <= 0, 10401 otherwise), so the receipt is persisted by the same settlement; only a settlement that raises after the roll separates the arms (fault arm: 1 save vs 0)"
+}

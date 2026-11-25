@@ -1,0 +1,62 @@
+{
+ "key": "31bb6bebd6b45f0e",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2141 CMP_BOUND",
+ "patch": "if solution.shape[0] >= 3: -> if solution.shape[0] > 3:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3309.3,
+  "load1_start": 0.72,
+  "load1_end": 0.93
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/31bb6bebd6b45f0e.json",
+ "class": "equivalent-candidate",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_31bb6bebd6b45f0e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_31bb6bebd6b45f0e.py",
+  "baseline_value": null,
+  "mutant_value": null,
+  "differing_cases": 0,
+  "cases": 29,
+  "hunt": null,
+  "inputs_tried": [
+   "clean",
+   "drift+0.01",
+   "drift-0.01",
+   "drift+0.05",
+   "noise0.02_s0",
+   "noise0.02_s1",
+   "noise0.02_s2",
+   "noise0.02_s3",
+   "noise0.02_s4",
+   "noise0.005_s0",
+   "noise0.005_s1",
+   "noise0.005_s2",
+   "gains0",
+   "gains-0.3",
+   "gains1.9",
+   "gains3",
+   "cadence30",
+   "cadence60",
+   "unsettled1.3",
+   "q0.1",
+   "q1e-5",
+   "q0",
+   "tau~200",
+   "ua~5",
+   "ua~0.01",
+   "tau~0.1",
+   "settle_dT_1e-6",
+   "prior0.05",
+   "short"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+  "assertion": "none possible: solution.shape[0] is 4 (four-column solve) or 2 (fallback), never 3, so >= 3 and > 3 agree on every reachable input"
+ }
+}

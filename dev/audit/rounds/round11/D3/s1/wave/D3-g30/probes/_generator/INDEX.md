@@ -1,0 +1,1 @@
+- probe generator (common.py boilerplate + bodies.py per key + gen.py), runprobes.sh (clean-tree re-run), results_watch.sh (box-local writer loop); scratch paths in gen.py point at the box scratchpad

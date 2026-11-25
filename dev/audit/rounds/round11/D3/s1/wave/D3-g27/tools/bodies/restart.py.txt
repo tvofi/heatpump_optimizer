@@ -1,0 +1,95 @@
+
+# ---- _lbfgsb_restart: the keep decision over a (prior, score) grid, plus every production decision ----
+from types import SimpleNamespace  # noqa: E402
+F = "_lbfgsb_restart"
+base = opt._lbfgsb_restart
+mut = mutant(F, OLD, NEW)
+KEEP = opt._LBFGSB_RESTART_KEEP_REL
+
+
+def decide(fn, prior, score):
+    """What ``fn`` returns when the polish from a start valued ``prior`` lands at ``score``:
+    'polished' or 'best'. Only the polish run itself (_lbfgsb_run) is faked."""
+    best = SimpleNamespace(x=np.array([0.0]))
+    polished = SimpleNamespace(x=np.array([1.0]))
+
+    def objective(x, *_a):
+        return prior if float(x[0]) == 0.0 else score
+
+    with mock.patch.dict(fn.__globals__, {"_lbfgsb_run": lambda *a, **k: polished}):
+        out = fn(best, objective, [(0.0, 1.0)], (), 10, None, None)
+    return "polished" if out is polished else "best"
+
+
+def _near(v, k=3):
+    out = [v]
+    a = b = v
+    for _ in range(k):
+        a, b = np.nextafter(a, -np.inf), np.nextafter(b, np.inf)
+        out += [float(a), float(b)]
+    return out
+
+
+PRIORS = [0.0, -0.0, 1e-13, 1e-12, 1.0, 69.47964532244127, -5.0, 1e5]
+tried = moved = dom_tried = dom_moved = 0
+example = dom_example = None
+for p in PRIORS:
+    t = KEEP * max(abs(p), 1e-12)
+    scores = set()
+    for c in (p - t, p - KEEP * abs(p), p, p - 1e-17, p - 1e-30, p - 0.5 * t, p - 2 * t):
+        scores.update(_near(c))
+    scores |= {float("nan"), float("inf"), float("-inf")}
+    for s in sorted(scores, key=lambda v: (v != v, v)):
+        tried += 1
+        dom = math.isfinite(p) and math.isfinite(s)
+        dom_tried += dom
+        db, dm = decide(base, p, s), decide(mut, p, s)
+        if db != dm:
+            moved += 1
+            ex = (p, s, db, dm)
+            example = example or ex
+            if dom:
+                dom_moved += 1
+                dom_example = dom_example or ex
+
+# production reach: every keep decision of the production solves, recorded at the decision line
+REC = []
+probe_src = textwrap.dedent(inspect.getsource(opt._lbfgsb_restart))
+anchor = "if np.isfinite(score) and (prior - score)"
+assert probe_src.count(anchor) == 1
+probe_src = probe_src.replace(anchor, "if _REC.append((prior, score)) is None and np.isfinite(score) and (prior - score)")
+ns = dict(opt.__dict__)
+ns["_REC"] = REC
+exec(compile(probe_src, opt.__file__, "exec"), ns)
+mp = load_mp()
+run_arms(mp, (F, ns[F]))
+prod_moved = sum(decide(base, p, s) != decide(mut, p, s) for p, s in REC)
+min_gap = min((abs((p - s) - KEEP * max(abs(p), 1e-12)) for p, s in REC if math.isfinite(s)), default=float("nan"))
+zero_priors = sum(1 for p, _s in REC if p == 0.0)
+
+if dom_example is not None:
+    example = dom_example
+if example is not None:
+    p, s, db, dm = example
+    result("example_input", f"prior={p!r},score={s!r}")
+    result("kept_baseline", db)
+    result("kept_mutant", dm)
+result("grid_inputs_tried", tried, "count")
+result("grid_inputs_moved", moved, "count")
+result("domain_inputs_tried", dom_tried, "count")
+result("domain_inputs_moved", dom_moved, "count")
+result("production_decisions", len(REC), "count")
+result("production_decisions_moved", prod_moved, "count")
+result("production_prior_exactly_zero", zero_priors, "count")
+result("production_min_abs_gap_to_threshold", f"{min_gap:.6g}")
+
+# null arm: the same function re-compiled with the line unchanged moves nothing on the grid or the records
+nul = mutant(F, OLD, OLD)
+null_moved = 0
+for p in PRIORS:
+    t = KEEP * max(abs(p), 1e-12)
+    for c in (p - t, p - KEEP * abs(p), p, p - 1e-17):
+        for s in _near(c):
+            null_moved += decide(base, p, s) != decide(nul, p, s)
+null_moved += sum(decide(base, p, s) != decide(nul, p, s) for p, s in REC)
+result("null_inputs_moved", null_moved, "count")

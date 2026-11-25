@@ -1,0 +1,13 @@
+Box D3-g07 full-gate null control (gate_wave.sh null -> fullgate.py null), 2026-11-22 21:38-22:45 UTC, nproc 4 Intel Xeon @ 2.10GHz,
+load1 0.58..0.92, wall 4006.9 s, child CPU 6526.4 s (provisional). gate_rc=1, 3 scripts red, all on artefact checks:
+- tests/closure.py selftest, 2 of 118: "a refused merge surfaces merge()'s reason, not just skip-merge-failed" and "and a merge that
+  succeeds carries no merge reason (null control)" [status='skip-not-under-scoped']: branch/merge-tool pins, no production file.
+- tests/entities.py, 1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]": a scoped-gate
+  pin, branch-environment artefact.
+- tests/harness_headers.py, 3 of 115: dev/audit/rounds/round4/D6/claims.py header claims_true 123 vs printed 122, claims_false 0 vs 1,
+  and its register output left uncommitted (claims.json, claims.md): an earlier round's harness running in the finder-wall-stripped
+  tree; no production file.
+Same scripts and same checks as box D3-rem's accepted null (state/gates-prior/null-D3-rem.json: 2 / 1 / 4 lines). None of these checks
+reads a production cell file, so no mutant needs to fail them; fullgate.py reads KILLED only on more failing checks than this null.
+Null usable; not re-taken; no BLOCKED. Note: this box's probes under wave/D3-g07/probes/ inline repo_root verbatim (checked against
+tools/audit/repo_root.py with harness_headers._fn_text: match) so they add no harness_headers red.

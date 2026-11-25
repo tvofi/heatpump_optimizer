@@ -1,0 +1,105 @@
+{
+ "key": "2074f3eefe8521aa",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:1608 GUARD_OFF",
+ "patch": "if not result.success: -> if False:",
+ "function": "DhwPlanner._plan_dhw_min_cost",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_min_cost@1510-1627",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3512.5,
+  "load1_start": 0.85,
+  "load1_end": 0.96,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/gates/2074f3eefe8521aa.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2074f3eefe8521aa",
+ "provisional_walls": true,
+ "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+ "class": "candidate",
+ "m4_carried_from": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+  "results": {
+   "status1_baseline": "None",
+   "status1_mutant": "plan",
+   "status1_mutant_plan": "[0,0,0,0,0,0,0,0,0,0,1.47660443,0,0,0,0,0]",
+   "status2_baseline": "None",
+   "status2_mutant": "None",
+   "real_differing": "0",
+   "reach": "the LP carries a priced shortfall slack and finite bounds, so it is feasible and bounded on every input tried; a real success=False needs a solver limit or numerical failure, which this probe stubs (mock.patch.object on dhw_planner.linprog)",
+   "success": "False",
+   "inputs_tried": "stubbed status 1 with x; stubbed status 2 without x; unmocked (null)",
+   "thread_factor": "1.014",
+   "load1": "1.18",
+   "swapins": "0"
+  },
+  "inputs_tried": "stubbed status 1 with x; stubbed status 2 without x; unmocked (null)"
+ },
+ "reach": "solver failure only: the LP is feasible and bounded on every input tried (priced shortfall slack); the probe stubs a status-1 result with an x",
+ "should_fail": "none in the suite: no check makes linprog report success=False with an x and asserts the greedy fallback (None)",
+ "finding": {
+  "title": "No check feeds the DHW LP an unsuccessful solve; dropping the success guard is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "claim": "Mutant 2074f3eefe8521aa at dhw_planner.py:1608 (GUARD_OFF: if not result.success: -> if False:) survives the full gate (RED-AS-NULL), yet the probe's number moves: baseline status1_baseline=None, mutant status1_mutant=plan.",
+  "mechanism": "Reach: solver failure only: the LP is feasible and bounded on every input tried (priced shortfall slack); the probe stubs a status-1 result with an x. Check that should have failed (D3.M4): none in the suite: no check makes linprog report success=False with an x and asserts the greedy fallback (None).",
+  "metric_definition": "returned value kind -- see the probe header's Metric line",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_min_cost",
+  "perturbation": {
+   "change": "the one-line mutant at dhw_planner.py:1608 applied in memory by the probe; full gate: fullgate.py run --key 2074f3eefe8521aa",
+   "expected_direction": "sign_flip",
+   "observed_value": "status1_baseline=None -> status1_mutant=plan"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+   "value": "real_differing=0",
+   "note": "the arm where the edit cannot matter (probe header's Null control line); box null gate: gates/null.json"
+  },
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py"
+  ],
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+   "value": "plan",
+   "unit": "returned value kind",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "probe values are deterministic floats/counts; the probes ran in a separate baseline worktree (~/probe-tree) while this box's gates ran (load1 ~1)",
+   "tolerance": "exact",
+   "load1": 1.18,
+   "thread_factor": 1.014
+  },
+  "phenomenon_property": "_plan_dhw_min_cost never builds a plan from a solve linprog reports unsuccessful",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2074f3eefe8521aa"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's separating input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}

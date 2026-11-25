@@ -1,0 +1,105 @@
+{
+ "key": "7398de952c9d1510",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10603 CLAMP_DROP",
+ "patch": "dt_hours = max(getattr(self, \"_ctx\", self)._opt_config.time_step_minutes, 1.0) / 60.0 -> dt_hours = (getattr(self, \"_ctx\", self)._opt_config.time_step_minutes) / 60.0",
+ "function": "HeatPumpOptimizerCoordinator._narrative_view",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._narrative_view@10603-10603",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3198.0,
+  "load1_start": 0.31,
+  "load1_end": 0.99,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/7398de952c9d1510.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.out",
+  "result_lines": [
+   "RESULT step=15.0_baseline=kwh 3.0 lines 0",
+   "RESULT step=15.0_mutant=kwh 3.0 lines 0",
+   "RESULT step=1.0_baseline=kwh 0.2 lines 0",
+   "RESULT step=1.0_mutant=kwh 0.2 lines 0",
+   "RESULT step=0.5_baseline=kwh 0.2 lines 0",
+   "RESULT step=0.5_mutant=kwh 0.1 lines 0",
+   "RESULT step=0.0_baseline=kwh 0.2 lines 0",
+   "RESULT step=0.0_mutant=kwh 0 lines 0",
+   "RESULT steps_moved=2 count of 4"
+  ],
+  "baseline_value": "narrative kWh 0.2 at a 0.5-min and a 0-min step (the 1-min floor)",
+  "mutant_value": "0.1 kWh at 0.5 min, 0 kWh at 0 min; 15 and 1 min identical (steps_moved=2 of 4)",
+  "inputs_tried": "time_step_minutes 15, 1, 0.5, 0 on a fixed 4-step plan",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "unreachable through production: time_step_minutes is never set off OptimizationConfig's 15.0 default (optimizer.py:2667 is its only assignment in custom_components/); only a direct construction reaches a step under 1 minute",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:10603; also config_flow_steps, entities)",
+  "assertion": "none through production; only a direct call with time_step_minutes < 1 separates"
+ },
+ "finding": {
+  "title": "No check drives _narrative_view below a 1-minute step; dropping the dt floor is unseen",
+  "claim": "Mutant 7398de952c9d1510 (coordinator.py:10603 drops max(time_step_minutes, 1.0)) survives the full gate, yet at a 0.5-minute step the narrative's kWh halves (0.2 -> 0.1) and at 0 it is 0. Full gate verdict RED-AS-NULL.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "mechanism": "Reach: unreachable through production: time_step_minutes is never set off OptimizationConfig's 15.0 default (optimizer.py:2667 is its only assignment in custom_components/); only a direct construction reaches a step under 1 minute. Check that should have failed (D3.M4): tests/features.py (traced baseline executes coordinator.py:10603; also config_flow_steps, entities): none through production; only a direct call with time_step_minutes < 1 separates.",
+  "metric_definition": "sum of kWh over _narrative_view items for a fixed 4-step plan at time_step_minutes 0.5",
+  "phenomenon_property": "The narrative weights steps by at least one minute",
+  "seam_rule": "awk -F'\\t' 'NR>1' dev/audit/rounds/round11/D3/s1/wave/D3-g08/keys.tsv (this box's full-gate survivors; the wave list: awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._narrative_view",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+   "value": 0.1,
+   "unit": "narrative kWh at a 0.5-min step (baseline 0.2)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g08: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the full-gate wall and load1 are provisional"
+  },
+  "perturbation": {
+   "change": "mutant 7398de952c9d1510 at custom_components/heatpump_optimizer/coordinator.py:10603 (dt_hours = max(getattr(self, \"_ctx\", self)._opt_config.time_step_minutes, 1.0) / 60.0 -> dt_hours = (getattr(self, \"_ctx\", self)._opt_config.time_step_minutes) / 60.0), applied in memory by the probe; full gate: fullgate.py run --src complete --key 7398de952c9d1510",
+   "expected_direction": "down"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+   "value": "0 count",
+   "note": "15- and 1-minute steps: identical under both arms; full-gate null: this box's fullgate.py null (gates/null.json)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7398de952c9d1510"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's moving input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

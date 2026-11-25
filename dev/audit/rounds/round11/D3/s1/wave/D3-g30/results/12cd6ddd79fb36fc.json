@@ -1,0 +1,87 @@
+{
+ "key": "12cd6ddd79fb36fc",
+ "site": "custom_components/heatpump_optimizer/price_model.py:269 GUARD_OFF",
+ "patch": "if self.quarter_days[idx] == 0: -> if False:",
+ "function": "PriceShapeModel.observe_day_quarters",
+ "cluster": "price_model.py:PriceShapeModel.observe_day_quarters@252-275",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3536.6,
+  "load1_start": 1.01,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/12cd6ddd79fb36fc.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py",
+  "baseline": {
+   "qf_h7q0_1_day": "0.9",
+   "predict_0700_5_days": "1.57377"
+  },
+  "mutant": {
+   "qf_h7q0_1_day": "0.988",
+   "predict_0700_5_days": "1.666051"
+  },
+  "moved": {
+   "qf_h7q0_inputs_moved": "2 count",
+   "predict_0700_inputs_moved": "1 count",
+   "qf_flat_quarters_inputs_moved": "0 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "1_flat_day",
+  "all_results": {
+   "qf_h7q0_1_day_baseline": "0.9",
+   "qf_h7q0_1_day_mutant": "0.988",
+   "qf_h7q0_5_days_baseline": "0.9",
+   "qf_h7q0_5_days_mutant": "0.952773",
+   "qf_h7q0_inputs_moved": "2 count",
+   "null_delta": "0 count",
+   "inputs_tried": "1_flat_day",
+   "predict_0700_5_days_baseline": "1.57377",
+   "predict_0700_5_days_mutant": "1.666051",
+   "null_predict_0700_0_days_baseline": "1.0",
+   "null_predict_0700_0_days_mutant": "1.0",
+   "predict_0700_inputs_moved": "1 count",
+   "null_qf_flat_quarters_1_flat_day_baseline": "1.0",
+   "null_qf_flat_quarters_1_flat_day_mutant": "1.0",
+   "qf_flat_quarters_inputs_moved": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.91",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "With the seed branch off the first quarter day blends into the flat prior: the learned 07:00 quarter factor after one day is 0.988 instead of 0.9, and predict(weekday 07:00, 1.0) after five days (full quarter trust) is 1.666051 instead of 1.57377, through PriceShapeLearner.fold; a flat quarter day gives 1.0 in both arms.",
+ "should_fail": "tests/features.py quarter block (~18722-18770, traced executing line 269): it folds 6 or 3 identical days and checks only ordering (:45 above siblings) and the hour mean; it lacks quarter_factors after one observed day == the clipped per-hour ratios exactly.",
+ "finding": {
+  "title": "price_model.py:269 observe_day_quarters' first-day quarter seed deleted survives the full gate",
+  "claim": "With the seed branch off the first quarter day blends into the flat prior: the learned 07:00 quarter factor after one day is 0.988 instead of 0.9, and predict(weekday 07:00, 1.0) after five days (full quarter trust) is 1.666051 instead of 1.57377, through PriceShapeLearner.fold; a flat quarter day gives 1.0 in both arms.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "PriceShapeModel.predict(weekday 07:00, level 1.0) after five quarter days folded through PriceShapeLearner.fold, and the learned factor quarter_factors[weekday][28] after one; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_12cd6ddd79fb36fc.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 12cd6ddd79fb36fc",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day_quarters), custom_components/heatpump_optimizer/price_model.py:269",
+  "perturbation": "the one-line mutant 12cd6ddd79fb36fc: `if self.quarter_days[idx] == 0:` -> `if False:`; direction qf_h7q0_1_day: 0.9 -> 0.988; predict_0700_5_days: 1.57377 -> 1.666051",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

@@ -1,0 +1,18 @@
+# Metric: the lower-floor learner's state after one HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss cycle
+#   whose residual is non-finite: (_lower_floor_loss_ratio, _lower_floor_loss_samples, ratio applies, saves, return
+#   value), plus DEBUG "Ignoring lower floor loss sample" log records, for residual NaN, +inf and -inf (observed or
+#   predicted lower-floor temperature non-finite).
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3351754d.py
+# EXPECTED RESULT state_<case>_baseline == state_<case>_mutant = (1.0, 0, 0, 0, True) for all three cases:
+#   _loss_residual_rejected (`abs(residual) <= HOUSE_LOSS_MAX_RESIDUAL` is False for NaN and inf) refuses the sample.
+# EXPECTED RESULT states_moved=0 count ; debug_log_baseline=0 ; debug_log_mutant=3 (the only observable difference)
+# EXPECTED RESULT positive_control_moved=1 count (a finite in-band residual folds: ratio and samples move in both arms,
+#   so the harness can see a fold)
+# Harness: _replay_gate -> (2 kW, clean, not frozen, fold) and _replay_fabric -> the scripted predicted state are
+#   stubbed at module level for both arms; the Newton step and the ratio apply are production's.
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss,
+#   line 5940 `if not np.isfinite(residual):`.
+# Perturbation: key 3351754da55a2896 GUARD_OFF -> `if False:`, in memory. Direction: none on state (equivalent);
+#   +1 DEBUG record per non-finite sample.
+# Null control: the finite residual (positive control above) moves identically in both arms.

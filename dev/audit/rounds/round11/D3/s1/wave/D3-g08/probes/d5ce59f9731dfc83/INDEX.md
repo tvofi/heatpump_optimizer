@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py: pins published valve_target_recommendation.price_ratio for price totals [0.0, 0.1, 0.2], manual valve (baseline vs mutant d5ce59f9731dfc83 in memory); provisional class candidate

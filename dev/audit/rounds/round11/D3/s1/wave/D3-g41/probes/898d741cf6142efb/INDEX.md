@@ -1,0 +1,1 @@
+- probe_898d741cf6142efb.py: Metric: ThermalModel._batch_cop COP for an UNthrottled step (flow_carnot_eligible False) with cop_flow_carnot on,

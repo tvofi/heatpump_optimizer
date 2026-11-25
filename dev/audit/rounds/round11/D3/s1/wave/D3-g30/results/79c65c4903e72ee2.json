@@ -1,0 +1,78 @@
+{
+ "key": "79c65c4903e72ee2",
+ "site": "custom_components/heatpump_optimizer/price_model.py:232 CLAMP_DROP",
+ "patch": "updated = updated / max(float(np.mean(updated)), 1e-6) -> updated = updated / (float(np.mean(updated)))",
+ "function": "PriceShapeModel.observe_day",
+ "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3396.2,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/79c65c4903e72ee2.json",
+  "provisional_timing": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+  "baseline": {
+   "shape17_production_one_day": "2.185792349726776",
+   "shape17_handbuilt_negative_row_bypassing_from_dict": "-617704.9180327869"
+  },
+  "mutant": {
+   "shape17_production_one_day": "2.185792349726776",
+   "shape17_handbuilt_negative_row_bypassing_from_dict": "0.812769628990509"
+  },
+  "moved": {
+   "shape17_production_inputs_moved": "0 count",
+   "shape17_from_dict_inputs_moved": "0 count",
+   "shape17_handbuilt_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "negative_row_bypassing_from_dict",
+  "all_results": {
+   "shape17_production_one_day_baseline": "2.185792349726776",
+   "shape17_production_one_day_mutant": "2.185792349726776",
+   "shape17_production_two_days_baseline": "2.0633879781420763",
+   "shape17_production_two_days_mutant": "2.0633879781420763",
+   "shape17_production_spiky_days_baseline": "0.631578947368421",
+   "shape17_production_spiky_days_mutant": "0.631578947368421",
+   "shape17_production_inputs_moved": "0 count",
+   "null_delta": "0 count",
+   "inputs_tried": "negative_row_bypassing_from_dict",
+   "shape17_from_dict_stored_negative_row_baseline": "1.1422950819672133",
+   "shape17_from_dict_stored_negative_row_mutant": "1.1422950819672133",
+   "shape17_from_dict_stored_zero_row_baseline": "1.1422950819672133",
+   "shape17_from_dict_stored_zero_row_mutant": "1.1422950819672133",
+   "shape17_from_dict_stored_tiny_row_baseline": "2.185792341030966",
+   "shape17_from_dict_stored_tiny_row_mutant": "2.185792341030966",
+   "shape17_from_dict_inputs_moved": "0 count",
+   "shape17_handbuilt_negative_row_bypassing_from_dict_baseline": "-617704.9180327869",
+   "shape17_handbuilt_negative_row_bypassing_from_dict_mutant": "0.812769628990509",
+   "shape17_handbuilt_inputs_moved": "1 count",
+   "thread_factor": "1.000",
+   "load1": "0.84",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Every production path leaves the EWMA'd shape's mean >= 0.12 x SHAPE_MIN > 1e-6 (observe_day clips the day to [0.2, 3] and from_dict's _in_domain keeps stored bins positive), so the floor never binds: one day, two days, spiky days and from_dict-restored negative/zero/tiny rows give identical shapes in both arms. Only a model hand-built with a negative stored shape (bypassing from_dict) separates them.",
+ "should_fail": "none through production; a direct construction PriceShapeModel(shapes=[[-1.0]*24, ...]) separates (baseline -617704.9, mutant 0.8128).",
+ "non_finding": {
+  "claim": "Every production path leaves the EWMA'd shape's mean >= 0.12 x SHAPE_MIN > 1e-6 (observe_day clips the day to [0.2, 3] and from_dict's _in_domain keeps stored bins positive), so the floor never binds: one day, two days, spiky days and from_dict-restored negative/zero/tiny rows give identical shapes in both arms. Only a model hand-built with a negative stored shape (bypassing from_dict) separates them.",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_79c65c4903e72ee2.py",
+  "value": "shape17_production_one_day: 2.185792349726776 -> 2.185792349726776; shape17_handbuilt_negative_row_bypassing_from_dict: -617704.9180327869 -> 0.812769628990509"
+ }
+}

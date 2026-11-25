@@ -1,0 +1,23 @@
+WHOLE dhw_cap3: calls=1 status 'optimal' -> 'optimal' plan maxabs=0 kW moved=0
+WHOLE dhw_cap2: calls=1 status 'optimal' -> 'optimal' plan maxabs=0 kW moved=0
+WHOLE dhw_cap1: calls=1 status 'optimal' -> 'optimal' plan maxabs=0 kW moved=0
+RESULT null_replay_moved=0 count
+RESULT null_replay_tried=18 count
+RESULT null_guess_outside_bounds_baseline=0 count
+RESULT null_guess_outside_bounds_mutant=0 count
+RESULT null_whole_moved=0 count
+RESULT null_whole_tried=3 count
+RESULT null_captured_warm_calls=0 count
+WHOLE dhw_cap3: calls=1 status 'optimal' -> 'optimal' plan maxabs=0 kW moved=0
+WHOLE dhw_cap2: calls=1 status 'optimal' -> 'optimal' plan maxabs=0 kW moved=0
+WHOLE dhw_cap1: calls=1 status 'optimal' -> 'optimal' plan maxabs=0 kW moved=0
+RESULT mutant_replay_moved=0 count
+RESULT mutant_replay_tried=18 count
+RESULT mutant_guess_outside_bounds_baseline=0 count
+RESULT mutant_guess_outside_bounds_mutant=15 count
+RESULT mutant_whole_moved=0 count
+RESULT mutant_whole_tried=3 count
+RESULT mutant_captured_warm_calls=0 count
+RESULT thread_factor=1.002 ratio
+RESULT load1=1.08
+RESULT swapins=0 count

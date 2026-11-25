@@ -1,0 +1,55 @@
+{
+ "key": "d435f0054d7c9881",
+ "site": "sysid.py:1557 BOOLOP",
+ "patch": "if price_horizon is not None and len(price_horizon): -> if price_horizon is not None or len(price_horizon):",
+ "function": "SystemIdentification.conditions_met",
+ "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2715.5,
+  "load1_start": 0.86,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d435f0054d7c9881",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/d435f0054d7c9881.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py [--mutant]",
+  "metric": "raised",
+  "baseline_value": "0",
+  "mutant_value": "2",
+  "null_metric": "ok_ramp",
+  "null_baseline": "1",
+  "null_mutant": "1",
+  "all_results_baseline": {
+   "raised": "0",
+   "ok_ramp": "1",
+   "ok_flat": "1",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "raised": "2",
+   "ok_ramp": "1",
+   "ok_flat": "1",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": "price_horizon None, np.array([]), ramp 0.5..2.0 (24 steps), flat ones(24); price 0.5",
+  "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+ },
+ "reach": "unreachable through production: the only caller (sysid.py:1756) runs after coordinator.py:6379 has returned 'no_prices' for any horizon of fewer than 4 steps, so neither None nor an empty horizon reaches it",
+ "should_fail": "none through production; a direct unit call with price_horizon None or empty separates (raised 0 -> 2)"
+}

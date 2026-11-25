@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_56d2279a568e8891.py -- pins: DhwPlanner._dhw_legionella_due's result at n_steps == 0 (the one separating value), baseline vs mutant, directly and through the production optimize() on a 0-step horizon (horizon_hours 0, or empty price and outdoor series), and the count of in-range inputs (n_steps >= 1) whose arms differ.

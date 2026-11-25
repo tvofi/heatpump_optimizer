@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Write results/<key>.json for every gated key of box D3-g03 that has no record yet (or --force)."""
+import json, os, re, subprocess, sys
+from pathlib import Path
+HOME = Path(os.environ["HOME"])
+TR = HOME / "audit-r11-D3-s1"
+REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g03"
+W = TR / REL
+PT = HOME / "probe-tree"
+exec((HOME / "pbody/meta.py").read_text())
+force = "--force" in sys.argv
+only = [a for a in sys.argv[1:] if not a.startswith("--")]
+keys = [l.split("\t") for l in (W / "keys.tsv").read_text().splitlines()[1:] if l.strip()]
+PY = "/opt/hpo/venv-ci/bin/python3"
+for row in keys:
+    key, src, file, line, function, cluster = row[:6]
+    if only and key not in only:
+        continue
+    g = W / "gates" / f"{key}.json"
+    out = W / "results" / f"{key}.json"
+    if not g.exists() or (out.exists() and not force):
+        continue
+    gate = json.loads(g.read_text())
+    mut = json.loads((TR / "dev/audit/rounds/round11/D3/s1/state/results" / src / f"{key}.json").read_text())["mutant"]
+    m = M[key]
+    k8 = key[:8]
+    probe_rel = f"{REL}/probes/probe_{k8}.py"
+    cmd = f"PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 {probe_rel}"
+    pr = subprocess.run([PY, probe_rel], cwd=PT, env=dict(os.environ, PYTHONPATH="tests/hastub", PYTHONDONTWRITEBYTECODE="1"),
+                        capture_output=True, text=True, timeout=600)
+    results = [l for l in pr.stdout.splitlines() if l.startswith("RESULT ")]
+    hdr = (PT / probe_rel).read_text().splitlines()
+    metric, on = [], False
+    for l in hdr:
+        if l.startswith("# Metric:"):
+            metric.append(l[len("# Metric:"):].strip()); on = True
+        elif on and l.startswith("#   "):
+            metric.append(l[1:].strip())
+        elif on:
+            break
+    v = gate.get("verdict")
+    if v == "KILLED":
+        cls = "killed"
+    elif v == "TIMEOUT":
+        cls = "timeout"
+    elif m.get("equivalent"):
+        cls = "equivalent-candidate"
+    else:
+        cls = "candidate"
+    rec = {
+        "key": key, "site": f"{file}:{line} {mut['kind']}", "patch": f"{mut['old'].strip()} -> {mut['new'].strip()}",
+        "function": function, "cluster": cluster, "slice": row[6], "m4_source": row[10],
+        "gate": {x: gate.get(x) for x in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end",
+                                          "failed_scripts", "fail_lines", "more_fails_than_null", "summary", "command", "cap_s", "note")
+                 if x in gate},
+        "gate_record": f"{REL}/gates/{key}.json", "gate_log": f"{REL}/gates/{key}.log",
+        "gate_command": f"PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {src} --key {key}",
+        "class": cls,
+        "probe": {"path": probe_rel, "command": cmd, "rc": pr.returncode, "results": results,
+                  "baseline_value": m["baseline"], "mutant_value": m["mutant"], "inputs_tried": m["inputs"],
+                  "machine": "box D3-g03: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython"},
+        "instrumented_symbol": f"custom_components.heatpump_optimizer.coordinator:{function}",
+        "should_fail": {"script": m["should_fail"][0], "assertion": m["should_fail"][1]},
+        "provisional": "gate wall_s and load1 are provisional; counts are final",
+    }
+    if v == "KILLED":
+        log = (W / "gates" / f"{key}.log").read_text(errors="replace").splitlines()
+        lines, cur = [], None
+        for l in log:
+            mm = re.match(r"^#{10} (.+?) #{10}$", l)
+            if mm:
+                cur = mm.group(1); continue
+            if cur and any(cur.endswith(s) or s in cur for s in gate.get("killed_by", [])) and \
+               (re.match(r"^\s*(FAIL|✗|>>> FAILED)", l) or re.search(r"\d+ of \d+ .*FAILED", l)):
+                lines.append(f"{cur}: {l.strip()}")
+        rec["killed_by"] = gate.get("killed_by")
+        rec["failing_checks"] = lines[:40]
+        rec["non_finding"] = f"the suite fails on this mutant: killed by {', '.join(gate.get('killed_by', []))}"
+    if cls == "candidate":
+        rec.update({
+            "title": m["title"], "claim": m["claim"], "step": "D3.M3", "scope": "D3-s1",
+            "class_guess": m["class_guess"], "severity_claimed": m["severity"], "consequence": m["consequence"],
+            "metric_definition": " ".join(metric),
+            "harness_paths": ["dev/audit/rounds/round11/D3/s1/fullgate.py", probe_rel],
+            "evidence_command": cmd,
+            "perturbation": {"change": f"key {key}: `{mut['old'].strip()}` -> `{mut['new'].strip()}` at {file}:{line}, applied in memory by the probe (and on disk by fullgate.py for the gate)",
+                             "direction": f"{m['baseline']} -> {m['mutant']}"},
+            "null_control": {"gate": f"{REL}/gates/null.json (fullgate.py null, comment-only marker, this box)",
+                             "probe": "the probe's null_delta RESULT: inputs where the mutated line cannot matter; 0 = arms identical"},
+        })
+    out.write_text(json.dumps(rec, indent=1) + "\n")
+    print("WROTE", key, v, cls, "probe_rc", pr.returncode)

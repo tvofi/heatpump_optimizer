@@ -1,0 +1,77 @@
+{
+ "key": "0b10a7c76e2514d2",
+ "site": "custom_components/heatpump_optimizer/price_model.py:219 GUARD_OFF",
+ "patch": "if self.days[idx] == 0: -> if False:",
+ "function": "PriceShapeModel.observe_day",
+ "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3186.7,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/0b10a7c76e2514d2.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py",
+  "baseline": {
+   "weekday_sigma_17_one_winter_day": "1.1858"
+  },
+  "mutant": {
+   "weekday_sigma_17_one_winter_day": "0.4593"
+  },
+  "moved": {
+   "weekday_sigma_17_inputs_moved": "2 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "one_winter_day,one_reversed_day,one_flat_day",
+  "all_results": {
+   "weekday_sigma_17_one_winter_day_baseline": "1.1858",
+   "weekday_sigma_17_one_winter_day_mutant": "0.4593",
+   "weekday_sigma_17_one_reversed_day_baseline": "0.1658",
+   "weekday_sigma_17_one_reversed_day_mutant": "0.0642",
+   "null_weekday_sigma_17_one_flat_day_baseline": "0.0",
+   "null_weekday_sigma_17_one_flat_day_mutant": "0.0",
+   "weekday_sigma_17_inputs_moved": "2 count",
+   "null_delta": "0 count",
+   "inputs_tried": "one_winter_day,one_reversed_day,one_flat_day",
+   "thread_factor": "1.000",
+   "load1": "0.95",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "With the seed branch off the first observed day blends into the zero prior: the published price_prior weekday_sigma[17] after one winter day falls from 1.1858 to 0.4593 (sqrt(0.15) of it) through PriceShapeLearner.fold and summary(); a flat day gives 0.0 in both arms.",
+ "should_fail": "tests/features.py ~18820 (_vol block, traced executing line 219) and tests/finite_boundary.py residual_var reads: they assert sigma is finite/positive, not its value; they lack residual_var after one day == residuals**2 (or summary()['weekday_sigma'] after one day equal to |normalised - 1|).",
+ "finding": {
+  "title": "price_model.py:219 observe_day's first-day variance seed deleted survives the full gate",
+  "claim": "With the seed branch off the first observed day blends into the zero prior: the published price_prior weekday_sigma[17] after one winter day falls from 1.1858 to 0.4593 (sqrt(0.15) of it) through PriceShapeLearner.fold and summary(); a flat day gives 0.0 in both arms.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "published price_prior weekday_sigma[17] (PriceShapeModel.summary) after one hourly day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_0b10a7c76e2514d2.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0b10a7c76e2514d2",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day), custom_components/heatpump_optimizer/price_model.py:219",
+  "perturbation": "the one-line mutant 0b10a7c76e2514d2: `if self.days[idx] == 0:` -> `if False:`; direction weekday_sigma_17_one_winter_day: 1.1858 -> 0.4593",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

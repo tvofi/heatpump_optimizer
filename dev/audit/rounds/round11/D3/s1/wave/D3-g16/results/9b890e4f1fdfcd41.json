@@ -1,0 +1,55 @@
+{
+ "key": "9b890e4f1fdfcd41",
+ "site": "dhw_planner.py:556 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 556,
+ "patch": "if hour == prev + 1: -> if False:",
+ "function": "DhwPlanner._effective_dhw_windows",
+ "cluster": "dhw_planner.py:DhwPlanner._effective_dhw_windows@547-556",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3316.7,
+  "child_cpu_s": 5521.4,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/gates/9b890e4f1fdfcd41.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9b890e4f1fdfcd41",
+ "gate_provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_9b890e4f1fdfcd41.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_9b890e4f1fdfcd41.py",
+  "results": {
+   "window_hours_baseline": "12.0 h",
+   "window_hours_mutant": "12.0 h",
+   "mutant_raises": "0",
+   "null_delta_hours": "0.0 h",
+   "inputs_moved": "0 of 10 (-)",
+   "thread_factor": "1.000",
+   "load1": "0.81",
+   "swapins": "0"
+  },
+  "baseline_value": "see results",
+  "mutant_value": "see results",
+  "inputs_tried": "10 learned patterns: contiguous runs, a wrap past midnight (22-02), alternating single hours, plateaus, a single peak, flat and non-normalised",
+  "machine": "box D3-g16: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
+ },
+ "why_equivalent": "each hour then opens its own one-hour window, and dhw_schedule._normalize (applied through parse_windows(format_windows(...))) merges touching windows back (start <= last_end), so the returned windows are identical",
+ "should_fail": "none: no input found that the mutant changes (equivalent-candidate); the closure scripts executing the line (m4_source) cannot fail on it"
+}

@@ -1,0 +1,16 @@
+MUT = mutant(FN, 9695, "        if not self._snapshot_ring.alarmed:", "        if False:")
+
+
+def alarmed_ring():
+    return SnapshotRing.from_dict({"snapshots": [], "bias_days": 5, "last_day": "2026-01-10", "alarmed": True,
+                                   "streak_started": "2026-01-06"})
+
+
+clear = [("2026-01-11T06:00:00+00:00", None, 0.1)]
+for arm, fn in (("baseline", FN), ("mutant", MUT)):
+    ring, me, calls = drive(fn, clear, ring=alarmed_ring(), rollback_done=True)
+    issue = [c for c in calls if c in ("delete", "create")]
+    print(f"RESULT clear_issue_calls_{arm}={issue} rollback_latch={me._rollback_done_for_alarm} alarmed={ring.alarmed}")
+same = [("2026-01-10T18:00:00+00:00", None, 0.1)]
+nb, nm = drive(FN, same, ring=alarmed_ring(), rollback_done=True), drive(MUT, same, ring=alarmed_ring(), rollback_done=True)
+print(f"RESULT null_delta={int((nb[2], nb[1]._rollback_done_for_alarm) != (nm[2], nm[1]._rollback_done_for_alarm))} count")

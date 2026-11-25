@@ -1,0 +1,8 @@
+RESULT released_space_baseline=[0]
+RESULT released_space_mutant=[]
+RESULT space_kwh_first_hour_baseline=4.8809 mutant=4.5000
+RESULT null_block_delta=0
+RESULT direct_breach_after_step0_off_baseline=([0],[]) mutant=([],[])
+RESULT thread_factor=1.001
+RESULT load1=4.94
+RESULT swapins=0

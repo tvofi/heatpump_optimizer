@@ -1,0 +1,2392 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "box": "D3-g24",
+ "seat": "D3-s1",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/REPORT.md",
+ "exposure": "Read COMMON.md, D3.md, dev/audit/README.md, the u1 slice reports, REPORT-D3-top6/rem, keys.tsv's m4_source answers and the production lines of the 16 keys in the stripped baseline worktree; each wave box's keys.tsv from its dispatch ref (for the not_reached list only). No register, round11/J/, verifier report, docs/ or GitHub read. The box was resumed on a second machine after its first seat stalled at 8/16 gates: gates 1-8, the null and all probes ran on the first (Xeon @ 2.10GHz, 4 cores), gates 9-16 on the second (Xeon @ 2.30GHz, 4 cores); both in MACHINE.txt.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g24): carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+   "carried": true
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g24): box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+   "carried": true
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 16,
+   "not_reached": [
+    "assigned to box D3-g01: fafb0d2c15e72efb coordinator.py:822 CONST",
+    "assigned to box D3-g01: 676e8bfb416ff635 coordinator.py:829 CONST",
+    "assigned to box D3-g01: 622996d751dca0c4 coordinator.py:1622 CONST",
+    "assigned to box D3-g01: 0e6080e5385399cb coordinator.py:1624 CONST",
+    "assigned to box D3-g01: 021dc21415f3229e coordinator.py:1651 CONST",
+    "assigned to box D3-g01: 1165914e57f5bd08 coordinator.py:1796 CONST",
+    "assigned to box D3-g01: ab918806fc8b4af6 coordinator.py:10331 GUARD_OFF",
+    "assigned to box D3-g01: db9b59ec36304943 coordinator.py:10331 CMP_BOUND",
+    "assigned to box D3-g01: cf7be12db1a662c4 coordinator.py:9613 GUARD_OFF",
+    "assigned to box D3-g01: 031dba68286ccfbf coordinator.py:9622 GUARD_OFF",
+    "assigned to box D3-g01: 22205dc8a4a6e79b coordinator.py:9628 GUARD_OFF",
+    "assigned to box D3-g01: 37e0face2a901e71 coordinator.py:7419 CMP_BOUND",
+    "assigned to box D3-g01: 68c8ce175dcfa839 coordinator.py:7422 GUARD_OFF",
+    "assigned to box D3-g01: 97628f4b14aec1b9 coordinator.py:4497 GUARD_OFF",
+    "assigned to box D3-g01: 20f57d1eea0a5a1d coordinator.py:4508 BOOLOP",
+    "assigned to box D3-g01: e0bd801049aba41a coordinator.py:4524 CLAMP_DROP",
+    "assigned to box D3-g02: cd1d099ef87f3ab9 coordinator.py:4525 GUARD_OFF",
+    "assigned to box D3-g02: 473508040d23cc21 coordinator.py:4528 CLAMP_DROP",
+    "assigned to box D3-g02: ad8a02e5c07428ab coordinator.py:4538 GUARD_OFF",
+    "assigned to box D3-g02: b3a8cff2e5c0a8cc coordinator.py:5654 CMP_BOUND",
+    "assigned to box D3-g02: 59027d3bdf2e7a0c coordinator.py:5656 CMP_BOUND",
+    "assigned to box D3-g02: 7d276b43052dbeb9 coordinator.py:5658 CMP_BOUND",
+    "assigned to box D3-g02: 953a106a1aa39cee coordinator.py:5658 GUARD_OFF",
+    "assigned to box D3-g02: 4b296fec48fc594f coordinator.py:5663 CMP_BOUND",
+    "assigned to box D3-g02: 58fe17a0726473a6 coordinator.py:5663 GUARD_OFF",
+    "assigned to box D3-g02: 2700e28d79c64bd8 coordinator.py:5665 CMP_BOUND",
+    "assigned to box D3-g02: 223ac303af04edde coordinator.py:5671 GUARD_OFF",
+    "assigned to box D3-g02: 9d324a1dc7a6aa82 coordinator.py:5674 CMP_BOUND",
+    "assigned to box D3-g02: bb1abbfc58114a17 coordinator.py:5674 CMP_BOUND",
+    "assigned to box D3-g02: 74dbcc2eae2c24f5 coordinator.py:5679 CMP_BOUND",
+    "assigned to box D3-g02: 355c3d7dd36a1b90 coordinator.py:5782 CMP_BOUND",
+    "assigned to box D3-g02: 206a570d8cc784e3 coordinator.py:5800 GUARD_OFF",
+    "assigned to box D3-g03: ec4b6ee2ab420129 coordinator.py:5810 GUARD_OFF",
+    "assigned to box D3-g03: 3351754da55a2896 coordinator.py:5940 GUARD_OFF",
+    "assigned to box D3-g03: 16f7665306eebdf3 coordinator.py:8419 BOOLOP",
+    "assigned to box D3-g03: 2ec5fda238265712 coordinator.py:9685 GUARD_OFF",
+    "assigned to box D3-g03: c0ecc8e0b6b66ded coordinator.py:9695 GUARD_OFF",
+    "assigned to box D3-g03: ac6bedc70bb82ff7 coordinator.py:8265 GUARD_OFF",
+    "assigned to box D3-g03: 3304e65ba361587f coordinator.py:4831 GUARD_OFF",
+    "assigned to box D3-g03: a28fd1af46c39331 coordinator.py:4851 BOOLOP",
+    "assigned to box D3-g03: 4498461fcf451835 coordinator.py:4945 GUARD_OFF",
+    "assigned to box D3-g03: 79db73ec81b29f23 coordinator.py:9352 CMP_BOUND",
+    "assigned to box D3-g03: 816e18d55f46f0e4 coordinator.py:9352 GUARD_OFF",
+    "assigned to box D3-g03: 9c82d861621b8087 coordinator.py:9365 CMP_BOUND",
+    "assigned to box D3-g03: e880fd3537006726 coordinator.py:5986 GUARD_OFF",
+    "assigned to box D3-g03: 134126ee4914191f coordinator.py:10561 CMP_BOUND",
+    "assigned to box D3-g03: b7623a645f34e628 coordinator.py:10564 CMP_BOUND",
+    "assigned to box D3-g03: 420bcb8597761025 coordinator.py:10855 CLAMP_DROP",
+    "assigned to box D3-g04: 466c95cb8978ea1d coordinator.py:7733 GUARD_OFF",
+    "assigned to box D3-g04: a7dd3153718e531b coordinator.py:9153 GUARD_OFF",
+    "assigned to box D3-g04: b6b6e82fb4a33703 coordinator.py:9153 CMP_BOUND",
+    "assigned to box D3-g04: 10ba5036744c9a99 coordinator.py:9155 CLAMP_DROP",
+    "assigned to box D3-g04: 7457d714cd44306c coordinator.py:9166 CMP_BOUND",
+    "assigned to box D3-g04: 6aeb83e5435c9cac coordinator.py:10428 GUARD_OFF",
+    "assigned to box D3-g04: d06a2d8e53342785 coordinator.py:10433 GUARD_OFF",
+    "assigned to box D3-g04: 9789e0e7faa1b53a coordinator.py:10445 CMP_BOUND",
+    "assigned to box D3-g04: 8b4f4adbf55981bc coordinator.py:9931 GUARD_OFF",
+    "assigned to box D3-g04: c555c1a38da31dde coordinator.py:4391 CMP_BOUND",
+    "assigned to box D3-g04: ff67ca31aba14e7f coordinator.py:4391 GUARD_OFF",
+    "assigned to box D3-g04: 201955bf671ce8aa coordinator.py:4396 CMP_BOUND",
+    "assigned to box D3-g04: faf822994582adfc coordinator.py:4463 CLAMP_DROP",
+    "assigned to box D3-g04: feed2751f4116bd1 coordinator.py:4464 CMP_BOUND",
+    "assigned to box D3-g04: 29bad645ca2c2438 coordinator.py:4471 CMP_BOUND",
+    "assigned to box D3-g04: 640a1a68b6c1eb23 coordinator.py:9846 GUARD_OFF",
+    "assigned to box D3-g05: 0acf3cb312a5b76e coordinator.py:9849 GUARD_OFF",
+    "assigned to box D3-g05: c087dc286eeff014 coordinator.py:5083 CLAMP_DROP",
+    "assigned to box D3-g05: 3b458790a543507e coordinator.py:5248 GUARD_OFF",
+    "assigned to box D3-g05: c39bf88e7fd0066f coordinator.py:5259 CMP_BOUND",
+    "assigned to box D3-g05: 218ac218da41d87d coordinator.py:5156 CMP_BOUND",
+    "assigned to box D3-g05: bcf290164a0edeeb coordinator.py:5157 GUARD_OFF",
+    "assigned to box D3-g05: 375376c4733a1a51 coordinator.py:5174 RETURN_DEL",
+    "assigned to box D3-g05: 2699efc070f5d4e3 coordinator.py:5176 GUARD_OFF",
+    "assigned to box D3-g05: cc7e5a62ec1ea4d0 coordinator.py:5182 GUARD_OFF",
+    "assigned to box D3-g05: d05457b7adf4d691 coordinator.py:7056 GUARD_OFF",
+    "assigned to box D3-g05: d943cc9f7670a834 coordinator.py:7069 BOOLOP",
+    "assigned to box D3-g05: 894b4e70a336f8fa coordinator.py:10188 GUARD_OFF",
+    "assigned to box D3-g05: 2d6701afc323e1e8 coordinator.py:10192 CMP_BOUND",
+    "assigned to box D3-g05: 8cfd8cf0d8a58c83 coordinator.py:10192 CMP_BOUND",
+    "assigned to box D3-g05: e02e1ac8cc0b714a coordinator.py:10223 GUARD_OFF",
+    "assigned to box D3-g05: ba1c58ad6dabbebd coordinator.py:10231 CMP_BOUND",
+    "assigned to box D3-g06: d915157ffe509e58 coordinator.py:10231 CMP_BOUND",
+    "assigned to box D3-g06: dff127b334682936 coordinator.py:9327 CMP_BOUND",
+    "assigned to box D3-g06: 6b306521ae03824d coordinator.py:5382 CMP_BOUND",
+    "assigned to box D3-g06: b546d5e705722bb5 coordinator.py:5382 GUARD_OFF",
+    "assigned to box D3-g06: 59337f7f63497f21 coordinator.py:9437 CMP_BOUND",
+    "assigned to box D3-g06: 4542deee22df985f coordinator.py:9440 GUARD_OFF",
+    "assigned to box D3-g06: 8e729260c34e2e3b coordinator.py:9440 CMP_BOUND",
+    "assigned to box D3-g06: e347b6890486dd0d coordinator.py:9447 GUARD_OFF",
+    "assigned to box D3-g06: 72fbe692d30d275e coordinator.py:9452 CLAMP_DROP",
+    "assigned to box D3-g06: 2e4d4a89570a1b24 coordinator.py:9383 CMP_BOUND",
+    "assigned to box D3-g06: 30fcf9ba50130ea2 coordinator.py:9386 CMP_BOUND",
+    "assigned to box D3-g06: 89a3d25e2425b8e0 coordinator.py:9386 GUARD_OFF",
+    "assigned to box D3-g06: efa2c19c51831a68 coordinator.py:9386 CMP_BOUND",
+    "assigned to box D3-g06: 205d200980d58e9e coordinator.py:9390 CMP_BOUND",
+    "assigned to box D3-g06: 96fe4cecaa16f997 coordinator.py:9390 GUARD_OFF",
+    "assigned to box D3-g06: 1a24365a55bfb2c7 coordinator.py:9402 BOOLOP",
+    "assigned to box D3-g07: d3cad40ffce9b765 coordinator.py:9402 CMP_BOUND",
+    "assigned to box D3-g07: e163f6fbc359cd4c coordinator.py:9402 CMP_BOUND",
+    "assigned to box D3-g07: 67495f7b404053fc coordinator.py:7477 CMP_BOUND",
+    "assigned to box D3-g07: f0146f6f4901ec82 coordinator.py:7491 GUARD_OFF",
+    "assigned to box D3-g07: 5f950692fab8eb1b coordinator.py:7492 CLAMP_DROP",
+    "assigned to box D3-g07: 4410da4e8eb84cb8 coordinator.py:8838 BOOLOP",
+    "assigned to box D3-g07: 7ec91efc2c6deffd coordinator.py:8838 CMP_BOUND",
+    "assigned to box D3-g07: f11665aaedbf2550 coordinator.py:8838 GUARD_OFF",
+    "assigned to box D3-g07: 9b72b944ac12fa25 coordinator.py:8842 GUARD_OFF",
+    "assigned to box D3-g07: fd1cc23d380739ba coordinator.py:8847 CMP_BOUND",
+    "assigned to box D3-g07: c20f346300d7efc1 coordinator.py:9292 BOOLOP",
+    "assigned to box D3-g07: 60f673da42f9d671 coordinator.py:9294 CMP_BOUND",
+    "assigned to box D3-g07: 661116d11d6faa49 coordinator.py:9170 GUARD_OFF",
+    "assigned to box D3-g07: b6ac2d53028d45a3 coordinator.py:5049 GUARD_OFF",
+    "assigned to box D3-g07: 7f2768bd0a78b4bf coordinator.py:5103 CLAMP_DROP",
+    "assigned to box D3-g07: 1ee0ec8960fb9a66 coordinator.py:5104 GUARD_OFF",
+    "assigned to box D3-g08: 15456e64946920b5 coordinator.py:5108 GUARD_OFF",
+    "assigned to box D3-g08: 82f764a536ab9d71 coordinator.py:5108 CMP_BOUND",
+    "assigned to box D3-g08: 2e20bf308c37e0e5 coordinator.py:8966 GUARD_OFF",
+    "assigned to box D3-g08: ceee24404849933e coordinator.py:9010 GUARD_OFF",
+    "assigned to box D3-g08: 7729bdd71430fcf1 coordinator.py:9022 CMP_BOUND",
+    "assigned to box D3-g08: 341d807c3a3d361d coordinator.py:9030 CMP_BOUND",
+    "assigned to box D3-g08: d5ce59f9731dfc83 coordinator.py:8176 CMP_BOUND",
+    "assigned to box D3-g08: 7398de952c9d1510 coordinator.py:10603 CLAMP_DROP",
+    "assigned to box D3-g08: 21a2563e1beb213f coordinator.py:9486 CMP_BOUND",
+    "assigned to box D3-g08: 509893a173fa6a29 coordinator.py:9486 CMP_BOUND",
+    "assigned to box D3-g08: cd6eee1c9c175e5f coordinator.py:9500 CMP_BOUND",
+    "assigned to box D3-g08: da1919c641494713 coordinator.py:8766 GUARD_OFF",
+    "assigned to box D3-g08: 37e281ab084b40ae coordinator.py:8785 CMP_BOUND",
+    "assigned to box D3-g08: b283779946540c3d coordinator.py:8785 CMP_BOUND",
+    "assigned to box D3-g08: 25fb4eaf35cfdda5 coordinator.py:8806 CMP_BOUND",
+    "assigned to box D3-g08: aaa2a3d6bb2ba515 coordinator.py:9051 CMP_BOUND",
+    "assigned to box D3-g09: 9cdf54d2309cfcc8 coordinator.py:9038 CMP_BOUND",
+    "assigned to box D3-g09: d8101520588009d9 coordinator.py:8900 CMP_BOUND",
+    "assigned to box D3-g09: 33d708ab867fe5e7 coordinator.py:10262 CLAMP_DROP",
+    "assigned to box D3-g09: 3dcdfbdd2542f33e coordinator.py:10267 CLAMP_DROP",
+    "assigned to box D3-g09: 3d83c32f185cf411 coordinator.py:9819 CMP_BOUND",
+    "assigned to box D3-g09: 002980a15ae8b9a9 coordinator.py:9827 GUARD_OFF",
+    "assigned to box D3-g09: 1785780ac9dd1b18 coordinator.py:9836 GUARD_OFF",
+    "assigned to box D3-g09: 326b26f53972df61 coordinator.py:9810 GUARD_OFF",
+    "assigned to box D3-g09: 104db258fed59c2d coordinator.py:11000 CMP_BOUND",
+    "assigned to box D3-g09: 8daaf4fcaf8cd897 coordinator.py:11002 CMP_BOUND",
+    "assigned to box D3-g09: 3cfe39778305daba coordinator.py:11008 CMP_BOUND",
+    "assigned to box D3-g09: 146d687b30889301 coordinator.py:10504 GUARD_OFF",
+    "assigned to box D3-g09: 425a9196b86265d0 coordinator.py:11057 GUARD_OFF",
+    "assigned to box D3-g09: 84797ff91697f6a7 coordinator.py:11091 CLAMP_DROP",
+    "assigned to box D3-g09: 0c99189b7639f1bd coordinator.py:9980 CMP_BOUND",
+    "assigned to box D3-g09: df697cc04154fbdd coordinator.py:9980 CMP_BOUND",
+    "assigned to box D3-g10: 205660ee362d1a07 coordinator.py:7861 GUARD_OFF",
+    "assigned to box D3-g10: 34c20aac32a34344 coordinator.py:9273 CMP_BOUND",
+    "assigned to box D3-g10: c7054b2e59c82141 coordinator.py:9273 CMP_BOUND",
+    "assigned to box D3-g10: ff56936f15fd4675 coordinator.py:9273 BOOLOP",
+    "assigned to box D3-g10: 349b2e117d076731 coordinator.py:6747 GUARD_OFF",
+    "assigned to box D3-g10: cdd17526ebbf2a93 coordinator.py:6747 BOOLOP",
+    "assigned to box D3-g10: 8ab42c4ab9755537 coordinator.py:6752 BOOLOP",
+    "assigned to box D3-g10: e689dc488b493c6b coordinator.py:6752 GUARD_OFF",
+    "assigned to box D3-g10: f2a191b48718e088 coordinator.py:5234 GUARD_OFF",
+    "assigned to box D3-g10: b871ff0486182e3e coordinator.py:7549 CLAMP_DROP",
+    "assigned to box D3-g10: 813cb7aecbd78f98 coordinator.py:7551 CMP_BOUND",
+    "assigned to box D3-g10: aa6b718c979bf831 coordinator.py:7118 GUARD_OFF",
+    "assigned to box D3-g10: 18fe89552892dc4b coordinator.py:7130 GUARD_OFF",
+    "assigned to box D3-g10: 65175bb211f70f26 coordinator.py:10678 GUARD_OFF",
+    "assigned to box D3-g10: 3b6228b7d69c32bc coordinator.py:7693 CLAMP_DROP",
+    "assigned to box D3-g10: f68e6ba7e28b251a coordinator.py:6356 GUARD_OFF",
+    "assigned to box D3-g11: 9efe002b48e1827d coordinator.py:6360 RETURN_DEL",
+    "assigned to box D3-g11: a7488872387d5ca7 coordinator.py:6379 CMP_BOUND",
+    "assigned to box D3-g11: 61e748f094f2daa8 coordinator.py:6454 CMP_BOUND",
+    "assigned to box D3-g11: a33188790c5affad coordinator.py:6454 GUARD_OFF",
+    "assigned to box D3-g11: 94285425a1bc856a coordinator.py:6615 GUARD_OFF",
+    "assigned to box D3-g11: 69b933a6a720006b coordinator.py:6620 GUARD_OFF",
+    "assigned to box D3-g11: ede3dd3467ffc6e5 coordinator.py:11214 CMP_BOUND",
+    "assigned to box D3-g11: 9dcd374ac007dfc9 coordinator.py:11271 BOOLOP",
+    "assigned to box D3-g11: d4b32336085935df coordinator.py:8457 GUARD_OFF",
+    "assigned to box D3-g11: 4fd094e9727818b3 coordinator.py:2907 CMP_BOUND",
+    "assigned to box D3-g11: e2b030e0716d126c coordinator.py:2910 CMP_BOUND",
+    "assigned to box D3-g11: dc6c13eca2ca1737 coordinator.py:1864 GUARD_OFF",
+    "assigned to box D3-g11: 738102c9ed0f89af coordinator.py:984 GUARD_OFF",
+    "assigned to box D3-g11: 372a4f4fcc8de86f coordinator.py:490 CMP_BOUND",
+    "assigned to box D3-g11: 6f5898d327366799 coordinator.py:3101 CMP_BOUND",
+    "assigned to box D3-g11: b247841f5466162d coordinator.py:2539 CMP_BOUND",
+    "assigned to box D3-g12: 7ffebcb567a4242e coordinator.py:2540 CMP_BOUND",
+    "assigned to box D3-g12: 845155d368e8b524 coordinator.py:900 CMP_BOUND",
+    "assigned to box D3-g12: 3e68dcd55f9567e5 coordinator.py:3013 CMP_BOUND",
+    "assigned to box D3-g12: 88ecd932bc81efec coordinator.py:3013 CMP_BOUND",
+    "assigned to box D3-g12: 4403a4c7bec83d8f coordinator.py:3417 GUARD_OFF",
+    "assigned to box D3-g12: 89bec0a0291b4756 coordinator.py:467 CMP_BOUND",
+    "assigned to box D3-g12: b028ad9d6c702965 coordinator.py:2360 GUARD_OFF",
+    "assigned to box D3-g12: 3b9eddc7ba9a7488 defrost.py:124 CONST",
+    "assigned to box D3-g12: fc4fe0f49de831a8 defrost.py:142 CONST",
+    "assigned to box D3-g12: d1197dfed14a6927 defrost.py:313 CMP_BOUND",
+    "assigned to box D3-g12: 3e3fbb5fcbbe9bcc defrost.py:566 GUARD_OFF",
+    "assigned to box D3-g12: 1ba9abbe8e702464 defrost.py:537 CMP_BOUND",
+    "assigned to box D3-g12: 4aac8e694ddc5dfe defrost.py:537 CMP_BOUND",
+    "assigned to box D3-g12: 5366f1e6254f603c defrost.py:392 CMP_BOUND",
+    "assigned to box D3-g12: efb33eb6212be24e defrost.py:392 CMP_BOUND",
+    "assigned to box D3-g12: 0e3569fef6b39497 defrost.py:434 CMP_BOUND",
+    "assigned to box D3-g13: 24d9995ccee4252e defrost.py:642 CMP_BOUND",
+    "assigned to box D3-g13: 7030f8259cc37dd4 defrost.py:746 CMP_BOUND",
+    "assigned to box D3-g13: 5941c09a9face079 defrost.py:739 BOOLOP",
+    "assigned to box D3-g13: b020c93535a7f9e6 defrost.py:795 GUARD_OFF",
+    "assigned to box D3-g13: 8297234e122897ff defrost.py:802 GUARD_OFF",
+    "assigned to box D3-g13: 681130c48add1573 defrost.py:804 CLAMP_DROP",
+    "assigned to box D3-g13: c61a89f42607c92b defrost.py:169 CMP_BOUND",
+    "assigned to box D3-g13: c0bd33b7c209982d defrost.py:181 CMP_BOUND",
+    "assigned to box D3-g13: 677019b333cfa304 defrost.py:184 CMP_BOUND",
+    "assigned to box D3-g13: 168e4035dbc9bb84 defrost.py:204 CLAMP_DROP",
+    "assigned to box D3-g13: 597d6753c0939797 dhw_planner.py:2055 CMP_BOUND",
+    "assigned to box D3-g13: df4de55e12588fdf dhw_planner.py:2055 CMP_BOUND",
+    "assigned to box D3-g13: 72240d3f22ceb752 dhw_planner.py:2057 CLAMP_DROP",
+    "assigned to box D3-g13: 49dc3d36092b3943 dhw_planner.py:2065 CLAMP_DROP",
+    "assigned to box D3-g13: 111763243ac44278 dhw_planner.py:2075 GUARD_OFF",
+    "assigned to box D3-g13: af8d4fddad8f298f dhw_planner.py:2075 CMP_BOUND",
+    "assigned to box D3-g14: 3685cdbd27c1680f dhw_planner.py:2076 CLAMP_DROP",
+    "assigned to box D3-g14: 1c0e818b4bb24fcd dhw_planner.py:2106 CLAMP_DROP",
+    "assigned to box D3-g14: 0b51e1d1975513aa dhw_planner.py:1645 CLAMP_DROP",
+    "assigned to box D3-g14: 0e3fc2bc64c2bf63 dhw_planner.py:1649 CMP_BOUND",
+    "assigned to box D3-g14: 4813f0fd25bc8bb4 dhw_planner.py:1138 CLAMP_DROP",
+    "assigned to box D3-g14: b25e80c59b31c20d dhw_planner.py:1184 GUARD_OFF",
+    "assigned to box D3-g14: 6999e2dab9790b53 dhw_planner.py:1187 CMP_BOUND",
+    "assigned to box D3-g14: cd7bc939ea82fecd dhw_planner.py:1188 GUARD_OFF",
+    "assigned to box D3-g14: de02e0a048abc451 dhw_planner.py:1190 GUARD_OFF",
+    "assigned to box D3-g14: 7f026b4dd7d44269 dhw_planner.py:1214 CLAMP_DROP",
+    "assigned to box D3-g14: a1576c7241b67401 dhw_planner.py:1342 CMP_BOUND",
+    "assigned to box D3-g14: 8fa714bbb756e11e dhw_planner.py:1343 CLAMP_DROP",
+    "assigned to box D3-g14: 8fbdb8a5c1e67d5e dhw_planner.py:1343 CLAMP_DROP",
+    "assigned to box D3-g14: 94c2cc27ea61db25 dhw_planner.py:1346 GUARD_OFF",
+    "assigned to box D3-g14: defeacb89de279a1 dhw_planner.py:1348 CMP_BOUND",
+    "assigned to box D3-g14: c9404a6ea551b041 dhw_planner.py:1943 GUARD_OFF",
+    "assigned to box D3-g15: 0e752f692873e876 dhw_planner.py:740 CLAMP_DROP",
+    "assigned to box D3-g15: 3e26ea9048504c31 dhw_planner.py:743 CMP_BOUND",
+    "assigned to box D3-g15: 77d5e6c8ea98273a dhw_planner.py:783 CLAMP_DROP",
+    "assigned to box D3-g15: a1ebeff0870dfa76 dhw_planner.py:784 CMP_BOUND",
+    "assigned to box D3-g15: f1549576a94b99be dhw_planner.py:784 GUARD_OFF",
+    "assigned to box D3-g15: 1d455987c970dfde dhw_planner.py:790 CMP_BOUND",
+    "assigned to box D3-g15: 7cd9b966a3bd0008 dhw_planner.py:793 CMP_BOUND",
+    "assigned to box D3-g15: 8e9a502f439ceeeb dhw_planner.py:807 CMP_BOUND",
+    "assigned to box D3-g15: f9c1b49fde6e1d52 dhw_planner.py:807 GUARD_OFF",
+    "assigned to box D3-g15: 79ba0b9f6b3cf22d dhw_planner.py:596 CMP_BOUND",
+    "assigned to box D3-g15: 56d2279a568e8891 dhw_planner.py:598 CMP_BOUND",
+    "assigned to box D3-g15: 31c1881164f2dcdf dhw_planner.py:626 CMP_BOUND",
+    "assigned to box D3-g15: 7640e80a994db479 dhw_planner.py:628 CMP_BOUND",
+    "assigned to box D3-g15: 5224cce5f7a150cb dhw_planner.py:658 CLAMP_DROP",
+    "assigned to box D3-g15: c124ea447555a04a dhw_planner.py:658 CLAMP_DROP",
+    "assigned to box D3-g15: 8fb9093f7470e6aa dhw_planner.py:659 CLAMP_DROP",
+    "assigned to box D3-g16: 35d61c87783ebe66 dhw_planner.py:680 GUARD_OFF",
+    "assigned to box D3-g16: 01acd6cc2431d71d dhw_planner.py:692 CLAMP_DROP",
+    "assigned to box D3-g16: 8fc6a207d6600867 dhw_planner.py:470 CMP_BOUND",
+    "assigned to box D3-g16: 72882f2ac25c19b1 dhw_planner.py:474 CLAMP_DROP",
+    "assigned to box D3-g16: ea6dfc5a3c85cce3 dhw_planner.py:2133 CMP_BOUND",
+    "assigned to box D3-g16: a21e5757eab163a7 dhw_planner.py:2140 CMP_BOUND",
+    "assigned to box D3-g16: b16740061447ef70 dhw_planner.py:1018 CLAMP_DROP",
+    "assigned to box D3-g16: e19cdb6bf198d1e7 dhw_planner.py:1034 CMP_BOUND",
+    "assigned to box D3-g16: 41000bf52dbaa1ad dhw_planner.py:547 CLAMP_DROP",
+    "assigned to box D3-g16: 88d911d796fdd71d dhw_planner.py:548 CMP_BOUND",
+    "assigned to box D3-g16: 3ec31b99309ca722 dhw_planner.py:549 GUARD_OFF",
+    "assigned to box D3-g16: 9b890e4f1fdfcd41 dhw_planner.py:556 GUARD_OFF",
+    "assigned to box D3-g16: 84eb14f49ff66736 dhw_planner.py:2232 CLAMP_DROP",
+    "assigned to box D3-g16: 7da9151a6a79c43e dhw_planner.py:2234 GUARD_OFF",
+    "assigned to box D3-g16: 88a992e9013ee436 dhw_planner.py:2236 GUARD_OFF",
+    "assigned to box D3-g16: 50ae25437a296deb dhw_planner.py:2280 CMP_BOUND",
+    "assigned to box D3-g17: 0aa6eaace756da92 dhw_planner.py:2285 CMP_BOUND",
+    "assigned to box D3-g17: eae8cfee2ddbd16d dhw_planner.py:2285 CMP_BOUND",
+    "assigned to box D3-g17: fd9b39c806b43b56 dhw_planner.py:2303 CMP_BOUND",
+    "assigned to box D3-g17: 61862d35b6b2885d dhw_planner.py:2307 CLAMP_DROP",
+    "assigned to box D3-g17: 5b123e9e5b76ebc3 dhw_planner.py:2227 CMP_BOUND",
+    "assigned to box D3-g17: 4f1f941124291aeb dhw_planner.py:2228 CMP_BOUND",
+    "assigned to box D3-g17: c1d6f40c74ee74ad dhw_planner.py:1510 CLAMP_DROP",
+    "assigned to box D3-g17: b1a8d3056bf42597 dhw_planner.py:1527 CLAMP_DROP",
+    "assigned to box D3-g17: 8db7b149f5f9eda5 dhw_planner.py:1528 CLAMP_DROP",
+    "assigned to box D3-g17: ddf4602569b157b1 dhw_planner.py:1529 CMP_BOUND",
+    "assigned to box D3-g17: 247372989ae65baa dhw_planner.py:1535 CLAMP_DROP",
+    "assigned to box D3-g17: b1074e70396100d8 dhw_planner.py:1538 CLAMP_DROP",
+    "assigned to box D3-g17: 539e5aeaccf156f3 dhw_planner.py:1546 GUARD_OFF",
+    "assigned to box D3-g17: 6e1174561ae9297c dhw_planner.py:1546 CMP_BOUND",
+    "assigned to box D3-g17: b7a6f145165338bf dhw_planner.py:1606 RETURN_DEL",
+    "assigned to box D3-g17: 2074f3eefe8521aa dhw_planner.py:1608 GUARD_OFF",
+    "assigned to box D3-g18: 2580fdeb3923a03e dhw_planner.py:1613 RETURN_DEL",
+    "assigned to box D3-g18: 64576dd552491452 dhw_planner.py:1627 GUARD_OFF",
+    "assigned to box D3-g18: 91617fb42e33ebdf dhw_planner.py:1800 CMP_BOUND",
+    "assigned to box D3-g18: fabfc9228615948e dhw_planner.py:1803 CMP_BOUND",
+    "assigned to box D3-g18: ef125fd473e20ed2 dhw_planner.py:1822 CMP_BOUND",
+    "assigned to box D3-g18: ff4f903a5a5c3f55 dhw_planner.py:1828 CMP_BOUND",
+    "assigned to box D3-g18: 3c6e75178a60d75e dhw_planner.py:1870 CMP_BOUND",
+    "assigned to box D3-g18: d7e250feefbd0343 dhw_planner.py:1871 CLAMP_DROP",
+    "assigned to box D3-g18: e11dcf62611a5d1c dhw_planner.py:1872 CMP_BOUND",
+    "assigned to box D3-g18: 936bcb2da6441e86 dhw_planner.py:1893 GUARD_OFF",
+    "assigned to box D3-g18: 2aa0f17a216035ee flow_lift.py:51 CONST",
+    "assigned to box D3-g18: 19ac62540d0d5ee8 flow_lift.py:232 CMP_BOUND",
+    "assigned to box D3-g18: 3b87cd840077679e grid_fee.py:445 CONST",
+    "assigned to box D3-g18: ee2d5a67d9d3a7f9 grid_fee.py:329 GUARD_OFF",
+    "assigned to box D3-g18: db32007740226522 grid_fee.py:187 GUARD_OFF",
+    "assigned to box D3-g18: 9297f123a6265555 grid_fee.py:483 GUARD_OFF",
+    "assigned to box D3-g19: 911f3cf5172ffc44 grid_fee.py:496 RETURN_DEL",
+    "assigned to box D3-g19: b5f0a73275608684 grid_fee.py:360 CMP_BOUND",
+    "assigned to box D3-g19: 68cc141bf2c3493a grid_fee.py:388 CMP_BOUND",
+    "assigned to box D3-g19: 2043855ef5cf151d grid_fee.py:219 GUARD_OFF",
+    "assigned to box D3-g19: eee37674711fa45f optimizer.py:2006 CONST",
+    "assigned to box D3-g19: 23b144fb9583c5c7 optimizer.py:2156 CONST",
+    "assigned to box D3-g19: 68ef00f470ecea8d optimizer.py:2385 CONST",
+    "assigned to box D3-g19: be95c184bf4746ff optimizer.py:4211 GUARD_OFF",
+    "assigned to box D3-g19: e53563e772b70dbc optimizer.py:4229 CMP_BOUND",
+    "assigned to box D3-g19: aebea2e6b76b2dc3 optimizer.py:4234 CLAMP_DROP",
+    "assigned to box D3-g19: 2ae9ff3138f9364d optimizer.py:4235 CLAMP_DROP",
+    "assigned to box D3-g19: 24ef8e54dad20484 optimizer.py:4249 CMP_BOUND",
+    "assigned to box D3-g19: 7f048d7823b17826 optimizer.py:4250 CLAMP_DROP",
+    "assigned to box D3-g19: 4c7e296370fc452d optimizer.py:4271 CMP_BOUND",
+    "assigned to box D3-g19: 9644a454ac8f288b optimizer.py:4272 CLAMP_DROP",
+    "assigned to box D3-g19: 1b3cbaddab6e496f optimizer.py:3402 GUARD_OFF",
+    "assigned to box D3-g20: a0722b8c635d2d93 optimizer.py:3402 CMP_BOUND",
+    "assigned to box D3-g20: d800d2857a698d22 optimizer.py:3405 CMP_BOUND",
+    "assigned to box D3-g20: 176e4dd6d5aec097 optimizer.py:3408 CMP_BOUND",
+    "assigned to box D3-g20: c40e66fc9831672f optimizer.py:6069 CLAMP_DROP",
+    "assigned to box D3-g20: 7452dcf280ce931f optimizer.py:6070 CMP_BOUND",
+    "assigned to box D3-g20: aa338654e7801916 optimizer.py:6070 GUARD_OFF",
+    "assigned to box D3-g20: 7add4cd79387ec24 optimizer.py:6091 CMP_BOUND",
+    "assigned to box D3-g20: 72d1e72dd0acdfc1 optimizer.py:6093 GUARD_OFF",
+    "assigned to box D3-g20: bdb9a95deedcc8fe optimizer.py:6093 CMP_BOUND",
+    "assigned to box D3-g20: bf2229e3f179f4b6 optimizer.py:6097 CMP_BOUND",
+    "assigned to box D3-g20: 19141bef62ecb4a6 optimizer.py:4766 CMP_BOUND",
+    "assigned to box D3-g20: 47430bf93e309e76 optimizer.py:4766 GUARD_OFF",
+    "assigned to box D3-g20: 0275af9776ae709e optimizer.py:4802 GUARD_OFF",
+    "assigned to box D3-g20: 9e71bd23e996ec6a optimizer.py:4828 CMP_BOUND",
+    "assigned to box D3-g20: 3652dbb5880d62c8 optimizer.py:3969 CMP_BOUND",
+    "assigned to box D3-g20: b1926550efd8eac4 optimizer.py:3969 CMP_BOUND",
+    "assigned to box D3-g21: fd57e13959b23a4c optimizer.py:3997 CMP_BOUND",
+    "assigned to box D3-g21: 905a40b5ecea024f optimizer.py:5044 GUARD_OFF",
+    "assigned to box D3-g21: ad01ae06d7ea84ec optimizer.py:5054 GUARD_OFF",
+    "assigned to box D3-g21: cb58757b91fa48c4 optimizer.py:5054 CMP_BOUND",
+    "assigned to box D3-g21: 8ac9888c3d5fed52 optimizer.py:5059 GUARD_OFF",
+    "assigned to box D3-g21: 00298af0aa9d1903 optimizer.py:5074 GUARD_OFF",
+    "assigned to box D3-g21: a4f4c88e7480a514 optimizer.py:4033 CMP_BOUND",
+    "assigned to box D3-g21: 904118eef67fced3 optimizer.py:5271 CMP_BOUND",
+    "assigned to box D3-g21: be3a3a75280c7b7e optimizer.py:5016 CLAMP_DROP",
+    "assigned to box D3-g21: 39a6d2e97fd44ed5 optimizer.py:5478 CLAMP_DROP",
+    "assigned to box D3-g21: deb281264473bdd6 optimizer.py:5902 CMP_BOUND",
+    "assigned to box D3-g21: a66e107749d0ae11 optimizer.py:5945 CLAMP_DROP",
+    "assigned to box D3-g21: 4e5a67b907d13871 optimizer.py:5956 CMP_BOUND",
+    "assigned to box D3-g21: ed5e3ec5b879ed90 optimizer.py:5962 CMP_BOUND",
+    "assigned to box D3-g21: 6309f3e4a0a6c45f optimizer.py:5283 CLAMP_DROP",
+    "assigned to box D3-g21: 6b6eb0c1091c3c5c optimizer.py:5284 CLAMP_DROP",
+    "assigned to box D3-g22: ea0b9abd134c33cd optimizer.py:6497 CMP_BOUND",
+    "assigned to box D3-g22: fa67e0922f51edda optimizer.py:6498 CMP_BOUND",
+    "assigned to box D3-g22: ef9a378b671791ca optimizer.py:6504 CLAMP_DROP",
+    "assigned to box D3-g22: 1897b1e8f0e09c02 optimizer.py:6509 CLAMP_DROP",
+    "assigned to box D3-g22: c859178ad2524ff8 optimizer.py:4876 CMP_BOUND",
+    "assigned to box D3-g22: e658b77d3e5ca8f6 optimizer.py:4879 CMP_BOUND",
+    "assigned to box D3-g22: 6ab21fd9f9fe4953 optimizer.py:4908 BOOLOP",
+    "assigned to box D3-g22: 1d0c70b3b63230eb optimizer.py:4913 CMP_BOUND",
+    "assigned to box D3-g22: d600d4886444a718 optimizer.py:4914 CLAMP_DROP",
+    "assigned to box D3-g22: 6e420d1efdf4895b optimizer.py:4915 CMP_BOUND",
+    "assigned to box D3-g22: 7da20bf51cc217e6 optimizer.py:4917 CLAMP_DROP",
+    "assigned to box D3-g22: 1f1dc504455f17da optimizer.py:5699 CMP_BOUND",
+    "assigned to box D3-g22: 9fe0782a9839475e optimizer.py:5701 CLAMP_DROP",
+    "assigned to box D3-g22: 7c2ae6b70ec6acb7 optimizer.py:5693 CMP_BOUND",
+    "assigned to box D3-g22: 97da0984453a53bb optimizer.py:5222 CMP_BOUND",
+    "assigned to box D3-g22: af94ce8be7140e87 optimizer.py:5225 CMP_BOUND",
+    "assigned to box D3-g23: c6679b9b114e5732 optimizer.py:5228 CMP_BOUND",
+    "assigned to box D3-g23: 8ef1027c9e221b64 optimizer.py:5229 CMP_BOUND",
+    "assigned to box D3-g23: ce686724ef107650 optimizer.py:5229 BOOLOP",
+    "assigned to box D3-g23: 8fd14c249b86abf7 optimizer.py:5234 GUARD_OFF",
+    "assigned to box D3-g23: 0120a5a672990611 optimizer.py:5235 CMP_BOUND",
+    "assigned to box D3-g23: 0ecb763c4bcb0828 optimizer.py:5237 CMP_BOUND",
+    "assigned to box D3-g23: f2894b5754c254fe optimizer.py:5248 CLAMP_DROP",
+    "assigned to box D3-g23: bc3a42f14c903439 optimizer.py:5250 CMP_BOUND",
+    "assigned to box D3-g23: 856aa341a89a6ab0 optimizer.py:5211 CMP_BOUND",
+    "assigned to box D3-g23: 7303435ec1ab7701 optimizer.py:5212 CMP_BOUND",
+    "assigned to box D3-g23: 5ce83ed87c36b9a5 optimizer.py:5213 CMP_BOUND",
+    "assigned to box D3-g23: fe3e41de6bdc640a optimizer.py:5213 BOOLOP",
+    "assigned to box D3-g23: f25414a9d4e32d19 optimizer.py:5292 CLAMP_DROP",
+    "assigned to box D3-g23: 70791cdb98f8ddd7 optimizer.py:6027 GUARD_OFF",
+    "assigned to box D3-g23: 7516dd3d9e66d3ef optimizer.py:6029 CLAMP_DROP",
+    "assigned to box D3-g23: 65e0ffa75d60d319 optimizer.py:6038 GUARD_OFF",
+    "assigned to box D3-g25: f3126cd40dc76143 optimizer.py:6565 CMP_BOUND",
+    "assigned to box D3-g25: f58c6d034aa31e46 optimizer.py:6566 CMP_BOUND",
+    "assigned to box D3-g25: 6aec51dc6f670787 optimizer.py:6584 CMP_BOUND",
+    "assigned to box D3-g25: b2e075c0da35240d optimizer.py:6602 CMP_BOUND",
+    "assigned to box D3-g25: 57f696b2f988d5a9 optimizer.py:6604 CMP_BOUND",
+    "assigned to box D3-g25: b143b01c4ea02159 optimizer.py:6604 GUARD_OFF",
+    "assigned to box D3-g25: a581feadd69c6c42 optimizer.py:6606 GUARD_OFF",
+    "assigned to box D3-g25: e96ae75a1f1f213e optimizer.py:6606 CMP_BOUND",
+    "assigned to box D3-g25: d0de1c16101369f5 optimizer.py:6632 CMP_BOUND",
+    "assigned to box D3-g25: f8b7db7badd35158 optimizer.py:6638 CMP_BOUND",
+    "assigned to box D3-g25: cd766b55c44ca3ee optimizer.py:6640 CMP_BOUND",
+    "assigned to box D3-g25: 724471c27310230f optimizer.py:6644 CMP_BOUND",
+    "assigned to box D3-g25: 970ed4d74c36caa1 optimizer.py:6648 CMP_BOUND",
+    "assigned to box D3-g25: 1d11f24436471959 optimizer.py:6651 CMP_BOUND",
+    "assigned to box D3-g25: e16ae8a6fd6cea40 optimizer.py:6653 CMP_BOUND",
+    "assigned to box D3-g25: 119b25afdd5d4988 optimizer.py:6655 GUARD_OFF",
+    "assigned to box D3-g26: 35d104f30f878131 optimizer.py:6661 GUARD_OFF",
+    "assigned to box D3-g26: ec173cf0e67c0689 optimizer.py:4518 GUARD_OFF",
+    "assigned to box D3-g26: f56e3474baa75dc5 optimizer.py:4528 GUARD_OFF",
+    "assigned to box D3-g26: 1721e50b7537a426 optimizer.py:4532 GUARD_OFF",
+    "assigned to box D3-g26: 2693e4fc04518cbf optimizer.py:4560 BOOLOP",
+    "assigned to box D3-g26: ee671fa6ecec9023 optimizer.py:4560 CMP_BOUND",
+    "assigned to box D3-g26: 9a06a1a7e515fa67 optimizer.py:4610 CMP_BOUND",
+    "assigned to box D3-g26: 977021e3b3964277 optimizer.py:2782 GUARD_OFF",
+    "assigned to box D3-g26: 10de422e4e1024a7 optimizer.py:2786 GUARD_OFF",
+    "assigned to box D3-g26: e4affa9b9b540588 optimizer.py:2788 RETURN_DEL",
+    "assigned to box D3-g26: 0fcdd4bdabc205ea optimizer.py:2794 GUARD_OFF",
+    "assigned to box D3-g26: 8365c2592bae9886 optimizer.py:2796 GUARD_OFF",
+    "assigned to box D3-g26: 65b62179a34d3443 optimizer.py:2823 GUARD_OFF",
+    "assigned to box D3-g26: 67ac7292ac5ddd19 optimizer.py:2825 CMP_BOUND",
+    "assigned to box D3-g26: cfda6ca73c6951f1 optimizer.py:2825 GUARD_OFF",
+    "assigned to box D3-g26: c2896572788698c0 optimizer.py:2412 CLAMP_DROP",
+    "assigned to box D3-g27: e58e8eb0f54fe274 optimizer.py:2417 CMP_BOUND",
+    "assigned to box D3-g27: d128afa0c1ce3d28 optimizer.py:2418 CLAMP_DROP",
+    "assigned to box D3-g27: 0a40fc8d3d37f2ba optimizer.py:2111 GUARD_OFF",
+    "assigned to box D3-g27: 6af4c3b8f521e3d3 optimizer.py:2111 CMP_BOUND",
+    "assigned to box D3-g27: 10e3ee99c90d4d48 optimizer.py:1567 CMP_BOUND",
+    "assigned to box D3-g27: 06f2ef99e24e2e24 optimizer.py:1571 CLAMP_DROP",
+    "assigned to box D3-g27: c1e66052b2d8090c optimizer.py:1577 CMP_BOUND",
+    "assigned to box D3-g27: f077d8a96cc1e3ed optimizer.py:1577 CMP_BOUND",
+    "assigned to box D3-g27: 04bfd79fdf465dbf optimizer.py:1578 CMP_BOUND",
+    "assigned to box D3-g27: 6a32950e7b3e62f2 optimizer.py:1580 CMP_BOUND",
+    "assigned to box D3-g27: c5abe60d7c7ca966 optimizer.py:1582 CMP_BOUND",
+    "assigned to box D3-g27: ef7b85a510c47950 optimizer.py:1870 CLAMP_DROP",
+    "assigned to box D3-g27: 3067ff76235329e4 optimizer.py:1871 CMP_BOUND",
+    "assigned to box D3-g27: 0560ccd4eaedbd09 optimizer.py:2492 CLAMP_DROP",
+    "assigned to box D3-g27: b94f040a7b0aed92 optimizer.py:2494 GUARD_OFF",
+    "assigned to box D3-g27: efea9d49d605beaa optimizer.py:2494 CMP_BOUND",
+    "assigned to box D3-g28: 9aa50bd32847b4dd optimizer.py:1948 GUARD_OFF",
+    "assigned to box D3-g28: 1e3d68358832d695 optimizer.py:1957 GUARD_OFF",
+    "assigned to box D3-g28: b53efc6448b724e4 optimizer.py:1994 CMP_BOUND",
+    "assigned to box D3-g28: 92e6a72a53dd339f optimizer.py:1996 GUARD_OFF",
+    "assigned to box D3-g28: 64629e9b22df0c16 optimizer.py:2170 CMP_BOUND",
+    "assigned to box D3-g28: 0a673ba4467a184c optimizer.py:2172 CMP_BOUND",
+    "assigned to box D3-g28: 62abf71b9686f2b8 optimizer.py:2082 CMP_BOUND",
+    "assigned to box D3-g28: 9e9ab1d6567ff65b optimizer.py:2086 CLAMP_DROP",
+    "assigned to box D3-g28: 01e740ed4f78ae95 optimizer.py:2126 CMP_BOUND",
+    "assigned to box D3-g28: 26180738b4dfa52e optimizer.py:2126 GUARD_OFF",
+    "assigned to box D3-g28: a99da4c347a19ca5 optimizer.py:2126 CMP_BOUND",
+    "assigned to box D3-g28: cd7f83f0f8961444 optimizer.py:2126 CMP_BOUND",
+    "assigned to box D3-g28: 09e80cfe3036223e optimizer.py:2130 GUARD_OFF",
+    "assigned to box D3-g28: 57196c29f220bbc6 optimizer.py:2130 CMP_BOUND",
+    "assigned to box D3-g28: 8206a42b98c8dd86 optimizer.py:2144 CMP_BOUND",
+    "assigned to box D3-g28: e670e7e026a9f4ec optimizer.py:2146 CLAMP_DROP",
+    "assigned to box D3-g29: e196155b7525014c optimizer.py:2844 GUARD_OFF",
+    "assigned to box D3-g29: 9d455ff4aaf3f3e0 optimizer.py:3328 CLAMP_DROP",
+    "assigned to box D3-g29: 55022279c6d6bbda optimizer.py:3329 CLAMP_DROP",
+    "assigned to box D3-g29: 6a75a1ff72dc1df8 optimizer.py:3338 CLAMP_DROP",
+    "assigned to box D3-g29: 133158399eac10ae optimizer.py:2357 CMP_BOUND",
+    "assigned to box D3-g29: 4434c1fcedef6b6d optimizer.py:2286 GUARD_OFF",
+    "assigned to box D3-g29: 2d4e3ff8e818b777 optimizer.py:2294 CMP_BOUND",
+    "assigned to box D3-g29: 69e4aa41f4562af9 optimizer.py:2299 CMP_BOUND",
+    "assigned to box D3-g29: 8171db177f51df33 optimizer.py:2300 CMP_BOUND",
+    "assigned to box D3-g29: 2aff1f5c0b10dffa optimizer.py:2303 CMP_BOUND",
+    "assigned to box D3-g29: 000221f3921dd956 optimizer.py:2309 CMP_BOUND",
+    "assigned to box D3-g29: 8ef8417029ab8385 optimizer.py:3177 CMP_BOUND",
+    "assigned to box D3-g29: b5d57e4a1fc22d96 optimizer.py:3177 GUARD_OFF",
+    "assigned to box D3-g29: f062e0cc415ee33e optimizer.py:3186 CLAMP_DROP",
+    "assigned to box D3-g29: 0ea7620ce058c489 price_model.py:66 CONST",
+    "assigned to box D3-g29: 213a122afd9ff3e1 price_model.py:69 CONST",
+    "assigned to box D3-g30: b10967dd4ea185fd price_model.py:72 CONST",
+    "assigned to box D3-g30: 7e5493bcbddd6c18 price_model.py:80 CONST",
+    "assigned to box D3-g30: 66686e3bc3bac9b9 price_model.py:81 CONST",
+    "assigned to box D3-g30: 5bf50f5d986f927d price_model.py:84 CONST",
+    "assigned to box D3-g30: cc96ce9e391ca6f2 price_model.py:85 CONST",
+    "assigned to box D3-g30: b5aef00760fd5ea8 price_model.py:90 CONST",
+    "assigned to box D3-g30: b9b6cf1d15a84248 price_model.py:337 GUARD_OFF",
+    "assigned to box D3-g30: a5c9796d35117839 price_model.py:342 CMP_BOUND",
+    "assigned to box D3-g30: 13cadf1ab9a2de61 price_model.py:400 CMP_BOUND",
+    "assigned to box D3-g30: b5a482468c783209 price_model.py:207 CMP_BOUND",
+    "assigned to box D3-g30: 0b10a7c76e2514d2 price_model.py:219 GUARD_OFF",
+    "assigned to box D3-g30: c4697335da324182 price_model.py:226 GUARD_OFF",
+    "assigned to box D3-g30: 79c65c4903e72ee2 price_model.py:232 CLAMP_DROP",
+    "assigned to box D3-g30: 4e79ba6ea642d086 price_model.py:258 CMP_BOUND",
+    "assigned to box D3-g30: 12cd6ddd79fb36fc price_model.py:269 GUARD_OFF",
+    "assigned to box D3-g30: cee6857510fbe69e price_model.py:275 CLAMP_DROP",
+    "assigned to box D3-g31: ba9f6b92f678ab10 price_model.py:303 GUARD_OFF",
+    "assigned to box D3-g31: c9f07b68ade152e6 price_model.py:303 CMP_BOUND",
+    "assigned to box D3-g31: 45cd5752f930a064 price_model.py:357 GUARD_OFF",
+    "assigned to box D3-g31: e72d16a241bfa7be price_model.py:357 CMP_BOUND",
+    "assigned to box D3-g31: 3a064c11321daba7 price_model.py:417 CLAMP_DROP",
+    "assigned to box D3-g31: efa02472a5a773bc price_model.py:421 CLAMP_DROP",
+    "assigned to box D3-g31: 6743e8b3d654cd32 price_model.py:586 GUARD_OFF",
+    "assigned to box D3-g31: a38612ad3ad9cd34 price_model.py:141 CMP_BOUND",
+    "assigned to box D3-g31: f06caefa38815e4f price_model.py:141 CMP_BOUND",
+    "assigned to box D3-g31: 28de20de50a9540b price_model.py:155 CMP_BOUND",
+    "assigned to box D3-g31: e5eea05f4463602e price_model.py:844 GUARD_OFF",
+    "assigned to box D3-g31: 3ceb6a076659004f price_model.py:510 GUARD_OFF",
+    "assigned to box D3-g31: b434193b049a41c3 price_model.py:510 CMP_BOUND",
+    "assigned to box D3-g31: 29db99dee6a5debd price_model.py:532 CLAMP_DROP",
+    "assigned to box D3-g31: 886591ca08e1d27e price_model.py:535 CMP_BOUND",
+    "assigned to box D3-g31: c1e06ebefdc5abad price_model.py:541 CMP_BOUND",
+    "assigned to box D3-g32: 0d159d7ddd1702d9 price_model.py:544 CMP_BOUND",
+    "assigned to box D3-g32: 80fd46122d85566c price_model.py:820 GUARD_OFF",
+    "assigned to box D3-g32: b539d4504385a139 price_model.py:825 BOOLOP",
+    "assigned to box D3-g32: 55f9ec66dc8bfd54 price_model.py:855 GUARD_OFF",
+    "assigned to box D3-g32: 88732fcb7c604858 sysid.py:549 CONST",
+    "assigned to box D3-g32: 176d8ddb23988b95 sysid.py:1853 GUARD_OFF",
+    "assigned to box D3-g32: de399cdbe79053ea sysid.py:1640 CMP_BOUND",
+    "assigned to box D3-g32: c5ddabc7d9641cba sysid.py:1573 CLAMP_DROP",
+    "assigned to box D3-g32: 75d5865af3eceda7 sysid.py:1604 CMP_BOUND",
+    "assigned to box D3-g32: 0d5a6ef5041b90f9 sysid.py:1606 GUARD_OFF",
+    "assigned to box D3-g32: 4f2d93e67ccda975 sysid.py:1626 GUARD_OFF",
+    "assigned to box D3-g32: afbdfa240c441812 sysid.py:1593 CMP_BOUND",
+    "assigned to box D3-g32: ebd8c531fddf0a24 sysid.py:1593 CMP_BOUND",
+    "assigned to box D3-g32: 4a189db92053760e sysid.py:2409 GUARD_OFF",
+    "assigned to box D3-g32: 80cb9a8152f72e57 sysid.py:2411 CLAMP_DROP",
+    "assigned to box D3-g32: 1f4a10ae90bbf2d9 sysid.py:1705 CMP_BOUND",
+    "assigned to box D3-g33: 822c0c6477ed703e sysid.py:1708 CMP_BOUND",
+    "assigned to box D3-g33: adc459d2db521041 sysid.py:1708 CMP_BOUND",
+    "assigned to box D3-g33: a23ed12204379870 sysid.py:1715 CMP_BOUND",
+    "assigned to box D3-g33: 6e67f128730b3ecd sysid.py:1541 CMP_BOUND",
+    "assigned to box D3-g33: cf96494341270371 sysid.py:1541 CMP_BOUND",
+    "assigned to box D3-g33: ad7a177d7ca99cad sysid.py:1545 CMP_BOUND",
+    "assigned to box D3-g33: b61d1402aad5a055 sysid.py:1545 GUARD_OFF",
+    "assigned to box D3-g33: 0b6e291153f1d738 sysid.py:1546 CMP_BOUND",
+    "assigned to box D3-g33: e38d4bea802156c3 sysid.py:1546 CMP_BOUND",
+    "assigned to box D3-g33: 20e001c48fb19330 sysid.py:1549 CMP_BOUND",
+    "assigned to box D3-g33: d435f0054d7c9881 sysid.py:1557 BOOLOP",
+    "assigned to box D3-g33: 95090bc58c6535b2 sysid.py:1913 CMP_BOUND",
+    "assigned to box D3-g33: 505422349a01c3ff sysid.py:1922 CMP_BOUND",
+    "assigned to box D3-g33: 7dbbb95252ced538 sysid.py:1922 CMP_BOUND",
+    "assigned to box D3-g33: b413c17079bb8176 sysid.py:1922 GUARD_OFF",
+    "assigned to box D3-g33: aa6d264aa0411bcd sysid.py:1942 CMP_BOUND",
+    "assigned to box D3-g34: b8d5ec03e8eba5c7 sysid.py:1942 GUARD_OFF",
+    "assigned to box D3-g34: 756f3bebd6a42efc sysid.py:1974 CLAMP_DROP",
+    "assigned to box D3-g34: 3918ca4fedbfc5bb sysid.py:1979 CLAMP_DROP",
+    "assigned to box D3-g34: 84372c0eb1502d14 sysid.py:2010 CLAMP_DROP",
+    "assigned to box D3-g34: 20f72103eda78713 sysid.py:2018 GUARD_OFF",
+    "assigned to box D3-g34: 50daaa57683189c5 sysid.py:2018 CMP_BOUND",
+    "assigned to box D3-g34: 4eeb366191982f92 sysid.py:2032 CMP_BOUND",
+    "assigned to box D3-g34: a9bc37e9ba781833 sysid.py:2037 CLAMP_DROP",
+    "assigned to box D3-g34: 44bb0ce0b258242c sysid.py:2038 CMP_BOUND",
+    "assigned to box D3-g34: b97b45a6162a2f00 sysid.py:2038 CMP_BOUND",
+    "assigned to box D3-g34: 6b6a8493668dde1c sysid.py:2068 CMP_BOUND",
+    "assigned to box D3-g34: 10665a84dc064489 sysid.py:2114 GUARD_OFF",
+    "assigned to box D3-g34: d7421c10ed63c281 sysid.py:2114 CMP_BOUND",
+    "assigned to box D3-g34: 07227ec96c3e14de sysid.py:2126 GUARD_OFF",
+    "assigned to box D3-g34: 3e78e62aa0f2e687 sysid.py:2126 CMP_BOUND",
+    "assigned to box D3-g34: 87c3101b5663f17b sysid.py:2126 CMP_BOUND",
+    "assigned to box D3-g35: 31bb6bebd6b45f0e sysid.py:2141 CMP_BOUND",
+    "assigned to box D3-g35: 501a5e7cda702183 sysid.py:2146 GUARD_OFF",
+    "assigned to box D3-g35: 20cde1046cbd5681 sysid.py:2154 CMP_BOUND",
+    "assigned to box D3-g35: 6cfdb101dc87a6ea sysid.py:2154 CMP_BOUND",
+    "assigned to box D3-g35: d203230963349f60 sysid.py:2162 CLAMP_DROP",
+    "assigned to box D3-g35: 078e78462859ff6b sysid.py:2187 BOOLOP",
+    "assigned to box D3-g35: 5654f855fcc27724 sysid.py:2187 CMP_BOUND",
+    "assigned to box D3-g35: c303df62a0b7b9bc sysid.py:2187 GUARD_OFF",
+    "assigned to box D3-g35: ed00e6c2abf2aa66 sysid.py:2208 CMP_BOUND",
+    "assigned to box D3-g35: 4593852cf3862b3c sysid.py:2223 CMP_BOUND",
+    "assigned to box D3-g35: 64f3ef1feaaf7bc9 sysid.py:2223 CMP_BOUND",
+    "assigned to box D3-g35: 784e362919d88a92 sysid.py:2223 CMP_BOUND",
+    "assigned to box D3-g35: d661d68f54982097 sysid.py:2223 CMP_BOUND",
+    "assigned to box D3-g35: a5b06d898bf0ba03 sysid.py:2237 CMP_BOUND",
+    "assigned to box D3-g35: c51115b0104a8bf5 sysid.py:2244 CMP_BOUND",
+    "assigned to box D3-g35: 4da9d281d4714565 sysid.py:2246 CMP_BOUND",
+    "assigned to box D3-g36: 440c0a6d5ee72d19 sysid.py:2315 CMP_BOUND",
+    "assigned to box D3-g36: 809e8d14f04e1127 sysid.py:2315 GUARD_OFF",
+    "assigned to box D3-g36: 0137ee1f014fb759 sysid.py:2325 CMP_BOUND",
+    "assigned to box D3-g36: 24aa39e8c4c6d26a sysid.py:2325 CMP_BOUND",
+    "assigned to box D3-g36: ae8f84354933d191 sysid.py:2375 CLAMP_DROP",
+    "assigned to box D3-g36: 9460d3802a8903d6 sysid.py:2376 CLAMP_DROP",
+    "assigned to box D3-g36: de6bbadf1499bae9 sysid.py:2381 CMP_BOUND",
+    "assigned to box D3-g36: 0baef4e86433b225 sysid.py:1752 GUARD_OFF",
+    "assigned to box D3-g36: b3c0e51c511b2618 sysid.py:1778 CLAMP_DROP",
+    "assigned to box D3-g36: 9dd0547496b091b0 sysid.py:1782 CLAMP_DROP",
+    "assigned to box D3-g36: 8840eb67a646cd97 sysid.py:1785 RETURN_DEL",
+    "assigned to box D3-g36: 027e7746bfe5b7bb sysid.py:1792 RETURN_DEL",
+    "assigned to box D3-g36: 85eb19919a6b995a sysid.py:1212 CMP_BOUND",
+    "assigned to box D3-g36: 5104733df3085998 sysid.py:835 CMP_BOUND",
+    "assigned to box D3-g36: 373207a8e12c37c5 sysid.py:842 CLAMP_DROP",
+    "assigned to box D3-g36: 291748b42a54c1f6 sysid.py:846 BOOLOP",
+    "assigned to box D3-g37: ba25d4dc58c7fecc sysid.py:846 CMP_BOUND",
+    "assigned to box D3-g37: 67f17d97399379c0 sysid.py:848 CLAMP_DROP",
+    "assigned to box D3-g37: 99866c2ffc704413 sysid.py:852 CMP_BOUND",
+    "assigned to box D3-g37: b4f7503c6959449d sysid.py:1073 CMP_BOUND",
+    "assigned to box D3-g37: f6016f6adb9683a8 sysid.py:1073 GUARD_OFF",
+    "assigned to box D3-g37: 0c0a6bcb94a3ba3a sysid.py:129 CMP_BOUND",
+    "assigned to box D3-g37: 2b5a8949055ecd4c sysid.py:129 CMP_BOUND",
+    "assigned to box D3-g37: e3ea72b8dc57884a sysid.py:139 CLAMP_DROP",
+    "assigned to box D3-g37: 6db5003950426ce8 sysid.py:328 CMP_BOUND",
+    "assigned to box D3-g37: 1e9d97a860146a80 sysid.py:890 CMP_BOUND",
+    "assigned to box D3-g37: 51b2c8ce3dadae0c sysid.py:890 CMP_BOUND",
+    "assigned to box D3-g37: 62a1f4d0c1be5960 sysid.py:892 CMP_BOUND",
+    "assigned to box D3-g37: 845bf7a69b48b94b sysid.py:892 CMP_BOUND",
+    "assigned to box D3-g37: ab65584805229d1c sysid.py:892 GUARD_OFF",
+    "assigned to box D3-g37: 186b3076dcce442c sysid.py:897 CMP_BOUND",
+    "assigned to box D3-g37: 66e79426a66d3362 sysid.py:897 CMP_BOUND",
+    "assigned to box D3-g38: c1ce480d20083d83 sysid.py:897 GUARD_OFF",
+    "assigned to box D3-g38: d8e588be2e0aba89 sysid.py:897 CMP_BOUND",
+    "assigned to box D3-g38: e7edbe5bae5e180a sysid.py:897 CMP_BOUND",
+    "assigned to box D3-g38: a1ba3ad7c4c53dd5 sysid.py:875 CMP_BOUND",
+    "assigned to box D3-g38: 56294c2224449394 sysid.py:266 CMP_BOUND",
+    "assigned to box D3-g38: 6c7eefdfaf64ea5a sysid.py:1279 CMP_BOUND",
+    "assigned to box D3-g38: a6c42cff101ffc65 sysid.py:643 CMP_BOUND",
+    "assigned to box D3-g38: b0d27be4975eb62b sysid.py:643 CMP_BOUND",
+    "assigned to box D3-g38: bf5868e583609121 sysid.py:643 CMP_BOUND",
+    "assigned to box D3-g38: 6f546669421ba07b sysid.py:676 CLAMP_DROP",
+    "assigned to box D3-g38: 7c25d8795fa2d46c sysid.py:677 CMP_BOUND",
+    "assigned to box D3-g38: 907d16324ff11dda sysid.py:677 CMP_BOUND",
+    "assigned to box D3-g38: 990cdd83373504ad sysid.py:677 CMP_BOUND",
+    "assigned to box D3-g38: d0f2d18b2b49232c sysid.py:677 CMP_BOUND",
+    "assigned to box D3-g38: 4467ecd198f47483 sysid.py:683 CMP_BOUND",
+    "assigned to box D3-g39: 559484953b5cdd5d sysid.py:610 CMP_BOUND",
+    "assigned to box D3-g39: cb38833c854f6257 sysid.py:610 CMP_BOUND",
+    "assigned to box D3-g39: fa6fdd76e6fa619d sysid.py:610 CMP_BOUND",
+    "assigned to box D3-g39: 246043395831f540 tariff.py:128 CMP_BOUND",
+    "assigned to box D3-g39: de935c38786265e7 tariff.py:437 GUARD_OFF",
+    "assigned to box D3-g39: 4ad3dc13bfdb70a8 tariff.py:465 CMP_BOUND",
+    "assigned to box D3-g39: 7fcaf91cced5ce41 tariff.py:235 GUARD_OFF",
+    "assigned to box D3-g39: 81557beca8f0a974 tariff.py:279 CMP_BOUND",
+    "assigned to box D3-g39: 8611ebe645da9f19 tariff.py:391 CMP_BOUND",
+    "assigned to box D3-g39: 37b3c9a03326d207 tariff.py:489 GUARD_OFF",
+    "assigned to box D3-g39: 7f9297e43c9449d8 tariff.py:491 CMP_BOUND",
+    "assigned to box D3-g39: 9d16dbc0d3aba164 tariff.py:904 GUARD_OFF",
+    "assigned to box D3-g39: 6536ff6b094f971d tariff.py:744 GUARD_OFF",
+    "assigned to box D3-g39: 2d64a114647f1551 tariff.py:747 CMP_BOUND",
+    "assigned to box D3-g39: 5371ee2b5e897750 tariff.py:747 GUARD_OFF",
+    "assigned to box D3-g40: 5f094dbca9a593e9 tariff.py:750 CLAMP_DROP",
+    "assigned to box D3-g40: 7b4d6225353952ed tariff.py:763 CLAMP_DROP",
+    "assigned to box D3-g40: e6bcd13be86202b8 tariff.py:766 CMP_BOUND",
+    "assigned to box D3-g40: e01cc20e67f1f720 tariff.py:768 CMP_BOUND",
+    "assigned to box D3-g40: f8eec0888776e8ff tariff.py:773 CLAMP_DROP",
+    "assigned to box D3-g40: 968c552b8acd9df9 tariff.py:801 CMP_BOUND",
+    "assigned to box D3-g40: 996dce5148e02763 tariff.py:806 CLAMP_DROP",
+    "assigned to box D3-g40: 754e4cb5fa60e129 tariff.py:821 CLAMP_DROP",
+    "assigned to box D3-g40: a074fb25836c2bc6 tariff.py:824 CMP_BOUND",
+    "assigned to box D3-g40: 22dd975583db1b89 tariff.py:828 CMP_BOUND",
+    "assigned to box D3-g40: 134d9411b323ef8a tariff.py:832 CLAMP_DROP",
+    "assigned to box D3-g40: 3e9a439baa86a074 tariff.py:528 CMP_BOUND",
+    "assigned to box D3-g40: 1894e6dcd2251a30 tariff.py:570 GUARD_OFF",
+    "assigned to box D3-g40: 0e94685aa803560d tariff.py:573 CMP_BOUND",
+    "assigned to box D3-g40: 64a2ed644109fda3 tariff.py:573 GUARD_OFF",
+    "assigned to box D3-g41: 2765114b9329f57f tariff.py:588 GUARD_OFF",
+    "assigned to box D3-g41: d3ea4bcc330436ef tariff.py:1196 CMP_BOUND",
+    "assigned to box D3-g41: 2d037a10caa62e28 tariff.py:1225 GUARD_OFF",
+    "assigned to box D3-g41: 6600497e58836413 tariff.py:674 CMP_BOUND",
+    "assigned to box D3-g41: 43b54266f12bfb21 thermal_model.py:4453 CLAMP_DROP",
+    "assigned to box D3-g41: dfe094233a9164e0 thermal_model.py:4455 GUARD_OFF",
+    "assigned to box D3-g41: e3a350a3272762f1 thermal_model.py:4458 GUARD_OFF",
+    "assigned to box D3-g41: 94ce174acf85b6f2 thermal_model.py:4460 GUARD_OFF",
+    "assigned to box D3-g41: 898d741cf6142efb thermal_model.py:4463 BOOLOP",
+    "assigned to box D3-g41: 29065b9e48071934 thermal_model.py:4475 CLAMP_DROP",
+    "assigned to box D3-g41: 1110101b6e52a494 thermal_model.py:4476 CMP_BOUND",
+    "assigned to box D3-g41: d6023ebc83ac4317 thermal_model.py:4482 CMP_BOUND",
+    "assigned to box D3-g41: a6cebb125b72f083 thermal_model.py:3328 CLAMP_DROP",
+    "assigned to box D3-g41: d97762e31739dd75 thermal_model.py:4003 CMP_BOUND",
+    "assigned to box D3-g41: c5e678a5d1812e40 thermal_model.py:4019 CLAMP_DROP",
+    "assigned to box D3-g42: 5a66d572bfdd1491 thermal_model.py:4020 CMP_BOUND",
+    "assigned to box D3-g42: 5b8e7044ee7974f8 thermal_model.py:5012 CMP_BOUND",
+    "assigned to box D3-g42: 7684dd370eaae807 thermal_model.py:3517 CMP_BOUND",
+    "assigned to box D3-g42: f7e051cc469b465f thermal_model.py:3517 GUARD_OFF",
+    "assigned to box D3-g42: 523356020b4bb37b thermal_model.py:3640 CMP_BOUND",
+    "assigned to box D3-g42: eb094b1749a24474 thermal_model.py:3640 GUARD_OFF",
+    "assigned to box D3-g42: 402ffd06ddbd856a thermal_model.py:3649 CMP_BOUND",
+    "assigned to box D3-g42: d90533f4d17cfa14 thermal_model.py:3649 GUARD_OFF",
+    "assigned to box D3-g42: c3ce2c5919d2c385 thermal_model.py:3651 CMP_BOUND",
+    "assigned to box D3-g42: 011b9e2e975b5e98 thermal_model.py:3654 CLAMP_DROP",
+    "assigned to box D3-g42: 9df41596c4fa89c6 thermal_model.py:3479 CMP_BOUND",
+    "assigned to box D3-g42: 029c040224dc4e38 thermal_model.py:3483 CLAMP_DROP",
+    "assigned to box D3-g42: 5141eb1194306254 thermal_model.py:3366 CMP_BOUND",
+    "assigned to box D3-g42: babeb7b3990a574b thermal_model.py:3387 CLAMP_DROP",
+    "assigned to box D3-g42: 256e285aadb8b31d thermal_model.py:3389 GUARD_OFF",
+    "assigned to box D3-g43: f2ab25c56b407ef9 thermal_model.py:3389 CMP_BOUND",
+    "assigned to box D3-g43: d9a65b3770e6860a thermal_model.py:4114 GUARD_OFF",
+    "assigned to box D3-g43: 97bd985754f1099b thermal_model.py:4140 GUARD_OFF",
+    "assigned to box D3-g43: cc34cacdd80553ed thermal_model.py:4553 GUARD_OFF",
+    "assigned to box D3-g43: 7b46514aedc0a8cf thermal_model.py:4571 BOOLOP",
+    "assigned to box D3-g43: 876be7bf2f538255 thermal_model.py:4578 BOOLOP",
+    "assigned to box D3-g43: a3f2b00cc4aa527e thermal_model.py:4668 CLAMP_DROP",
+    "assigned to box D3-g43: a486806b8f4ff4d7 thermal_model.py:4679 CLAMP_DROP",
+    "assigned to box D3-g43: 806f3255b74936a9 thermal_model.py:4690 CLAMP_DROP",
+    "assigned to box D3-g43: f2706cbdb16a8f66 thermal_model.py:4695 CLAMP_DROP",
+    "assigned to box D3-g43: 1108e8140e06404e thermal_model.py:4696 CLAMP_DROP",
+    "assigned to box D3-g43: 7068e39e4608027f thermal_model.py:4699 CLAMP_DROP",
+    "assigned to box D3-g43: 6462c28df2f973e0 thermal_model.py:4702 CLAMP_DROP",
+    "assigned to box D3-g43: daf153fda85092ff thermal_model.py:4711 CLAMP_DROP",
+    "assigned to box D3-g43: e5a0d6a548f12244 thermal_model.py:4714 CLAMP_DROP",
+    "assigned to box D3-g44: 140cd06a7d92f278 thermal_model.py:4722 CMP_BOUND",
+    "assigned to box D3-g44: cec9e59d96700bfd thermal_model.py:4722 CMP_BOUND",
+    "assigned to box D3-g44: 33f34d42b3bd2d73 thermal_model.py:4723 CMP_BOUND",
+    "assigned to box D3-g44: 4984532d2907d5c3 thermal_model.py:4725 CMP_BOUND",
+    "assigned to box D3-g44: 5d07aa6af8490d01 thermal_model.py:4740 CLAMP_DROP",
+    "assigned to box D3-g44: 966c9be1a17c8bea thermal_model.py:4751 CLAMP_DROP",
+    "assigned to box D3-g44: d4d032563b183133 thermal_model.py:4752 CMP_BOUND",
+    "assigned to box D3-g44: 78b7f2ebcf85c8a1 thermal_model.py:4822 GUARD_OFF",
+    "assigned to box D3-g44: f66c6e9cf9d1f84a thermal_model.py:3567 CLAMP_DROP",
+    "assigned to box D3-g44: 9362d5efbe6808c2 thermal_model.py:3569 CLAMP_DROP",
+    "assigned to box D3-g44: 36117bb3a189672b thermal_model.py:3576 CLAMP_DROP",
+    "assigned to box D3-g44: 3d4899a05eb126c3 thermal_model.py:940 CMP_BOUND",
+    "assigned to box D3-g44: cde383447b865539 thermal_model.py:303 CMP_BOUND",
+    "assigned to box D3-g44: 3d468643db7d9ee4 thermal_model.py:668 GUARD_OFF",
+    "assigned to box D3-g44: 05b5a15efaaf70de thermal_model.py:677 CLAMP_DROP",
+    "assigned to box D3-g45: b2faf84904db389e thermal_model.py:677 CLAMP_DROP",
+    "assigned to box D3-g45: 1a9ac2bac45ef9e0 thermal_model.py:270 CMP_BOUND",
+    "assigned to box D3-g45: e5f8fc2488caedf5 thermal_model.py:287 CMP_BOUND",
+    "assigned to box D3-g45: 1b476993921016f9 thermal_model.py:852 CLAMP_DROP",
+    "assigned to box D3-g45: ea888783bb621669 thermal_model.py:855 CLAMP_DROP",
+    "assigned to box D3-g45: b098598faf0d87dc thermal_model.py:835 GUARD_OFF",
+    "assigned to box D3-g45: a2a1d3802ceff60d thermal_model.py:404 GUARD_OFF",
+    "assigned to box D3-g45: b9bbb3ac364893f7 thermal_model.py:698 GUARD_OFF",
+    "assigned to box D3-g45: dd40fdb4edae4d79 thermal_model.py:2270 GUARD_OFF",
+    "assigned to box D3-g45: 19404e3632806509 thermal_model.py:2554 CLAMP_DROP",
+    "assigned to box D3-g45: beeb068352333132 thermal_model.py:2573 CLAMP_DROP",
+    "assigned to box D3-g45: ea9c4705de428b28 thermal_model.py:2576 CLAMP_DROP",
+    "assigned to box D3-g45: 98853a541b6b5d6a thermal_model.py:2581 CLAMP_DROP",
+    "assigned to box D3-g45: fdf5872fd576c405 thermal_model.py:2581 CLAMP_DROP",
+    "assigned to box D3-g45: 39041ccf21eedba6 thermal_model.py:2583 GUARD_OFF",
+    "assigned to box D3-g46: c0800afec99d22fc thermal_model.py:2583 CMP_BOUND",
+    "assigned to box D3-g46: e18fa878eae99111 thermal_model.py:2583 CMP_BOUND",
+    "assigned to box D3-g46: 2288dfa73cab6c1a thermal_model.py:2587 CMP_BOUND",
+    "assigned to box D3-g46: b341873adae0cf3c thermal_model.py:2587 GUARD_OFF",
+    "assigned to box D3-g46: c4e25319de746716 thermal_model.py:2593 CLAMP_DROP",
+    "assigned to box D3-g46: 02a5c98b8f46f724 thermal_model.py:2594 CMP_BOUND",
+    "assigned to box D3-g46: 3b989943cc05b614 thermal_model.py:2594 CMP_BOUND",
+    "assigned to box D3-g46: db984e8d4acfa08b thermal_model.py:2594 GUARD_OFF",
+    "assigned to box D3-g46: 884d2aba2bbd5409 thermal_model.py:2598 GUARD_OFF",
+    "assigned to box D3-g46: a087d5efb15533ce thermal_model.py:2598 CMP_BOUND",
+    "assigned to box D3-g46: efd15cba428cdcf2 thermal_model.py:2939 CMP_BOUND",
+    "assigned to box D3-g46: 968644425a4f97f8 thermal_model.py:2946 CLAMP_DROP",
+    "assigned to box D3-g46: c9a7d4d29d08c3b4 thermal_model.py:2952 CLAMP_DROP",
+    "assigned to box D3-g46: ca6ae797caf18708 thermal_model.py:2827 CLAMP_DROP",
+    "assigned to box D3-g46: 449caa49315447b2 thermal_model.py:2998 GUARD_OFF",
+    "assigned to box D3-g47: d2463d81efddd380 thermal_model.py:2998 CMP_BOUND",
+    "assigned to box D3-g47: 0aa9e2e025b11284 thermal_model.py:3003 CLAMP_DROP",
+    "assigned to box D3-g47: 41063896cdb5ea71 thermal_model.py:3004 CLAMP_DROP",
+    "assigned to box D3-g47: b27ac4781778a34a thermal_model.py:3073 CMP_BOUND",
+    "assigned to box D3-g47: bed063118e10d683 thermal_model.py:3073 CMP_BOUND",
+    "assigned to box D3-g47: 721aca562f60ab2c thermal_model.py:3080 GUARD_OFF",
+    "assigned to box D3-g47: 09412cb43997a47f thermal_model.py:2851 CLAMP_DROP",
+    "assigned to box D3-g47: 4c3cfbe1e4ad2a14 thermal_model.py:2851 CLAMP_DROP",
+    "assigned to box D3-g47: 28b6107a17d9b814 thermal_model.py:2852 CLAMP_DROP",
+    "assigned to box D3-g47: 5b6489f7860d73b1 thermal_model.py:2852 CLAMP_DROP",
+    "assigned to box D3-g47: 1111a3e5d9c44e3f thermal_model.py:2854 CMP_BOUND",
+    "assigned to box D3-g47: 67a0550ee998a213 thermal_model.py:2854 GUARD_OFF",
+    "assigned to box D3-g47: 75b300b2bc47485f thermal_model.py:2856 CLAMP_DROP",
+    "assigned to box D3-g47: 92c063e90dafcc35 thermal_model.py:2903 CMP_BOUND",
+    "assigned to box D3-g47: 6fa8436f09ad7e06 thermal_model.py:2906 CLAMP_DROP"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "this box's wave list keys.tsv (16 keys) of the 742-key wave (47 boxes' keys.tsv, dev/audit/rounds/round11/D3/s1/wave/D3-g24/boxkeys/); per key `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>` (GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1) recorded at dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/<key>.json, null at dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/null.json. Earlier boxes' D3.M3 rows (D3-top6, D3-rem; 8 deduped keys gated there) are theirs and are not re-counted here; redispatched items carried verbatim from REPORT-D3-u1b.json",
+   "carried": false
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g24): m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+   "carried": true
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g24): carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+   "carried": true
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "null control: a comment-only marker under the full gate on box D3-g24 is red only on worktree/strip artefacts (python3 tests/closure.py selftest, python3 tests/entities.py, python3 tests/harness_headers.py)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+   "value": "gate_rc=1 fail_lines={\"python3 tests/closure.py selftest\": 2, \"python3 tests/entities.py\": 1, \"python3 tests/harness_headers.py\": 3} wall_s=3652.4 (provisional)"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = np.minimum((guess), headroom) survives the full gate but is equivalent on every input tried: the mutated guess leaves its bounds (guess_outside_bounds_mutant > 0) yet no returned plan, status or score moves: the starts are projected/re-scoped downstream before anything is shipped",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+   "value": "mutant_replay_moved=0 (null 0); mutant_guess_outside_bounds_mutant=6, mutant_whole_moved=0"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = (np.clip(guess, 0.0, p_max)) survives the full gate but is equivalent on every input tried: the guess exceeds the headroom bound on 15 replays yet the returned plan, status and score never move",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+   "value": "mutant_replay_moved=0 (null 0); mutant_guess_outside_bounds_mutant=15, mutant_whole_moved=0"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4696 CMP_BOUND if price_known.size < n_steps: -> if price_known.size <= n_steps: survives the full gate but is equivalent on every input tried: at size == n the pad is np.zeros(0) and the concatenation equals the input (values and dtype)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_41d866cef7ea4115.py",
+   "value": "mutant_cases_moved=0 (null 0); "
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4700 CMP_BOUND if pv_surplus.size < n_steps: -> if pv_surplus.size <= n_steps: survives the full gate but is equivalent on every input tried: at size == n the pad is np.zeros(0); the float concatenation equals the input",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_fa3bb379b762e2a9.py",
+   "value": "mutant_cases_moved=0 (null 0); "
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None and self.config.price_risk_lambda >= 0.0: survives the full gate but is equivalent on every input tried: at lambda == 0 the risk term is 0*sigma (0, or NaN for inf sigma, which np.any(risk > 0) skips), so prices are returned untouched in both arms",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+   "value": "mutant_cases_moved=0 (null 0); "
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND (d := cap - traj[name][:, -1]) > 0.0, d, 0.0 -> (d := cap - traj[name][:, -1]) >= 0.0, d, 0.0 survives the full gate but is equivalent on every input tried: np.where(d >= 0, d, 0) differs from the > form only at d == +/-0.0, where it returns a signed zero that the row's builtin sum absorbs bit for bit",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+   "value": "mutant_cases_moved=0 (null 0); mutant_parity_breaks=0"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF if refused is None: -> if False: survives the full gate but is equivalent on every input tried: moves only for refused None (TypeError), which ThermalModel.simulate_trajectory never returns (np.zeros(n_steps) at thermal_model.py:4370; reach_refused_is_none=0): unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+   "value": "mutant_cases_moved=1 (null 0); reach_refused_is_none=0"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF if phase == 0: -> if False: survives the full gate but is equivalent on every input tried: the return moves (0 -> one whole window of steps) on every aligned start, but every consumer partitions by offset % per_window (tariff._window_partition), so PeakBilling, the capacity penalty and _grid_report never move",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+   "value": "mutant_downstream_moved=0 (null 0); mutant_return_moved=57"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6)))) -> return max(0, int(round((window - phase) / (dt * 60.0)))) survives the full gate but is equivalent on every input tried: moves only at dt == 0 (ZeroDivisionError), and optimize with time_step_minutes=0 already raises on the baseline before any offset is computed: unreachable through production",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+   "value": "mutant_downstream_moved=1 (null 0); mutant_return_moved=3, reach_optimize_dt0_raises_before=1, reach_offset_calls_at_dt0=0"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF if not result.timestamps: -> if False: survives the full gate but is equivalent on every input tried: moves only on an empty result (IndexError instead of the idle action); the one production caller (coordinator.py:6464) passes the result optimize() just returned, and optimize raises on every degenerate input tried instead of returning an empty plan (reach_optimize_empty_results=0)",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+   "value": "mutant_cases_moved=3 (null 0); reach_optimize_empty_results=0"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND if now_s < starts[0]: -> if now_s <= starts[0]: survives the full gate but is equivalent on every input tried: at now == starts[0] the pre-horizon branch picks i = 0 (gap 0 <= one step), which is the step the loop picks too",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+   "value": "mutant_cases_moved=0 (null 0); "
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/build_results.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/build_report.py",
+  "gate_wave.sh (out-of-tree box driver from dispatch/finder-r11-D3-g24: fullgate.py run per key, one at a time, 4 h cap)",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_41d866cef7ea4115.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_fa3bb379b762e2a9.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_action_core.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_mutlib.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_space_core.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_stash_cases.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_stash_core.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_tighten_core.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/_window_core.py"
+ ],
+ "leads": [],
+ "gated": [
+  {
+   "key": "1dcb273b03f63a4e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "c679a9939ee7b3ee",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "41d866cef7ea4115",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4696 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "fa3bb379b762e2a9",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4700 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "ce5b92d704397d85",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4717 BOOLOP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "dd2b698bc1d5d4b8",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "aab0b73e229ad900",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4720 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "7cb1bac951ddeb9e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "9bfc2c6d1bfe66bd",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "56de38e47369b2b7",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5123 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "df066a5f3f3d3e0f",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5139 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "bbcded8a73c6a2f1",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5145 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "0f03bb94bcab1682",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "f54d3d4c7351ac76",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "0270b5efaac478d2",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "68ee8d20663ac601",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "ce5b92d704397d85",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4717 BOOLOP",
+   "patch": "if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None or self.config.price_risk_lambda > 0.0:",
+   "function": "HeatPumpOptimizer._stash_price_horizon",
+   "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+   "slice": "u1d",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3505.2,
+    "load1_start": 0.78,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6001.2,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/ce5b92d704397d85.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ce5b92d704397d85",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/ce5b92d704397d85.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 1,
+    "extra": {
+     "reach_mutant_moved": "1",
+     "reach_null_moved": "0"
+    },
+    "moving_cases": [
+     "CASE lam_pos_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('raise', 'IndexError') moved=1"
+    ],
+    "inputs_tried": "the 25 _stash_cases.CASES plus a whole HeatPumpOptimizer.optimize (6 h, price_risk_lambda 0.5, ForecastSeries without price_sigma)",
+    "thread_factor": "1.000",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "tests/features.py executes line 4717 on its traced baseline but has no case with price_risk_lambda > 0 and price_sigma None asserting the prices pass through untouched (and optimize does not raise)"
+   },
+   "class": "candidate",
+   "finding": {
+    "title": "No check solves with price_risk_lambda > 0 and no price_sigma; _stash_price_horizon's and->or is unseen",
+    "claim": "Mutant ce5b92d704397d85 (optimizer.py:4717 `and` -> `or`) survives the full gate, yet HeatPumpOptimizer.optimize with price_risk_lambda=0.5 and a ForecastSeries carrying no price_sigma (its default None) returns an optimal plan on the baseline and raises IndexError under the mutant.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "severity_consequence": "optimize() raises for a caller using the dataclass default price_sigma=None with risk pricing on; the coordinator always passes an array (coordinator.py:1599, 7258), so no Home Assistant user path reaches it",
+    "stop_rule_class": "bug",
+    "metric_definition": "cases of _stash_cases.CASES whose _stash_price_horizon outcome moves under the mutant (+ whole-solve raise flag)",
+    "phenomenon_property": "With price_sigma None the risk premium is skipped whatever price_risk_lambda is (optimizer.py:4717)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._stash_price_horizon",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+     "value": 1,
+     "unit": "count",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "tolerance": "exact",
+     "thread_factor": "1.000",
+     "load1": "1.08",
+     "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+    },
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/optimizer.py:4717 if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None or self.config.price_risk_lambda > 0.0: applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ce5b92d704397d85",
+     "expected_direction": "up",
+     "observed_value": 1
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+     "value": "null_cases_moved=0",
+     "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py"
+    ],
+    "proposed_fix_scope": "a check in tests/block_duty.py pinning the boundary the probe's moving case exercises",
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ce5b92d704397d85"
+    ]
+   }
+  },
+  {
+   "key": "aab0b73e229ad900",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4720 CMP_BOUND",
+   "patch": "if np.any(risk > 0.0): -> if np.any(risk >= 0.0):",
+   "function": "HeatPumpOptimizer._stash_price_horizon",
+   "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+   "slice": "u1c",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3362.2,
+    "load1_start": 0.78,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5559.6,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/aab0b73e229ad900.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aab0b73e229ad900",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/aab0b73e229ad900.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 2,
+    "extra": {
+     "reach_mutant_moved": "1",
+     "reach_null_moved": "0"
+    },
+    "moving_cases": [
+     "CASE lam_pos_sigma_nan_unknown: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, nan, 4.0]) moved=1",
+     "CASE lam_pos_sigma_zero_int_prices: baseline=('ok', 'prices', '<i8', [1, 2, 3, 4]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) moved=1"
+    ],
+    "inputs_tried": "the 25 _stash_cases.CASES plus a whole optimize (6 h, lambda 0.5, price_sigma zero except NaN on one unpublished step)",
+    "thread_factor": "1.000",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/features.py"
+    ],
+    "assertion_lacking": "tests/features.py (the only closure script whose traced baseline executes line 4720) has no case with an all-zero or non-finite risk asserting the price array is returned untouched"
+   },
+   "class": "candidate",
+   "finding": {
+    "title": "No check feeds a NaN price_sigma on an unpublished step; risk > 0 -> >= 0 turns the plan failed unseen",
+    "claim": "Mutant aab0b73e229ad900 (optimizer.py:4720 `risk > 0.0` -> `>= 0.0`) survives the full gate, yet with price_risk_lambda=0.5 and price_sigma zero except NaN on one unpublished step, optimize returns an optimal plan on the baseline and 'failed (no usable starting point)' under the mutant (a NaN added into the solve's prices).",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "P1",
+    "severity_claimed": "low",
+    "severity_consequence": "a NaN sigma reaching the solve turns the plan failed; the coordinator's sigma comes from price_model.extend_price_series (zero on known steps, PriceShapeModel.sigma elsewhere) and no NaN source was shown",
+    "stop_rule_class": "bug",
+    "metric_definition": "cases of _stash_cases.CASES whose _stash_price_horizon outcome moves under the mutant (+ whole-solve status flag)",
+    "phenomenon_property": "The risk premium is added only where it is positive; a zero or non-finite risk leaves the prices untouched (optimizer.py:4720)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._stash_price_horizon",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+     "value": 2,
+     "unit": "count",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "tolerance": "exact",
+     "thread_factor": "1.000",
+     "load1": "1.08",
+     "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+    },
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/optimizer.py:4720 if np.any(risk > 0.0): -> if np.any(risk >= 0.0): applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aab0b73e229ad900",
+     "expected_direction": "up",
+     "observed_value": 2
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+     "value": "null_cases_moved=0",
+     "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py pinning the boundary the probe's moving case exercises",
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aab0b73e229ad900"
+    ]
+   }
+  },
+  {
+   "key": "56de38e47369b2b7",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5123 CMP_BOUND",
+   "patch": "for i in np.nonzero(refused > 1e-9)[0]: -> for i in np.nonzero(refused >= 1e-9)[0]:",
+   "function": "HeatPumpOptimizer._tighten_buffer_caps",
+   "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+   "slice": "u1b",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2764.1,
+    "load1_start": 0.78,
+    "load1_end": 1.04,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4573.0,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/56de38e47369b2b7.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 56de38e47369b2b7",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/56de38e47369b2b7.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 2,
+    "extra": {},
+    "moving_cases": [
+     "CASE refused_tie_1e-9_alone: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [0]) moved=1",
+     "CASE refused_tie_1e-9_plus_real: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [1.9979999995922448, 1.7941224489795917, 3.0, 3.0], [1]) moved=1"
+    ],
+    "inputs_tried": "the 12 _tighten_core cases",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/features.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "tests/features.py and tests/validate.py execute line 5123 on their traced baselines; neither feeds a refused value at the 1e-9 boundary"
+   },
+   "class": "candidate",
+   "finding": {
+    "title": "No check refuses exactly 1e-9 kW at a step; _tighten_buffer_caps' > 1e-9 -> >= is unseen",
+    "claim": "Mutant 56de38e47369b2b7 (optimizer.py:5123 `refused > 1e-9` -> `>= 1e-9`) survives the full gate, yet with a step refusing exactly 1e-9 kW _tighten_buffer_caps leaves the caps and returns False on the baseline and tightens that step's cap 3.0 -> 1.998 kW and returns True (one more re-solve) under the mutant.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "severity_consequence": "at the exact 1e-9 kW tie a step's buffer cap is tightened and a repair re-solve spent; a refusal of exactly 1e-9 kW is a float tie",
+    "stop_rule_class": "bug",
+    "metric_definition": "cases of _tighten_core.cases() whose (changed, caps, logged count) moves under the mutant",
+    "phenomenon_property": "A step is tightened only when its refused heat exceeds 1e-9 kW strictly (optimizer.py:5123)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._tighten_buffer_caps",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+     "value": 2,
+     "unit": "count",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "tolerance": "exact",
+     "thread_factor": "1.000",
+     "load1": "1.15",
+     "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+    },
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/optimizer.py:5123 for i in np.nonzero(refused > 1e-9)[0]: -> for i in np.nonzero(refused >= 1e-9)[0]: applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 56de38e47369b2b7",
+     "expected_direction": "up",
+     "observed_value": 2
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+     "value": "null_cases_moved=0",
+     "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py pinning the boundary the probe's moving case exercises",
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 56de38e47369b2b7"
+    ]
+   }
+  },
+  {
+   "key": "df066a5f3f3d3e0f",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5139 CMP_BOUND",
+   "patch": "if new_cap < float(power_caps[i]) - 1e-9: -> if new_cap <= float(power_caps[i]) - 1e-9:",
+   "function": "HeatPumpOptimizer._tighten_buffer_caps",
+   "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+   "slice": "u1d",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2777.3,
+    "load1_start": 0.81,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4599.9,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/df066a5f3f3d3e0f.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df066a5f3f3d3e0f",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/df066a5f3f3d3e0f.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 1,
+    "extra": {},
+    "moving_cases": [
+     "CASE refused_real_cap_tie(new_cap==cap-1e-9): baseline=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) mutant=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) moved=1"
+    ],
+    "inputs_tried": "the 12 _tighten_core cases, incl. a cap c with float(c) - 1e-9 == new_cap exactly (found by nextafter search)",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/features.py"
+    ],
+    "assertion_lacking": "tests/features.py (the only closure script whose traced baseline executes line 5139) has no tie case asserting changed False"
+   },
+   "class": "candidate",
+   "finding": {
+    "title": "No check sets a cap with new_cap == cap - 1e-9; _tighten_buffer_caps' < -> <= is unseen",
+    "claim": "Mutant df066a5f3f3d3e0f (optimizer.py:5139 `<` -> `<=`) survives the full gate, yet at a cap c with c - 1e-9 == new_cap exactly _tighten_buffer_caps returns False on the baseline and True (cap lowered by 1e-9 kW, one more re-solve) under the mutant.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "severity_consequence": "at the float tie a repair round is spent re-solving for a 1e-9 kW cap change, the cost the line's own comment says the margin avoids",
+    "stop_rule_class": "bug",
+    "metric_definition": "cases of _tighten_core.cases() whose (changed, caps, logged count) moves under the mutant",
+    "phenomenon_property": "A cap counts as changed only when the new cap is below the old by more than 1e-9 kW (optimizer.py:5139)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._tighten_buffer_caps",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+     "value": 1,
+     "unit": "count",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "tolerance": "exact",
+     "thread_factor": "1.000",
+     "load1": "1.15",
+     "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+    },
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/optimizer.py:5139 if new_cap < float(power_caps[i]) - 1e-9: -> if new_cap <= float(power_caps[i]) - 1e-9: applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df066a5f3f3d3e0f",
+     "expected_direction": "up",
+     "observed_value": 1
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+     "value": "null_cases_moved=0",
+     "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py pinning the boundary the probe's moving case exercises",
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df066a5f3f3d3e0f"
+    ]
+   }
+  },
+  {
+   "key": "bbcded8a73c6a2f1",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5145 CMP_BOUND",
+   "patch": "int(np.count_nonzero(refused > 1e-9)), -> int(np.count_nonzero(refused >= 1e-9)),",
+   "function": "HeatPumpOptimizer._tighten_buffer_caps",
+   "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+   "slice": "u1c",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2696.1,
+    "load1_start": 0.77,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4471.5,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/bbcded8a73c6a2f1.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bbcded8a73c6a2f1",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/bbcded8a73c6a2f1.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 1,
+    "extra": {},
+    "moving_cases": [
+     "CASE refused_tie_1e-9_plus_real: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [2]) moved=1"
+    ],
+    "inputs_tried": "the 12 _tighten_core cases",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/features.py"
+    ],
+    "assertion_lacking": "tests/features.py executes line 5145 but no check reads the debug count"
+   },
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads the tightened-step count _tighten_buffer_caps logs; > 1e-9 -> >= is unseen",
+    "claim": "Mutant bbcded8a73c6a2f1 (optimizer.py:5145 `refused > 1e-9` -> `>= 1e-9` in the debug count) survives the full gate, yet with one step refusing exactly 1e-9 kW beside one refusing 0.5 kW the logged count is 1 on the baseline and 2 under the mutant.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "P2",
+    "severity_claimed": "low",
+    "severity_consequence": "a DEBUG log line over-counts tightened steps at the 1e-9 kW tie; no plan or published value moves",
+    "stop_rule_class": "hygiene",
+    "metric_definition": "cases of _tighten_core.cases() whose (changed, caps, logged count) moves under the mutant",
+    "phenomenon_property": "The debug line counts the steps the loop tightened, the same > 1e-9 predicate as line 5123",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._tighten_buffer_caps",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+    "evidence": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+     "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+     "value": 1,
+     "unit": "count",
+     "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+     "tolerance": "exact",
+     "thread_factor": "1.000",
+     "load1": "1.15",
+     "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+    },
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/optimizer.py:5145 int(np.count_nonzero(refused > 1e-9)), -> int(np.count_nonzero(refused >= 1e-9)), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bbcded8a73c6a2f1",
+     "expected_direction": "up",
+     "observed_value": 1
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+     "value": "null_cases_moved=0",
+     "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py pinning the boundary the probe's moving case exercises",
+    "reproduction_steps": [
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py",
+     "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bbcded8a73c6a2f1"
+    ]
+   }
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "1dcb273b03f63a4e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP",
+   "patch": "guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = np.minimum((guess), headroom)",
+   "function": "HeatPumpOptimizer._solve_space",
+   "cluster": "optimizer.py:HeatPumpOptimizer._solve_space@4943-4943",
+   "slice": "u1a",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3308.6,
+    "load1_start": 0.78,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5498.1,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/1dcb273b03f63a4e.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1dcb273b03f63a4e",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/1dcb273b03f63a4e.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+    "metric": "mutant_replay_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {
+     "mutant_guess_outside_bounds_mutant": "6",
+     "mutant_whole_moved": "0"
+    },
+    "moving_cases": [],
+    "inputs_tried": "3 DHW scenarios (power_caps_extra 3/2/1 kW, 12 h/15 min): the captured _solve_space call replayed with warm_start None, init_base x2-0.5, warm = init_base x1.5, init_base + p_max, init_base - p_max/2, all -1 kW (18 replays), plus the whole optimize() per scenario",
+    "thread_factor": "1.002",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "a _solve_space case seeded with a warm start outside [0, p_max] asserting the returned plan/status equal the clipped-start solve (would not fail: equivalent)"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "the mutated guess leaves its bounds (guess_outside_bounds_mutant > 0) yet no returned plan, status or score moves: the starts are projected/re-scoped downstream before anything is shipped",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = np.minimum((guess), headroom) survives the full gate but is equivalent on every input tried: the mutated guess leaves its bounds (guess_outside_bounds_mutant > 0) yet no returned plan, status or score moves: the starts are projected/re-scoped downstream before anything is shipped",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py",
+    "value": "mutant_replay_moved=0 (null 0); mutant_guess_outside_bounds_mutant=6, mutant_whole_moved=0"
+   }
+  },
+  {
+   "key": "c679a9939ee7b3ee",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP",
+   "patch": "guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = (np.clip(guess, 0.0, p_max))",
+   "function": "HeatPumpOptimizer._solve_space",
+   "cluster": "optimizer.py:HeatPumpOptimizer._solve_space@4943-4943",
+   "slice": "u1d",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3242.9,
+    "load1_start": 0.72,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5384.4,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/c679a9939ee7b3ee.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c679a9939ee7b3ee",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/c679a9939ee7b3ee.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+    "metric": "mutant_replay_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {
+     "mutant_guess_outside_bounds_mutant": "15",
+     "mutant_whole_moved": "0"
+    },
+    "moving_cases": [],
+    "inputs_tried": "as 1dcb273b03f63a4e (18 replays incl. warm starts above the cap-limited headroom, 3 whole solves)",
+    "thread_factor": "1.002",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "a warm start above the power_caps_extra headroom asserting the solve's result (would not fail: equivalent)"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "the guess exceeds the headroom bound on 15 replays yet the returned plan, status and score never move",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = (np.clip(guess, 0.0, p_max)) survives the full gate but is equivalent on every input tried: the guess exceeds the headroom bound on 15 replays yet the returned plan, status and score never move",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py",
+    "value": "mutant_replay_moved=0 (null 0); mutant_guess_outside_bounds_mutant=15, mutant_whole_moved=0"
+   }
+  },
+  {
+   "key": "41d866cef7ea4115",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4696 CMP_BOUND",
+   "patch": "if price_known.size < n_steps: -> if price_known.size <= n_steps:",
+   "function": "HeatPumpOptimizer._stash_price_horizon",
+   "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+   "slice": "u1b",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3240.0,
+    "load1_start": 0.94,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5421.2,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/41d866cef7ea4115.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 41d866cef7ea4115",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_41d866cef7ea4115.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/41d866cef7ea4115.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_41d866cef7ea4115.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {},
+    "moving_cases": [],
+    "inputs_tried": "25 _stash_cases.CASES: price_known of size n-1, n, n+1, 0; pv_surplus n-1, n, n+1, 0, int; lambda 0/neg/pos x sigma None/empty/pos/zero/neg/inf/NaN; int and -0.0 prices; denormal lambda*sigma",
+    "thread_factor": "1.000",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "none can fail: equivalent"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "at size == n the pad is np.zeros(0) and the concatenation equals the input (values and dtype)",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4696 CMP_BOUND if price_known.size < n_steps: -> if price_known.size <= n_steps: survives the full gate but is equivalent on every input tried: at size == n the pad is np.zeros(0) and the concatenation equals the input (values and dtype)",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_41d866cef7ea4115.py",
+    "value": "mutant_cases_moved=0 (null 0); "
+   }
+  },
+  {
+   "key": "fa3bb379b762e2a9",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4700 CMP_BOUND",
+   "patch": "if pv_surplus.size < n_steps: -> if pv_surplus.size <= n_steps:",
+   "function": "HeatPumpOptimizer._stash_price_horizon",
+   "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+   "slice": "u1d",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3287.6,
+    "load1_start": 0.78,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5440.2,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/fa3bb379b762e2a9.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fa3bb379b762e2a9",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_fa3bb379b762e2a9.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/fa3bb379b762e2a9.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_fa3bb379b762e2a9.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {},
+    "moving_cases": [],
+    "inputs_tried": "the 25 _stash_cases.CASES (see 41d866cef7ea4115)",
+    "thread_factor": "1.000",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "none can fail: equivalent"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "at size == n the pad is np.zeros(0); the float concatenation equals the input",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4700 CMP_BOUND if pv_surplus.size < n_steps: -> if pv_surplus.size <= n_steps: survives the full gate but is equivalent on every input tried: at size == n the pad is np.zeros(0); the float concatenation equals the input",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_fa3bb379b762e2a9.py",
+    "value": "mutant_cases_moved=0 (null 0); "
+   }
+  },
+  {
+   "key": "dd2b698bc1d5d4b8",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND",
+   "patch": "if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None and self.config.price_risk_lambda >= 0.0:",
+   "function": "HeatPumpOptimizer._stash_price_horizon",
+   "cluster": "optimizer.py:HeatPumpOptimizer._stash_price_horizon@4696-4720",
+   "slice": "u1d",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3669.9,
+    "load1_start": 0.79,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 6320.4,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/dd2b698bc1d5d4b8.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key dd2b698bc1d5d4b8",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/dd2b698bc1d5d4b8.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {},
+    "moving_cases": [],
+    "inputs_tried": "the 25 _stash_cases.CASES (lambda 0 with sigma pos/inf/NaN/None, negative lambda included)",
+    "thread_factor": "1.000",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "none can fail: equivalent"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "at lambda == 0 the risk term is 0*sigma (0, or NaN for inf sigma, which np.any(risk > 0) skips), so prices are returned untouched in both arms",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None and self.config.price_risk_lambda >= 0.0: survives the full gate but is equivalent on every input tried: at lambda == 0 the risk term is 0*sigma (0, or NaN for inf sigma, which np.any(risk > 0) skips), so prices are returned untouched in both arms",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py",
+    "value": "mutant_cases_moved=0 (null 0); "
+   }
+  },
+  {
+   "key": "7cb1bac951ddeb9e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND",
+   "patch": "(d := cap - traj[name][:, -1]) > 0.0, d, 0.0 -> (d := cap - traj[name][:, -1]) >= 0.0, d, 0.0",
+   "function": "HeatPumpOptimizer._terminal_cost_batch.cost_batch",
+   "cluster": "optimizer.py:HeatPumpOptimizer._terminal_cost_batch.cost_batch@3772-3772",
+   "slice": "u1b",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3500.2,
+    "load1_start": 0.93,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 5719.5,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/7cb1bac951ddeb9e.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7cb1bac951ddeb9e",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/7cb1bac951ddeb9e.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {
+     "mutant_parity_breaks": "0"
+    },
+    "moving_cases": [],
+    "inputs_tried": "81 cases: 3 row_cost variants (same COP, split COP, refill derate) x coef +/-/0 x 9 end temperatures (end == cap, cap=-0/end=+0, +/-1 ulp, NaN, +/-inf, far below/above), compared bit for bit",
+    "thread_factor": "1.000",
+    "load1": "1.08"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "none can fail: equivalent"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "np.where(d >= 0, d, 0) differs from the > form only at d == +/-0.0, where it returns a signed zero that the row's builtin sum absorbs bit for bit",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND (d := cap - traj[name][:, -1]) > 0.0, d, 0.0 -> (d := cap - traj[name][:, -1]) >= 0.0, d, 0.0 survives the full gate but is equivalent on every input tried: np.where(d >= 0, d, 0) differs from the > form only at d == +/-0.0, where it returns a signed zero that the row's builtin sum absorbs bit for bit",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py",
+    "value": "mutant_cases_moved=0 (null 0); mutant_parity_breaks=0"
+   }
+  },
+  {
+   "key": "9bfc2c6d1bfe66bd",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF",
+   "patch": "if refused is None: -> if False:",
+   "function": "HeatPumpOptimizer._tighten_buffer_caps",
+   "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+   "slice": "u1c",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2790.4,
+    "load1_start": 0.44,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4582.3,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/9bfc2c6d1bfe66bd.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9bfc2c6d1bfe66bd",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/9bfc2c6d1bfe66bd.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 1,
+    "extra": {
+     "reach_refused_is_none": "0"
+    },
+    "moving_cases": [
+     "CASE refused_none: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('raise', 'TypeError') moved=1"
+    ],
+    "inputs_tried": "12 refused vectors (None, zeros, the 1e-9 tie, 1 ulp either side, NaN, negative, cap ties) via a stubbed simulate_trajectory, plus the real ThermalModel.simulate_trajectory's refused slot",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/features.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "a stubbed refused=None case would fail, but no production caller can produce one: the guard is dead code"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "moves only for refused None (TypeError), which ThermalModel.simulate_trajectory never returns (np.zeros(n_steps) at thermal_model.py:4370; reach_refused_is_none=0): unreachable through production",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF if refused is None: -> if False: survives the full gate but is equivalent on every input tried: moves only for refused None (TypeError), which ThermalModel.simulate_trajectory never returns (np.zeros(n_steps) at thermal_model.py:4370; reach_refused_is_none=0): unreachable through production",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py",
+    "value": "mutant_cases_moved=1 (null 0); reach_refused_is_none=0"
+   }
+  },
+  {
+   "key": "0f03bb94bcab1682",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF",
+   "patch": "if phase == 0: -> if False:",
+   "function": "HeatPumpOptimizer._window_offset_steps",
+   "cluster": "optimizer.py:HeatPumpOptimizer._window_offset_steps@4067-4069",
+   "slice": "u1a",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2671.9,
+    "load1_start": 0.78,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4401.4,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/0f03bb94bcab1682.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0f03bb94bcab1682",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/0f03bb94bcab1682.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+    "metric": "mutant_downstream_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {
+     "mutant_return_moved": "57"
+    },
+    "moving_cases": [],
+    "inputs_tried": "127 cases: window 15/60 min x dt 0.25/0.5/1.0/0.75/1 min x starts 00:00, 07:00, 12:00, 12:15, 12:45, 23:30 x masks off/on; dt 1e-9/0/-0.25; start None",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/doc_claims.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/manual_plan.py",
+     "tests/optimality.py",
+     "tests/plan_view.py",
+     "tests/validate.py"
+    ],
+    "assertion_lacking": "an _window_offset_steps unit asserting 0 at an aligned start would fail; no check through _peak_billing can (equivalent at the observable output)"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "the return moves (0 -> one whole window of steps) on every aligned start, but every consumer partitions by offset % per_window (tariff._window_partition), so PeakBilling, the capacity penalty and _grid_report never move",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF if phase == 0: -> if False: survives the full gate but is equivalent on every input tried: the return moves (0 -> one whole window of steps) on every aligned start, but every consumer partitions by offset % per_window (tariff._window_partition), so PeakBilling, the capacity penalty and _grid_report never move",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py",
+    "value": "mutant_downstream_moved=0 (null 0); mutant_return_moved=57"
+   }
+  },
+  {
+   "key": "f54d3d4c7351ac76",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP",
+   "patch": "return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6)))) -> return max(0, int(round((window - phase) / (dt * 60.0))))",
+   "function": "HeatPumpOptimizer._window_offset_steps",
+   "cluster": "optimizer.py:HeatPumpOptimizer._window_offset_steps@4067-4069",
+   "slice": "u1d",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2638.5,
+    "load1_start": 0.72,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4370.9,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/f54d3d4c7351ac76.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f54d3d4c7351ac76",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/f54d3d4c7351ac76.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+    "metric": "mutant_downstream_moved",
+    "baseline_value": 0,
+    "mutant_value": 1,
+    "extra": {
+     "mutant_return_moved": "3",
+     "reach_optimize_dt0_raises_before": "1",
+     "reach_offset_calls_at_dt0": "0"
+    },
+    "moving_cases": [
+     "CASE window=60 dt=0.0 start=2026-01-15 12:15:00 masked=False: offset ('ok', 45000000) -> ('raise', 'ZeroDivisionError'); downstream moved=1"
+    ],
+    "inputs_tried": "the 127 _window_core cases (dt 1e-9, 0, -0.25 included) plus optimize(time_step_minutes=0)",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/boost_drift_replay.py",
+     "tests/entities.py",
+     "tests/features.py"
+    ],
+    "assertion_lacking": "none through production; a direct _window_offset_steps(dt=0) call separates"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "moves only at dt == 0 (ZeroDivisionError), and optimize with time_step_minutes=0 already raises on the baseline before any offset is computed: unreachable through production",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6)))) -> return max(0, int(round((window - phase) / (dt * 60.0)))) survives the full gate but is equivalent on every input tried: moves only at dt == 0 (ZeroDivisionError), and optimize with time_step_minutes=0 already raises on the baseline before any offset is computed: unreachable through production",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py",
+    "value": "mutant_downstream_moved=1 (null 0); mutant_return_moved=3, reach_optimize_dt0_raises_before=1, reach_offset_calls_at_dt0=0"
+   }
+  },
+  {
+   "key": "0270b5efaac478d2",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF",
+   "patch": "if not result.timestamps: -> if False:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1a",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2750.7,
+    "load1_start": 0.78,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4556.0,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/0270b5efaac478d2.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0270b5efaac478d2",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/0270b5efaac478d2.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 3,
+    "extra": {
+     "reach_optimize_empty_results": "0"
+    },
+    "moving_cases": [],
+    "inputs_tried": "21 cases: a real 6 h plan, its first step alone and the plan emptied x clocks at/1 us/half a step/one step/one step + 1 s before the first start, step 1, mid step 3, last start, past the end; plus 3 degenerate optimize() calls",
+    "thread_factor": "1.000",
+    "load1": "1.15"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/config_flow_steps.py",
+     "tests/entities.py",
+     "tests/features.py"
+    ],
+    "assertion_lacking": "none through production; a direct call with an empty OptimizationResult separates"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "moves only on an empty result (IndexError instead of the idle action); the one production caller (coordinator.py:6464) passes the result optimize() just returned, and optimize raises on every degenerate input tried instead of returning an empty plan (reach_optimize_empty_results=0)",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF if not result.timestamps: -> if False: survives the full gate but is equivalent on every input tried: moves only on an empty result (IndexError instead of the idle action); the one production caller (coordinator.py:6464) passes the result optimize() just returned, and optimize raises on every degenerate input tried instead of returning an empty plan (reach_optimize_empty_results=0)",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py",
+    "value": "mutant_cases_moved=3 (null 0); reach_optimize_empty_results=0"
+   }
+  },
+  {
+   "key": "68ee8d20663ac601",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND",
+   "patch": "if now_s < starts[0]: -> if now_s <= starts[0]:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1b",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2857.5,
+    "load1_start": 0.93,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "child_cpu_s": 4793.0,
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/68ee8d20663ac601.json",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 68ee8d20663ac601",
+    "provisional": true
+   },
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+    "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/68ee8d20663ac601.txt",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+    "metric": "mutant_cases_moved",
+    "baseline_value": 0,
+    "mutant_value": 0,
+    "extra": {},
+    "moving_cases": [],
+    "inputs_tried": "the 21 _action_core cases, incl. now == starts[0] on a multi-step and a one-step plan",
+    "thread_factor": "1.000",
+    "load1": "1.14"
+   },
+   "should_fail": {
+    "traced_scripts_executing_line": [
+     "tests/config_flow_steps.py",
+     "tests/entities.py",
+     "tests/features.py"
+    ],
+    "assertion_lacking": "none can fail: equivalent"
+   },
+   "class": "equivalent-candidate",
+   "equivalent_reason": "at now == starts[0] the pre-horizon branch picks i = 0 (gap 0 <= one step), which is the step the loop picks too",
+   "non_finding": {
+    "claim": "custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND if now_s < starts[0]: -> if now_s <= starts[0]: survives the full gate but is equivalent on every input tried: at now == starts[0] the pre-horizon branch picks i = 0 (gap 0 <= one step), which is the step the loop picks too",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py",
+    "value": "mutant_cases_moved=0 (null 0); "
+   }
+  }
+ ],
+ "tally": {
+  "RED-AS-NULL": 16
+ },
+ "report_md": "# D3-s1 wave box D3-g24: full gate for 16 D3.M3 full-net survivors\n\nBaseline `92d38ecb640bd462f2e19c0814d0f0b7df1ee692`. Seat D3-s1, round 11. Findings are returned as `gate_survivors` (ids assigned at consolidation).\n\n## Machine and controls\n\n```\ndate 2026-11-22T21:40:40Z\nnproc 4\ncpu Intel(R) Xeon(R) Processor @ 2.10GHz\nload1 0.54\npython3 /opt/hpo/venv-ci/bin/python3 Python 3.14.7\nnode v22.23.5\n\n               total        used        free      shared  buff/cache   available\nMem:           16087        1109       13474          12        1801       14978\nSwap:              0           0           0\n\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda        252G   12G   58G  18% /\n\n# re-fire (resumed seat, gates 9..16 from here) 2026-11-25T00:51:41Z\nnproc 4\ncpu  Intel(R) Xeon(R) Processor @ 2.30GHz\nload1 0.49\n               total        used        free      shared  buff/cache   available\nMem:           16087        1042       13704          12        1614       15044\nSwap:              0           0           0\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda        252G   12G   58G  17% /\n```\n\nNull control (`python3 dev/audit/rounds/round11/D3/s1/fullgate.py null`, comment-only marker): gate_rc=1, failed scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'] with fail_lines {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 3}, wall 3652.4 s (provisional). Every one of these is an artefact of the stripped detached worktree (gates/null-note.txt); a key is KILLED only by a script beyond these or more FAIL lines in one.\n\nWall, CPU and load numbers are provisional (nproc 4; load1 per gate in its record); counts are final.\n\n## Tally\n\n- gated: 16/16; verdicts: {'RED-AS-NULL': 16}\n- KILLED: 0\n- TIMEOUT: 0 \n- candidates (gate survivors that change behaviour): 5\n- equivalent-candidates: 11\n\n| key | site | verdict | class | probe metric baseline -> mutant |\n|---|---|---|---|---|\n| 1dcb273b03f63a4e | optimizer.py:4943 CLAMP_DROP | RED-AS-NULL | equivalent-candidate | mutant_replay_moved 0 -> 0 |\n| c679a9939ee7b3ee | optimizer.py:4943 CLAMP_DROP | RED-AS-NULL | equivalent-candidate | mutant_replay_moved 0 -> 0 |\n| 41d866cef7ea4115 | optimizer.py:4696 CMP_BOUND | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 0 |\n| fa3bb379b762e2a9 | optimizer.py:4700 CMP_BOUND | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 0 |\n| ce5b92d704397d85 | optimizer.py:4717 BOOLOP | RED-AS-NULL | candidate | mutant_cases_moved 0 -> 1 |\n| dd2b698bc1d5d4b8 | optimizer.py:4717 CMP_BOUND | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 0 |\n| aab0b73e229ad900 | optimizer.py:4720 CMP_BOUND | RED-AS-NULL | candidate | mutant_cases_moved 0 -> 2 |\n| 7cb1bac951ddeb9e | optimizer.py:3772 CMP_BOUND | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 0 |\n| 9bfc2c6d1bfe66bd | optimizer.py:5120 GUARD_OFF | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 1 |\n| 56de38e47369b2b7 | optimizer.py:5123 CMP_BOUND | RED-AS-NULL | candidate | mutant_cases_moved 0 -> 2 |\n| df066a5f3f3d3e0f | optimizer.py:5139 CMP_BOUND | RED-AS-NULL | candidate | mutant_cases_moved 0 -> 1 |\n| bbcded8a73c6a2f1 | optimizer.py:5145 CMP_BOUND | RED-AS-NULL | candidate | mutant_cases_moved 0 -> 1 |\n| 0f03bb94bcab1682 | optimizer.py:4067 GUARD_OFF | RED-AS-NULL | equivalent-candidate | mutant_downstream_moved 0 -> 0 |\n| f54d3d4c7351ac76 | optimizer.py:4069 CLAMP_DROP | RED-AS-NULL | equivalent-candidate | mutant_downstream_moved 0 -> 1 |\n| 0270b5efaac478d2 | optimizer.py:6550 GUARD_OFF | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 3 |\n| 68ee8d20663ac601 | optimizer.py:6559 CMP_BOUND | RED-AS-NULL | equivalent-candidate | mutant_cases_moved 0 -> 0 |\n\n## Survivors, one paragraph each\n\n### ce5b92d704397d85 (candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4717 BOOLOP` `if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None or self.config.price_risk_lambda > 0.0:` in `HeatPumpOptimizer._stash_price_horizon`; full gate RED-AS-NULL (gate_rc 1, wall 3505.2 s, load1 0.78..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_ce5b92d704397d85.py`: mutant_cases_moved baseline 0 -> mutant 1 (reach_mutant_moved=1, reach_null_moved=0). Inputs tried: the 25 _stash_cases.CASES plus a whole HeatPumpOptimizer.optimize (6 h, price_risk_lambda 0.5, ForecastSeries without price_sigma). Step-4 answer: Mutant ce5b92d704397d85 (optimizer.py:4717 `and` -> `or`) survives the full gate, yet HeatPumpOptimizer.optimize with price_risk_lambda=0.5 and a ForecastSeries carrying no price_sigma (its default None) returns an optimal plan on the baseline and raises IndexError under the mutant. Severity claimed low: optimize() raises for a caller using the dataclass default price_sigma=None with risk pricing on; the coordinator always passes an array (coordinator.py:1599, 7258), so no Home Assistant user path reaches it. Should have failed: tests/features.py executes line 4717 on its traced baseline but has no case with price_risk_lambda > 0 and price_sigma None asserting the prices pass through untouched (and optimize does not raise). Moving case: `CASE lam_pos_sigma_none: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('raise', 'IndexError') moved=1`.\n\n### aab0b73e229ad900 (candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4720 CMP_BOUND` `if np.any(risk > 0.0): -> if np.any(risk >= 0.0):` in `HeatPumpOptimizer._stash_price_horizon`; full gate RED-AS-NULL (gate_rc 1, wall 3362.2 s, load1 0.78..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_aab0b73e229ad900.py`: mutant_cases_moved baseline 0 -> mutant 2 (reach_mutant_moved=1, reach_null_moved=0). Inputs tried: the 25 _stash_cases.CASES plus a whole optimize (6 h, lambda 0.5, price_sigma zero except NaN on one unpublished step). Step-4 answer: Mutant aab0b73e229ad900 (optimizer.py:4720 `risk > 0.0` -> `>= 0.0`) survives the full gate, yet with price_risk_lambda=0.5 and price_sigma zero except NaN on one unpublished step, optimize returns an optimal plan on the baseline and 'failed (no usable starting point)' under the mutant (a NaN added into the solve's prices). Severity claimed low: a NaN sigma reaching the solve turns the plan failed; the coordinator's sigma comes from price_model.extend_price_series (zero on known steps, PriceShapeModel.sigma elsewhere) and no NaN source was shown. Should have failed: tests/features.py (the only closure script whose traced baseline executes line 4720) has no case with an all-zero or non-finite risk asserting the price array is returned untouched. Moving case: `CASE lam_pos_sigma_nan_unknown: baseline=('ok', 'prices', '<f8', [1.0, 2.0, 3.0, 4.0]) mutant=('ok', 'prices', '<f8', [1.0, 2.0, nan, 4.0]) moved=1`.\n\n### 56de38e47369b2b7 (candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:5123 CMP_BOUND` `for i in np.nonzero(refused > 1e-9)[0]: -> for i in np.nonzero(refused >= 1e-9)[0]:` in `HeatPumpOptimizer._tighten_buffer_caps`; full gate RED-AS-NULL (gate_rc 1, wall 2764.1 s, load1 0.78..1.04). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_56de38e47369b2b7.py`: mutant_cases_moved baseline 0 -> mutant 2. Inputs tried: the 12 _tighten_core cases. Step-4 answer: Mutant 56de38e47369b2b7 (optimizer.py:5123 `refused > 1e-9` -> `>= 1e-9`) survives the full gate, yet with a step refusing exactly 1e-9 kW _tighten_buffer_caps leaves the caps and returns False on the baseline and tightens that step's cap 3.0 -> 1.998 kW and returns True (one more re-solve) under the mutant. Severity claimed low: at the exact 1e-9 kW tie a step's buffer cap is tightened and a repair re-solve spent; a refusal of exactly 1e-9 kW is a float tie. Should have failed: tests/features.py and tests/validate.py execute line 5123 on their traced baselines; neither feeds a refused value at the 1e-9 boundary. Moving case: `CASE refused_tie_1e-9_alone: baseline=('ok', False, [3.0, 3.0, 3.0, 3.0], []) mutant=('ok', True, [1.9979999995922448, 3.0, 3.0, 3.0], [0]) moved=1`.\n\n### df066a5f3f3d3e0f (candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:5139 CMP_BOUND` `if new_cap < float(power_caps[i]) - 1e-9: -> if new_cap <= float(power_caps[i]) - 1e-9:` in `HeatPumpOptimizer._tighten_buffer_caps`; full gate RED-AS-NULL (gate_rc 1, wall 2777.3 s, load1 0.81..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py`: mutant_cases_moved baseline 0 -> mutant 1. Inputs tried: the 12 _tighten_core cases, incl. a cap c with float(c) - 1e-9 == new_cap exactly (found by nextafter search). Step-4 answer: Mutant df066a5f3f3d3e0f (optimizer.py:5139 `<` -> `<=`) survives the full gate, yet at a cap c with c - 1e-9 == new_cap exactly _tighten_buffer_caps returns False on the baseline and True (cap lowered by 1e-9 kW, one more re-solve) under the mutant. Severity claimed low: at the float tie a repair round is spent re-solving for a 1e-9 kW cap change, the cost the line's own comment says the margin avoids. Should have failed: tests/features.py (the only closure script whose traced baseline executes line 5139) has no tie case asserting changed False. Moving case: `CASE refused_real_cap_tie(new_cap==cap-1e-9): baseline=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) mutant=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) moved=1`.\n\n### bbcded8a73c6a2f1 (candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:5145 CMP_BOUND` `int(np.count_nonzero(refused > 1e-9)), -> int(np.count_nonzero(refused >= 1e-9)),` in `HeatPumpOptimizer._tighten_buffer_caps`; full gate RED-AS-NULL (gate_rc 1, wall 2696.1 s, load1 0.77..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_bbcded8a73c6a2f1.py`: mutant_cases_moved baseline 0 -> mutant 1. Inputs tried: the 12 _tighten_core cases. Step-4 answer: Mutant bbcded8a73c6a2f1 (optimizer.py:5145 `refused > 1e-9` -> `>= 1e-9` in the debug count) survives the full gate, yet with one step refusing exactly 1e-9 kW beside one refusing 0.5 kW the logged count is 1 on the baseline and 2 under the mutant. Severity claimed low: a DEBUG log line over-counts tightened steps at the 1e-9 kW tie; no plan or published value moves. Should have failed: tests/features.py executes line 5145 but no check reads the debug count. Moving case: `CASE refused_tie_1e-9_plus_real: baseline=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [1]) mutant=('ok', True, [3.0, 1.7941224489795917, 3.0, 3.0], [2]) moved=1`.\n\n### 1dcb273b03f63a4e (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP` `guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = np.minimum((guess), headroom)` in `HeatPumpOptimizer._solve_space`; full gate RED-AS-NULL (gate_rc 1, wall 3308.6 s, load1 0.78..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_1dcb273b03f63a4e.py`: mutant_replay_moved baseline 0 -> mutant 0 (mutant_guess_outside_bounds_mutant=6, mutant_whole_moved=0). Inputs tried: 3 DHW scenarios (power_caps_extra 3/2/1 kW, 12 h/15 min): the captured _solve_space call replayed with warm_start None, init_base x2-0.5, warm = init_base x1.5, init_base + p_max, init_base - p_max/2, all -1 kW (18 replays), plus the whole optimize() per scenario. Step-4 answer: the mutated guess leaves its bounds (guess_outside_bounds_mutant > 0) yet no returned plan, status or score moves: the starts are projected/re-scoped downstream before anything is shipped. A check that would distinguish it: a _solve_space case seeded with a warm start outside [0, p_max] asserting the returned plan/status equal the clipped-start solve (would not fail: equivalent).\n\n### c679a9939ee7b3ee (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4943 CLAMP_DROP` `guess = np.minimum(np.clip(guess, 0.0, p_max), headroom) -> guess = (np.clip(guess, 0.0, p_max))` in `HeatPumpOptimizer._solve_space`; full gate RED-AS-NULL (gate_rc 1, wall 3242.9 s, load1 0.72..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_c679a9939ee7b3ee.py`: mutant_replay_moved baseline 0 -> mutant 0 (mutant_guess_outside_bounds_mutant=15, mutant_whole_moved=0). Inputs tried: as 1dcb273b03f63a4e (18 replays incl. warm starts above the cap-limited headroom, 3 whole solves). Step-4 answer: the guess exceeds the headroom bound on 15 replays yet the returned plan, status and score never move. A check that would distinguish it: a warm start above the power_caps_extra headroom asserting the solve's result (would not fail: equivalent).\n\n### 41d866cef7ea4115 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4696 CMP_BOUND` `if price_known.size < n_steps: -> if price_known.size <= n_steps:` in `HeatPumpOptimizer._stash_price_horizon`; full gate RED-AS-NULL (gate_rc 1, wall 3240.0 s, load1 0.94..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_41d866cef7ea4115.py`: mutant_cases_moved baseline 0 -> mutant 0. Inputs tried: 25 _stash_cases.CASES: price_known of size n-1, n, n+1, 0; pv_surplus n-1, n, n+1, 0, int; lambda 0/neg/pos x sigma None/empty/pos/zero/neg/inf/NaN; int and -0.0 prices; denormal lambda*sigma. Step-4 answer: at size == n the pad is np.zeros(0) and the concatenation equals the input (values and dtype). A check that would distinguish it: none can fail: equivalent.\n\n### fa3bb379b762e2a9 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4700 CMP_BOUND` `if pv_surplus.size < n_steps: -> if pv_surplus.size <= n_steps:` in `HeatPumpOptimizer._stash_price_horizon`; full gate RED-AS-NULL (gate_rc 1, wall 3287.6 s, load1 0.78..1.0). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_fa3bb379b762e2a9.py`: mutant_cases_moved baseline 0 -> mutant 0. Inputs tried: the 25 _stash_cases.CASES (see 41d866cef7ea4115). Step-4 answer: at size == n the pad is np.zeros(0); the float concatenation equals the input. A check that would distinguish it: none can fail: equivalent.\n\n### dd2b698bc1d5d4b8 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4717 CMP_BOUND` `if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None and self.config.price_risk_lambda >= 0.0:` in `HeatPumpOptimizer._stash_price_horizon`; full gate RED-AS-NULL (gate_rc 1, wall 3669.9 s, load1 0.79..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_dd2b698bc1d5d4b8.py`: mutant_cases_moved baseline 0 -> mutant 0. Inputs tried: the 25 _stash_cases.CASES (lambda 0 with sigma pos/inf/NaN/None, negative lambda included). Step-4 answer: at lambda == 0 the risk term is 0*sigma (0, or NaN for inf sigma, which np.any(risk > 0) skips), so prices are returned untouched in both arms. A check that would distinguish it: none can fail: equivalent.\n\n### 7cb1bac951ddeb9e (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:3772 CMP_BOUND` `(d := cap - traj[name][:, -1]) > 0.0, d, 0.0 -> (d := cap - traj[name][:, -1]) >= 0.0, d, 0.0` in `HeatPumpOptimizer._terminal_cost_batch.cost_batch`; full gate RED-AS-NULL (gate_rc 1, wall 3500.2 s, load1 0.93..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_7cb1bac951ddeb9e.py`: mutant_cases_moved baseline 0 -> mutant 0 (mutant_parity_breaks=0). Inputs tried: 81 cases: 3 row_cost variants (same COP, split COP, refill derate) x coef +/-/0 x 9 end temperatures (end == cap, cap=-0/end=+0, +/-1 ulp, NaN, +/-inf, far below/above), compared bit for bit. Step-4 answer: np.where(d >= 0, d, 0) differs from the > form only at d == +/-0.0, where it returns a signed zero that the row's builtin sum absorbs bit for bit. A check that would distinguish it: none can fail: equivalent.\n\n### 9bfc2c6d1bfe66bd (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:5120 GUARD_OFF` `if refused is None: -> if False:` in `HeatPumpOptimizer._tighten_buffer_caps`; full gate RED-AS-NULL (gate_rc 1, wall 2790.4 s, load1 0.44..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_9bfc2c6d1bfe66bd.py`: mutant_cases_moved baseline 0 -> mutant 1 (reach_refused_is_none=0). Inputs tried: 12 refused vectors (None, zeros, the 1e-9 tie, 1 ulp either side, NaN, negative, cap ties) via a stubbed simulate_trajectory, plus the real ThermalModel.simulate_trajectory's refused slot. Step-4 answer: moves only for refused None (TypeError), which ThermalModel.simulate_trajectory never returns (np.zeros(n_steps) at thermal_model.py:4370; reach_refused_is_none=0): unreachable through production. A check that would distinguish it: a stubbed refused=None case would fail, but no production caller can produce one: the guard is dead code.\n\n### 0f03bb94bcab1682 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4067 GUARD_OFF` `if phase == 0: -> if False:` in `HeatPumpOptimizer._window_offset_steps`; full gate RED-AS-NULL (gate_rc 1, wall 2671.9 s, load1 0.78..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0f03bb94bcab1682.py`: mutant_downstream_moved baseline 0 -> mutant 0 (mutant_return_moved=57). Inputs tried: 127 cases: window 15/60 min x dt 0.25/0.5/1.0/0.75/1 min x starts 00:00, 07:00, 12:00, 12:15, 12:45, 23:30 x masks off/on; dt 1e-9/0/-0.25; start None. Step-4 answer: the return moves (0 -> one whole window of steps) on every aligned start, but every consumer partitions by offset % per_window (tariff._window_partition), so PeakBilling, the capacity penalty and _grid_report never move. A check that would distinguish it: an _window_offset_steps unit asserting 0 at an aligned start would fail; no check through _peak_billing can (equivalent at the observable output).\n\n### f54d3d4c7351ac76 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:4069 CLAMP_DROP` `return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6)))) -> return max(0, int(round((window - phase) / (dt * 60.0))))` in `HeatPumpOptimizer._window_offset_steps`; full gate RED-AS-NULL (gate_rc 1, wall 2638.5 s, load1 0.72..0.93). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_f54d3d4c7351ac76.py`: mutant_downstream_moved baseline 0 -> mutant 1 (mutant_return_moved=3, reach_optimize_dt0_raises_before=1, reach_offset_calls_at_dt0=0). Inputs tried: the 127 _window_core cases (dt 1e-9, 0, -0.25 included) plus optimize(time_step_minutes=0). Step-4 answer: moves only at dt == 0 (ZeroDivisionError), and optimize with time_step_minutes=0 already raises on the baseline before any offset is computed: unreachable through production. A check that would distinguish it: none through production; a direct _window_offset_steps(dt=0) call separates.\n\n### 0270b5efaac478d2 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:6550 GUARD_OFF` `if not result.timestamps: -> if False:` in `HeatPumpOptimizer.get_current_action`; full gate RED-AS-NULL (gate_rc 1, wall 2750.7 s, load1 0.78..0.92). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_0270b5efaac478d2.py`: mutant_cases_moved baseline 0 -> mutant 3 (reach_optimize_empty_results=0). Inputs tried: 21 cases: a real 6 h plan, its first step alone and the plan emptied x clocks at/1 us/half a step/one step/one step + 1 s before the first start, step 1, mid step 3, last start, past the end; plus 3 degenerate optimize() calls. Step-4 answer: moves only on an empty result (IndexError instead of the idle action); the one production caller (coordinator.py:6464) passes the result optimize() just returned, and optimize raises on every degenerate input tried instead of returning an empty plan (reach_optimize_empty_results=0). A check that would distinguish it: none through production; a direct call with an empty OptimizationResult separates.\n\n### 68ee8d20663ac601 (equivalent-candidate)\n\n`custom_components/heatpump_optimizer/optimizer.py:6559 CMP_BOUND` `if now_s < starts[0]: -> if now_s <= starts[0]:` in `HeatPumpOptimizer.get_current_action`; full gate RED-AS-NULL (gate_rc 1, wall 2857.5 s, load1 0.93..1.0). Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_68ee8d20663ac601.py`: mutant_cases_moved baseline 0 -> mutant 0. Inputs tried: the 21 _action_core cases, incl. now == starts[0] on a multi-step and a one-step plan. Step-4 answer: at now == starts[0] the pre-horizon branch picks i = 0 (gap 0 <= one step), which is the step the loop picks too. A check that would distinguish it: none can fail: equivalent.\n\n## Coverage\n\nD3.M1, D3.M2, D3.M4, D3.M5 and their redispatched items are carried verbatim from REPORT-D3-u1b.json. D3.M3 is this wave's row: universe 742 (the wave list), examined 16 (this box's gated keys), the other 726 keys named under not_reached by their box.\n"
+}

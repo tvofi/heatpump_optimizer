@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_00298af0aa9d1903.py: whether _derive_hold_schedule returns None when charging adjoins the peak (no hold step); through optimize() the proposals (each a full re-solve) and solve CPU (out_00298af0aa9d1903.txt = executed output; source_00298af0aa9d1903.py = the template it is assembled from)

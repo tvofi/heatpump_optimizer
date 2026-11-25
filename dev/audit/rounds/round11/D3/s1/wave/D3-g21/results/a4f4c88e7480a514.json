@@ -1,0 +1,93 @@
+{
+ "key": "a4f4c88e7480a514",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4033 CMP_BOUND",
+ "patch": "if surplus is None or not np.any(surplus[: len(prices)] > 1e-6): -> if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):",
+ "function": "HeatPumpOptimizer._energy_cost_fn",
+ "cluster": "optimizer.py:HeatPumpOptimizer._energy_cost_fn@4033-4033",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3252.5,
+  "load1_start": 0.79,
+  "load1_end": 0.99,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/a4f4c88e7480a514.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/a4f4c88e7480a514.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py",
+  "metric": "energy cost _energy_cost_fn prices for a fixed schedule when the PV-surplus forecast peaks at exactly 1e-6 kW",
+  "baseline_value": "29.00000000",
+  "mutant_value": "28.99999600",
+  "baseline_name": "tie_cost_baseline",
+  "mutant_name": "tie_cost_mutant",
+  "inputs_tried": [
+   "surplus 1e-6 kW on 4 steps (the tie)",
+   "surplus 0 and 2e-6 kW (null)",
+   "optimize() with the 1e-6 surplus forecast (predicted cost and plan unchanged)"
+  ],
+  "results": {
+   "tie_cost_baseline": "29.00000000",
+   "tie_cost_mutant": "28.99999600",
+   "moved": "1 count",
+   "null_delta": "0 count",
+   "plan_predicted_cost_baseline": "10.72234229",
+   "plan_predicted_cost_mutant": "10.72234229",
+   "plan_maxabs_diff_kw": "0.000000 kW",
+   "thread_factor": "1.000",
+   "load1": "1.62",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_a4f4c88e7480a514.txt"
+ },
+ "should_fail": "tests/features.py (traced baseline executes optimizer.py:4033, as do 14 other closure scripts): no pricing check sits on a surplus of exactly 1e-6 kW",
+ "title": "No check feeds _energy_cost_fn a PV surplus of exactly 1e-6 kW; > -> >= at the grid-only shortcut is unseen",
+ "claim": "Mutant a4f4c88e7480a514 at custom_components/heatpump_optimizer/optimizer.py:4033 (if surplus is None or not np.any(surplus[: len(prices)] > 1e-6): -> if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):) is not failed by the full gate (RED-AS-NULL), yet the probe's energy cost _energy_cost_fn prices for a fixed schedule when the PV-surplus forecast peaks at exactly 1e-6 kW moves: baseline 29.00000000, mutant 28.99999600.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "A PV surplus no larger than 1e-6 kW is priced grid-only (no export-margin credit)",
+ "metric_definition": "energy cost _energy_cost_fn prices for a fixed schedule when the PV-surplus forecast peaks at exactly 1e-6 kW",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._energy_cost_fn",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py",
+ "perturbation": {
+  "change": "optimizer.py:4033 if surplus is None or not np.any(surplus[: len(prices)] > 1e-6): -> if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):, applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a4f4c88e7480a514",
+  "expected_direction": "down: the priced cost falls by margin * 1e-6 kW * dt per tie step (4e-6 here); the optimize() plan and predicted cost do not move"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

@@ -1,0 +1,6 @@
+box D3-g06 full-gate null control (fullgate.py null, comment-only marker), 2026-11-22 21:38-22:36Z, nproc 4 Intel Xeon @ 2.10GHz, 16 GB, load1 0.63..1.0, wall 3471.9 s (provisional).
+gate_rc=1, 3 scripts red, the same three as box D3-rem's null:
+- closure.py selftest, 2 of 118: "a refused merge surfaces merge()'s reason" / "and a merge that succeeds carries no merge reason (null control)" [status='skip-not-under-scoped']: branch/merge-tool pins in a detached worktree; no production file involved.
+- entities.py, 1 of 2723: "and is accepted when it does [the scoped path records only what the diff can reach]": the scoped-gate pin, a branch-environment artefact. (Its other FAIL lines are the script's own negative controls, not counted.)
+- harness_headers.py, 3 of 115: dev/audit/rounds/round4/D6/claims.py prints claims_true=122 / claims_false=1 against its header's 123 / 0 and rewrites its committed claims.json/claims.md: an earlier round's harness output drifting in this stripped baseline worktree; it reads no line of coordinator.py this box mutates.
+No mutant of this box can need to fail these checks; fullgate.py counts KILLED only on a script outside this set or more failing checks than this null. Usable; not re-taken; no BLOCKED.

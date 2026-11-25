@@ -1,0 +1,59 @@
+{
+ "key": "a0722b8c635d2d93",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:3402 CMP_BOUND",
+ "patch": "if end <= i: -> if end < i:",
+ "function": "HeatPumpOptimizer._anticipatory_weights",
+ "cluster": "optimizer.py:HeatPumpOptimizer._anticipatory_weights@3402-3408",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3750.7,
+  "load1_start": 0.8,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/a0722b8c635d2d93.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_a0722b8c635d2d93.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_a0722b8c635d2d93.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=450 count",
+   "RESULT inputs_moved=0 count",
+   "RESULT tie_baseline_weight0=1.0",
+   "RESULT tie_mutant_weight0=1.0",
+   "RESULT null_delta=0",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.85",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "weights all 1.0 at dt>8 h",
+  "mutant_value": "weights all 1.0 (np.mean([])=nan, nan>0.5/1.1 False)",
+  "inputs_tried": "450: dt {0.25,0.5,1,8,9,24} h x n {1,4,96} x solar {0,0.5,next(0.5),2,nan} x loss {1,1.1,next(1.1),2,nan}; moved 0"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none: no input separates the arms at the returned weights (executed by tests/block_duty, boost_drift_replay, config_flow_steps, doc_claims, entities, env_drift, features, manual_plan, optimality, plan_view, validate.py)",
+ "non_finding": {
+  "claim": "a0722b8c635d2d93 (custom_components/heatpump_optimizer/optimizer.py:3402 CMP_BOUND) is an equivalent-candidate: end == i only when int(8/dt) == 0 (dt > 8 h); the empty window's mean is nan and both comparisons are False, so the weight is unchanged",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_a0722b8c635d2d93.py",
+  "value": "RESULT inputs_tried=450 count; RESULT inputs_moved=0 count; RESULT tie_baseline_weight0=1.0"
+ }
+}

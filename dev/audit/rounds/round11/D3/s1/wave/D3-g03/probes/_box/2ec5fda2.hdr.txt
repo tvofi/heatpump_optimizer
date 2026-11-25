@@ -1,0 +1,13 @@
+# Metric: the day-health verdict HeatPumpOptimizerCoordinator._async_watch_learning_drift folds for day 3
+#   (SnapshotRing.observe_health's return on day 3's first heartbeat), after a heartbeat sequence where only one
+#   morning heartbeat of day 1 had an unhealthy input ("indoor_temp stale") and every heartbeat after it was healthy;
+#   plus the ring's day_unhealthy accumulator after day 2's first heartbeat. Real snapshots.SnapshotRing.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_2ec5fda2.py
+# EXPECTED RESULT day_unhealthy_after_day2_baseline=None ; day_unhealthy_after_day2_mutant='indoor_temp stale'
+# EXPECTED RESULT day3_healthy_baseline=True ; day3_healthy_mutant=False (one bad morning poisons every later day)
+# EXPECTED RESULT null_delta=0 count (all heartbeats healthy: the accumulator is None either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g03 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_watch_learning_drift,
+#   line 9685 `if day_counted:` (the counted day's `start_day(reason_now)`).
+# Perturbation: key 2ec5fda238265712 GUARD_OFF -> `if False:`, in memory. Direction: healthy -> unhealthy on day 3.
+# Null control: the same calendar with every heartbeat healthy.

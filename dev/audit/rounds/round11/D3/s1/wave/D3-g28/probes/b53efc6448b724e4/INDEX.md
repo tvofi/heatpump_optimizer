@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py: pins the x the multi-start returns when two starts end at distinct points of exactly equal score (the tie the strict < keeps on the first) (mutant `if np.isfinite(score) and score < best_score:` -> `if np.isfinite(score) and score <= best_score:`, optimizer.py:1994); output out_b53efc6448b724e4.txt

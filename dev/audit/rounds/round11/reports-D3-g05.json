@@ -1,0 +1,1697 @@
+{
+  "box": "D3-g05",
+  "missing": [],
+  "reports": {
+    "D3-s1": {
+      "dimension": "D3",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/REPORT.md",
+      "box": "D3-g05",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+          "universe": 1260,
+          "examined": 1260,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C8",
+              "state": "examined"
+            }
+          ],
+          "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b), not re-driven on box D3-g05: carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+          "carried": true
+        },
+        {
+          "step": "D3.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+          "universe": 1260,
+          "examined": 343,
+          "not_reached": [
+            "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+            "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+            "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+            "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+            "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+            "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+            "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+            "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+            "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+            "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+            "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+            "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+            "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+            "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+            "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+            "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+            "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+            "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+            "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+            "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+            "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+            "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+            "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+            "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+            "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+            "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+            "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+            "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+            "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C6",
+              "state": "examined"
+            }
+          ],
+          "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b), not re-driven on box D3-g05: box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+          "carried": true
+        },
+        {
+          "step": "D3.M3",
+          "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+          "universe": 742,
+          "examined": 16,
+          "not_reached": [
+            "assigned to box D3-g01: 16 keys (fafb0d2c15e72efb 676e8bfb416ff635 622996d751dca0c4 0e6080e5385399cb 021dc21415f3229e 1165914e57f5bd08 ab918806fc8b4af6 db9b59ec36304943 cf7be12db1a662c4 031dba68286ccfbf 22205dc8a4a6e79b 37e0face2a901e71 68c8ce175dcfa839 97628f4b14aec1b9 20f57d1eea0a5a1d e0bd801049aba41a)",
+            "assigned to box D3-g02: 16 keys (cd1d099ef87f3ab9 473508040d23cc21 ad8a02e5c07428ab b3a8cff2e5c0a8cc 59027d3bdf2e7a0c 7d276b43052dbeb9 953a106a1aa39cee 4b296fec48fc594f 58fe17a0726473a6 2700e28d79c64bd8 223ac303af04edde 9d324a1dc7a6aa82 bb1abbfc58114a17 74dbcc2eae2c24f5 355c3d7dd36a1b90 206a570d8cc784e3)",
+            "assigned to box D3-g03: 16 keys (ec4b6ee2ab420129 3351754da55a2896 16f7665306eebdf3 2ec5fda238265712 c0ecc8e0b6b66ded ac6bedc70bb82ff7 3304e65ba361587f a28fd1af46c39331 4498461fcf451835 79db73ec81b29f23 816e18d55f46f0e4 9c82d861621b8087 e880fd3537006726 134126ee4914191f b7623a645f34e628 420bcb8597761025)",
+            "assigned to box D3-g04: 16 keys (466c95cb8978ea1d a7dd3153718e531b b6b6e82fb4a33703 10ba5036744c9a99 7457d714cd44306c 6aeb83e5435c9cac d06a2d8e53342785 9789e0e7faa1b53a 8b4f4adbf55981bc c555c1a38da31dde ff67ca31aba14e7f 201955bf671ce8aa faf822994582adfc feed2751f4116bd1 29bad645ca2c2438 640a1a68b6c1eb23)",
+            "assigned to box D3-g06: 16 keys (d915157ffe509e58 dff127b334682936 6b306521ae03824d b546d5e705722bb5 59337f7f63497f21 4542deee22df985f 8e729260c34e2e3b e347b6890486dd0d 72fbe692d30d275e 2e4d4a89570a1b24 30fcf9ba50130ea2 89a3d25e2425b8e0 efa2c19c51831a68 205d200980d58e9e 96fe4cecaa16f997 1a24365a55bfb2c7)",
+            "assigned to box D3-g07: 16 keys (d3cad40ffce9b765 e163f6fbc359cd4c 67495f7b404053fc f0146f6f4901ec82 5f950692fab8eb1b 4410da4e8eb84cb8 7ec91efc2c6deffd f11665aaedbf2550 9b72b944ac12fa25 fd1cc23d380739ba c20f346300d7efc1 60f673da42f9d671 661116d11d6faa49 b6ac2d53028d45a3 7f2768bd0a78b4bf 1ee0ec8960fb9a66)",
+            "assigned to box D3-g08: 16 keys (15456e64946920b5 82f764a536ab9d71 2e20bf308c37e0e5 ceee24404849933e 7729bdd71430fcf1 341d807c3a3d361d d5ce59f9731dfc83 7398de952c9d1510 21a2563e1beb213f 509893a173fa6a29 cd6eee1c9c175e5f da1919c641494713 37e281ab084b40ae b283779946540c3d 25fb4eaf35cfdda5 aaa2a3d6bb2ba515)",
+            "assigned to box D3-g09: 16 keys (9cdf54d2309cfcc8 d8101520588009d9 33d708ab867fe5e7 3dcdfbdd2542f33e 3d83c32f185cf411 002980a15ae8b9a9 1785780ac9dd1b18 326b26f53972df61 104db258fed59c2d 8daaf4fcaf8cd897 3cfe39778305daba 146d687b30889301 425a9196b86265d0 84797ff91697f6a7 0c99189b7639f1bd df697cc04154fbdd)",
+            "assigned to box D3-g10: 16 keys (205660ee362d1a07 34c20aac32a34344 c7054b2e59c82141 ff56936f15fd4675 349b2e117d076731 cdd17526ebbf2a93 8ab42c4ab9755537 e689dc488b493c6b f2a191b48718e088 b871ff0486182e3e 813cb7aecbd78f98 aa6b718c979bf831 18fe89552892dc4b 65175bb211f70f26 3b6228b7d69c32bc f68e6ba7e28b251a)",
+            "assigned to box D3-g11: 16 keys (9efe002b48e1827d a7488872387d5ca7 61e748f094f2daa8 a33188790c5affad 94285425a1bc856a 69b933a6a720006b ede3dd3467ffc6e5 9dcd374ac007dfc9 d4b32336085935df 4fd094e9727818b3 e2b030e0716d126c dc6c13eca2ca1737 738102c9ed0f89af 372a4f4fcc8de86f 6f5898d327366799 b247841f5466162d)",
+            "assigned to box D3-g12: 16 keys (7ffebcb567a4242e 845155d368e8b524 3e68dcd55f9567e5 88ecd932bc81efec 4403a4c7bec83d8f 89bec0a0291b4756 b028ad9d6c702965 3b9eddc7ba9a7488 fc4fe0f49de831a8 d1197dfed14a6927 3e3fbb5fcbbe9bcc 1ba9abbe8e702464 4aac8e694ddc5dfe 5366f1e6254f603c efb33eb6212be24e 0e3569fef6b39497)",
+            "assigned to box D3-g13: 16 keys (24d9995ccee4252e 7030f8259cc37dd4 5941c09a9face079 b020c93535a7f9e6 8297234e122897ff 681130c48add1573 c61a89f42607c92b c0bd33b7c209982d 677019b333cfa304 168e4035dbc9bb84 597d6753c0939797 df4de55e12588fdf 72240d3f22ceb752 49dc3d36092b3943 111763243ac44278 af8d4fddad8f298f)",
+            "assigned to box D3-g14: 16 keys (3685cdbd27c1680f 1c0e818b4bb24fcd 0b51e1d1975513aa 0e3fc2bc64c2bf63 4813f0fd25bc8bb4 b25e80c59b31c20d 6999e2dab9790b53 cd7bc939ea82fecd de02e0a048abc451 7f026b4dd7d44269 a1576c7241b67401 8fa714bbb756e11e 8fbdb8a5c1e67d5e 94c2cc27ea61db25 defeacb89de279a1 c9404a6ea551b041)",
+            "assigned to box D3-g15: 16 keys (0e752f692873e876 3e26ea9048504c31 77d5e6c8ea98273a a1ebeff0870dfa76 f1549576a94b99be 1d455987c970dfde 7cd9b966a3bd0008 8e9a502f439ceeeb f9c1b49fde6e1d52 79ba0b9f6b3cf22d 56d2279a568e8891 31c1881164f2dcdf 7640e80a994db479 5224cce5f7a150cb c124ea447555a04a 8fb9093f7470e6aa)",
+            "assigned to box D3-g16: 16 keys (35d61c87783ebe66 01acd6cc2431d71d 8fc6a207d6600867 72882f2ac25c19b1 ea6dfc5a3c85cce3 a21e5757eab163a7 b16740061447ef70 e19cdb6bf198d1e7 41000bf52dbaa1ad 88d911d796fdd71d 3ec31b99309ca722 9b890e4f1fdfcd41 84eb14f49ff66736 7da9151a6a79c43e 88a992e9013ee436 50ae25437a296deb)",
+            "assigned to box D3-g17: 16 keys (0aa6eaace756da92 eae8cfee2ddbd16d fd9b39c806b43b56 61862d35b6b2885d 5b123e9e5b76ebc3 4f1f941124291aeb c1d6f40c74ee74ad b1a8d3056bf42597 8db7b149f5f9eda5 ddf4602569b157b1 247372989ae65baa b1074e70396100d8 539e5aeaccf156f3 6e1174561ae9297c b7a6f145165338bf 2074f3eefe8521aa)",
+            "assigned to box D3-g18: 16 keys (2580fdeb3923a03e 64576dd552491452 91617fb42e33ebdf fabfc9228615948e ef125fd473e20ed2 ff4f903a5a5c3f55 3c6e75178a60d75e d7e250feefbd0343 e11dcf62611a5d1c 936bcb2da6441e86 2aa0f17a216035ee 19ac62540d0d5ee8 3b87cd840077679e ee2d5a67d9d3a7f9 db32007740226522 9297f123a6265555)",
+            "assigned to box D3-g19: 16 keys (911f3cf5172ffc44 b5f0a73275608684 68cc141bf2c3493a 2043855ef5cf151d eee37674711fa45f 23b144fb9583c5c7 68ef00f470ecea8d be95c184bf4746ff e53563e772b70dbc aebea2e6b76b2dc3 2ae9ff3138f9364d 24ef8e54dad20484 7f048d7823b17826 4c7e296370fc452d 9644a454ac8f288b 1b3cbaddab6e496f)",
+            "assigned to box D3-g20: 16 keys (a0722b8c635d2d93 d800d2857a698d22 176e4dd6d5aec097 c40e66fc9831672f 7452dcf280ce931f aa338654e7801916 7add4cd79387ec24 72d1e72dd0acdfc1 bdb9a95deedcc8fe bf2229e3f179f4b6 19141bef62ecb4a6 47430bf93e309e76 0275af9776ae709e 9e71bd23e996ec6a 3652dbb5880d62c8 b1926550efd8eac4)",
+            "assigned to box D3-g21: 16 keys (fd57e13959b23a4c 905a40b5ecea024f ad01ae06d7ea84ec cb58757b91fa48c4 8ac9888c3d5fed52 00298af0aa9d1903 a4f4c88e7480a514 904118eef67fced3 be3a3a75280c7b7e 39a6d2e97fd44ed5 deb281264473bdd6 a66e107749d0ae11 4e5a67b907d13871 ed5e3ec5b879ed90 6309f3e4a0a6c45f 6b6eb0c1091c3c5c)",
+            "assigned to box D3-g22: 16 keys (ea0b9abd134c33cd fa67e0922f51edda ef9a378b671791ca 1897b1e8f0e09c02 c859178ad2524ff8 e658b77d3e5ca8f6 6ab21fd9f9fe4953 1d0c70b3b63230eb d600d4886444a718 6e420d1efdf4895b 7da20bf51cc217e6 1f1dc504455f17da 9fe0782a9839475e 7c2ae6b70ec6acb7 97da0984453a53bb af94ce8be7140e87)",
+            "assigned to box D3-g23: 16 keys (c6679b9b114e5732 8ef1027c9e221b64 ce686724ef107650 8fd14c249b86abf7 0120a5a672990611 0ecb763c4bcb0828 f2894b5754c254fe bc3a42f14c903439 856aa341a89a6ab0 7303435ec1ab7701 5ce83ed87c36b9a5 fe3e41de6bdc640a f25414a9d4e32d19 70791cdb98f8ddd7 7516dd3d9e66d3ef 65e0ffa75d60d319)",
+            "assigned to box D3-g24: 16 keys (1dcb273b03f63a4e c679a9939ee7b3ee 41d866cef7ea4115 fa3bb379b762e2a9 ce5b92d704397d85 dd2b698bc1d5d4b8 aab0b73e229ad900 7cb1bac951ddeb9e 9bfc2c6d1bfe66bd 56de38e47369b2b7 df066a5f3f3d3e0f bbcded8a73c6a2f1 0f03bb94bcab1682 f54d3d4c7351ac76 0270b5efaac478d2 68ee8d20663ac601)",
+            "assigned to box D3-g25: 16 keys (f3126cd40dc76143 f58c6d034aa31e46 6aec51dc6f670787 b2e075c0da35240d 57f696b2f988d5a9 b143b01c4ea02159 a581feadd69c6c42 e96ae75a1f1f213e d0de1c16101369f5 f8b7db7badd35158 cd766b55c44ca3ee 724471c27310230f 970ed4d74c36caa1 1d11f24436471959 e16ae8a6fd6cea40 119b25afdd5d4988)",
+            "assigned to box D3-g26: 16 keys (35d104f30f878131 ec173cf0e67c0689 f56e3474baa75dc5 1721e50b7537a426 2693e4fc04518cbf ee671fa6ecec9023 9a06a1a7e515fa67 977021e3b3964277 10de422e4e1024a7 e4affa9b9b540588 0fcdd4bdabc205ea 8365c2592bae9886 65b62179a34d3443 67ac7292ac5ddd19 cfda6ca73c6951f1 c2896572788698c0)",
+            "assigned to box D3-g27: 16 keys (e58e8eb0f54fe274 d128afa0c1ce3d28 0a40fc8d3d37f2ba 6af4c3b8f521e3d3 10e3ee99c90d4d48 06f2ef99e24e2e24 c1e66052b2d8090c f077d8a96cc1e3ed 04bfd79fdf465dbf 6a32950e7b3e62f2 c5abe60d7c7ca966 ef7b85a510c47950 3067ff76235329e4 0560ccd4eaedbd09 b94f040a7b0aed92 efea9d49d605beaa)",
+            "assigned to box D3-g28: 16 keys (9aa50bd32847b4dd 1e3d68358832d695 b53efc6448b724e4 92e6a72a53dd339f 64629e9b22df0c16 0a673ba4467a184c 62abf71b9686f2b8 9e9ab1d6567ff65b 01e740ed4f78ae95 26180738b4dfa52e a99da4c347a19ca5 cd7f83f0f8961444 09e80cfe3036223e 57196c29f220bbc6 8206a42b98c8dd86 e670e7e026a9f4ec)",
+            "assigned to box D3-g29: 16 keys (e196155b7525014c 9d455ff4aaf3f3e0 55022279c6d6bbda 6a75a1ff72dc1df8 133158399eac10ae 4434c1fcedef6b6d 2d4e3ff8e818b777 69e4aa41f4562af9 8171db177f51df33 2aff1f5c0b10dffa 000221f3921dd956 8ef8417029ab8385 b5d57e4a1fc22d96 f062e0cc415ee33e 0ea7620ce058c489 213a122afd9ff3e1)",
+            "assigned to box D3-g30: 16 keys (b10967dd4ea185fd 7e5493bcbddd6c18 66686e3bc3bac9b9 5bf50f5d986f927d cc96ce9e391ca6f2 b5aef00760fd5ea8 b9b6cf1d15a84248 a5c9796d35117839 13cadf1ab9a2de61 b5a482468c783209 0b10a7c76e2514d2 c4697335da324182 79c65c4903e72ee2 4e79ba6ea642d086 12cd6ddd79fb36fc cee6857510fbe69e)",
+            "assigned to box D3-g31: 16 keys (ba9f6b92f678ab10 c9f07b68ade152e6 45cd5752f930a064 e72d16a241bfa7be 3a064c11321daba7 efa02472a5a773bc 6743e8b3d654cd32 a38612ad3ad9cd34 f06caefa38815e4f 28de20de50a9540b e5eea05f4463602e 3ceb6a076659004f b434193b049a41c3 29db99dee6a5debd 886591ca08e1d27e c1e06ebefdc5abad)",
+            "assigned to box D3-g32: 16 keys (0d159d7ddd1702d9 80fd46122d85566c b539d4504385a139 55f9ec66dc8bfd54 88732fcb7c604858 176d8ddb23988b95 de399cdbe79053ea c5ddabc7d9641cba 75d5865af3eceda7 0d5a6ef5041b90f9 4f2d93e67ccda975 afbdfa240c441812 ebd8c531fddf0a24 4a189db92053760e 80cb9a8152f72e57 1f4a10ae90bbf2d9)",
+            "assigned to box D3-g33: 16 keys (822c0c6477ed703e adc459d2db521041 a23ed12204379870 6e67f128730b3ecd cf96494341270371 ad7a177d7ca99cad b61d1402aad5a055 0b6e291153f1d738 e38d4bea802156c3 20e001c48fb19330 d435f0054d7c9881 95090bc58c6535b2 505422349a01c3ff 7dbbb95252ced538 b413c17079bb8176 aa6d264aa0411bcd)",
+            "assigned to box D3-g34: 16 keys (b8d5ec03e8eba5c7 756f3bebd6a42efc 3918ca4fedbfc5bb 84372c0eb1502d14 20f72103eda78713 50daaa57683189c5 4eeb366191982f92 a9bc37e9ba781833 44bb0ce0b258242c b97b45a6162a2f00 6b6a8493668dde1c 10665a84dc064489 d7421c10ed63c281 07227ec96c3e14de 3e78e62aa0f2e687 87c3101b5663f17b)",
+            "assigned to box D3-g35: 16 keys (31bb6bebd6b45f0e 501a5e7cda702183 20cde1046cbd5681 6cfdb101dc87a6ea d203230963349f60 078e78462859ff6b 5654f855fcc27724 c303df62a0b7b9bc ed00e6c2abf2aa66 4593852cf3862b3c 64f3ef1feaaf7bc9 784e362919d88a92 d661d68f54982097 a5b06d898bf0ba03 c51115b0104a8bf5 4da9d281d4714565)",
+            "assigned to box D3-g36: 16 keys (440c0a6d5ee72d19 809e8d14f04e1127 0137ee1f014fb759 24aa39e8c4c6d26a ae8f84354933d191 9460d3802a8903d6 de6bbadf1499bae9 0baef4e86433b225 b3c0e51c511b2618 9dd0547496b091b0 8840eb67a646cd97 027e7746bfe5b7bb 85eb19919a6b995a 5104733df3085998 373207a8e12c37c5 291748b42a54c1f6)",
+            "assigned to box D3-g37: 16 keys (ba25d4dc58c7fecc 67f17d97399379c0 99866c2ffc704413 b4f7503c6959449d f6016f6adb9683a8 0c0a6bcb94a3ba3a 2b5a8949055ecd4c e3ea72b8dc57884a 6db5003950426ce8 1e9d97a860146a80 51b2c8ce3dadae0c 62a1f4d0c1be5960 845bf7a69b48b94b ab65584805229d1c 186b3076dcce442c 66e79426a66d3362)",
+            "assigned to box D3-g38: 15 keys (c1ce480d20083d83 d8e588be2e0aba89 e7edbe5bae5e180a a1ba3ad7c4c53dd5 56294c2224449394 6c7eefdfaf64ea5a a6c42cff101ffc65 b0d27be4975eb62b bf5868e583609121 6f546669421ba07b 7c25d8795fa2d46c 907d16324ff11dda 990cdd83373504ad d0f2d18b2b49232c 4467ecd198f47483)",
+            "assigned to box D3-g39: 15 keys (559484953b5cdd5d cb38833c854f6257 fa6fdd76e6fa619d 246043395831f540 de935c38786265e7 4ad3dc13bfdb70a8 7fcaf91cced5ce41 81557beca8f0a974 8611ebe645da9f19 37b3c9a03326d207 7f9297e43c9449d8 9d16dbc0d3aba164 6536ff6b094f971d 2d64a114647f1551 5371ee2b5e897750)",
+            "assigned to box D3-g40: 15 keys (5f094dbca9a593e9 7b4d6225353952ed e6bcd13be86202b8 e01cc20e67f1f720 f8eec0888776e8ff 968c552b8acd9df9 996dce5148e02763 754e4cb5fa60e129 a074fb25836c2bc6 22dd975583db1b89 134d9411b323ef8a 3e9a439baa86a074 1894e6dcd2251a30 0e94685aa803560d 64a2ed644109fda3)",
+            "assigned to box D3-g41: 15 keys (2765114b9329f57f d3ea4bcc330436ef 2d037a10caa62e28 6600497e58836413 43b54266f12bfb21 dfe094233a9164e0 e3a350a3272762f1 94ce174acf85b6f2 898d741cf6142efb 29065b9e48071934 1110101b6e52a494 d6023ebc83ac4317 a6cebb125b72f083 d97762e31739dd75 c5e678a5d1812e40)",
+            "assigned to box D3-g42: 15 keys (5a66d572bfdd1491 5b8e7044ee7974f8 7684dd370eaae807 f7e051cc469b465f 523356020b4bb37b eb094b1749a24474 402ffd06ddbd856a d90533f4d17cfa14 c3ce2c5919d2c385 011b9e2e975b5e98 9df41596c4fa89c6 029c040224dc4e38 5141eb1194306254 babeb7b3990a574b 256e285aadb8b31d)",
+            "assigned to box D3-g43: 15 keys (f2ab25c56b407ef9 d9a65b3770e6860a 97bd985754f1099b cc34cacdd80553ed 7b46514aedc0a8cf 876be7bf2f538255 a3f2b00cc4aa527e a486806b8f4ff4d7 806f3255b74936a9 f2706cbdb16a8f66 1108e8140e06404e 7068e39e4608027f 6462c28df2f973e0 daf153fda85092ff e5a0d6a548f12244)",
+            "assigned to box D3-g44: 15 keys (140cd06a7d92f278 cec9e59d96700bfd 33f34d42b3bd2d73 4984532d2907d5c3 5d07aa6af8490d01 966c9be1a17c8bea d4d032563b183133 78b7f2ebcf85c8a1 f66c6e9cf9d1f84a 9362d5efbe6808c2 36117bb3a189672b 3d4899a05eb126c3 cde383447b865539 3d468643db7d9ee4 05b5a15efaaf70de)",
+            "assigned to box D3-g45: 15 keys (b2faf84904db389e 1a9ac2bac45ef9e0 e5f8fc2488caedf5 1b476993921016f9 ea888783bb621669 b098598faf0d87dc a2a1d3802ceff60d b9bbb3ac364893f7 dd40fdb4edae4d79 19404e3632806509 beeb068352333132 ea9c4705de428b28 98853a541b6b5d6a fdf5872fd576c405 39041ccf21eedba6)",
+            "assigned to box D3-g46: 15 keys (c0800afec99d22fc e18fa878eae99111 2288dfa73cab6c1a b341873adae0cf3c c4e25319de746716 02a5c98b8f46f724 3b989943cc05b614 db984e8d4acfa08b 884d2aba2bbd5409 a087d5efb15533ce efd15cba428cdcf2 968644425a4f97f8 c9a7d4d29d08c3b4 ca6ae797caf18708 449caa49315447b2)",
+            "assigned to box D3-g47: 15 keys (d2463d81efddd380 0aa9e2e025b11284 41063896cdb5ea71 b27ac4781778a34a bed063118e10d683 721aca562f60ab2c 09412cb43997a47f 4c3cfbe1e4ad2a14 28b6107a17d9b814 5b6489f7860d73b1 1111a3e5d9c44e3f 67a0550ee998a213 75b300b2bc47485f 92c063e90dafcc35 6fa8436f09ad7e06)"
+          ],
+          "redispatched": [
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "box D3-g05 wave gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0acf3cb312a5b76e -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/0acf3cb312a5b76e.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c087dc286eeff014 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/c087dc286eeff014.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3b458790a543507e -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/3b458790a543507e.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c39bf88e7fd0066f -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/c39bf88e7fd0066f.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/218ac218da41d87d.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/bcf290164a0edeeb.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 375376c4733a1a51 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/375376c4733a1a51.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2699efc070f5d4e3 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/2699efc070f5d4e3.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cc7e5a62ec1ea4d0 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/cc7e5a62ec1ea4d0.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d05457b7adf4d691 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/d05457b7adf4d691.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/d943cc9f7670a834.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 894b4e70a336f8fa -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/894b4e70a336f8fa.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2d6701afc323e1e8 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/2d6701afc323e1e8.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8cfd8cf0d8a58c83 -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/8cfd8cf0d8a58c83.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e02e1ac8cc0b714a -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/e02e1ac8cc0b714a.json); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ba1c58ad6dabbebd -> RED-AS-NULL (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/ba1c58ad6dabbebd.json). Null control: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null -> gate_rc 1, red ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'] (dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/null.json). The wave list is the orchestrator's SURVIVORS.tsv (742 keys, $6 == gate), split over boxes D3-g01..D3-g47 by their dispatch refs' keys.tsv; the earlier D3.M3 rows (REPORT-D3-u1b.json 235 of 268, REPORT-D3-top6.json 30 of 35, REPORT-D3-rem.json) stand for their own universes and are carried, not re-counted here."
+        },
+        {
+          "step": "D3.M4",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+          "universe": 268,
+          "examined": 225,
+          "not_reached": [
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+          ],
+          "redispatched": [],
+          "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b), not re-driven on box D3-g05: m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+          "carried": true
+        },
+        {
+          "step": "D3.M5",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+          "universe": 27,
+          "examined": 23,
+          "not_reached": [
+            "assigned to box D3-m5: tests/card.mjs",
+            "assigned to box D3-m5: tests/card_drift.mjs",
+            "assigned to box D3-m5: tests/golden.py",
+            "assigned to box D3-m5: tests/stress.py"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "not_reached"
+            },
+            {
+              "item": "C7",
+              "state": "not_reached"
+            },
+            {
+              "item": "C9",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "carried verbatim from REPORT-D3-u1b.json (box D3-u1b), not re-driven on box D3-g05: carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+          "carried": true
+        }
+      ],
+      "unfinished": [],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "coordinator.py:9849 GUARD_OFF (if state is None: -> if False:) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent: with the guard off, getattr(None, 'attributes', None) or {} and getattr(None, 'state', None) return exactly the guard's (None, {}); no input separates the arms (moved_inputs=0).",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py",
+          "value": "baseline (None, {}) for an absent entity; mutant (None, {}); inputs tried: sensor.absent; sensor.present (state 'on', attrs); attribute-less state object; ''; None"
+        },
+        {
+          "claim": "coordinator.py:5248 GUARD_OFF (if not self._external_heat.suppressing: -> if False:) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent: free_heat_kw is zeroed by _update_displacement whenever the detector is neither active nor fading (external_heat.py:355-357) and by _reset, so with suppressing False forecast_free_heat returns all zeros and line 5259 returns None in both arms (moved_states=0); the positive arm (suppressing, displacement 0.5) sums 11.25 kW in both.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.py",
+          "value": "baseline None in 4 non-suppressing states; mutant None in the same 4; inputs tried: fresh detector; fire on, then off for 5 h (decay over); fire on, then detection disabled (_reset); override off"
+        },
+        {
+          "claim": "coordinator.py:5259 CMP_BOUND (return arr if bool(np.any(arr > 0.0)) else None -> return arr if bool(np.any(arr >= 0.0)) else None) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Reachable but equivalent at the output: the probe executes line 5259 through production states (the user's override flag on with free heat 0), and the symbol's return moves None -> an all-zero array of 96 (moved_at_symbol=2), but its only reader, optimizer._horizon_weather (optimizer.py:3046-3050), maps an all-zero series to None, so the solve sees identical input (moved_at_solve_input=0). The line is reachable, not dead; no traced baseline executes it.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.py",
+          "value": "baseline None (symbol); None (solve input); mutant zeros[96] (symbol); None (solve input); inputs tried: override on, no wood/outlet probes (displacement 0); override on, wood tank below the pump tank + margin"
+        },
+        {
+          "claim": "coordinator.py:5182 GUARD_OFF (if not reading.ok or reading.text is None: -> if False:) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent: line 5182 is reached only when read() classed a present, valued state 'not_numeric', and read_state with UNBOUNDED on the same state then has no age limit and no 'valid' filter, so reading.ok is True and text is set; parse_bool returns what the baseline would (moved_inputs=0 of 10).",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.py",
+          "value": "baseline per-state override identical; mutant identical; inputs tried: 'on'; 'off'; 'burning?'; ''; '  '; 'on' 14 days old; 'on' stamped 2 h in the future; '400' with an unknown unit; unavailable; not configured"
+        },
+        {
+          "claim": "coordinator.py:10188 GUARD_OFF (if not trajectory: -> if False:) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent on reachable inputs: with the guard off an empty list loops with 0 < idx < 0 false and files nothing; only None separates (TypeError), and OptimizationResult's one constructor (optimizer.py:3899) always delivers a list ([] or tolist()).",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py",
+          "value": "baseline 0 leads for [] and [x]; 5 for the solved 97; mutant identical; None raises TypeError; inputs tried: []; None; [50.0]; the solved 97-point list"
+        },
+        {
+          "claim": "coordinator.py:10192 CMP_BOUND (if 0 < idx < len(trajectory): -> if 0 <= idx < len(trajectory):) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent in production: dt_h = max(time_step_minutes, 1)/60 with time_step_minutes a fixed 15 (OptimizationConfig default, never assigned), so the smallest lead (1 h) rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 3 h step separates (4 -> 5 leads).",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.py",
+          "value": "baseline DHW leads identical over lengths 0..200 at dt_h 0.25; mutant identical; off-grid dt 3 h: 4 -> 5; inputs tried: trajectory lengths 0..200 at the production dt_h 0.25; off-grid control dt_h 3.0"
+        },
+        {
+          "claim": "coordinator.py:10192 CMP_BOUND (if 0 < idx < len(trajectory): -> if 0 < idx <= len(trajectory):) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent in production: the mutant only differs (IndexError) when len(trajectory) equals a lead index [4, 12, 24, 48, 96]; every solve's trajectory is n_steps + 1 = 97 because _forecast_arrays pads every series to n_steps = 96 and extend_price_series fills the price horizon, so no reachable length separates.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py",
+          "value": "baseline 5 leads at the solved length 97; mutant 5 leads; IndexError only at lengths 4/12/24/48/96; inputs tried: trajectory lengths 0..200 at dt_h 0.25; the solved length 97"
+        },
+        {
+          "claim": "coordinator.py:10223 GUARD_OFF (if not trajectory: -> if False:) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent at the output: with the guard off an empty trajectory reaches note_promise (calls 0 -> 1), but plan_promise returns None for len(room)-1 < 1 (accuracy.py:554-556), so no promise is kept and no lead is filed (moved_kept_records=0); the solved trajectory keeps 1 promise and 5 leads in both arms.",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py",
+          "value": "baseline empty room trajectory: 0 leads, 0 promises kept; mutant note_promise called once, still 0 promises kept; inputs tried: []; [21.0]; the solved 97-point list at PROMISE_HOUR"
+        },
+        {
+          "claim": "coordinator.py:10231 CMP_BOUND (if 0 < idx < len(trajectory): -> if 0 <= idx < len(trajectory):) survives the full gate (RED-AS-NULL) but is an equivalent-candidate: Equivalent in production: time_step_minutes is a fixed 15, so the 1 h lead rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 180-min step separates (4 -> 5 leads).",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py",
+          "value": "baseline room leads identical over lengths 0..200 at dt_h 0.25; mutant identical; off-grid 180-min step: 4 -> 5; inputs tried: trajectory lengths 0..200 at the production dt_h 0.25; off-grid time_step_minutes 180"
+        },
+        {
+          "claim": "Box D3-g05 null control (comment-only marker in tariff.py): gate_rc 1, red scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'], fail counts {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 3}; a mutant is KILLED only by a script beyond these or more FAIL lines in one",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+          "value": "gate_rc=1 wall 3747.6 s (provisional)"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D3/s1/fullgate.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py"
+      ],
+      "leads": [],
+      "gated": [
+        {
+          "key": "0acf3cb312a5b76e",
+          "site": "coordinator.py:9849 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "c087dc286eeff014",
+          "site": "coordinator.py:5083 CLAMP_DROP",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "3b458790a543507e",
+          "site": "coordinator.py:5248 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "c39bf88e7fd0066f",
+          "site": "coordinator.py:5259 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "218ac218da41d87d",
+          "site": "coordinator.py:5156 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "bcf290164a0edeeb",
+          "site": "coordinator.py:5157 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "375376c4733a1a51",
+          "site": "coordinator.py:5174 RETURN_DEL",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "2699efc070f5d4e3",
+          "site": "coordinator.py:5176 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "cc7e5a62ec1ea4d0",
+          "site": "coordinator.py:5182 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "d05457b7adf4d691",
+          "site": "coordinator.py:7056 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "d943cc9f7670a834",
+          "site": "coordinator.py:7069 BOOLOP",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "894b4e70a336f8fa",
+          "site": "coordinator.py:10188 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "2d6701afc323e1e8",
+          "site": "coordinator.py:10192 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "8cfd8cf0d8a58c83",
+          "site": "coordinator.py:10192 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "e02e1ac8cc0b714a",
+          "site": "coordinator.py:10223 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "ba1c58ad6dabbebd",
+          "site": "coordinator.py:10231 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        }
+      ],
+      "gate_survivors": [
+        {
+          "key": "c087dc286eeff014",
+          "site": "coordinator.py:5083 CLAMP_DROP",
+          "patch": "max_sample_hours=max(1.0, 1.5 * interval_hours), -> max_sample_hours=(1.0),",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_config",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_config@5083-5083",
+          "slice": "u1c",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3528.9,
+            "child_cpu_s": 5933.2,
+            "load1_start": 0.86,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/c087dc286eeff014.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c087dc286eeff014",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.out",
+            "baseline_value": "max_sample_hours 2.25 h, detector suppressing True at a 90-min interval",
+            "mutant_value": "1.0 h, suppressing False",
+            "inputs_tried": [
+              "optimization_interval 10..120 step 5 (23 values)",
+              "detector at 30, 60, 61, 90, 120 min"
+            ]
+          },
+          "m4_answer": "Moves: at optimization_interval 61/90/120 min max_sample_hours drops 1.525/2.25/3.0 -> 1.0 and the external-heat detector, fed a DHW tank rising 4 C/h with the compressor off once per interval, never turns on (suppressing True -> False); 16 of the config flow's 23 interval settings change the window.",
+          "should_fail": "tests/features.py (traced at line 5083; also block_duty, boost_drift_replay, config_flow_steps, doc_claims, entities, finite_boundary, manual_plan, solar_alignment): no check builds _external_heat_config at an interval above 40 min and asserts max_sample_hours = 1.5 * interval, nor drives the detector at a >60-min sampling interval",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check pins _external_heat_config's sample window above a 40-min interval; the 1 h clamp is unseen",
+            "severity_claimed": "medium",
+            "severity": "medium",
+            "claim": "Mutant c087dc286eeff014 (coordinator.py:5083, max(1.0, 1.5*interval_h) -> 1.0) survives the full gate, yet at a 90-min optimization interval the window falls 2.25 h -> 1.0 h and the external-heat detector stays off on a 4 C/h rise (suppressing True -> False).",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py (traced at line 5083; also block_duty, boost_drift_replay, config_flow_steps, doc_claims, entities, finite_boundary, manual_plan, solar_alignment): no check builds _external_heat_config at an interval above 40 min and asserts max_sample_hours = 1.5 * interval, nor drives the detector at a >60-min sampling interval.",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_config",
+            "metric_definition": "ExternalHeatDetector.suppressing after 4 interval-spaced samples of a 4 C/h DHW rise, compressor off, at optimization_interval 90 min",
+            "perturbation": {
+              "change": "the mutant edit 'max_sample_hours=max(1.0, 1.5 * interval_hours),' -> 'max_sample_hours=(1.0),' at custom_components/heatpump_optimizer/coordinator.py:5083, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c087dc286eeff014",
+              "expected_direction": "down",
+              "observed_value": "suppressing False (max_sample_hours 1.0)"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+              "value": "unchanged",
+              "note": "interval 30 min (default) and 60 min: max_sample_hours 1.0 and suppressing True in both arms"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+            "phenomenon_property": "The detector's max_sample_hours is max(1.0, 1.5 * optimization_interval/60), so samples one interval apart are accepted at every interval the config flow offers (10-120 min)",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: a check at optimization_interval 90 asserting max_sample_hours 2.25 and that the detector activates on interval-spaced samples",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+              "value": "suppressing False (max_sample_hours 1.0)",
+              "unit": "ExternalHeatDetector.suppressing after 4 interval-spaced samples of a 4 C/h DHW rise, compressor off, at optimization_interval 90 min",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c087dc286eeff014.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c087dc286eeff014"
+            ]
+          }
+        },
+        {
+          "key": "218ac218da41d87d",
+          "site": "coordinator.py:5156 CMP_BOUND",
+          "patch": "return probe.value > 30.0 -> return probe.value >= 30.0",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+          "slice": "u1a",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3532.2,
+            "child_cpu_s": 5856.3,
+            "load1_start": 0.93,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/218ac218da41d87d.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.out",
+            "baseline_value": "override False at 30.0 C",
+            "mutant_value": "override True at 30.0 C",
+            "inputs_tried": [
+              "29.9 C",
+              "30.0 C",
+              "30.1 C",
+              "400 C"
+            ]
+          },
+          "m4_answer": "Moves at the boundary only: a fresh flue probe reading exactly 30.0 C gives override False on the baseline and True under the mutant (moved_inputs=1); 29.9, 30.1 and 400 C are unchanged.",
+          "should_fail": "tests/features.py ('a flue probe still uses its own threshold, not the shared numeric rule', features.py:3366) checks 45 and 20 C only; no case at the 30.0 C boundary",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check pins the flue-probe threshold at exactly 30.0 C; > -> >= in the override is unseen",
+            "severity_claimed": "low",
+            "severity": "low",
+            "claim": "Mutant 218ac218da41d87d (coordinator.py:5156, probe.value > 30.0 -> >= 30.0) survives the full gate, yet a fresh flue probe at exactly 30.0 C flips the external-heat override False -> True.",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('a flue probe still uses its own threshold, not the shared numeric rule', features.py:3366) checks 45 and 20 C only; no case at the 30.0 C boundary.",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_override",
+            "metric_definition": "_external_heat_override's return for a fresh numeric flue probe reading 30.0 C",
+            "perturbation": {
+              "change": "the mutant edit 'return probe.value > 30.0' -> 'return probe.value >= 30.0' at custom_components/heatpump_optimizer/coordinator.py:5156, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d",
+              "expected_direction": "up",
+              "observed_value": "True"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+              "value": "unchanged",
+              "note": "29.9, 30.1 and 400 C: identical in both arms"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+            "phenomenon_property": "A numeric flue probe suppresses heating only strictly above 30.0 C",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: add a 30.0 C case to the flue-threshold check",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+              "value": "True",
+              "unit": "_external_heat_override's return for a fresh numeric flue probe reading 30.0 C",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_218ac218da41d87d.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 218ac218da41d87d"
+            ]
+          }
+        },
+        {
+          "key": "bcf290164a0edeeb",
+          "site": "coordinator.py:5157 GUARD_OFF",
+          "patch": "if probe.stale: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+          "slice": "u1c",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3613.5,
+            "child_cpu_s": 6113.2,
+            "load1_start": 0.78,
+            "load1_end": 1.0,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/bcf290164a0edeeb.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.out",
+            "baseline_value": "1 warning over 4 stale cycles, value None",
+            "mutant_value": "0 warnings, value None",
+            "inputs_tried": [
+              "stale flue probe (120 min old, limit 60) over 4 cycles",
+              "untimestamped fresh probe (null)"
+            ]
+          },
+          "m4_answer": "Moves in the log only: with the stale branch skipped, a stale flue probe still returns None (problem 'stale' != 'not_numeric' returns at line 5178) but the once-per-outage warning is never logged (1 -> 0 over 4 cycles).",
+          "should_fail": "tests/features.py ('a flue PROBE that stopped reporting stops suppressing (v5.3.0)', features.py:3319) asserts the None value only; nothing asserts the stale warning is logged once",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check asserts the stale flue-probe warning is logged; disabling the stale branch is unseen",
+            "severity_claimed": "low",
+            "severity": "low",
+            "claim": "Mutant bcf290164a0edeeb (coordinator.py:5157, if probe.stale -> if False) survives the full gate, yet the 'External heat override ... has not reported' warning disappears: 1 -> 0 warnings over 4 stale cycles.",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('a flue PROBE that stopped reporting stops suppressing (v5.3.0)', features.py:3319) asserts the None value only; nothing asserts the stale warning is logged once.",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_override",
+            "metric_definition": "_LOGGER.warning calls from _external_heat_override over 4 cycles of a flue probe 120 min stale (limit 60)",
+            "perturbation": {
+              "change": "the mutant edit 'if probe.stale:' -> 'if False:' at custom_components/heatpump_optimizer/coordinator.py:5157, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb",
+              "expected_direction": "to_zero",
+              "observed_value": 0
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+              "value": "unchanged",
+              "note": "an untimestamped (fresh) probe: (True, 0 warnings) in both arms"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+            "phenomenon_property": "A flue probe that stops reporting is warned about exactly once per outage, and ignored",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: assert one warning across consecutive stale cycles",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+              "value": 0,
+              "unit": "_LOGGER.warning calls from _external_heat_override over 4 cycles of a flue probe 120 min stale (limit 60)",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_bcf290164a0edeeb.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key bcf290164a0edeeb"
+            ]
+          }
+        },
+        {
+          "key": "375376c4733a1a51",
+          "site": "coordinator.py:5174 RETURN_DEL",
+          "patch": "return None -> pass",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+          "slice": "u1a",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3356.2,
+            "child_cpu_s": 5454.1,
+            "load1_start": 0.61,
+            "load1_end": 0.94,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/375376c4733a1a51.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 375376c4733a1a51",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.out",
+            "baseline_value": "1 warning over 4 stale cycles, value None",
+            "mutant_value": "4 warnings, value None",
+            "inputs_tried": [
+              "stale flue probe (120 min old, limit 60) over 4 cycles",
+              "untimestamped fresh probe (null)"
+            ]
+          },
+          "m4_answer": "Moves in the log: deleting the stale branch's return lets execution reach line 5175, which re-arms the latch every cycle, so a stale probe logs its warning every cycle (1 -> 4 over 4 cycles); the value stays None (line 5178 returns).",
+          "should_fail": "tests/features.py (features.py:3319 stale-probe check; traced at line 5174 only by features.py) asserts the None value but not the once-per-outage latch (_external_probe_stale_warned)",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check pins the stale flue-probe warning to once per outage; the return deletion floods the log",
+            "severity_claimed": "low",
+            "severity": "low",
+            "claim": "Mutant 375376c4733a1a51 (coordinator.py:5174, return None -> pass) survives the full gate, yet a stale flue probe logs its warning every cycle: 1 -> 4 warnings over 4 cycles.",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py (features.py:3319 stale-probe check; traced at line 5174 only by features.py) asserts the None value but not the once-per-outage latch (_external_probe_stale_warned).",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_override",
+            "metric_definition": "_LOGGER.warning calls from _external_heat_override over 4 cycles of a flue probe 120 min stale (limit 60)",
+            "perturbation": {
+              "change": "the mutant edit 'return None' -> 'pass' at custom_components/heatpump_optimizer/coordinator.py:5174, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 375376c4733a1a51",
+              "expected_direction": "up",
+              "observed_value": 4
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+              "value": "unchanged",
+              "note": "an untimestamped (fresh) probe: (True, 0 warnings) in both arms"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+            "phenomenon_property": "A flue probe that stops reporting is warned about exactly once per outage (re-armed only when it reports again)",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: assert exactly one warning across consecutive stale cycles",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+              "value": 4,
+              "unit": "_LOGGER.warning calls from _external_heat_override over 4 cycles of a flue probe 120 min stale (limit 60)",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_375376c4733a1a51.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 375376c4733a1a51"
+            ]
+          }
+        },
+        {
+          "key": "2699efc070f5d4e3",
+          "site": "coordinator.py:5176 GUARD_OFF",
+          "patch": "if probe.problem != \"not_numeric\": -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+          "slice": "u1a",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3316.8,
+            "child_cpu_s": 5540.5,
+            "load1_start": 0.95,
+            "load1_end": 1.0,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/2699efc070f5d4e3.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2699efc070f5d4e3",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.out",
+            "baseline_value": "override None for a -127 C or 1500 C flue reading",
+            "mutant_value": "override True",
+            "inputs_tried": [
+              "not configured",
+              "missing entity",
+              "unavailable",
+              "unknown",
+              "-127 C",
+              "1500 C",
+              "word 'on'",
+              "20 C"
+            ]
+          },
+          "m4_answer": "Moves: a flue probe reporting a value outside FLUE_RANGE_C (-70..1000 C), e.g. a DS18B20's -127 C lost-bus code, is classed 'implausible' by read(); the baseline returns None, the mutant re-reads it as text and parse_bool's non-zero rule calls it a fire: override None -> True (moved_inputs=2). Unconfigured, missing, unavailable and unknown stay None.",
+          "should_fail": "tests/features.py ('an unavailable or unconfigured override is simply absent', features.py:3390) covers unavailable and None only; no case feeds an implausible numeric flue reading",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check feeds the override an implausible flue reading; dropping the not_numeric guard reads -127 C as a fire",
+            "severity_claimed": "medium",
+            "severity": "medium",
+            "claim": "Mutant 2699efc070f5d4e3 (coordinator.py:5176, if probe.problem != 'not_numeric' -> if False) survives the full gate, yet a flue probe at -127 C (outside FLUE_RANGE_C) turns the override None -> True, suppressing heating on a sensor fault.",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('an unavailable or unconfigured override is simply absent', features.py:3390) covers unavailable and None only; no case feeds an implausible numeric flue reading.",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._external_heat_override",
+            "metric_definition": "_external_heat_override's return for a fresh flue probe reading -127 C",
+            "perturbation": {
+              "change": "the mutant edit 'if probe.problem != \"not_numeric\":' -> 'if False:' at custom_components/heatpump_optimizer/coordinator.py:5176, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2699efc070f5d4e3",
+              "expected_direction": "up",
+              "observed_value": "True"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+              "value": "unchanged",
+              "note": "not_configured, missing, unavailable, unknown: None in both arms; 'on' True and 20 C False in both"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+            "phenomenon_property": "An external-heat entity whose numeric read fails for any reason but not_numeric (implausible, unavailable, missing, unconfigured) gives no override",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: add -127 C and 1500 C flue readings to the absent-override check, asserting None",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+              "value": "True",
+              "unit": "_external_heat_override's return for a fresh flue probe reading -127 C",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2699efc070f5d4e3"
+            ]
+          }
+        },
+        {
+          "key": "d05457b7adf4d691",
+          "site": "coordinator.py:7056 GUARD_OFF",
+          "patch": "if not weather_entity: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast@7056-7069",
+          "slice": "u1d",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3361.7,
+            "child_cpu_s": 5581.2,
+            "load1_start": 0.78,
+            "load1_end": 1.07,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/d05457b7adf4d691.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d05457b7adf4d691",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.out",
+            "baseline_value": "0 service calls; warning 'No weather entity configured'",
+            "mutant_value": "1 weather.get_forecasts call with entity_id None; warning 'No forecast data returned for None'",
+            "inputs_tried": [
+              "weather_entity ''",
+              "weather_entity None",
+              "'' with a get_forecasts handler registered",
+              "configured entity (null)"
+            ]
+          },
+          "m4_answer": "Moves: with no weather entity configured the mutant calls weather.get_forecasts with entity_id None (calls 0 -> 1) and logs 'No forecast data returned for None' instead of 'No weather entity configured'; the outage latch counts once in both.",
+          "should_fail": "tests/features.py / tests/entities.py / tests/manual_plan.py (traced at line 7056) always configure weather_entity; no check fetches with it unset and asserts no service call",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check fetches the weather forecast with no weather entity; the guard's removal calls the service with None",
+            "severity_claimed": "low",
+            "severity": "low",
+            "claim": "Mutant d05457b7adf4d691 (coordinator.py:7056, if not weather_entity -> if False) survives the full gate, yet an unset weather entity makes _fetch_weather_forecast call weather.get_forecasts with entity_id None (0 -> 1 calls) and log the wrong reason.",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py / tests/entities.py / tests/manual_plan.py (traced at line 7056) always configure weather_entity; no check fetches with it unset and asserts no service call.",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+            "metric_definition": "weather.get_forecasts calls made by one _fetch_weather_forecast with weather_entity unset",
+            "perturbation": {
+              "change": "the mutant edit 'if not weather_entity:' -> 'if False:' at custom_components/heatpump_optimizer/coordinator.py:7056, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d05457b7adf4d691",
+              "expected_direction": "up",
+              "observed_value": 1
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+              "value": "unchanged",
+              "note": "a configured entity returning an empty forecast: identical in both arms"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+            "phenomenon_property": "With no weather entity configured, the fetch makes no service call and latches 'No weather entity configured'",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: fetch with weather_entity unset, assert no service call and the reason",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+              "value": 1,
+              "unit": "weather.get_forecasts calls made by one _fetch_weather_forecast with weather_entity unset",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d05457b7adf4d691.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d05457b7adf4d691"
+            ]
+          }
+        },
+        {
+          "key": "d943cc9f7670a834",
+          "site": "coordinator.py:7069 BOOLOP",
+          "patch": "if result and weather_entity in result: -> if result or weather_entity in result:",
+          "function": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast@7056-7069",
+          "slice": "u1d",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3352.8,
+            "child_cpu_s": 5598.7,
+            "load1_start": 0.77,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/d943cc9f7670a834.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.out",
+            "baseline_value": "0 held rows, else branch ('No forecast data returned')",
+            "mutant_value": "48 fabricated rows (except branch)",
+            "inputs_tried": [
+              "response holding only another entity",
+              "response None",
+              "response {}",
+              "forecast already held (null)"
+            ]
+          },
+          "m4_answer": "Moves: when the response lacks the configured entity (or is None) and no forecast is held, the mutant raises KeyError/TypeError inside the try, so the except branch fabricates the flat 48 h trajectory from the entity's current state (held rows 0 -> 48); the baseline takes the else branch and holds nothing (moved_held_rows=2).",
+          "should_fail": "tests/features.py ('a failed weather fetch latches the outage and marks the forecast stale', features.py:41558) returns None with no weather-entity state, so the except branch has nothing to fabricate from; it lacks an assertion that a no-data reply with a live entity holds no fabricated forecast",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "finding": {
+            "scope": "D3-s1",
+            "step": "D3.M3",
+            "title": "No check sends a forecast reply lacking the entity with a live weather state; and->or fabricates a flat forecast",
+            "severity_claimed": "medium",
+            "severity": "medium",
+            "claim": "Mutant d943cc9f7670a834 (coordinator.py:7069, result and entity in result -> or) survives the full gate, yet a get_forecasts reply without the configured entity, with no forecast held, yields a fabricated 48-row flat forecast (0 -> 48 rows) instead of none.",
+            "mechanism": "Full gate RED-AS-NULL (gate_rc 1). D3.M4: tests/features.py ('a failed weather fetch latches the outage and marks the forecast stale', features.py:41558) returns None with no weather-entity state, so the except branch has nothing to fabricate from; it lacks an assertion that a no-data reply with a live entity holds no fabricated forecast.",
+            "class_guess": "I1",
+            "stop_rule_class": "hygiene",
+            "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+            "metric_definition": "rows in _weather_forecast after one fetch whose reply lacks the configured entity, nothing held, weather entity state live",
+            "perturbation": {
+              "change": "the mutant edit 'if result and weather_entity in result:' -> 'if result or weather_entity in result:' at custom_components/heatpump_optimizer/coordinator.py:7069, in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834",
+              "expected_direction": "up",
+              "observed_value": 48
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+              "value": "unchanged",
+              "note": "reply {} and a held forecast: rows identical in both arms"
+            },
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+            "phenomenon_property": "A get_forecasts reply that carries no data for the configured entity is a failed fetch through the else branch, never an exception that fabricates a forecast",
+            "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+            "files": [
+              "custom_components/heatpump_optimizer/coordinator.py",
+              "tests/features.py"
+            ],
+            "proposed_fix_scope": "tests only: the M2 weather check with a live entity state and a reply lacking the entity, asserting no forecast rows",
+            "evidence": {
+              "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+              "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+              "value": 48,
+              "unit": "rows in _weather_forecast after one fetch whose reply lacks the configured entity, nothing held, weather entity state live",
+              "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+              "machine": "box D3-g05: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+              "cpu_or_wall": "n/a",
+              "tolerance": "exact",
+              "thread_factor": 1.0,
+              "contention_note": "deterministic value; run in a separate baseline worktree while this box's gates ran"
+            },
+            "reproduction_steps": [
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_d943cc9f7670a834.py",
+              "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d943cc9f7670a834"
+            ]
+          }
+        }
+      ],
+      "equivalent_candidates": [
+        {
+          "key": "0acf3cb312a5b76e",
+          "site": "coordinator.py:9849 GUARD_OFF",
+          "patch": "if state is None: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._entity_state",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._entity_state@9846-9849",
+          "slice": "u1a",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3588.3,
+            "child_cpu_s": 5958.7,
+            "load1_start": 0.94,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/0acf3cb312a5b76e.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0acf3cb312a5b76e",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_0acf3cb312a5b76e.out",
+            "baseline_value": "(None, {}) for an absent entity",
+            "mutant_value": "(None, {})",
+            "inputs_tried": [
+              "sensor.absent",
+              "sensor.present (state 'on', attrs)",
+              "attribute-less state object",
+              "''",
+              "None"
+            ]
+          },
+          "m4_answer": "Equivalent: with the guard off, getattr(None, 'attributes', None) or {} and getattr(None, 'state', None) return exactly the guard's (None, {}); no input separates the arms (moved_inputs=0).",
+          "should_fail": "none: no assertion can separate the arms; traced by tests/config_flow_steps.py and tests/features.py",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent: with the guard off, getattr(None, 'attributes', None) or {} and getattr(None, 'state', None) return exactly the guard's (None, {}); no input separates the arms (moved_inputs=0)."
+        },
+        {
+          "key": "3b458790a543507e",
+          "site": "coordinator.py:5248 GUARD_OFF",
+          "patch": "if not self._external_heat.suppressing: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_forecast",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast@5248-5259",
+          "slice": "u1a",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3605.6,
+            "child_cpu_s": 6063.9,
+            "load1_start": 0.86,
+            "load1_end": 0.85,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/3b458790a543507e.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3b458790a543507e",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_3b458790a543507e.out",
+            "baseline_value": "None in 4 non-suppressing states",
+            "mutant_value": "None in the same 4",
+            "inputs_tried": [
+              "fresh detector",
+              "fire on, then off for 5 h (decay over)",
+              "fire on, then detection disabled (_reset)",
+              "override off"
+            ]
+          },
+          "m4_answer": "Equivalent: free_heat_kw is zeroed by _update_displacement whenever the detector is neither active nor fading (external_heat.py:355-357) and by _reset, so with suppressing False forecast_free_heat returns all zeros and line 5259 returns None in both arms (moved_states=0); the positive arm (suppressing, displacement 0.5) sums 11.25 kW in both.",
+          "should_fail": "none: no detector state separates the arms; traced by tests/config_flow_steps.py, tests/entities.py, tests/features.py",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent: free_heat_kw is zeroed by _update_displacement whenever the detector is neither active nor fading (external_heat.py:355-357) and by _reset, so with suppressing False forecast_free_heat returns all zeros and line 5259 returns None in both arms (moved_states=0); the positive arm (suppressing, displacement 0.5) sums 11.25 kW in both."
+        },
+        {
+          "key": "c39bf88e7fd0066f",
+          "site": "coordinator.py:5259 CMP_BOUND",
+          "patch": "return arr if bool(np.any(arr > 0.0)) else None -> return arr if bool(np.any(arr >= 0.0)) else None",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_forecast",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast@5248-5259",
+          "slice": "u1d",
+          "fullnet": "SURVIVED",
+          "reach": "not-hit-unproven",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3490.6,
+            "child_cpu_s": 5804.7,
+            "load1_start": 0.88,
+            "load1_end": 1.0,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/c39bf88e7fd0066f.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c39bf88e7fd0066f",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_c39bf88e7fd0066f.out",
+            "baseline_value": "None (symbol); None (solve input)",
+            "mutant_value": "zeros[96] (symbol); None (solve input)",
+            "inputs_tried": [
+              "override on, no wood/outlet probes (displacement 0)",
+              "override on, wood tank below the pump tank + margin"
+            ]
+          },
+          "m4_answer": "Reachable but equivalent at the output: the probe executes line 5259 through production states (the user's override flag on with free heat 0), and the symbol's return moves None -> an all-zero array of 96 (moved_at_symbol=2), but its only reader, optimizer._horizon_weather (optimizer.py:3046-3050), maps an all-zero series to None, so the solve sees identical input (moved_at_solve_input=0). The line is reachable, not dead; no traced baseline executes it.",
+          "should_fail": "none at the observable output; a direct unit check on _external_heat_forecast's return (None for an all-zero forecast) would separate the arms, but no consumer behaviour depends on it",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Reachable but equivalent at the output: the probe executes line 5259 through production states (the user's override flag on with free heat 0), and the symbol's return moves None -> an all-zero array of 96 (moved_at_symbol=2), but its only reader, optimizer._horizon_weather (optimizer.py:3046-3050), maps an all-zero series to None, so the solve sees identical input (moved_at_solve_input=0). The line is reachable, not dead; no traced baseline executes it."
+        },
+        {
+          "key": "cc7e5a62ec1ea4d0",
+          "site": "coordinator.py:5182 GUARD_OFF",
+          "patch": "if not reading.ok or reading.text is None: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._external_heat_override",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._external_heat_override@5156-5182",
+          "slice": "u1d",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3325.4,
+            "child_cpu_s": 5550.6,
+            "load1_start": 0.85,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/cc7e5a62ec1ea4d0.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cc7e5a62ec1ea4d0",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_cc7e5a62ec1ea4d0.out",
+            "baseline_value": "per-state override identical",
+            "mutant_value": "identical",
+            "inputs_tried": [
+              "'on'",
+              "'off'",
+              "'burning?'",
+              "''",
+              "'  '",
+              "'on' 14 days old",
+              "'on' stamped 2 h in the future",
+              "'400' with an unknown unit",
+              "unavailable",
+              "not configured"
+            ]
+          },
+          "m4_answer": "Equivalent: line 5182 is reached only when read() classed a present, valued state 'not_numeric', and read_state with UNBOUNDED on the same state then has no age limit and no 'valid' filter, so reading.ok is True and text is set; parse_bool returns what the baseline would (moved_inputs=0 of 10).",
+          "should_fail": "none: no state reaching the line separates the arms; traced by tests/features.py only",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent: line 5182 is reached only when read() classed a present, valued state 'not_numeric', and read_state with UNBOUNDED on the same state then has no age limit and no 'valid' filter, so reading.ok is True and text is set; parse_bool returns what the baseline would (moved_inputs=0 of 10)."
+        },
+        {
+          "key": "894b4e70a336f8fa",
+          "site": "coordinator.py:10188 GUARD_OFF",
+          "patch": "if not trajectory: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._file_dhw_lead_predictions",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_dhw_lead_predictions@10188-10192",
+          "slice": "u1c",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3462.1,
+            "child_cpu_s": 5752.6,
+            "load1_start": 0.85,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/894b4e70a336f8fa.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 894b4e70a336f8fa",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_894b4e70a336f8fa.out",
+            "baseline_value": "0 leads for [] and [x]; 5 for the solved 97",
+            "mutant_value": "identical; None raises TypeError",
+            "inputs_tried": [
+              "[]",
+              "None",
+              "[50.0]",
+              "the solved 97-point list"
+            ]
+          },
+          "m4_answer": "Equivalent on reachable inputs: with the guard off an empty list loops with 0 < idx < 0 false and files nothing; only None separates (TypeError), and OptimizationResult's one constructor (optimizer.py:3899) always delivers a list ([] or tolist()).",
+          "should_fail": "none: no reachable input separates the arms; traced by config_flow_steps, entities, features",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent on reachable inputs: with the guard off an empty list loops with 0 < idx < 0 false and files nothing; only None separates (TypeError), and OptimizationResult's one constructor (optimizer.py:3899) always delivers a list ([] or tolist())."
+        },
+        {
+          "key": "2d6701afc323e1e8",
+          "site": "coordinator.py:10192 CMP_BOUND",
+          "patch": "if 0 < idx < len(trajectory): -> if 0 <= idx < len(trajectory):",
+          "function": "HeatPumpOptimizerCoordinator._file_dhw_lead_predictions",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_dhw_lead_predictions@10188-10192",
+          "slice": "u1a",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3550.9,
+            "child_cpu_s": 5942.5,
+            "load1_start": 0.79,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/2d6701afc323e1e8.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2d6701afc323e1e8",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2d6701afc323e1e8.out",
+            "baseline_value": "DHW leads identical over lengths 0..200 at dt_h 0.25",
+            "mutant_value": "identical; off-grid dt 3 h: 4 -> 5",
+            "inputs_tried": [
+              "trajectory lengths 0..200 at the production dt_h 0.25",
+              "off-grid control dt_h 3.0"
+            ]
+          },
+          "m4_answer": "Equivalent in production: dt_h = max(time_step_minutes, 1)/60 with time_step_minutes a fixed 15 (OptimizationConfig default, never assigned), so the smallest lead (1 h) rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 3 h step separates (4 -> 5 leads).",
+          "should_fail": "none reachable: the distinction needs a step over 2 h, which no configuration produces",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent in production: dt_h = max(time_step_minutes, 1)/60 with time_step_minutes a fixed 15 (OptimizationConfig default, never assigned), so the smallest lead (1 h) rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 3 h step separates (4 -> 5 leads)."
+        },
+        {
+          "key": "8cfd8cf0d8a58c83",
+          "site": "coordinator.py:10192 CMP_BOUND",
+          "patch": "if 0 < idx < len(trajectory): -> if 0 < idx <= len(trajectory):",
+          "function": "HeatPumpOptimizerCoordinator._file_dhw_lead_predictions",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_dhw_lead_predictions@10188-10192",
+          "slice": "u1c",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3682.7,
+            "child_cpu_s": 6148.9,
+            "load1_start": 0.92,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/8cfd8cf0d8a58c83.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8cfd8cf0d8a58c83",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_8cfd8cf0d8a58c83.out",
+            "baseline_value": "5 leads at the solved length 97",
+            "mutant_value": "5 leads; IndexError only at lengths 4/12/24/48/96",
+            "inputs_tried": [
+              "trajectory lengths 0..200 at dt_h 0.25",
+              "the solved length 97"
+            ]
+          },
+          "m4_answer": "Equivalent in production: the mutant only differs (IndexError) when len(trajectory) equals a lead index [4, 12, 24, 48, 96]; every solve's trajectory is n_steps + 1 = 97 because _forecast_arrays pads every series to n_steps = 96 and extend_price_series fills the price horizon, so no reachable length separates.",
+          "should_fail": "none reachable: the trajectory length is fixed at 97",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent in production: the mutant only differs (IndexError) when len(trajectory) equals a lead index [4, 12, 24, 48, 96]; every solve's trajectory is n_steps + 1 = 97 because _forecast_arrays pads every series to n_steps = 96 and extend_price_series fills the price horizon, so no reachable length separates."
+        },
+        {
+          "key": "e02e1ac8cc0b714a",
+          "site": "coordinator.py:10223 GUARD_OFF",
+          "patch": "if not trajectory: -> if False:",
+          "function": "HeatPumpOptimizerCoordinator._file_lead_predictions",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions@10223-10231",
+          "slice": "u1d",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3630.4,
+            "child_cpu_s": 6092.4,
+            "load1_start": 0.78,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/e02e1ac8cc0b714a.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e02e1ac8cc0b714a",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_e02e1ac8cc0b714a.out",
+            "baseline_value": "empty room trajectory: 0 leads, 0 promises kept",
+            "mutant_value": "note_promise called once, still 0 promises kept",
+            "inputs_tried": [
+              "[]",
+              "[21.0]",
+              "the solved 97-point list at PROMISE_HOUR"
+            ]
+          },
+          "m4_answer": "Equivalent at the output: with the guard off an empty trajectory reaches note_promise (calls 0 -> 1), but plan_promise returns None for len(room)-1 < 1 (accuracy.py:554-556), so no promise is kept and no lead is filed (moved_kept_records=0); the solved trajectory keeps 1 promise and 5 leads in both arms.",
+          "should_fail": "none at the observable output; traced by config_flow_steps, entities, features",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent at the output: with the guard off an empty trajectory reaches note_promise (calls 0 -> 1), but plan_promise returns None for len(room)-1 < 1 (accuracy.py:554-556), so no promise is kept and no lead is filed (moved_kept_records=0); the solved trajectory keeps 1 promise and 5 leads in both arms."
+        },
+        {
+          "key": "ba1c58ad6dabbebd",
+          "site": "coordinator.py:10231 CMP_BOUND",
+          "patch": "if 0 < idx < len(trajectory): -> if 0 <= idx < len(trajectory):",
+          "function": "HeatPumpOptimizerCoordinator._file_lead_predictions",
+          "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._file_lead_predictions@10223-10231",
+          "slice": "u1c",
+          "fullnet": "SURVIVED",
+          "reach": "executed",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "more_fails_than_null": [],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 3
+            },
+            "wall_s": 3723.8,
+            "child_cpu_s": 6209.0,
+            "load1_start": 0.86,
+            "load1_end": 0.92,
+            "cap_s": null,
+            "note": null
+          },
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/gates/ba1c58ad6dabbebd.json",
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ba1c58ad6dabbebd",
+          "provisional": {
+            "wall_and_load": true,
+            "nproc": 4,
+            "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.py",
+            "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_ba1c58ad6dabbebd.out",
+            "baseline_value": "room leads identical over lengths 0..200 at dt_h 0.25",
+            "mutant_value": "identical; off-grid 180-min step: 4 -> 5",
+            "inputs_tried": [
+              "trajectory lengths 0..200 at the production dt_h 0.25",
+              "off-grid time_step_minutes 180"
+            ]
+          },
+          "m4_answer": "Equivalent in production: time_step_minutes is a fixed 15, so the 1 h lead rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 180-min step separates (4 -> 5 leads).",
+          "should_fail": "none reachable: the distinction needs a step over 2 h, which no configuration produces",
+          "verdict_read": "RED-AS-NULL read as survived",
+          "non_finding": "equivalent-candidate: Equivalent in production: time_step_minutes is a fixed 15, so the 1 h lead rounds to idx 4 and idx 0 never occurs (moved 0 of 201 lengths); only an off-grid 180-min step separates (4 -> 5 leads)."
+        }
+      ],
+      "null_control": {
+        "gate_rc": 1,
+        "failed_scripts": [
+          "python3 tests/closure.py selftest",
+          "python3 tests/entities.py",
+          "python3 tests/harness_headers.py"
+        ],
+        "fail_lines": {
+          "python3 tests/closure.py selftest": 2,
+          "python3 tests/entities.py": 1,
+          "python3 tests/harness_headers.py": 3
+        },
+        "wall_s": 3747.6,
+        "load1_start": 0.76,
+        "load1_end": 1.02
+      },
+      "procedure": "gate_wave.sh (dispatch ref dispatch/finder-r11-D3-g05, out of tree): fullgate.py null once, then fullgate.py run --src complete --key <key> per keys.tsv row, one gate at a time, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1, 4 h cap (TIMEOUT), tree reset to the baseline between gates; probes run in a separate baseline worktree, never in the gate tree while a gate runs. On the resume (a new container after the first seat stalled at 6 of 16 gates), every probe was re-run once all 16 gates had ended, in the gate tree at the baseline with no gate running: all 16 RESULT lines reproduced exactly, load1/thread_factor/swapins aside."
+    }
+  }
+}

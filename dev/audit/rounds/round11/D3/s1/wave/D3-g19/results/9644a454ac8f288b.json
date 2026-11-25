@@ -1,0 +1,101 @@
+{
+ "key": "9644a454ac8f288b",
+ "site": "optimizer.py:4272 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/optimizer.py",
+ "line": 4272,
+ "patch": "rain_intensity = min(avg_future_precip / 2.0, 1.0) -> rain_intensity = (avg_future_precip / 2.0)",
+ "function": "HeatPumpOptimizer._analyze_forecast_trajectory",
+ "cluster": "optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory@4211-4272",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "reach_carried": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3624.9,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/9644a454ac8f288b.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/gates/9644a454ac8f288b.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9644a454ac8f288b",
+ "provisional": "wall and load1 are provisional; nproc 4, Intel Xeon @ 2.10GHz, box D3-g19 alone on its machine",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py",
+  "results": [
+   "RESULT rain_anticipation_baseline=1.1500",
+   "RESULT rain_anticipation_mutant=1.3000",
+   "RESULT abs_delta=0.1500",
+   "RESULT pre_heat_urgency=0.7500->1.0000",
+   "RESULT pre_heat_urgency_moved=1 count",
+   "RESULT at_cap_delta=0 count",
+   "RESULT null_delta=0 count",
+   "RESULT wall=0.31 s (provisional)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.84",
+   "RESULT swapins=0"
+  ],
+  "inputs_tried": "Inputs tried: 4.0 mm/h; 2.0 mm/h (at the cap: identical); null 1.0 mm/h.",
+  "load1": "0.84",
+  "thread_factor": "1.000",
+  "baseline_value": "1.1500",
+  "mutant_value": "1.3000",
+  "metric_key": "rain_anticipation"
+ },
+ "reach": "executed every solve with rain; the cap binds when the weighted mean precipitation exceeds 2 mm/h",
+ "should_fail": "tests/features.py / tests/block_duty.py / tests/env_drift.py (traced baselines execute optimizer.py:4272): no fixture's weighted mean precipitation exceeds 2 mm/h; they lack a heavy-rain check rain_anticipation_factor <= rain_heat_loss_multiplier (1.15) at 4 mm/h",
+ "finding": {
+  "title": "No check caps rain_anticipation at heavy rain; dropping min(..., 1.0) at optimizer.py:4272 is unseen",
+  "claim": "Changing optimizer.py:4272 to drop the min(avg/2, 1.0) cap survives the full gate and, at 4 mm/h all day, moves the published rain_anticipation_factor from 1.15 to 1.30 and pre_heat_urgency from 0.75 to 1.0",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "rain_anticipation_factor for 24 x 1 h of 4.0 mm/h",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._analyze_forecast_trajectory",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:4272 rain_intensity = min(avg_future_precip / 2.0, 1.0) -> rain_intensity = (avg_future_precip / 2.0) (in memory)",
+   "expected_direction": "up",
+   "observed_value": "1.1500 -> 1.3000"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py",
+   "value": "{\"null_delta\": \"0 count\"}",
+   "note": "inputs where the arms must agree; full-gate null on this box: gates/null.json"
+  },
+  "phenomenon_property": "rain_anticipation_factor never exceeds rain_heat_loss_multiplier",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py",
+  "proposed_fix_scope": "tests: a heavy-rain case asserting the cap",
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ]
+ }
+}

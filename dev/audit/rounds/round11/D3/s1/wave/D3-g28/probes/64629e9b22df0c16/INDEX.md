@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py: pins the modulation fraction _power_fraction returns for a 0.15 kW step on a pump whose band is exactly the 0.1 kW threshold (min 0.1, max 0.2 kW) (mutant `if p_max - p_min >= _MIN_MODULATION_BAND_KW:` -> `if p_max - p_min > _MIN_MODULATION_BAND_KW:`, optimizer.py:2170); output out_64629e9b22df0c16.txt

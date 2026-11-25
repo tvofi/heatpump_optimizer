@@ -1,0 +1,6 @@
+RESULT ties_exact=8 count
+RESULT ties_moved=0 count
+RESULT random_moved=0 count
+RESULT thread_factor=1.000 ratio
+RESULT load1=3.46
+RESULT swapins=0 count

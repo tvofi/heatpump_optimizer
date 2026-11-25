@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_247372989ae65baa.py (stored as .py.txt):  what DhwPlanner._plan_dhw_min_cost returns (plan, None, or the exception type) at a non-positive step length.

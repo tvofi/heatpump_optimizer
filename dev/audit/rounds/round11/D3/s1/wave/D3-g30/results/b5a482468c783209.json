@@ -1,0 +1,80 @@
+{
+ "key": "b5a482468c783209",
+ "site": "custom_components/heatpump_optimizer/price_model.py:207 CMP_BOUND",
+ "patch": "if mean <= 1e-6: -> if mean < 1e-6:",
+ "function": "PriceShapeModel.observe_day",
+ "cluster": "price_model.py:PriceShapeModel.observe_day@207-232",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3295.8,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b5a482468c783209.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py",
+  "baseline": {
+   "days_learned_mean_exactly_1e-6": "0"
+  },
+  "mutant": {
+   "days_learned_mean_exactly_1e-6": "1"
+  },
+  "moved": {
+   "days_learned_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "mean_exactly_1e-6,mean_zero,winter_day,mean_2e-6",
+  "all_results": {
+   "mean_is_exact": "1 count",
+   "days_learned_mean_exactly_1e-6_baseline": "0",
+   "days_learned_mean_exactly_1e-6_mutant": "1",
+   "null_days_learned_mean_zero_baseline": "0",
+   "null_days_learned_mean_zero_mutant": "0",
+   "null_days_learned_winter_day_baseline": "1",
+   "null_days_learned_winter_day_mutant": "1",
+   "null_days_learned_mean_2e-6_baseline": "1",
+   "null_days_learned_mean_2e-6_mutant": "1",
+   "days_learned_inputs_moved": "1 count",
+   "null_delta": "0 count",
+   "inputs_tried": "mean_exactly_1e-6,mean_zero,winter_day,mean_2e-6",
+   "thread_factor": "1.000",
+   "load1": "0.89",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "A 24-hour day of 12 x 0.0 and 12 x 2e-6 (np.mean exactly 1e-6) is rejected at the baseline (days 0) and learned under the mutant (days 1) through PriceShapeLearner.fold; mean 0, 2e-6 and a winter day behave alike in both arms. Sibling of D3-s1-71 (line 252).",
+ "should_fail": "tests/features.py 'Unknown price horizon (item 7)' block (~3660-3700) and tests/guard_pins.py observe_day calls (traced executing line 207): they test a partial day and a NaN hour; they lack a day whose mean is exactly 1e-6 asserting observe_day returns False.",
+ "finding": {
+  "title": "price_model.py:207 observe_day's mean guard <= -> < survives the full gate (float-exact boundary)",
+  "claim": "A 24-hour day of 12 x 0.0 and 12 x 2e-6 (np.mean exactly 1e-6) is rejected at the baseline (days 0) and learned under the mutant (days 1) through PriceShapeLearner.fold; mean 0, 2e-6 and a winter day behave alike in both arms. Sibling of D3-s1-71 (line 252).",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "days[weekday] after one hourly day folded through PriceShapeLearner.fold (1 = the day was learned); printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b5a482468c783209.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b5a482468c783209",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day), custom_components/heatpump_optimizer/price_model.py:207",
+  "perturbation": "the one-line mutant b5a482468c783209: `if mean <= 1e-6:` -> `if mean < 1e-6:`; direction days_learned_mean_exactly_1e-6: 0 -> 1",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

@@ -1,0 +1,90 @@
+{
+ "key": "deb281264473bdd6",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5902 CMP_BOUND",
+ "patch": "dhw_active_steps = int(np.sum(optimal_dhw > 0.1)) -> dhw_active_steps = int(np.sum(optimal_dhw >= 0.1))",
+ "function": "HeatPumpOptimizer._optimize_with_dhw",
+ "cluster": "optimizer.py:HeatPumpOptimizer._optimize_with_dhw@5902-5962",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2490.0,
+  "load1_start": 1.01,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/deb281264473bdd6.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/deb281264473bdd6.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_deb281264473bdd6.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_deb281264473bdd6.py",
+  "metric": "the DHW active-step count in the 'DHW+Space optimization completed' INFO log line under a 0.1 kW fuse cap",
+  "baseline_value": "0",
+  "mutant_value": "22",
+  "baseline_name": "dhw_active_steps_logged_baseline",
+  "mutant_name": "dhw_active_steps_logged_mutant",
+  "inputs_tried": [
+   "fuse cap min 0.1 kW (22 DHW steps at exactly 0.1 kW)",
+   "no fuse cap (null: steps >= 0.6 kW)"
+  ],
+  "results": {
+   "dhw_steps_at_0p1": "22 count",
+   "dhw_active_steps_logged_baseline": "0",
+   "dhw_active_steps_logged_mutant": "22",
+   "null_delta": "0 count",
+   "plan_dhw_maxabs_diff_kw": "0.0000 kW",
+   "thread_factor": "1.021",
+   "load1": "1.65",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_deb281264473bdd6.txt"
+ },
+ "should_fail": "tests/features.py (traced baseline executes optimizer.py:5902): no caplog check on the completion line under a fuse cap that puts DHW steps at exactly 0.1 kW",
+ "title": "No check reads the DHW active-step count at the 0.1 kW floor; > -> >= in the completion log is unseen",
+ "claim": "Mutant deb281264473bdd6 at custom_components/heatpump_optimizer/optimizer.py:5902 (dhw_active_steps = int(np.sum(optimal_dhw > 0.1)) -> dhw_active_steps = int(np.sum(optimal_dhw >= 0.1))) is not failed by the full gate (RED-AS-NULL), yet the probe's the DHW active-step count in the 'DHW+Space optimization completed' INFO log line under a 0.1 kW fuse cap moves: baseline 0, mutant 22.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "dhw_active_steps counts DHW steps strictly above 0.1 kW (log only)",
+ "metric_definition": "the DHW active-step count in the 'DHW+Space optimization completed' INFO log line under a 0.1 kW fuse cap",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._optimize_with_dhw",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_deb281264473bdd6.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_deb281264473bdd6.py",
+ "perturbation": {
+  "change": "optimizer.py:5902 dhw_active_steps = int(np.sum(optimal_dhw > 0.1)) -> dhw_active_steps = int(np.sum(optimal_dhw >= 0.1)), applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key deb281264473bdd6",
+  "expected_direction": "up: logged count 0 -> 22 (log only)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_deb281264473bdd6.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

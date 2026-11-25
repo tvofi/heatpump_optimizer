@@ -1,0 +1,80 @@
+{
+ "key": "7add4cd79387ec24",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6091 CMP_BOUND",
+ "patch": "if net(hi) > 0.0: -> if net(hi) >= 0.0:",
+ "function": "HeatPumpOptimizer._buffer_charge_ceiling",
+ "cluster": "optimizer.py:HeatPumpOptimizer._buffer_charge_ceiling@6069-6097",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3623.8,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/7add4cd79387ec24.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7add4cd79387ec24.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7add4cd79387ec24.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=117 count (ties constructed: 9)",
+   "RESULT inputs_moved=3 count",
+   "RESULT moved tie net(hi)==0 hi=55.0 out=-19.685103302977925: baseline=54.99999999534339 mutant=55.0",
+   "RESULT moved tie net(hi)==0 hi=70.0 out=-19.668688609117403: baseline=69.99999999185093 mutant=70.0",
+   "RESULT moved tie net(hi)==0 hi=90.0 out=-19.646802350636705: baseline=89.99999998719431 mutant=90.0",
+   "RESULT max_abs_delta_c=1.280568540096283e-08",
+   "RESULT focus tie net(hi)==0 hi=55.0 out=-19.685103302977925: baseline=54.99999999534339 mutant=55.0",
+   "RESULT null_delta=0 C",
+   "RESULT from_config_buffer_max_30=30.0",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.82",
+   "RESULT swapins=1 count"
+  ],
+  "baseline_value": "ceiling 54.99999999534339 C at a constructed exact tie net(55 C) == 0.0",
+  "mutant_value": "ceiling 55.0 C",
+  "inputs_tried": "117 (as c40e66fc); moved 3, exactly the 3 constructed net(hi)==0.0 ties (buffer_max 55/70/90 C, out_mean ~-19.7 C, internal_gains and buffer_cooling_rate walked by ulps); max |delta| 1.28e-8 C"
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py / tests/validate.py (execute line 6091) have no input with net(hi) exactly 0.0; a pin would need a constructed float tie",
+ "finding": {
+  "title": "Buffer charge ceiling's net(hi) > 0 boundary is unpinned (moves 1e-8 C at an exact float tie)",
+  "claim": "At a constructed exact tie net(buffer_max_temp) == 0.0, HeatPumpOptimizer._buffer_charge_ceiling returns hi - 4.7e-9 C, and returns exactly hi under the >= mutant, which the full gate does not detect.",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "metric_definition": "the value _buffer_charge_ceiling returns at the constructed net(hi)==0.0 tie, C",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._buffer_charge_ceiling",
+  "perturbation": {
+   "change": "the key's one-line mutant, applied in memory by the probe",
+   "expected_direction": "up by (hi-lo)/2**32 (~1e-8 C) under the mutant"
+  },
+  "null_control": "out_mean 15 C: null_delta 0 C",
+  "stop_rule_class": "bug",
+  "proposed_fix_scope": "tests: none worth adding; a measure-zero tie with a 1e-8 C effect",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7add4cd79387ec24.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_7add4cd79387ec24.py"
+ }
+}

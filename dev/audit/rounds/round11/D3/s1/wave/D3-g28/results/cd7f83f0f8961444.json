@@ -1,0 +1,48 @@
+{
+ "key": "cd7f83f0f8961444",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+ "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh < 0 or p_max <= 0 or dt <= 0:",
+ "function": "_price_ranked_start",
+ "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3702.5,
+  "load1_start": 0.72,
+  "load1_end": 0.99,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/cd7f83f0f8961444.json",
+  "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cd7f83f0f8961444",
+  "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_cd7f83f0f8961444.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_cd7f83f0f8961444.py",
+  "results": {
+   "inputs_tried": "300",
+   "max_abs_diff": "0",
+   "signbit_only_diffs": "0",
+   "thread_factor": "1.000",
+   "load1": "1.49",
+   "swapins": "0"
+  },
+  "inputs_tried": "4 price vectors (one with +inf) x energy {0, 0.0, -0.0} x p_max {2, 1e-9, 1e9, -1, 0} x dt {0.25, 1, 1e-9, 0, -0.25}",
+  "direction": "none found: equivalent-candidate",
+  "metric": "max abs difference between baseline and mutant schedules over the grid of inputs where the mutant opens the loop (energy == 0)"
+ },
+ "should_fail": null,
+ "equivalence": "energy == 0 is the only input the `<` opens: the loop's first `remaining <= 0` test breaks at once and returns the same zero schedule (300 inputs incl. +inf prices, dt 0 and dt < 0, max_abs_diff 0)."
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py (saved as .py.txt while gates run; rename on restore): pins the tank temperature at the need step (C) of the plan DhwPlanner._plan_dhw_cheapest_first returns when a manual Off pin covers the whole lead window.

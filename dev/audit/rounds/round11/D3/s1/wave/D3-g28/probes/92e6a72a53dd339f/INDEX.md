@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py: pins what the multi-start delivers when every L-BFGS-B start raises: the raise (baseline) or a return value (mutant), and the failed status optimize publishes from it (mutant `if best is None:` -> `if False:`, optimizer.py:1996); output out_92e6a72a53dd339f.txt

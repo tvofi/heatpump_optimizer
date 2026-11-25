@@ -1,0 +1,80 @@
+{
+ "key": "3304e65ba361587f",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4831 GUARD_OFF",
+ "patch": "if not n: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._build_plan_views",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views@4831-4945",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3174.0,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/3304e65ba361587f.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/3304e65ba361587f.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 3304e65ba361587f",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py",
+  "rc": 0,
+  "results": [
+   "RESULT empty_views_baseline=True space_plan_keys=0",
+   "RESULT empty_views_mutant=False space_plan_keys=5",
+   "RESULT null_delta=0 count",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.97",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "views == {space_plan: {}, dhw_plan: {}} (0 space_plan keys)",
+  "mutant_value": "populated-empty views, 5 space_plan keys",
+  "inputs_tried": "OptimizationResult with no timestamps; null: a 4-step result",
+  "machine": "box D3-g03: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_plan_views",
+ "should_fail": {
+  "script": "tests/plan_view.py",
+  "assertion": "no check builds plan views from a zero-step result and asserts the empty-view contract {'space_plan': {}, 'dhw_plan': {}}"
+ },
+ "provisional": "gate wall_s and load1 are provisional; counts are final",
+ "title": "No suite check pins the zero-step early return of _build_plan_views; an empty result publishes populated-empty plans unseen",
+ "claim": "Mutating coordinator.py:4831 `if not n:` to `if False:` survives the full gate, although _build_plan_views on a zero-step OptimizationResult then returns plans with forecast/slots/totals keys (5 space_plan keys) instead of the empty views.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "consequence": "a zero-step result would publish zero totals and empty forecasts where the contract is an empty view",
+ "metric_definition": "the plan views HeatPumpOptimizerCoordinator._build_plan_views returns for an OptimizationResult with no timestamps (n = 0): whether they equal {\"space_plan\": {}, \"dhw_plan\": {}}, and the space_plan key count.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_3304e65b.py",
+ "perturbation": {
+  "change": "key 3304e65ba361587f: `if not n:` -> `if False:` at custom_components/heatpump_optimizer/coordinator.py:4831, applied in memory by the probe (and on disk by fullgate.py for the gate)",
+  "direction": "views == {space_plan: {}, dhw_plan: {}} (0 space_plan keys) -> populated-empty views, 5 space_plan keys"
+ },
+ "null_control": {
+  "gate": "dev/audit/rounds/round11/D3/s1/wave/D3-g03/gates/null.json (fullgate.py null, comment-only marker, this box)",
+  "probe": "the probe's null_delta RESULT: inputs where the mutated line cannot matter; 0 = arms identical"
+ }
+}

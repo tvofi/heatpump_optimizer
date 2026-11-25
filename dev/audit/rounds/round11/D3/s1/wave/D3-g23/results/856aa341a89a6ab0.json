@@ -1,0 +1,112 @@
+{
+ "key": "856aa341a89a6ab0",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5211 CMP_BOUND",
+ "patch": "while j >= 0: -> while j > 0:",
+ "function": "HeatPumpOptimizer._safety_release_steps._preceding_off",
+ "cluster": "optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off@5211-5213",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3342.9,
+  "child_cpu_s": 5412.9,
+  "load1_start": 0.3,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 856aa341a89a6ab0",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/856aa341a89a6ab0.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+  "metric": "released_space",
+  "baseline_value": "[0]",
+  "mutant_value": "[]",
+  "reach": "through optimize(): winter_extreme, room/slab 16.9 C, only step 0 forced off -> manual_released_space [0] -> []; first-hour space energy 4.8809 -> 4.5000 kWh",
+  "inputs_tried": [
+   "optimize() with only step 0 forced off at 16.8/16.9 C",
+   "steps 0-3 off (null)",
+   "direct: breach whose only preceding off step is step 0"
+  ],
+  "results": [
+   "RESULT released_space_baseline=[0]",
+   "RESULT released_space_mutant=[]",
+   "RESULT space_kwh_first_hour_baseline=4.8809 mutant=4.5000",
+   "RESULT null_block_delta=0",
+   "RESULT direct_breach_after_step0_off_baseline=([0],[]) mutant=([],[])",
+   "RESULT thread_factor=1.001",
+   "RESULT load1=4.94",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "tests/block_duty.py, tests/features.py, tests/manual_plan.py execute the line; test_safety_release forces whole days off, where _expand_off_blocks reaches step 0 anyway -- no check forces only step 0 off",
+ "finding": {
+  "title": "No check forces only step 0 off; the safety release's walk can skip step 0 unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 856aa341a89a6ab0 at optimizer.py:5211 (while j >= 0: -> while j > 0:) leaves the full GATE_SCOPE=full GOLDEN_MODE=drift gate RED-AS-NULL on box D3-g23, yet the probe's released_space moves [0] -> [].",
+  "mechanism": "Reach: through optimize(): winter_extreme, room/slab 16.9 C, only step 0 forced off -> manual_released_space [0] -> []; first-hour space energy 4.8809 -> 4.5000 kWh. Check that should have failed (D3.M4): tests/block_duty.py, tests/features.py, tests/manual_plan.py execute the line; test_safety_release forces whole days off, where _expand_off_blocks reaches step 0 anyway -- no check forces only step 0 off.",
+  "metric_definition": "released_space printed by probe_856aa341a89a6ab0.py (baseline arm vs the mutant re-compiled in memory)",
+  "phenomenon_property": "A breach whose only preceding forced-off step is step 0 releases step 0",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g23/keys.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._safety_release_steps._preceding_off",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/_g23_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+   "value": "[]",
+   "unit": "released_space",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g23: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a scratch baseline worktree beside the box's gates; gate walls provisional",
+   "tolerance": "exact"
+  },
+  "perturbation": {
+   "change": "the mutant edit at optimizer.py:5211 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 856aa341a89a6ab0",
+   "expected_direction": "to_zero",
+   "observed_value": "[]"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+   "value": "0",
+   "note": "the probe's null_* RESULT line: an input where the edit cannot matter, identical under both arms"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 856aa341a89a6ab0"
+  ],
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/block_duty.py, tests/features.py, tests/manual_plan.py execute the line; test_safety_release forces whole days off, where _expand_off_blocks reaches step 0 anyway that feeds the probe's distinguishing input and asserts the baseline outcome"
+ }
+}

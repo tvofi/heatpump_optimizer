@@ -1,0 +1,34 @@
+import os
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+import inspect, sys, textwrap
+from pathlib import Path
+
+ROOT = Path.cwd()  # run from the repository root (harness contract)
+assert (ROOT / "custom_components/heatpump_optimizer/manifest.json").is_file(), "run from the repository root"
+sys.path.insert(0, str(ROOT))
+from custom_components.heatpump_optimizer import coordinator as co  # noqa: E402
+
+
+def mutate(fn, old, new, name=None):
+    """Recompile fn's own source with the one-line mutant, in the module namespace (in memory)."""
+    src = textwrap.dedent(inspect.getsource(fn))
+    assert src.count(old) == 1, f"anchor moved: {old!r}"
+    ns = dict(co.__dict__)
+    exec(compile(src.replace(old, new, 1), co.__file__, "exec"), ns)
+    return ns[name or fn.__name__]
+
+
+def tail_results(t0_cpu, t0_thr):
+    import time
+    pc, tc = time.process_time() - t0_cpu, time.thread_time() - t0_thr
+    print(f"RESULT thread_factor={pc / tc if tc > 0 else 1.0:.3f}")
+    print(f"RESULT load1={os.getloadavg()[0]:.2f}")
+    sw = 0
+    try:
+        for ln in open("/proc/vmstat"):
+            if ln.startswith("pswpin "):
+                sw = int(ln.split()[1])
+    except OSError:
+        pass
+    print(f"RESULT swapins={sw} count")

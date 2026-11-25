@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# Metric: the number of "did not finish within 5 s of shutdown" warnings HeatPumpOptimizerCoordinator.async_shutdown logs
+#   for a background task that outlives the 5 s capped wait (a 7 s task).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_69b933a6.py
+# Expected: RESULT warnings_baseline=1, mutant=0; null_moved=0. (Wall: about 25 s, four 5 s capped waits.)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g11 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.async_shutdown
+#   (line 6620, `            if still_pending:`), on tests/features.py:_r9f13_make's coordinator rig; the task is an
+#   asyncio.sleep registered in coord._background_tasks; the warning is counted by a handler on the module logger.
+# Perturbation: mutant 69b933a6a720006b, `if still_pending:` -> `if False:`, in memory (the method recompiled from its own
+#   source in the module namespace). Direction: 1 -> 0 warnings: a wedged task at unload goes unreported (log-only).
+# Null control: a 0.3 s task that finishes inside the cap: no warning in either arm.

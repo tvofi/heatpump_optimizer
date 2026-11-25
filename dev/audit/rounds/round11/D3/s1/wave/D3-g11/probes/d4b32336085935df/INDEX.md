@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_d4b32336.py: pins HeatPumpOptimizerCoordinator.month_channel_totals line 8457 (GUARD_OFF `if not entry:` -> `if False:`): equivalence search: none can fail through production: ledger.py:MonthlyLedger.line returns {'kwh': 0.0, 'sek': 0.0} (truthy) for an empty month or line, so the guard neve

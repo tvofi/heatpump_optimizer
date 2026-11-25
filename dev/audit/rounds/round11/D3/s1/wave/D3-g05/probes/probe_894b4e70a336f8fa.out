@@ -1,0 +1,9 @@
+RESULT empty_list baseline(leads,promise_calls,promises)=(0, 0, 0) mutant=(0, 0, 0)
+RESULT none baseline(leads,promise_calls,promises)=(0, 0, 0) mutant=raised TypeError
+RESULT one_step baseline(leads,promise_calls,promises)=(0, 0, 0) mutant=(0, 0, 0)
+RESULT solve_length_97 baseline(leads,promise_calls,promises)=(5, 0, 0) mutant=(5, 0, 0)
+RESULT solved_trajectory_lengths room=97 dhw=97 count  (OptimizationResult.dhw_temp_trajectory is a list: [] or tolist())
+RESULT moved_reachable_inputs=0 count
+RESULT thread_factor=1.029 ratio
+RESULT load1=1.17
+RESULT swapins=0 count

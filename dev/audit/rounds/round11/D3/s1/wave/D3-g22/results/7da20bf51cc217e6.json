@@ -1,0 +1,94 @@
+{
+ "key": "7da20bf51cc217e6",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4917 CLAMP_DROP",
+ "patch": "np.max(np.clip(req[:steps] - planned[:steps], 0.0, None)) -> np.max((req[:steps] - planned[:steps]))",
+ "function": "HeatPumpOptimizer._publish_breach_reports",
+ "cluster": "optimizer.py:HeatPumpOptimizer._publish_breach_reports@4876-4917",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3613.1,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/7da20bf51cc217e6.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7da20bf51cc217e6",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "baseline_value": "real DHW-blocked solve, tank 60 C: dhw_floor_breach_c=0.0 (tank 65 C: 0.0)",
+  "mutant_value": "tank 60 C: -1.394; tank 65 C: -5.908",
+  "inputs_tried": [
+   "tank 45 C: 11.739 both arms (null)",
+   "tank 55 C: 3.121 both arms",
+   "tank 60 C: 0.0 -> -1.394",
+   "tank 65 C: 0.0 -> -5.908"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "moves in a real HeatPumpOptimizer.optimize with SolveLimits.dhw_blocked=True (a pump-mode entity in a heating-only mode) whenever the tank coasts above its requirement; the method's own comment documents \"zero when the tank coasted through anyway\""
+ },
+ "should_fail": "tests/features.py v5.3.0 mode-block section (_mb_dhw = _mb_run(dhw_blocked=True), ~36841): its checks read dhw_power_schedule, power_schedule, dhw_reasons and mode_blocked_* but never predictive_info['dhw_floor_breach_c']; no script in the closure reads the key (grep dhw_floor_breach tests/ is empty). The assertion it lacks: a DHW-blocked plan whose tank stays above its requirement publishes dhw_floor_breach_c == 0.0 (and >= 0 always)",
+ "title": "No check reads dhw_floor_breach_c; a DHW-blocked plan could publish a negative tank shortfall unseen",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "claim": "Mutant 7da20bf51cc217e6 at custom_components/heatpump_optimizer/optimizer.py:4917 (np.max(np.clip(req[:steps] - planned[:steps], 0.0, None)) -> np.max((req[:steps] - planned[:steps]))) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's number moves: real DHW-blocked solve, tank 60 C: dhw_floor_breach_c=0.0 (tank 65 C: 0.0) -> tank 60 C: -1.394; tank 65 C: -5.908.",
+ "mechanism": "moves in a real HeatPumpOptimizer.optimize with SolveLimits.dhw_blocked=True (a pump-mode entity in a heating-only mode) whenever the tank coasts above its requirement; the method's own comment documents \"zero when the tank coasted through anyway\". Check that should have failed (D3.M4): tests/features.py v5.3.0 mode-block section (_mb_dhw = _mb_run(dhw_blocked=True), ~36841): its checks read dhw_power_schedule, power_schedule, dhw_reasons and mode_blocked_* but never predictive_info['dhw_floor_breach_c']; no script in the closure reads the key (grep dhw_floor_breach tests/ is empty). The assertion it lacks: a DHW-blocked plan whose tank stays above its requirement publishes dhw_floor_breach_c == 0.0 (and >= 0 always).",
+ "phenomenon_property": "dhw_floor_breach_c is the worst tank shortfall clipped at zero: never negative, 0.0 when the tank coasts through a hot-water block",
+ "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g22/keys.tsv)",
+ "metric_definition": "dhw_floor_breach_c (C) published by a real DHW-blocked solve (features.py v5.3.0 January scenario) with the tank starting at 60 C",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._publish_breach_reports",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/g22_rig.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/breach_rig.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+ "evidence": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "value": -1.394,
+  "unit": "C",
+  "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+  "machine": "box D3-g22: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+  "cpu_or_wall": "n/a",
+  "tolerance": "exact (deterministic)",
+  "load1": 1.0,
+  "thread_factor": 1.0,
+  "contention_note": "deterministic value; probes ran in a clean baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional"
+ },
+ "perturbation": {
+  "change": "the mutant edit at custom_components/heatpump_optimizer/optimizer.py:4917 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7da20bf51cc217e6",
+  "expected_direction": "down",
+  "observed_value": -1.394
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "value": "tank 45 C (a real shortfall, 11.739 C both arms): 0.0 C"
+ },
+ "reproduction_steps": [
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+  "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7da20bf51cc217e6"
+ ],
+ "proposed_fix_scope": "tests only: a check at the input above pinning the baseline value",
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/features.py"
+ ]
+}

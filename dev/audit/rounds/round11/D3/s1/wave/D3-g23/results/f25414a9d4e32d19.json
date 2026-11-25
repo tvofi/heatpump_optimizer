@@ -1,0 +1,62 @@
+{
+ "key": "f25414a9d4e32d19",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5292 CLAMP_DROP",
+ "patch": "for i in range(min(len(out), len(bounds))): -> for i in range((len(out))):",
+ "function": "HeatPumpOptimizer._seed_pinned_guess",
+ "cluster": "optimizer.py:HeatPumpOptimizer._seed_pinned_guess@5292-5292",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3250.9,
+  "child_cpu_s": 5412.6,
+  "load1_start": 0.78,
+  "load1_end": 0.93,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f25414a9d4e32d19",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/f25414a9d4e32d19.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_f25414a9d4e32d19.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_f25414a9d4e32d19.py",
+  "metric": "direct_long_guess",
+  "baseline_value": "[1.0,2.0,5.0]",
+  "mutant_value": "IndexError",
+  "reach": "unreachable through production: 0 of 14 _seed_pinned_guess calls over 7 solves pass a guess whose length differs from the bounds (both are n_steps)",
+  "inputs_tried": [
+   "3-long guess with 2 bounds (direct)",
+   "equal lengths (null)",
+   "reach count over the 7 REACH_SCENARIOS"
+  ],
+  "results": [
+   "RESULT direct_long_guess_baseline=[1.0,2.0,5.0]",
+   "RESULT direct_long_guess_mutant=IndexError",
+   "RESULT null_equal_length_delta=0",
+   "RESULT reach_length_mismatch_calls=0 of 14 (over 7 solves)",
+   "RESULT thread_factor=1.001",
+   "RESULT load1=4.99",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "none through production; only a direct call with mismatched lengths separates"
+}

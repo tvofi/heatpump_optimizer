@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_134126ee.py: key 134126ee4914191f, the operation score (EMA, prior 40.0) HeatPumpOptimizerCoordinator._close_score_day leaves after closing (run: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_134126ee.py)

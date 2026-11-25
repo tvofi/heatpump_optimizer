@@ -1,0 +1,89 @@
+{
+ "key": "cc96ce9e391ca6f2",
+ "site": "custom_components/heatpump_optimizer/price_model.py:85 CONST",
+ "patch": "QUARTER_FACTOR_MAX = 4.0 -> QUARTER_FACTOR_MAX = 8.0",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3550.2,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/cc96ce9e391ca6f2.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py",
+  "baseline": {
+   "qf_h3q0_negative_quarters_q0_30x": "3.368421",
+   "stored_q0_stored_ratio_20": "3.129584"
+  },
+  "mutant": {
+   "qf_h3q0_negative_quarters_q0_30x": "3.657143",
+   "stored_q0_stored_ratio_20": "3.2"
+  },
+  "moved": {
+   "qf_h3q0_inputs_moved": "2 count",
+   "stored_q0_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "stored_ratio_20,stored_ratio_2",
+  "all_results": {
+   "qf_h3q0_negative_quarters_q0_30x_baseline": "3.368421",
+   "qf_h3q0_negative_quarters_q0_30x_mutant": "3.657143",
+   "qf_h3q0_negative_quarters_q0_5x_baseline": "3.368421",
+   "qf_h3q0_negative_quarters_q0_5x_mutant": "3.478261",
+   "qf_h3q0_q0_exactly_4x_baseline": "3.254237",
+   "qf_h3q0_q0_exactly_4x_mutant": "3.254237",
+   "null_qf_h3q0_nonnegative_max_possible_4x_baseline": "3.368421",
+   "null_qf_h3q0_nonnegative_max_possible_4x_mutant": "3.368421",
+   "null_qf_h3q0_ramp_baseline": "0.9",
+   "null_qf_h3q0_ramp_mutant": "0.9",
+   "qf_h3q0_inputs_moved": "2 count",
+   "null_delta": "0 count",
+   "inputs_tried": "stored_ratio_20,stored_ratio_2",
+   "stored_q0_stored_ratio_20_baseline": "3.129584",
+   "stored_q0_stored_ratio_20_mutant": "3.2",
+   "null_stored_q0_stored_ratio_2_baseline": "0.7",
+   "null_stored_q0_stored_ratio_2_mutant": "0.7",
+   "stored_q0_inputs_moved": "1 count",
+   "thread_factor": "1.000",
+   "load1": "0.81",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "With negative spot quarters (hour [3.0,-1.0,-1.0,-0.6], mean 0.1) the learned 03:00 quarter factor is 3.368421 at the baseline and 3.657143 under the mutant through PriceShapeLearner.fold, and a stored ratio-20 row loads as 3.2 instead of 3.129584; the gate's 'max(_h6) < 4.5' tolerates the mutant's clip because a non-negative hour can never exceed 4x its mean.",
+ "should_fail": "tests/features.py ~18748-18800 (traced executing the np.clip and 'max(_h6) < 4.5'): its spiked hour is non-negative, where 4x is the arithmetic ceiling, so the upper clip never binds differently; it lacks a negative-quarter hour (e.g. [3.0,-1.0,-1.0,-0.6]) asserting the raw factor is clipped at exactly QUARTER_FACTOR_MAX = 4.0.",
+ "finding": {
+  "title": "price_model.py:85 QUARTER_FACTOR_MAX 4.0 -> 8.0 survives the full gate: the upper quarter clip is pinned only by a loose bound",
+  "claim": "With negative spot quarters (hour [3.0,-1.0,-1.0,-0.6], mean 0.1) the learned 03:00 quarter factor is 3.368421 at the baseline and 3.657143 under the mutant through PriceShapeLearner.fold, and a stored ratio-20 row loads as 3.2 instead of 3.129584; the gate's 'max(_h6) < 4.5' tolerates the mutant's clip because a non-negative hour can never exceed 4x its mean.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "learned quarter factor of hour 3 quarter 0 after one quarter day folded; and the stored factor after PriceShapeModel.from_dict; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_cc96ce9e391ca6f2.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cc96ce9e391ca6f2",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:85",
+  "perturbation": "the one-line mutant cc96ce9e391ca6f2: `QUARTER_FACTOR_MAX = 4.0` -> `QUARTER_FACTOR_MAX = 8.0`; direction qf_h3q0_negative_quarters_q0_30x: 3.368421 -> 3.657143; stored_q0_stored_ratio_20: 3.129584 -> 3.2",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

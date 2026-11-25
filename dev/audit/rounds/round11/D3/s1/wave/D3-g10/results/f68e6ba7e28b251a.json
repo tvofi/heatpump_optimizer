@@ -1,0 +1,38 @@
+{
+ "key": "f68e6ba7e28b251a",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:6356 GUARD_OFF",
+ "patch": "if self._optimization_running: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator.async_run_optimization",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization@6356-6454",
+ "slice": "u1d",
+ "fullnet": "TIMEOUT",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "TIMEOUT",
+  "killed_by": null,
+  "gate_rc": null,
+  "wall_s": null,
+  "load1_start": null,
+  "load1_end": null,
+  "failed_scripts": null,
+  "more_fails_than_null": null,
+  "child_cpu_s": null,
+  "command": null,
+  "cap_s": 14400,
+  "note": "gate exceeded the box cap or ended without a record; never read as KILLED",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/gates/f68e6ba7e28b251a.json",
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f68e6ba7e28b251a",
+ "class": "timeout",
+ "timeout": {
+  "cap_s": 14400,
+  "last_script_seen": "tests/features.py",
+  "last_section": "-- #1754 \u2014 a refresh during an in-flight solve is honoured, and releases land on the override the solve pinned (log line 3284)",
+  "note": "gate log: the last '##########' header is python3 tests/features.py (line 152); after the #1754 section it prints nothing until the cap's SIGINT (KeyboardInterrupt in os.waitpid; tests/gate_lock.py appears only in that traceback, as run.sh's lease wrapper). Same hang as the u1d full net (features.py timed out at 2759 s there). Neither KILLED nor SURVIVED; no probe written (unfinished)."
+ }
+}

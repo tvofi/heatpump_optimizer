@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_0275af9776ae709e.py (+ shared helpers _arrays.py _caps_cases.py _mutant.py): _build_space_power_caps:4802 space_blocked guard off; ceiling when space heating blocked

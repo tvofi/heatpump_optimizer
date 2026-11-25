@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py: count of hours in predictive_info.dhw_planned_heating_hours (sensor.py:1248/1350) under a 0.1 kW fuse cap (out_4e5a67b907d13871.txt = executed output; source_4e5a67b907d13871.py = the template it is assembled from)

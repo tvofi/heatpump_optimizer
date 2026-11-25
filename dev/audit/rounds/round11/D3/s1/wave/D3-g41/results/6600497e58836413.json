@@ -1,0 +1,36 @@
+{
+ "key": "6600497e58836413",
+ "site": "custom_components/heatpump_optimizer/tariff.py:674 CMP_BOUND",
+ "patch": "if start_time is None or n_windows <= 0 or not mask_active(tariff): -> if start_time is None or n_windows < 0 or not mask_active(tariff):",
+ "function": "window_factors",
+ "cluster": "tariff.py:window_factors@674-674",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2732.3,
+  "load1_start": 0.79,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/6600497e58836413.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6600497e58836413",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_6600497e58836413.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_6600497e58836413.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_6600497e58836413.txt",
+  "metric": "downstream_moved",
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "inputs_tried": "active #13 mask (months Jan/Feb, peak hours 7-9, weekdays, off-peak 0.5), n_windows 0/1/24/-1; direct return moves only at n_windows 0 (None -> size-0 array); downstream peak_cost, peak_cost_smooth (thresholds 0, 2), billed_windows and both _grid_report branches on the empty plan that n_windows 0 implies (optimizer.py:4155-4163: n_windows = metering_windows(np.zeros(n_steps)).size): 0 of 6 moved, because billed_windows (tariff.py:873) treats a size-0 factor array as None"
+ },
+ "should_fail": "none can on behaviour: every consumer reads a size-0 factor array as None; reached by tests/dst_checks.py (window_factors calls at dst_checks.py:307, 606, 2524) and tests/features.py"
+}

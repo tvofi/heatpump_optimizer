@@ -1,0 +1,112 @@
+{
+ "key": "31c1881164f2dcdf",
+ "site": "dhw_planner.py:626 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 626,
+ "patch": "hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]",
+ "function": "DhwPlanner._dhw_legionella_due",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_due@596-692",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3833.5,
+  "load1_start": 0.93,
+  "load1_end": 1.09,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 6336.4,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/31c1881164f2dcdf.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 31c1881164f2dcdf"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+  "baseline_value": "tie_step_baseline=0  tie_step_mutant=1",
+  "mutant_value": "tie_step_mutant=None",
+  "results": {
+   "threshold": "59.999999 C",
+   "tie_inputs_tried": "3606 count",
+   "tie_hits": "6 count",
+   "moved_under_tie": "6 count",
+   "moved_off_tie": "0 count",
+   "tie_input": "dhw_temp 56.98949861028148 C, outdoor -10.0 C, run 2.0 kW",
+   "tie_step_baseline": "0  tie_step_mutant=1",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.18",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "initial tank temperature bisected to the ramp[1] == 59.999999 C crossing, +-300 floats, outdoor -10/0/7 C x run 2/4 kW, hours_since 150 h, price 0.1 at step 0",
+  "reading": "when the flat-out ramp ends step 0 exactly on the reach threshold 59.999999 C (6 exact ties in 3606 scanned initial temperatures over 6 in-range configurations) the baseline calls step 0 reachable and places the cycle on the cheap step 0, the mutant calls it unreachable and places it on step 1; off the tie no input separates",
+  "thread_factor": 1.0,
+  "load1": 3.18
+ },
+ "should_fail": "tests/features.py (executes line 626 on its traced baseline) lacks an assertion at ramp == legionella_temp - 1e-6 that the step counts as reachable",
+ "finding": {
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "title": "No check pins the legionella reach threshold as inclusive (`>=` vs `>`)",
+  "severity": "low",
+  "claim": "Mutant 31c1881164f2dcdf at dhw_planner.py:626 (hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]) survives the full gate (RED-AS-NULL), yet the probe moves: placed cycle step when the ramp ends step 0 exactly on the reach threshold: baseline 0, mutant 1.",
+  "mechanism": "when the flat-out ramp ends step 0 exactly on the reach threshold 59.999999 C (6 exact ties in 3606 scanned initial temperatures over 6 in-range configurations) the baseline calls step 0 reachable and places the cycle on the cheap step 0, the mutant calls it unreachable and places it on step 1; off the tie no input separates. Check that should have failed (D3.M4): tests/features.py (executes line 626 on its traced baseline) lacks an assertion at ramp == legionella_temp - 1e-6 that the step counts as reachable.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "the step _dhw_legionella_due places the cycle on when the simulated ramp hits legionella_temp - 1e-6 exactly at step 0's end",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._dhw_legionella_due",
+  "phenomenon_property": "A tank whose simulated ramp reaches the disinfection threshold exactly counts as able to be there (the reach test is inclusive)",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+   "value": null,
+   "unit": "the step _dhw_legionella_due places the cycle on when the simulated ramp hits legionella_temp - 1e-6 exactly at step 0's end",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g15: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a separate baseline worktree while this box's gates ran (load1 ~1); gate walls are provisional",
+   "tolerance": "exact",
+   "load1": 3.18,
+   "thread_factor": 1.0
+  },
+  "perturbation": {
+   "change": "the mutant edit at dhw_planner.py:626 (hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]) applied in memory by the probe; full gate: fullgate.py run --src complete --key 31c1881164f2dcdf",
+   "expected_direction": "up",
+   "observed_value": null
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+   "value": 0,
+   "note": "scanned initial temperatures that are not exact ties: moved_off_tie=0"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_31c1881164f2dcdf.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 31c1881164f2dcdf"
+  ],
+  "proposed_fix_scope": "tests only: a features.py check at the probe's tie input pinning the placed step",
+  "files": [
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "tests/features.py"
+  ]
+ }
+}

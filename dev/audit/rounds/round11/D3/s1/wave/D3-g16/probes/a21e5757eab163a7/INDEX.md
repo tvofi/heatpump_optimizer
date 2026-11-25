@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py (saved as .py.txt while gates run; rename on restore): pins DhwPlanner._dhw_raise_fits's verdict (1 fits, 0 refused) when one simulated tank temperature equals its limit + 1e-9 exactly.

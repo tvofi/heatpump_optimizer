@@ -1,0 +1,30 @@
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import optimizer as O  # noqa: E402
+from custom_components.heatpump_optimizer.thermal_model import ThermalParameters, ThermalModel  # noqa: E402
+
+H = O.HeatPumpOptimizer
+opt = H(ThermalModel(ThermalParameters()), O.OptimizationConfig(
+    horizon_hours=24, time_step_minutes=60, target_temp=21.0, min_temp=19.0, max_temp=23.0))
+mut = mutated(O, H, "_analyze_forecast_trajectory", 4229, '        solar_peak_mask = solar_radiation > 200.0', '        solar_peak_mask = solar_radiation >= 200.0')
+base = H._analyze_forecast_trajectory
+
+
+def call(fn, sr, precip, out, dt=1.0):
+    n = len(sr)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return fn(opt, np.asarray(sr, float), np.zeros(n), np.asarray(precip, float), np.asarray(out, float), dt)
+
+
+def delta(case):
+    b, m = call(base, **case), call(mut, **case)
+    return b, m, {k: (b.get(k), m.get(k)) for k in set(b) | set(m) if repr(b.get(k)) != repr(m.get(k))}
+sr = [0.0] * 3 + [200.0] + [0.0] * 4
+b, m, d = delta(dict(sr=sr, precip=[0.0] * 8, out=[0.0] * 8))
+nd = sum(len(delta(dict(sr=[0.0] * 3 + [v] + [0.0] * 4, precip=[0.0] * 8, out=[0.0] * 8))[2]) for v in (199.9, 200.1))
+print(f"RESULT peaks_baseline={len(b['solar_peak_indices'])} count")
+print(f"RESULT peaks_mutant={len(m['solar_peak_indices'])} count")
+print(f"RESULT moved={int(b['solar_peak_indices'] != m['solar_peak_indices'])} count")
+print(f"RESULT other_keys_delta={len(set(d) - {'solar_peak_indices'})} count")
+print(f"RESULT null_delta={nd} count")
+tail()

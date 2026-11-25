@@ -1,0 +1,58 @@
+{
+ "key": "898d741cf6142efb",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4463 BOOLOP",
+ "patch": "if flow_carnot_eligible and p.cop_flow_carnot: -> if flow_carnot_eligible or p.cop_flow_carnot:",
+ "function": "ThermalModel._batch_cop",
+ "cluster": "thermal_model.py:ThermalModel._batch_cop@4453-4482",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3024.7,
+  "load1_start": 0.94,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/898d741cf6142efb.json",
+ "gate_command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 898d741cf6142efb",
+ "provisional": true,
+ "machine": "box D3-g41, nproc 4, Intel Xeon @ 2.30GHz",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_898d741cf6142efb.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_898d741cf6142efb.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_898d741cf6142efb.txt",
+  "metric": "cop_out0_tank60",
+  "baseline_value": "2.8875",
+  "mutant_value": "1.821027",
+  "inputs_tried": "cop_flow_carnot True, unthrottled (eligible False): 12 of 12 outdoor temps moved (tanks above 35 C lose COP), parity breaks baseline 0 / mutant 12; cop_flow_carnot False, throttled: 12 of 12 moved; null eligible True + carnot True: 0; eligible False + carnot False: 0"
+ },
+ "should_fail": "tests/features.py `_grad_parity` (features.py:6394, check 'batched simulation is bitwise-identical: <label>' at features.py:6454): its 16 cells run outdoor -16..16 C at a constant 78 % RH with no defrost_derate, no ambient_humidity, no cop_flow_carnot and no NaN humidity, so it lacks a cell with cop_flow_carnot on and an unthrottled plant (or a throttled plant with it off), where the Carnot lift must not apply",
+ "title": "_batch_cop's Carnot-eligibility conjunction is pinned by no check: `or` applies the lift cost where the scalar does not",
+ "claim": "Mutant 898d741cf6142efb (thermal_model.py:4463 `and` -> `or`) survives the full gate; under it ThermalModel._batch_cop at 0 C outdoor with cop_flow_carnot on and no throttling valve returns 1.821 for a 60 C tank where the baseline and the scalar (flow_temp None) return 2.8875, and a throttled plant with the Carnot model off also takes the lift cost (12 of 12 outdoor temperatures each).",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "medium",
+ "metric_definition": "ThermalModel._batch_cop COP of the 60 C tank at 0 C outdoor, cop_flow_carnot True, flow_carnot_eligible False",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_898d741cf6142efb.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_898d741cf6142efb.py",
+ "perturbation": {
+  "change": "`flow_carnot_eligible and p.cop_flow_carnot` -> `or` at thermal_model.py:4463 (in memory)",
+  "expected_direction": "down",
+  "observed_value": "1.821027"
+ },
+ "instrumented_symbol": "custom_components.heatpump_optimizer.thermal_model:ThermalModel._batch_cop",
+ "files": [
+  "custom_components/heatpump_optimizer/thermal_model.py"
+ ],
+ "null_control": "probe null rows (see dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/out/probe_898d741cf6142efb.txt) and the box null gate dev/audit/rounds/round11/D3/s1/wave/D3-g41/gates/null.json (gate_rc 1, failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'])"
+}

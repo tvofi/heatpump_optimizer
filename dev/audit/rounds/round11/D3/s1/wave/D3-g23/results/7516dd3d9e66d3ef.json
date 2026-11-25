@@ -1,0 +1,112 @@
+{
+ "key": "7516dd3d9e66d3ef",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6029 CLAMP_DROP",
+ "patch": "float(p.buffer_max_temp), max(ceiling, float(initial)) -> float(p.buffer_max_temp), (ceiling)",
+ "function": "HeatPumpOptimizer._settlement_caps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._settlement_caps@6027-6038",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "wall_s": 3245.2,
+  "child_cpu_s": 5383.1,
+  "load1_start": 0.78,
+  "load1_end": 1.01,
+  "cap_s": null,
+  "note": null,
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7516dd3d9e66d3ef",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/gates/7516dd3d9e66d3ef.json",
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+  "metric": "buffer_cap_initial60",
+  "baseline_value": "60.000 C",
+  "mutant_value": "35.000 C",
+  "reach": "through optimize(): a 750 L valve tank, a -20 C day (charge ceiling 35 C), tank starting at 60 C -> 20 OptimizationResult fields differ",
+  "inputs_tried": [
+   "initial tank 60 C at -20 C (direct and optimize())",
+   "initial 30 C (null)",
+   "-5 C day (ceiling 70 C: no move)"
+  ],
+  "results": [
+   "RESULT charge_ceiling=35.000 C",
+   "RESULT buffer_cap_initial60_baseline=60.000 C",
+   "RESULT buffer_cap_initial60_mutant=35.000 C",
+   "RESULT null_initial30_delta=0.000000 C",
+   "RESULT optimize_tank60_differing_fields=20 ['buffer_temp_trajectory','compressor_starts','deferred_energy_cost','displace_schedule','heat_pump_on_schedule','lower_setpoints','lower_temp_trajectory','objective_value']",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=4.93",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": "tests/features.py ('The optimizer can see the buffer tank (item 29)') and tests/validate.py execute the line; no check starts the tank above the charge ceiling",
+ "finding": {
+  "title": "No check sets a start tank above the charge ceiling; max(ceiling, initial) dropped is unseen",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "claim": "Mutant 7516dd3d9e66d3ef at optimizer.py:6029 (float(p.buffer_max_temp), max(ceiling, float(initial)) -> float(p.buffer_max_temp), (ceiling)) leaves the full GATE_SCOPE=full GOLDEN_MODE=drift gate RED-AS-NULL on box D3-g23, yet the probe's buffer_cap_initial60 moves 60.000 C -> 35.000 C.",
+  "mechanism": "Reach: through optimize(): a 750 L valve tank, a -20 C day (charge ceiling 35 C), tank starting at 60 C -> 20 OptimizationResult fields differ. Check that should have failed (D3.M4): tests/features.py ('The optimizer can see the buffer tank (item 29)') and tests/validate.py execute the line; no check starts the tank above the charge ceiling.",
+  "metric_definition": "buffer_cap_initial60 printed by probe_7516dd3d9e66d3ef.py (baseline arm vs the mutant re-compiled in memory)",
+  "phenomenon_property": "The buffer settlement cap is floored at the solve's initial tank temperature (min(rating, max(ceiling, initial)))",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave list; this box's keys: dev/audit/rounds/round11/D3/s1/wave/D3-g23/keys.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._settlement_caps",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/_g23_common.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+   "value": "35.000 C",
+   "unit": "buffer_cap_initial60",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g23: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14, alone on the box",
+   "cpu_or_wall": "n/a",
+   "contention_note": "deterministic value; probes ran from a scratch baseline worktree beside the box's gates; gate walls provisional",
+   "tolerance": "exact"
+  },
+  "perturbation": {
+   "change": "the mutant edit at optimizer.py:6029 applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7516dd3d9e66d3ef",
+   "expected_direction": "down",
+   "observed_value": "35.000 C"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+   "value": "0",
+   "note": "the probe's null_* RESULT line: an input where the edit cannot matter, identical under both arms"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_7516dd3d9e66d3ef.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7516dd3d9e66d3ef"
+  ],
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/features.py that feeds the probe's distinguishing input and asserts the baseline outcome"
+ }
+}

@@ -1,0 +1,52 @@
+{
+ "key": "97628f4b14aec1b9",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4497 GUARD_OFF",
+ "patch": "if not vvc_entity and not space_entity: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps@4497-4538",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3128.3,
+  "child_cpu_s": 5323.8,
+  "load1_start": 0.72,
+  "load1_end": 1.0,
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 97628f4b14aec1b9",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/gates/97628f4b14aec1b9.json",
+ "provisional": "wall/cpu/load are provisional (nproc 4, Intel Xeon @ 2.30GHz, box alone); counts final",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_97628f4b14aec1b9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_97628f4b14aec1b9.py",
+  "metric": "pump service calls (and any exception) in one tick with no VVC pump and no drivable space pump",
+  "baseline_value": "[] for every input",
+  "mutant_value": "[] for every input (moved 0 of 6)",
+  "inputs_tried": [
+   "no pumps",
+   "no pumps in mode off",
+   "no pumps with a fresh plan",
+   "space pump held by a stale plan",
+   "no pumps with DHW windows",
+   "no pumps at midnight",
+   "positive control: a VVC pump issues 1 command"
+  ],
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps"
+ },
+ "should_fail": "none: both branches after the early return are gated on the same two entities, so the guard only saves a dt_util.now() read",
+ "non_finding": "mutant 97628f4b14aec1b9 at custom_components/heatpump_optimizer/coordinator.py:4497 is not killed by the full gate (verdict RED-AS-NULL) and is equivalent on every input tried: none: both branches after the early return are gated on the same two entities, so the guard only saves a dt_util.now() read"
+}

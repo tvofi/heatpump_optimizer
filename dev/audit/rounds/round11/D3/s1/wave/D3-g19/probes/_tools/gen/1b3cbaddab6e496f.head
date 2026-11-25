@@ -1,0 +1,16 @@
+# Metric: max |weight_baseline - weight_mutant| of HeatPumpOptimizer._anticipatory_weights over a sweep of step lengths,
+#   including dt > 8 h where lookahead = int(8/dt) = 0 and end == i (the only inputs that reach `continue`).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_1b3cbaddab6e496f.py
+# EXPECTED RESULT guard_hits_baseline>0 count  (dt 9 h and 24 h: every step takes `continue`)
+# EXPECTED RESULT max_abs_delta=0.0  (EQUIVALENT: with end == i the mutant takes np.mean of an empty slice = nan; nan > 0.5
+#   and nan > 1.1 are False, so weights[i] stays 1.0 exactly as the `continue` leaves it; only a RuntimeWarning differs)
+# EXPECTED RESULT mutant_runtime_warnings>0 count
+# EXPECTED RESULT null_max_abs_delta=0.0  (dt 0.25 and 1 h with sun and loss signals: the guard never fires)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g19 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._anticipatory_weights (line 3402
+#   `            if end <= i:`), called at optimizer.py:5463 and 5735 to shape the initial guess.
+# Perturbation: `if end <= i:` -> `if False:` (GUARD_OFF 1b3cbaddab6e496f), applied in memory (method recompiled from its own
+#   source, called on the same instance for the mutant arm). Direction: none observable on any input tried.
+# Null control: dt 0.25 h and 1 h, where end > i always.
+# Inputs tried: dt in (0.25, 1, 4, 8, 8.5, 9, 24) h x signals (sun 2 kW / loss 1.3, sun 0 / loss 1.0, sun nan / loss nan,
+#   sun inf), n_steps 1..6.

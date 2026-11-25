@@ -1,0 +1,85 @@
+{
+ "key": "b10967dd4ea185fd",
+ "site": "custom_components/heatpump_optimizer/price_model.py:72 CONST",
+ "patch": "SHAPE_MIN = 0.2 -> SHAPE_MIN = 0.4",
+ "function": "<module>",
+ "cluster": "price_model.py:<module>@66-90",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3634.9,
+  "load1_start": 0.97,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/b10967dd4ea185fd.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py",
+  "baseline": {
+   "shape_min_winter_day": "0.291439",
+   "shape_min_one_hour_0p01": "0.198468"
+  },
+  "mutant": {
+   "shape_min_winter_day": "0.394538",
+   "shape_min_one_hour_0p01": "0.390283"
+  },
+  "moved": {
+   "shape_min_inputs_moved": "3 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "winter_day,one_hour_0p01,one_hour_negative,mild_day_ratios_0p8_1p2,flat",
+  "all_results": {
+   "shape_min_winter_day_baseline": "0.291439",
+   "shape_min_winter_day_mutant": "0.394538",
+   "shape_min_one_hour_0p01_baseline": "0.198468",
+   "shape_min_one_hour_0p01_mutant": "0.390283",
+   "shape_min_one_hour_negative_baseline": "0.197743",
+   "shape_min_one_hour_negative_mutant": "0.388938",
+   "null_shape_min_mild_day_ratios_0p8_1p2_baseline": "0.8",
+   "null_shape_min_mild_day_ratios_0p8_1p2_mutant": "0.8",
+   "null_shape_min_flat_baseline": "1.0",
+   "null_shape_min_flat_mutant": "1.0",
+   "shape_min_inputs_moved": "3 count",
+   "null_delta": "0 count",
+   "inputs_tried": "winter_day,one_hour_0p01,one_hour_negative,mild_day_ratios_0p8_1p2,flat",
+   "residual_var_max_baseline": "225.0",
+   "residual_var_max_mutant": "56.25",
+   "thread_factor": "1.000",
+   "load1": "0.81",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "Doubling the shape floor raises the cheapest learned hour of an ordinary winter weekday from 0.2914 to 0.3945 of the daily mean (and a 0.01 SEK hour from 0.1985 to 0.3903) through PriceShapeLearner.fold, and quarters RESIDUAL_VAR_MAX (225 -> 56.25), yet no gated script fails: the guessed price tail's night trough is flattened silently.",
+ "should_fail": "tests/features.py 'Unknown price horizon (item 7)' block (~3660-3700, traced executing price_model.py:72 via observe_day's clip): it checks only that a trough exists (predict(03:00) < predict(12:00)); it lacks an assertion that a learned hour below SHAPE_MIN x mean is stored at exactly SHAPE_MIN, i.e. shapes[idx] min after a day with a 0.01 hour.",
+ "finding": {
+  "title": "price_model.py:72 SHAPE_MIN 0.2 -> 0.4 survives the full gate: the learned price shape's floor is unpinned",
+  "claim": "Doubling the shape floor raises the cheapest learned hour of an ordinary winter weekday from 0.2914 to 0.3945 of the daily mean (and a 0.01 SEK hour from 0.1985 to 0.3903) through PriceShapeLearner.fold, and quarters RESIDUAL_VAR_MAX (225 -> 56.25), yet no gated script fails: the guessed price tail's night trough is flattened silently.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "smallest learned hourly shape factor (shapes[weekday] min) after one day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_b10967dd4ea185fd.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b10967dd4ea185fd",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (<module>), custom_components/heatpump_optimizer/price_model.py:72",
+  "perturbation": "the one-line mutant b10967dd4ea185fd: `SHAPE_MIN = 0.2` -> `SHAPE_MIN = 0.4`; direction shape_min_winter_day: 0.291439 -> 0.394538; shape_min_one_hour_0p01: 0.198468 -> 0.390283",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

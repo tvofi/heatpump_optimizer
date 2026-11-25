@@ -1,0 +1,15 @@
+RESULT v1_store_upgrade_log_records_baseline=1 count
+RESULT v1_store_migrated_baseline=True
+RESULT v1_store_factors_equal_source_baseline=1
+RESULT v1_store_upgrade_log_records_mutant=0 count
+RESULT v1_store_migrated_mutant=True
+RESULT v1_store_factors_equal_source_mutant=1
+RESULT v2_store_upgrade_log_records_baseline=0 count
+RESULT v2_store_migrated_baseline=False
+RESULT v2_store_factors_equal_source_baseline=1
+RESULT v2_store_upgrade_log_records_mutant=0 count
+RESULT v2_store_migrated_mutant=False
+RESULT v2_store_factors_equal_source_mutant=1
+RESULT thread_factor=1.000
+RESULT load1=1.12
+RESULT swapins=0

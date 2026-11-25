@@ -1,0 +1,1 @@
+- probe_d3ea4bcc330436ef.py: Metric: count of batch inputs on which tariff.peak_cost_batch's per-row cost array differs (value or exception) between

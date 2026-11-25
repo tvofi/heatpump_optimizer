@@ -1,0 +1,116 @@
+{
+ "key": "aa6b718c979bf831",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:7118 GUARD_OFF",
+ "patch": "if not self._weather_outage_cycles: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._weather_fetch_failed",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._weather_fetch_failed@7118-7118",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3119.5,
+  "load1_start": 0.79,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "child_cpu_s": 5216.0,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/gates/aa6b718c979bf831.json",
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aa6b718c979bf831",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+  "baseline": "(1, 1, 1, 0, False)",
+  "mutant": "(0, 1, 2, 0, False)",
+  "inputs_tried": [
+   "fail,fail,recover",
+   "recover alone (null)"
+  ],
+  "result_lines": [
+   "RESULT weather_baseline=(warnings,infos,debugs,outage_cycles,stale)(1, 1, 1, 0, False)",
+   "RESULT weather_mutant=(warnings,infos,debugs,outage_cycles,stale)(0, 1, 2, 0, False)",
+   "RESULT state_moved=0 count (outage counter and staleness)",
+   "RESULT null_moved=0 count (null sequence ('recover',))",
+   "RESULT probe_cpu_s=0.01 s provisional",
+   "RESULT thread_factor=0.999",
+   "RESULT load1=1.05",
+   "RESULT swapins=0"
+  ]
+ },
+ "should_fail": {
+  "scripts_executing_line": [
+   "tests/config_flow_steps.py",
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/manual_plan.py"
+  ],
+  "source": "dev/audit/rounds/round11/D3/s1/state/reach.tsv (traced baseline, exec= column)",
+  "assertion_lacking": "no executing script reads the coordinator log; entities.py:42245 only counts the call site; the first failure's WARNING ('Plans continue on the last forecast, marked stale') is unasserted"
+ },
+ "carried_m4": "see m4_source; re-answered here with the executed probe",
+ "finding": {
+  "title": "No check reads the first weather-failure WARNING; demoting it to DEBUG is unseen (outage state unaffected)",
+  "scope": "D3-s1",
+  "step": "D3.M3",
+  "claim": "Mutant aa6b718c979bf831 at coordinator.py:7118 (if not self._weather_outage_cycles: -> if False:) turns the full GATE_SCOPE=full GOLDEN_MODE=drift gate red only on the null control scripts (RED-AS-NULL: no script beyond the null), yet the probe's number moves: baseline (1, 1, 1, 0, False), mutant (0, 1, 2, 0, False).",
+  "mechanism": "Check that should have failed (D3.M4): no executing script reads the coordinator log; entities.py:42245 only counts the call site; the first failure's WARNING ('Plans continue on the last forecast, marked stale') is unasserted. Executing scripts (traced baseline): tests/config_flow_steps.py, tests/entities.py, tests/features.py, tests/manual_plan.py.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "WARNING/INFO/DEBUG weather-fetch records, outage cycles and staleness over fail, fail, recover",
+  "phenomenon_property": "The first failed weather fetch of an outage logs one WARNING; later ones log DEBUG",
+  "seam_rule": "for f in dev/audit/rounds/round11/D3/s1/wave/*/results/*.json; do python3 -c \"import json,sys;d=json.load(open(sys.argv[1]));print(d['key'],d['site']) if d['class']=='candidate' else None\" $f; done",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._weather_fetch_failed",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+   "value": 0,
+   "unit": "WARNING records",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g10: Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, /opt/hpo/venv-ci CPython, alone on the box",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the probe ran in a separate baseline worktree while this box's gates ran; gate walls provisional"
+  },
+  "perturbation": {
+   "change": "mutant aa6b718c979bf831 applied in memory by the probe; full gate: fullgate.py run --src complete --key aa6b718c979bf831",
+   "expected_direction": "down",
+   "observed_value": 0
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+   "value": "0 count (null sequence ('recover',))",
+   "note": "a lone recover: null_moved=0"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aa6b718c979bf831"
+  ],
+  "proposed_fix_scope": "tests only: a check in tests/features.py at the input above that pins the baseline value ((1, 1, 1, 0, False))",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

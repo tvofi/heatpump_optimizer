@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_a99da4c347a19ca5.py: pins max abs difference between baseline and mutant schedules over the grid of inputs where the mutant opens the loop (p_max == 0) (mutant `if energy_kwh <= 0 or p_max <= 0 or dt <= 0:` -> `if energy_kwh <= 0 or p_max < 0 or dt <= 0:`, optimizer.py:2126); output out_a99da4c347a19ca5.txt

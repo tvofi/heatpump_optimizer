@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py: Metric: plan value (kW) _apply_dhw_pins returns at a step pinned exactly 0.5 (planned 0 kW, min_run_power 0.6). (needs _g14lib.py beside it; _mk.py regenerates the probes)

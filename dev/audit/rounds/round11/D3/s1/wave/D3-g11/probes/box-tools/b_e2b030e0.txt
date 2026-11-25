@@ -1,0 +1,23 @@
+
+import time
+from datetime import datetime, timedelta, timezone
+from unittest import mock
+from tests.harness import FakeState, FakeStates
+
+NOW = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+MUT = mutate(co._dhw_inlet_c, "value <= 35.0", "value < 35.0")
+
+
+def read(fn, val):
+    hass = type("H", (), {})()
+    hass.states = FakeStates({"sensor.inlet": FakeState(str(val), last_updated=NOW - timedelta(hours=1), unit="°C")})
+    with mock.patch.object(co.dt_util, "utcnow", lambda: NOW):
+        return fn(hass, "sensor.inlet")
+
+
+t0, t1 = time.process_time(), time.thread_time()
+print(f"RESULT inlet_35_baseline={read(co._dhw_inlet_c, 35.0)}")
+print(f"RESULT inlet_35_mutant={read(MUT, 35.0)}")
+nulls = [34.9, 35.1, -5.0, 10.0]
+print(f"RESULT null_moved={sum(read(co._dhw_inlet_c, v) != read(MUT, v) for v in nulls)} count")
+tail_results(t0, t1)

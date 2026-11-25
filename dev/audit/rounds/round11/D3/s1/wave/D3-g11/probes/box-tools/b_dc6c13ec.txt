@@ -1,0 +1,34 @@
+
+import time
+
+t0, t1 = time.process_time(), time.thread_time()
+OLD = "if worker is not None and worker.poll() is None:"
+MUT = mutate(co._ensure_worker, OLD, "if False:")
+SPAWNED = []
+
+
+def live_after(fn, calls):
+    g = fn.__globals__
+    g["_PROCESS_WORKER"] = None
+    g["_PROCESS_ATEXIT"] = True  # no atexit hook from the probe; children are killed below
+    procs = []
+    for _ in range(calls):
+        procs.append(fn())
+    SPAWNED.extend(procs)
+    live = {p.pid for p in procs if p.poll() is None}
+    for p in procs:
+        if p.poll() is None:
+            p.kill()
+            p.wait()
+    g["_PROCESS_WORKER"] = None
+    return len(live)
+
+
+try:
+    print(f"RESULT live_workers_after_3_calls_baseline={live_after(co._ensure_worker, 3)} mutant={live_after(MUT, 3)}")
+    print(f"RESULT null_moved={int(live_after(co._ensure_worker, 1) != live_after(MUT, 1))} count")
+finally:
+    for p in SPAWNED:
+        if p.poll() is None:
+            p.kill()
+tail_results(t0, t1)

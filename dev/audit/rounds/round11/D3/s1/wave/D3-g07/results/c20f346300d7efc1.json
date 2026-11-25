@@ -1,0 +1,89 @@
+{
+ "key": "c20f346300d7efc1",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9292 BOOLOP",
+ "patch": "if when.tzinfo is None and now.tzinfo is not None: -> if when.tzinfo is None or now.tzinfo is not None:",
+ "function": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin@9292-9294",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3487.5,
+  "child_cpu_s": 5830.9,
+  "load1_start": 1.09,
+  "load1_end": 0.92,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/c20f346300d7efc1.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c20f346300d7efc1",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+  "rc": 0,
+  "baseline_value": "2.0",
+  "mutant_value": "0.0",
+  "baseline_result": "margin_baseline",
+  "mutant_result": "margin_mutant",
+  "all_results": {
+   "margin_baseline": "2.0",
+   "margin_mutant": "0.0",
+   "null_baseline": "2.0",
+   "null_mutant": "2.0",
+   "thread_factor": "1.000",
+   "load1": "0.81",
+   "swapins": "0"
+  },
+  "inputs_tried": "now 2026-01-15T12:00Z; events now-1 d, now-2 d and one stamped -05:00 whose instant is 1 h inside the 14-day cutoff; null: that event stamped +00:00"
+ },
+ "traced_reach": [
+  "tests/features.py"
+ ],
+ "should_fail": "tests/features.py (traced reach of coordinator.py:9292) has no _immersion_dhw_margin check with an aware event stamped in another offset than now's, asserting it is counted by its true instant",
+ "finding": {
+  "title": "No check pins _immersion_dhw_margin to an event's true instant across UTC offsets",
+  "claim": "Mutating coordinator.py:9292 `when.tzinfo is None and ...` to `or` re-labels an aware event with now's zone, dropping a -05:00 event 1 h inside the cutoff out of the window (margin 2.0 -> 0.0 K); the full gate stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_immersion_dhw_margin(now) for three immersion events (K)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c20f346300d7efc1  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py  (margin_baseline=2.0, margin_mutant=0.0)",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/coordinator.py:9292 `if when.tzinfo is None and now.tzinfo is not None:` -> `if when.tzinfo is None or now.tzinfo is not None:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+   "expected_direction": "down",
+   "observed_value": "2.0 -> 0.0"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+   "value": "null_baseline=2.0, null_mutant=2.0",
+   "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+  },
+  "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._immersion_dhw_margin that changes its returned value has a check that fails when the guard is mutated",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._immersion_dhw_margin on the probe's input and asserting the baseline value"
+ }
+}

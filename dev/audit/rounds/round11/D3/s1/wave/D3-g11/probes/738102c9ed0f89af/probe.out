@@ -1,0 +1,6 @@
+RESULT outdoor_nan_baseline=ok samples=0 mutant=TypeError
+RESULT outdoor_inf_baseline=ok samples=0 mutant=TypeError
+RESULT null_moved=0 count  (finite outdoor: ok samples=1)
+RESULT thread_factor=1.136
+RESULT load1=0.35
+RESULT swapins=0 count

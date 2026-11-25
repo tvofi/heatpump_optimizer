@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1f1dc504.py: pins max |baseline - mutant| (kWh) of HeatPumpOptimizer._pv_self_consumed (rounded to 3 dp as published) over (shared: g22_rig.py, reach_scan.py)

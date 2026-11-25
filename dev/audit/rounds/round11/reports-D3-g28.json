@@ -1,0 +1,1623 @@
+{
+  "box": "D3-g28",
+  "missing": [],
+  "reports": {
+    "D3-s1": {
+      "dimension": "D3",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "box": "D3-g28",
+      "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/REPORT.md",
+      "exposure": "Box D3-g28 (resumed from the predecessor seat's checkpoint handoff-wip/finder-r11-D3-g28 @ c71606ac: null and 8 gates, results and every probe restored, not redone). Read COMMON.md/D3.md/README.md-derived procedure, finding.schema.json and check_report.mjs's denominator rules (through a haiku extractor), REPORT-D3-u1b.json and REPORT-D3-rem.json coverage rows, this box's carried probes and results, and the 47 wave boxes' dispatch keys.tsv (key lists only). No register, round11/J, verifier report, docs/ or GitHub read. Gate driver: gate_wave.sh (out of tree, on dispatch/finder-r11-D3-g28): one fullgate.py gate at a time, GATE_JOBS=1, cap 14400 s. Workaround in this box's own tree only: $HOME/venv-ci symlinked to /opt/hpo/venv-ci (the driver's PATH), and the predecessor's results_loop.sh run from a scratch copy with its build_result.py path pointed at the in-tree probes/_tools copy; nothing pushed.",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+          "universe": 1260,
+          "examined": 1260,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C8",
+              "state": "examined"
+            }
+          ],
+          "evidence": "carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+          "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+        },
+        {
+          "step": "D3.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+          "universe": 1260,
+          "examined": 343,
+          "not_reached": [
+            "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+            "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+            "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+            "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+            "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+            "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+            "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+            "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+            "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+            "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+            "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+            "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+            "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+            "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+            "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+            "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+            "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+            "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+            "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+            "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+            "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+            "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+            "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+            "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+            "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+            "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+            "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+            "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+            "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C6",
+              "state": "examined"
+            }
+          ],
+          "evidence": "box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+          "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+        },
+        {
+          "step": "D3.M3",
+          "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+          "universe": 742,
+          "examined": 16,
+          "not_reached": [
+            "assigned to box D3-g01: 16 keys: fafb0d2c15e72efb 676e8bfb416ff635 622996d751dca0c4 0e6080e5385399cb 021dc21415f3229e 1165914e57f5bd08 ab918806fc8b4af6 db9b59ec36304943 cf7be12db1a662c4 031dba68286ccfbf 22205dc8a4a6e79b 37e0face2a901e71 68c8ce175dcfa839 97628f4b14aec1b9 20f57d1eea0a5a1d e0bd801049aba41a",
+            "assigned to box D3-g02: 16 keys: cd1d099ef87f3ab9 473508040d23cc21 ad8a02e5c07428ab b3a8cff2e5c0a8cc 59027d3bdf2e7a0c 7d276b43052dbeb9 953a106a1aa39cee 4b296fec48fc594f 58fe17a0726473a6 2700e28d79c64bd8 223ac303af04edde 9d324a1dc7a6aa82 bb1abbfc58114a17 74dbcc2eae2c24f5 355c3d7dd36a1b90 206a570d8cc784e3",
+            "assigned to box D3-g03: 16 keys: ec4b6ee2ab420129 3351754da55a2896 16f7665306eebdf3 2ec5fda238265712 c0ecc8e0b6b66ded ac6bedc70bb82ff7 3304e65ba361587f a28fd1af46c39331 4498461fcf451835 79db73ec81b29f23 816e18d55f46f0e4 9c82d861621b8087 e880fd3537006726 134126ee4914191f b7623a645f34e628 420bcb8597761025",
+            "assigned to box D3-g04: 16 keys: 466c95cb8978ea1d a7dd3153718e531b b6b6e82fb4a33703 10ba5036744c9a99 7457d714cd44306c 6aeb83e5435c9cac d06a2d8e53342785 9789e0e7faa1b53a 8b4f4adbf55981bc c555c1a38da31dde ff67ca31aba14e7f 201955bf671ce8aa faf822994582adfc feed2751f4116bd1 29bad645ca2c2438 640a1a68b6c1eb23",
+            "assigned to box D3-g05: 16 keys: 0acf3cb312a5b76e c087dc286eeff014 3b458790a543507e c39bf88e7fd0066f 218ac218da41d87d bcf290164a0edeeb 375376c4733a1a51 2699efc070f5d4e3 cc7e5a62ec1ea4d0 d05457b7adf4d691 d943cc9f7670a834 894b4e70a336f8fa 2d6701afc323e1e8 8cfd8cf0d8a58c83 e02e1ac8cc0b714a ba1c58ad6dabbebd",
+            "assigned to box D3-g06: 16 keys: d915157ffe509e58 dff127b334682936 6b306521ae03824d b546d5e705722bb5 59337f7f63497f21 4542deee22df985f 8e729260c34e2e3b e347b6890486dd0d 72fbe692d30d275e 2e4d4a89570a1b24 30fcf9ba50130ea2 89a3d25e2425b8e0 efa2c19c51831a68 205d200980d58e9e 96fe4cecaa16f997 1a24365a55bfb2c7",
+            "assigned to box D3-g07: 16 keys: d3cad40ffce9b765 e163f6fbc359cd4c 67495f7b404053fc f0146f6f4901ec82 5f950692fab8eb1b 4410da4e8eb84cb8 7ec91efc2c6deffd f11665aaedbf2550 9b72b944ac12fa25 fd1cc23d380739ba c20f346300d7efc1 60f673da42f9d671 661116d11d6faa49 b6ac2d53028d45a3 7f2768bd0a78b4bf 1ee0ec8960fb9a66",
+            "assigned to box D3-g08: 16 keys: 15456e64946920b5 82f764a536ab9d71 2e20bf308c37e0e5 ceee24404849933e 7729bdd71430fcf1 341d807c3a3d361d d5ce59f9731dfc83 7398de952c9d1510 21a2563e1beb213f 509893a173fa6a29 cd6eee1c9c175e5f da1919c641494713 37e281ab084b40ae b283779946540c3d 25fb4eaf35cfdda5 aaa2a3d6bb2ba515",
+            "assigned to box D3-g09: 16 keys: 9cdf54d2309cfcc8 d8101520588009d9 33d708ab867fe5e7 3dcdfbdd2542f33e 3d83c32f185cf411 002980a15ae8b9a9 1785780ac9dd1b18 326b26f53972df61 104db258fed59c2d 8daaf4fcaf8cd897 3cfe39778305daba 146d687b30889301 425a9196b86265d0 84797ff91697f6a7 0c99189b7639f1bd df697cc04154fbdd",
+            "assigned to box D3-g10: 16 keys: 205660ee362d1a07 34c20aac32a34344 c7054b2e59c82141 ff56936f15fd4675 349b2e117d076731 cdd17526ebbf2a93 8ab42c4ab9755537 e689dc488b493c6b f2a191b48718e088 b871ff0486182e3e 813cb7aecbd78f98 aa6b718c979bf831 18fe89552892dc4b 65175bb211f70f26 3b6228b7d69c32bc f68e6ba7e28b251a",
+            "assigned to box D3-g11: 16 keys: 9efe002b48e1827d a7488872387d5ca7 61e748f094f2daa8 a33188790c5affad 94285425a1bc856a 69b933a6a720006b ede3dd3467ffc6e5 9dcd374ac007dfc9 d4b32336085935df 4fd094e9727818b3 e2b030e0716d126c dc6c13eca2ca1737 738102c9ed0f89af 372a4f4fcc8de86f 6f5898d327366799 b247841f5466162d",
+            "assigned to box D3-g12: 16 keys: 7ffebcb567a4242e 845155d368e8b524 3e68dcd55f9567e5 88ecd932bc81efec 4403a4c7bec83d8f 89bec0a0291b4756 b028ad9d6c702965 3b9eddc7ba9a7488 fc4fe0f49de831a8 d1197dfed14a6927 3e3fbb5fcbbe9bcc 1ba9abbe8e702464 4aac8e694ddc5dfe 5366f1e6254f603c efb33eb6212be24e 0e3569fef6b39497",
+            "assigned to box D3-g13: 16 keys: 24d9995ccee4252e 7030f8259cc37dd4 5941c09a9face079 b020c93535a7f9e6 8297234e122897ff 681130c48add1573 c61a89f42607c92b c0bd33b7c209982d 677019b333cfa304 168e4035dbc9bb84 597d6753c0939797 df4de55e12588fdf 72240d3f22ceb752 49dc3d36092b3943 111763243ac44278 af8d4fddad8f298f",
+            "assigned to box D3-g14: 16 keys: 3685cdbd27c1680f 1c0e818b4bb24fcd 0b51e1d1975513aa 0e3fc2bc64c2bf63 4813f0fd25bc8bb4 b25e80c59b31c20d 6999e2dab9790b53 cd7bc939ea82fecd de02e0a048abc451 7f026b4dd7d44269 a1576c7241b67401 8fa714bbb756e11e 8fbdb8a5c1e67d5e 94c2cc27ea61db25 defeacb89de279a1 c9404a6ea551b041",
+            "assigned to box D3-g15: 16 keys: 0e752f692873e876 3e26ea9048504c31 77d5e6c8ea98273a a1ebeff0870dfa76 f1549576a94b99be 1d455987c970dfde 7cd9b966a3bd0008 8e9a502f439ceeeb f9c1b49fde6e1d52 79ba0b9f6b3cf22d 56d2279a568e8891 31c1881164f2dcdf 7640e80a994db479 5224cce5f7a150cb c124ea447555a04a 8fb9093f7470e6aa",
+            "assigned to box D3-g16: 16 keys: 35d61c87783ebe66 01acd6cc2431d71d 8fc6a207d6600867 72882f2ac25c19b1 ea6dfc5a3c85cce3 a21e5757eab163a7 b16740061447ef70 e19cdb6bf198d1e7 41000bf52dbaa1ad 88d911d796fdd71d 3ec31b99309ca722 9b890e4f1fdfcd41 84eb14f49ff66736 7da9151a6a79c43e 88a992e9013ee436 50ae25437a296deb",
+            "assigned to box D3-g17: 16 keys: 0aa6eaace756da92 eae8cfee2ddbd16d fd9b39c806b43b56 61862d35b6b2885d 5b123e9e5b76ebc3 4f1f941124291aeb c1d6f40c74ee74ad b1a8d3056bf42597 8db7b149f5f9eda5 ddf4602569b157b1 247372989ae65baa b1074e70396100d8 539e5aeaccf156f3 6e1174561ae9297c b7a6f145165338bf 2074f3eefe8521aa",
+            "assigned to box D3-g18: 16 keys: 2580fdeb3923a03e 64576dd552491452 91617fb42e33ebdf fabfc9228615948e ef125fd473e20ed2 ff4f903a5a5c3f55 3c6e75178a60d75e d7e250feefbd0343 e11dcf62611a5d1c 936bcb2da6441e86 2aa0f17a216035ee 19ac62540d0d5ee8 3b87cd840077679e ee2d5a67d9d3a7f9 db32007740226522 9297f123a6265555",
+            "assigned to box D3-g19: 16 keys: 911f3cf5172ffc44 b5f0a73275608684 68cc141bf2c3493a 2043855ef5cf151d eee37674711fa45f 23b144fb9583c5c7 68ef00f470ecea8d be95c184bf4746ff e53563e772b70dbc aebea2e6b76b2dc3 2ae9ff3138f9364d 24ef8e54dad20484 7f048d7823b17826 4c7e296370fc452d 9644a454ac8f288b 1b3cbaddab6e496f",
+            "assigned to box D3-g20: 16 keys: a0722b8c635d2d93 d800d2857a698d22 176e4dd6d5aec097 c40e66fc9831672f 7452dcf280ce931f aa338654e7801916 7add4cd79387ec24 72d1e72dd0acdfc1 bdb9a95deedcc8fe bf2229e3f179f4b6 19141bef62ecb4a6 47430bf93e309e76 0275af9776ae709e 9e71bd23e996ec6a 3652dbb5880d62c8 b1926550efd8eac4",
+            "assigned to box D3-g21: 16 keys: fd57e13959b23a4c 905a40b5ecea024f ad01ae06d7ea84ec cb58757b91fa48c4 8ac9888c3d5fed52 00298af0aa9d1903 a4f4c88e7480a514 904118eef67fced3 be3a3a75280c7b7e 39a6d2e97fd44ed5 deb281264473bdd6 a66e107749d0ae11 4e5a67b907d13871 ed5e3ec5b879ed90 6309f3e4a0a6c45f 6b6eb0c1091c3c5c",
+            "assigned to box D3-g22: 16 keys: ea0b9abd134c33cd fa67e0922f51edda ef9a378b671791ca 1897b1e8f0e09c02 c859178ad2524ff8 e658b77d3e5ca8f6 6ab21fd9f9fe4953 1d0c70b3b63230eb d600d4886444a718 6e420d1efdf4895b 7da20bf51cc217e6 1f1dc504455f17da 9fe0782a9839475e 7c2ae6b70ec6acb7 97da0984453a53bb af94ce8be7140e87",
+            "assigned to box D3-g23: 16 keys: c6679b9b114e5732 8ef1027c9e221b64 ce686724ef107650 8fd14c249b86abf7 0120a5a672990611 0ecb763c4bcb0828 f2894b5754c254fe bc3a42f14c903439 856aa341a89a6ab0 7303435ec1ab7701 5ce83ed87c36b9a5 fe3e41de6bdc640a f25414a9d4e32d19 70791cdb98f8ddd7 7516dd3d9e66d3ef 65e0ffa75d60d319",
+            "assigned to box D3-g24: 16 keys: 1dcb273b03f63a4e c679a9939ee7b3ee 41d866cef7ea4115 fa3bb379b762e2a9 ce5b92d704397d85 dd2b698bc1d5d4b8 aab0b73e229ad900 7cb1bac951ddeb9e 9bfc2c6d1bfe66bd 56de38e47369b2b7 df066a5f3f3d3e0f bbcded8a73c6a2f1 0f03bb94bcab1682 f54d3d4c7351ac76 0270b5efaac478d2 68ee8d20663ac601",
+            "assigned to box D3-g25: 16 keys: f3126cd40dc76143 f58c6d034aa31e46 6aec51dc6f670787 b2e075c0da35240d 57f696b2f988d5a9 b143b01c4ea02159 a581feadd69c6c42 e96ae75a1f1f213e d0de1c16101369f5 f8b7db7badd35158 cd766b55c44ca3ee 724471c27310230f 970ed4d74c36caa1 1d11f24436471959 e16ae8a6fd6cea40 119b25afdd5d4988",
+            "assigned to box D3-g26: 16 keys: 35d104f30f878131 ec173cf0e67c0689 f56e3474baa75dc5 1721e50b7537a426 2693e4fc04518cbf ee671fa6ecec9023 9a06a1a7e515fa67 977021e3b3964277 10de422e4e1024a7 e4affa9b9b540588 0fcdd4bdabc205ea 8365c2592bae9886 65b62179a34d3443 67ac7292ac5ddd19 cfda6ca73c6951f1 c2896572788698c0",
+            "assigned to box D3-g27: 16 keys: e58e8eb0f54fe274 d128afa0c1ce3d28 0a40fc8d3d37f2ba 6af4c3b8f521e3d3 10e3ee99c90d4d48 06f2ef99e24e2e24 c1e66052b2d8090c f077d8a96cc1e3ed 04bfd79fdf465dbf 6a32950e7b3e62f2 c5abe60d7c7ca966 ef7b85a510c47950 3067ff76235329e4 0560ccd4eaedbd09 b94f040a7b0aed92 efea9d49d605beaa",
+            "assigned to box D3-g29: 16 keys: e196155b7525014c 9d455ff4aaf3f3e0 55022279c6d6bbda 6a75a1ff72dc1df8 133158399eac10ae 4434c1fcedef6b6d 2d4e3ff8e818b777 69e4aa41f4562af9 8171db177f51df33 2aff1f5c0b10dffa 000221f3921dd956 8ef8417029ab8385 b5d57e4a1fc22d96 f062e0cc415ee33e 0ea7620ce058c489 213a122afd9ff3e1",
+            "assigned to box D3-g30: 16 keys: b10967dd4ea185fd 7e5493bcbddd6c18 66686e3bc3bac9b9 5bf50f5d986f927d cc96ce9e391ca6f2 b5aef00760fd5ea8 b9b6cf1d15a84248 a5c9796d35117839 13cadf1ab9a2de61 b5a482468c783209 0b10a7c76e2514d2 c4697335da324182 79c65c4903e72ee2 4e79ba6ea642d086 12cd6ddd79fb36fc cee6857510fbe69e",
+            "assigned to box D3-g31: 16 keys: ba9f6b92f678ab10 c9f07b68ade152e6 45cd5752f930a064 e72d16a241bfa7be 3a064c11321daba7 efa02472a5a773bc 6743e8b3d654cd32 a38612ad3ad9cd34 f06caefa38815e4f 28de20de50a9540b e5eea05f4463602e 3ceb6a076659004f b434193b049a41c3 29db99dee6a5debd 886591ca08e1d27e c1e06ebefdc5abad",
+            "assigned to box D3-g32: 16 keys: 0d159d7ddd1702d9 80fd46122d85566c b539d4504385a139 55f9ec66dc8bfd54 88732fcb7c604858 176d8ddb23988b95 de399cdbe79053ea c5ddabc7d9641cba 75d5865af3eceda7 0d5a6ef5041b90f9 4f2d93e67ccda975 afbdfa240c441812 ebd8c531fddf0a24 4a189db92053760e 80cb9a8152f72e57 1f4a10ae90bbf2d9",
+            "assigned to box D3-g33: 16 keys: 822c0c6477ed703e adc459d2db521041 a23ed12204379870 6e67f128730b3ecd cf96494341270371 ad7a177d7ca99cad b61d1402aad5a055 0b6e291153f1d738 e38d4bea802156c3 20e001c48fb19330 d435f0054d7c9881 95090bc58c6535b2 505422349a01c3ff 7dbbb95252ced538 b413c17079bb8176 aa6d264aa0411bcd",
+            "assigned to box D3-g34: 16 keys: b8d5ec03e8eba5c7 756f3bebd6a42efc 3918ca4fedbfc5bb 84372c0eb1502d14 20f72103eda78713 50daaa57683189c5 4eeb366191982f92 a9bc37e9ba781833 44bb0ce0b258242c b97b45a6162a2f00 6b6a8493668dde1c 10665a84dc064489 d7421c10ed63c281 07227ec96c3e14de 3e78e62aa0f2e687 87c3101b5663f17b",
+            "assigned to box D3-g35: 16 keys: 31bb6bebd6b45f0e 501a5e7cda702183 20cde1046cbd5681 6cfdb101dc87a6ea d203230963349f60 078e78462859ff6b 5654f855fcc27724 c303df62a0b7b9bc ed00e6c2abf2aa66 4593852cf3862b3c 64f3ef1feaaf7bc9 784e362919d88a92 d661d68f54982097 a5b06d898bf0ba03 c51115b0104a8bf5 4da9d281d4714565",
+            "assigned to box D3-g36: 16 keys: 440c0a6d5ee72d19 809e8d14f04e1127 0137ee1f014fb759 24aa39e8c4c6d26a ae8f84354933d191 9460d3802a8903d6 de6bbadf1499bae9 0baef4e86433b225 b3c0e51c511b2618 9dd0547496b091b0 8840eb67a646cd97 027e7746bfe5b7bb 85eb19919a6b995a 5104733df3085998 373207a8e12c37c5 291748b42a54c1f6",
+            "assigned to box D3-g37: 16 keys: ba25d4dc58c7fecc 67f17d97399379c0 99866c2ffc704413 b4f7503c6959449d f6016f6adb9683a8 0c0a6bcb94a3ba3a 2b5a8949055ecd4c e3ea72b8dc57884a 6db5003950426ce8 1e9d97a860146a80 51b2c8ce3dadae0c 62a1f4d0c1be5960 845bf7a69b48b94b ab65584805229d1c 186b3076dcce442c 66e79426a66d3362",
+            "assigned to box D3-g38: 15 keys: c1ce480d20083d83 d8e588be2e0aba89 e7edbe5bae5e180a a1ba3ad7c4c53dd5 56294c2224449394 6c7eefdfaf64ea5a a6c42cff101ffc65 b0d27be4975eb62b bf5868e583609121 6f546669421ba07b 7c25d8795fa2d46c 907d16324ff11dda 990cdd83373504ad d0f2d18b2b49232c 4467ecd198f47483",
+            "assigned to box D3-g39: 15 keys: 559484953b5cdd5d cb38833c854f6257 fa6fdd76e6fa619d 246043395831f540 de935c38786265e7 4ad3dc13bfdb70a8 7fcaf91cced5ce41 81557beca8f0a974 8611ebe645da9f19 37b3c9a03326d207 7f9297e43c9449d8 9d16dbc0d3aba164 6536ff6b094f971d 2d64a114647f1551 5371ee2b5e897750",
+            "assigned to box D3-g40: 15 keys: 5f094dbca9a593e9 7b4d6225353952ed e6bcd13be86202b8 e01cc20e67f1f720 f8eec0888776e8ff 968c552b8acd9df9 996dce5148e02763 754e4cb5fa60e129 a074fb25836c2bc6 22dd975583db1b89 134d9411b323ef8a 3e9a439baa86a074 1894e6dcd2251a30 0e94685aa803560d 64a2ed644109fda3",
+            "assigned to box D3-g41: 15 keys: 2765114b9329f57f d3ea4bcc330436ef 2d037a10caa62e28 6600497e58836413 43b54266f12bfb21 dfe094233a9164e0 e3a350a3272762f1 94ce174acf85b6f2 898d741cf6142efb 29065b9e48071934 1110101b6e52a494 d6023ebc83ac4317 a6cebb125b72f083 d97762e31739dd75 c5e678a5d1812e40",
+            "assigned to box D3-g42: 15 keys: 5a66d572bfdd1491 5b8e7044ee7974f8 7684dd370eaae807 f7e051cc469b465f 523356020b4bb37b eb094b1749a24474 402ffd06ddbd856a d90533f4d17cfa14 c3ce2c5919d2c385 011b9e2e975b5e98 9df41596c4fa89c6 029c040224dc4e38 5141eb1194306254 babeb7b3990a574b 256e285aadb8b31d",
+            "assigned to box D3-g43: 15 keys: f2ab25c56b407ef9 d9a65b3770e6860a 97bd985754f1099b cc34cacdd80553ed 7b46514aedc0a8cf 876be7bf2f538255 a3f2b00cc4aa527e a486806b8f4ff4d7 806f3255b74936a9 f2706cbdb16a8f66 1108e8140e06404e 7068e39e4608027f 6462c28df2f973e0 daf153fda85092ff e5a0d6a548f12244",
+            "assigned to box D3-g44: 15 keys: 140cd06a7d92f278 cec9e59d96700bfd 33f34d42b3bd2d73 4984532d2907d5c3 5d07aa6af8490d01 966c9be1a17c8bea d4d032563b183133 78b7f2ebcf85c8a1 f66c6e9cf9d1f84a 9362d5efbe6808c2 36117bb3a189672b 3d4899a05eb126c3 cde383447b865539 3d468643db7d9ee4 05b5a15efaaf70de",
+            "assigned to box D3-g45: 15 keys: b2faf84904db389e 1a9ac2bac45ef9e0 e5f8fc2488caedf5 1b476993921016f9 ea888783bb621669 b098598faf0d87dc a2a1d3802ceff60d b9bbb3ac364893f7 dd40fdb4edae4d79 19404e3632806509 beeb068352333132 ea9c4705de428b28 98853a541b6b5d6a fdf5872fd576c405 39041ccf21eedba6",
+            "assigned to box D3-g46: 15 keys: c0800afec99d22fc e18fa878eae99111 2288dfa73cab6c1a b341873adae0cf3c c4e25319de746716 02a5c98b8f46f724 3b989943cc05b614 db984e8d4acfa08b 884d2aba2bbd5409 a087d5efb15533ce efd15cba428cdcf2 968644425a4f97f8 c9a7d4d29d08c3b4 ca6ae797caf18708 449caa49315447b2",
+            "assigned to box D3-g47: 15 keys: d2463d81efddd380 0aa9e2e025b11284 41063896cdb5ea71 b27ac4781778a34a bed063118e10d683 721aca562f60ab2c 09412cb43997a47f 4c3cfbe1e4ad2a14 28b6107a17d9b814 5b6489f7860d73b1 1111a3e5d9c44e3f 67a0550ee998a213 75b300b2bc47485f 92c063e90dafcc35 6fa8436f09ad7e06"
+          ],
+          "redispatched": [
+            {
+              "item": "C3",
+              "state": "examined"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "wave list = the 742 u1 full-net survivors left after dedupe (8 already gated by D3-top6/D3-rem under other keys), split over 47 boxes D3-g01..D3-g47 (each dispatch/finder-r11-D3-g<NN>:keys.tsv; 742 keys, all distinct). Box D3-g28 gated 16 of its 16 keys: per key python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key> (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh), records dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/<key>.json, against this box's null dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/null.json. C3 (full gate) and C5 carried as examined by boxes D3-top6 and D3-rem (REPORT-D3-rem.json D3.M3 row, 35 of 35)."
+        },
+        {
+          "step": "D3.M4",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+          "universe": 268,
+          "examined": 225,
+          "not_reached": [
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+          ],
+          "redispatched": [],
+          "evidence": "m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+          "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+        },
+        {
+          "step": "D3.M5",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+          "universe": 27,
+          "examined": 23,
+          "not_reached": [
+            "assigned to box D3-m5: tests/card.mjs",
+            "assigned to box D3-m5: tests/card_drift.mjs",
+            "assigned to box D3-m5: tests/golden.py",
+            "assigned to box D3-m5: tests/stress.py"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "not_reached"
+            },
+            {
+              "item": "C7",
+              "state": "not_reached"
+            },
+            {
+              "item": "C9",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+          "carried": "verbatim from dev/audit/rounds/round11/D3/s1/REPORT-D3-u1b.json (box D3-u1b)"
+        }
+      ],
+      "unfinished": [],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "equivalent-candidate a99da4c347a19ca5 custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND (if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh <= 0 or p_max < 0 or dt <= 0:): full gate RED-AS-NULL, probe finds no input that moves the metric. p_max == 0 is the only input the `<` opens: take = min(0, remaining/dt) = 0 at every step, so the schedule stays all zeros (360 inputs, max_abs_diff 0; p_max = -0.0 writes -0.0 entries, equal under ==).",
+          "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_a99da4c347a19ca5.py",
+          "value": "inputs_tried=360; max_abs_diff=0; signbit_only_diffs=48; thread_factor=1.000; load1=1.45; swapins=0; inputs: 4 price vectors x energy {1, 0, -1, 1e-12, 1e9, 3} x p_max {0, 0.0, -0.0, 5e-324, 1e-300} x dt {0.25, 1, 1e-9}"
+        },
+        {
+          "claim": "equivalent-candidate cd7f83f0f8961444 custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND (if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh < 0 or p_max <= 0 or dt <= 0:): full gate RED-AS-NULL, probe finds no input that moves the metric. energy == 0 is the only input the `<` opens: the loop's first `remaining <= 0` test breaks at once and returns the same zero schedule (300 inputs incl. +inf prices, dt 0 and dt < 0, max_abs_diff 0).",
+          "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_cd7f83f0f8961444.py",
+          "value": "inputs_tried=300; max_abs_diff=0; signbit_only_diffs=0; thread_factor=1.000; load1=1.49; swapins=0; inputs: 4 price vectors (one with +inf) x energy {0, 0.0, -0.0} x p_max {2, 1e-9, 1e9, -1, 0} x dt {0.25, 1, 1e-9, 0, -0.25}"
+        },
+        {
+          "claim": "equivalent-candidate 57196c29f220bbc6 custom_components/heatpump_optimizer/optimizer.py:2130 CMP_BOUND (if remaining <= 0: -> if remaining < 0:): full gate RED-AS-NULL, probe finds no input that moves the metric. remaining == 0.0 is the only input the `<` opens: every later take is min(p_max, 0/dt) = 0, writing zeros the schedule already holds (5144 inputs, 4875 reaching exactly 0.0, max_abs_diff 0).",
+          "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_57196c29f220bbc6.py",
+          "value": "inputs_tried=5144; inputs_reaching_remaining_exactly_zero=4875; max_abs_diff=0; signbit_only_diffs=0; thread_factor=1.000; load1=1.31; swapins=0; inputs: exact multiples energy = k*p_max*dt (k 0..8, p_max {1,2,0.5,4}, dt {0.25,0.5,1,0.125}) and 5000 seeded random draws"
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D3/s1/fullgate.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/_tools/build_result.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/_tools/build_report.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9e9ab1d6567ff65b.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_a99da4c347a19ca5.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_cd7f83f0f8961444.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_57196c29f220bbc6.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_e670e7e026a9f4ec.py"
+      ],
+      "leads": [],
+      "gated": [
+        {
+          "key": "9aa50bd32847b4dd",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1948 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "1e3d68358832d695",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1957 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "b53efc6448b724e4",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1994 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "92e6a72a53dd339f",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1996 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "64629e9b22df0c16",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2170 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "0a673ba4467a184c",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2172 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "62abf71b9686f2b8",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2082 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "9e9ab1d6567ff65b",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2086 CLAMP_DROP",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "01e740ed4f78ae95",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "26180738b4dfa52e",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "a99da4c347a19ca5",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "cd7f83f0f8961444",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "09e80cfe3036223e",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2130 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "57196c29f220bbc6",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2130 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "8206a42b98c8dd86",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2144 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "e670e7e026a9f4ec",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2146 CLAMP_DROP",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        }
+      ],
+      "gate_survivors": [
+        {
+          "key": "9aa50bd32847b4dd",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1948 GUARD_OFF",
+          "patch": "if not scored: -> if False:",
+          "function": "_multi_start_minimize",
+          "cluster": "optimizer.py:_multi_start_minimize@1948-1996",
+          "slice": "u1c",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3162.1,
+            "load1_start": 0.72,
+            "load1_end": 0.93,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/9aa50bd32847b4dd.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9aa50bd32847b4dd",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py",
+            "results": {
+              "outcome_baseline": "raise:ValueError: no usable starting point",
+              "outcome_mutant": "raise:ValueError: all starting points failed",
+              "status_baseline": "'failed (no usable starting point)'",
+              "status_mutant": "'failed (all starting points failed)'",
+              "status_differs": "1",
+              "null_x_max_abs_diff": "0",
+              "thread_factor": "1.000",
+              "load1": "1.45",
+              "swapins": "0"
+            },
+            "inputs_tried": "two 4-dim candidates under an objective returning NaN everywhere; null: a finite quadratic",
+            "direction": "the published failure status text changes (no usable starting point -> all starting points failed)",
+            "metric": "the error a multi-start whose every candidate scores non-finite raises, and the `failed (<error>)` status HeatPumpOptimizer.optimize publishes from it (status_differs: 1 when the two status strings differ)"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _multi_start_minimize case whose candidates all score non-finite, asserting the ValueError names 'no usable starting point' (features.py drives _multi_start_minimize directly near its _d901 GIL-yield and #948 blocks but never with an all-non-finite candidate set)",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "Multi-start's no-usable-start guard (optimizer.py:1948) can be deleted with the full gate green",
+            "claim": "Deleting `if not scored: raise ValueError(\"no usable starting point\")` in _multi_start_minimize changes the failure HeatPumpOptimizer.optimize publishes when every candidate scores non-finite (status 'failed (no usable starting point)' -> 'failed (all starting points failed)'), and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "hygiene",
+            "metric_definition": "the error a multi-start whose every candidate scores non-finite raises, and the `failed (<error>)` status HeatPumpOptimizer.optimize publishes from it (status_differs: 1 when the two status strings di",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:1948 `if not scored:` -> `if False:`",
+              "expected_direction": "up",
+              "observed_value": "status_differs=1"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9aa50bd32847b4dd.py",
+              "value": "null_x_max_abs_diff=0",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "1e3d68358832d695",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1957 GUARD_OFF",
+          "patch": "if solve_index: -> if False:",
+          "function": "_multi_start_minimize",
+          "cluster": "optimizer.py:_multi_start_minimize@1948-1996",
+          "slice": "u1a",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3038.6,
+            "load1_start": 1.09,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/1e3d68358832d695.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1e3d68358832d695",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+            "results": {
+              "yields_baseline": "5 calls",
+              "yields_mutant": "3 calls",
+              "x_max_abs_diff": "0",
+              "null_one_start_yields_delta": "0 calls",
+              "golden_yields_baseline": "8 calls",
+              "golden_yields_mutant": "5 calls",
+              "golden_plan_max_abs_diff": "0 kW",
+              "thread_factor": "1.010",
+              "load1": "1.31",
+              "swapins": "0"
+            },
+            "inputs_tried": "a 4-dim quadratic with 3 starts; 1 start (null); golden winter_typical solve",
+            "direction": "down: between-start yields 2 -> 0 per multi-start (8 -> 5 in one golden solve); plan unchanged",
+            "metric": "calls of time.sleep(0.002), the GIL yield between consecutive L-BFGS-B starts, during one multi-start (direct: 3 starts) and during one golden winter_typical HeatPumpOptimizer.optimize"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "_d901_gil_yield_inside_run pins the in-objective _gil_yield only; it lacks an assertion that a k-start multi-start calls time.sleep(0.002) k-1 times between starts",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "Between-start GIL yield (optimizer.py:1957) can be deleted with the full gate green",
+            "claim": "Disabling the `if solve_index: _time_mod.sleep(0.002)` yield in _multi_start_minimize removes every between-start GIL yield (2 of 5 sleep(0.002) calls in a 3-start multi-start; 8 -> 5 in one golden winter_typical solve) with the plan bit-identical, and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "calls of time.sleep(0.002), the GIL yield between consecutive L-BFGS-B starts, during one multi-start (direct: 3 starts) and during one golden winter_typical HeatPumpOptimizer.optimize",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:1957 `if solve_index:` -> `if False:`",
+              "expected_direction": "down",
+              "observed_value": "golden_yields 8 -> 5"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+              "value": "null_one_start_yields_delta=0 calls",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "b53efc6448b724e4",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1994 CMP_BOUND",
+          "patch": "if np.isfinite(score) and score < best_score: -> if np.isfinite(score) and score <= best_score:",
+          "function": "_multi_start_minimize",
+          "cluster": "optimizer.py:_multi_start_minimize@1948-1996",
+          "slice": "u1c",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3150.9,
+            "load1_start": 0.86,
+            "load1_end": 1.0,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/b53efc6448b724e4.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b53efc6448b724e4",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+            "results": {
+              "score_tie": "1",
+              "x_baseline": "0.500000",
+              "x_mutant": "1.500000",
+              "x_max_abs_diff": "1.000000",
+              "null_tilted_x_max_abs_diff": "0.000000",
+              "golden_plan_max_abs_diff": "0 kW (winter_typical, summer_negative, flat)",
+              "thread_factor": "1.002",
+              "load1": "1.49",
+              "swapins": "0"
+            },
+            "inputs_tried": "a plateau objective (zero on [0,2]^4) with starts 0.5 and 1.5; null: the plateau tilted by 0.01*sum(x); golden winter_typical, summer_negative, flat",
+            "direction": "the tie goes to the last-scored start instead of the first (x 0.5 -> 1.5); no golden plan moves",
+            "metric": "the x the multi-start returns when two starts end at distinct points of exactly equal score (the tie the strict < keeps on the first)"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _multi_start_minimize case with two starts ending at distinct x of equal score, asserting the first-scored start's x ships (determinism of the shipped plan under ties)",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "Multi-start's first-wins tie rule (optimizer.py:1994 `<`) is unpinned by the full gate",
+            "claim": "Turning `score < best_score` into `<=` in _multi_start_minimize makes an exact score tie between two distinct solved starts ship the later one (x 0.5 -> 1.5 on a plateau objective) instead of the first, and GATE_SCOPE=full GOLDEN_MODE=drift stays green; no golden plan reaches a tie.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "hygiene",
+            "metric_definition": "the x the multi-start returns when two starts end at distinct points of exactly equal score (the tie the strict < keeps on the first)",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:1994 `if np.isfinite(score) and score < best_score:` -> `if np.isfinite(score) and score <= best_score:`",
+              "expected_direction": "up",
+              "observed_value": "x 0.5 -> 1.5"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_b53efc6448b724e4.py",
+              "value": "null_tilted_x_max_abs_diff=0.000000",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "92e6a72a53dd339f",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:1996 GUARD_OFF",
+          "patch": "if best is None: -> if False:",
+          "function": "_multi_start_minimize",
+          "cluster": "optimizer.py:_multi_start_minimize@1948-1996",
+          "slice": "u1c",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3266.7,
+            "load1_start": 0.78,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/92e6a72a53dd339f.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 92e6a72a53dd339f",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py",
+            "results": {
+              "outcome_baseline": "raise:FloatingPointError: solver blow-up",
+              "outcome_mutant": "ok:None",
+              "mutant_returns_none": "1",
+              "status_baseline": "'failed (solver blow-up)'",
+              "status_mutant": "\"failed ('NoneType' object has no attribute 'x')\"",
+              "null_x_max_abs_diff": "0",
+              "thread_factor": "1.000",
+              "load1": "1.45",
+              "swapins": "0"
+            },
+            "inputs_tried": "an objective finite on the scoring pass that raises on every later evaluation; null: the same objective never raising",
+            "direction": "the solver's own error is swallowed: None is returned and the published status names an AttributeError",
+            "metric": "what the multi-start delivers when every L-BFGS-B start raises: the raise (baseline) or a return value (mutant), and the failed status optimize publishes from it"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _multi_start_minimize case whose every start raises, asserting the call raises that error (not returns None)",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "Multi-start's all-starts-failed raise (optimizer.py:1996) can be deleted with the full gate green",
+            "claim": "Deleting `if best is None: raise last_error or ValueError(...)` in _multi_start_minimize makes a multi-start whose every L-BFGS-B start raises return None instead of raising the solver's error, so optimize's published status becomes \"failed ('NoneType' object has no attribute 'x')\", and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "what the multi-start delivers when every L-BFGS-B start raises: the raise (baseline) or a return value (mutant), and the failed status optimize publishes from it",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:1996 `if best is None:` -> `if False:`",
+              "expected_direction": "up",
+              "observed_value": "mutant_returns_none=1"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_92e6a72a53dd339f.py",
+              "value": "null_x_max_abs_diff=0",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "64629e9b22df0c16",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2170 CMP_BOUND",
+          "patch": "if p_max - p_min >= _MIN_MODULATION_BAND_KW: -> if p_max - p_min > _MIN_MODULATION_BAND_KW:",
+          "function": "_power_fraction",
+          "cluster": "optimizer.py:_power_fraction@2170-2172",
+          "slice": "u1b",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3220.3,
+            "load1_start": 0.94,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/64629e9b22df0c16.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 64629e9b22df0c16",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py",
+            "results": {
+              "band_is_exactly_threshold": "1",
+              "fraction_baseline": "0.500000",
+              "fraction_mutant": "0.750000",
+              "fraction_abs_diff": "0.250000",
+              "null_zero_floor_diff": "0.000000",
+              "null_ordinary_band_diff": "0.000000",
+              "thread_factor": "1.000",
+              "load1": "1.45",
+              "swapins": "0"
+            },
+            "inputs_tried": "min/max 0.1/0.2 kW at 0.15 kW; null: 0.0/0.1 kW at 0.05 kW (both branches agree) and 0.6/3.0 kW at 1.2 kW",
+            "direction": "up: 0.5 -> 0.75 (graded against max power instead of the band)",
+            "metric": "the modulation fraction _power_fraction returns for a 0.15 kW step on a pump whose band is exactly the 0.1 kW threshold (min 0.1, max 0.2 kW)"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _power_fraction boundary case at a band of exactly _MIN_MODULATION_BAND_KW with a non-zero minimum, asserting (power - p_min) / band",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_power_fraction's band threshold boundary (optimizer.py:2170 `>=`) is unpinned by the full gate",
+            "claim": "Turning `p_max - p_min >= _MIN_MODULATION_BAND_KW` into `>` makes a pump whose modulation band is exactly 0.1 kW (min 0.1, max 0.2 kW) grade a 0.15 kW step as 0.75 instead of 0.5, and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "the modulation fraction _power_fraction returns for a 0.15 kW step on a pump whose band is exactly the 0.1 kW threshold (min 0.1, max 0.2 kW)",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_power_fraction",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2170 `if p_max - p_min >= _MIN_MODULATION_BAND_KW:` -> `if p_max - p_min > _MIN_MODULATION_BAND_KW:`",
+              "expected_direction": "up",
+              "observed_value": "fraction 0.5 -> 0.75"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_64629e9b22df0c16.py",
+              "value": "null_zero_floor_diff=0.000000; null_ordinary_band_diff=0.000000",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "0a673ba4467a184c",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2172 CMP_BOUND",
+          "patch": "elif p_max > 0: -> elif p_max >= 0:",
+          "function": "_power_fraction",
+          "cluster": "optimizer.py:_power_fraction@2170-2172",
+          "slice": "u1a",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3235.8,
+            "load1_start": 0.79,
+            "load1_end": 0.94,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/0a673ba4467a184c.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0a673ba4467a184c",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py",
+            "results": {
+              "outcome_baseline": "ok:0.0",
+              "outcome_mutant": "raise:ZeroDivisionError: division by zero",
+              "mutant_raises": "1",
+              "null_fixed_speed_diff": "0.000000",
+              "thread_factor": "1.000",
+              "load1": "1.31",
+              "swapins": "0"
+            },
+            "inputs_tried": "min = max = 0 kW at power 0; null: min = max = 2 kW at 1 kW",
+            "direction": "0.0 -> ZeroDivisionError",
+            "metric": "what _power_fraction delivers for power 0 on a pump with min = max = 0 kW: a value or a raise"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _power_fraction case with max_electrical_power = 0, asserting 0.0",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_power_fraction's zero-max-power branch (optimizer.py:2172 `>`) is unpinned by the full gate",
+            "claim": "Turning `elif p_max > 0` into `>= 0` makes _power_fraction raise ZeroDivisionError for a pump with min = max = 0 kW where the baseline returns 0.0, and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "what _power_fraction delivers for power 0 on a pump with min = max = 0 kW: a value or a raise",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_power_fraction",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2172 `elif p_max > 0:` -> `elif p_max >= 0:`",
+              "expected_direction": "up",
+              "observed_value": "mutant_raises=1"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py",
+              "value": "null_fixed_speed_diff=0.000000",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "62abf71b9686f2b8",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2082 CMP_BOUND",
+          "patch": "if float(np.mean(prices)) > PRICE_MEAN_GUESS_EPS: -> if float(np.mean(prices)) >= PRICE_MEAN_GUESS_EPS:",
+          "function": "_price_guess_weights",
+          "cluster": "optimizer.py:_price_guess_weights@2082-2086",
+          "slice": "u1b",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3244.9,
+            "load1_start": 0.96,
+            "load1_end": 0.85,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/62abf71b9686f2b8.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 62abf71b9686f2b8",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py",
+            "results": {
+              "mean_is_exactly_eps": "1",
+              "guess_baseline_range": "0.2000..1.0000",
+              "guess_mutant_range": "0.2000..1.0000",
+              "guess_max_abs_diff": "0.2358",
+              "null_ordinary_prices_diff": "0",
+              "golden_plan_max_abs_diff": "0.3127 kW",
+              "golden_cost_rel_diff": "0.000161",
+              "thread_factor": "1.004",
+              "load1": "1.31",
+              "swapins": "0"
+            },
+            "inputs_tried": "a sinusoidal day scaled to mean exactly 1e-3 (last step nudged until the float mean equals it); null: linspace(0.5, 2.0)",
+            "direction": "the guess switches from the rank branch to the smooth branch; the solved plan moves by up to 0.31 kW",
+            "metric": "the max abs difference of the initial power-weight guess, and of the solved plan (golden winter_typical house), for a 96-step price day whose float mean is exactly PRICE_MEAN_GUESS_EPS"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _price_guess_weights case at a price mean of exactly PRICE_MEAN_GUESS_EPS, asserting the rank branch",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_price_guess_weights' mean threshold boundary (optimizer.py:2082 `>`) is unpinned by the full gate",
+            "claim": "Turning `np.mean(prices) > PRICE_MEAN_GUESS_EPS` into `>=` switches the initial guess for a day whose float mean is exactly 1e-3 from the rank branch to the smooth branch (guess moves 0.236), moving the solved golden plan by 0.31 kW (cost 1.6e-4 relative), and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "the max abs difference of the initial power-weight guess, and of the solved plan (golden winter_typical house), for a 96-step price day whose float mean is exactly PRICE_MEAN_GUESS_EPS",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_price_guess_weights",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2082 `if float(np.mean(prices)) > PRICE_MEAN_GUESS_EPS:` -> `if float(np.mean(prices)) >= PRICE_MEAN_GUESS_EPS:`",
+              "expected_direction": "up",
+              "observed_value": "golden_plan_max_abs_diff=0.3127 kW"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py",
+              "value": "null_ordinary_prices_diff=0",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "9e9ab1d6567ff65b",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2086 CLAMP_DROP",
+          "patch": "return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1)) -> return 1.0 - 0.8 * ranks / float((len(prices) - 1))",
+          "function": "_price_guess_weights",
+          "cluster": "optimizer.py:_price_guess_weights@2082-2086",
+          "slice": "u1c",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3279.0,
+            "load1_start": 0.74,
+            "load1_end": 1.0,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/9e9ab1d6567ff65b.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9e9ab1d6567ff65b",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9e9ab1d6567ff65b.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9e9ab1d6567ff65b.py",
+            "results": {
+              "one_zero_baseline": "[1.0]",
+              "one_zero_mutant": "[nan]",
+              "one_zero_mutant_nonfinite": "1",
+              "one_negative_baseline": "[1.0]",
+              "one_negative_mutant": "[nan]",
+              "one_negative_mutant_nonfinite": "1",
+              "null_four_step_diff": "0",
+              "thread_factor": "1.000",
+              "load1": "1.45",
+              "swapins": "0"
+            },
+            "inputs_tried": "prices [0.0] and [-0.5]; null: a four-step non-positive-mean day",
+            "direction": "[1.0] -> [nan] (0/0)",
+            "metric": "the guess _price_guess_weights returns for a one-step horizon whose price mean is at or below PRICE_MEAN_GUESS_EPS (the rank branch)"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _price_guess_weights case on a one-step non-positive price vector, asserting a finite [1.0]",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_price_guess_weights' one-step divisor floor (optimizer.py:2086 max(.., 1)) is unpinned by the full gate",
+            "claim": "Dropping the `max(len(prices) - 1, 1)` floor makes _price_guess_weights return [nan] instead of [1.0] for a one-step horizon with a non-positive price mean, and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "the guess _price_guess_weights returns for a one-step horizon whose price mean is at or below PRICE_MEAN_GUESS_EPS (the rank branch)",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9e9ab1d6567ff65b.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9e9ab1d6567ff65b.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_price_guess_weights",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2086 `return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1))` -> `return 1.0 - 0.8 * ranks / float((len(prices) - 1))`",
+              "expected_direction": "up",
+              "observed_value": "one_zero_mutant=[nan]"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_9e9ab1d6567ff65b.py",
+              "value": "null_four_step_diff=0",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "01e740ed4f78ae95",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+          "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh <= 0 or p_max <= 0 or dt < 0:",
+          "function": "_price_ranked_start",
+          "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+          "slice": "u1a",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3774.0,
+            "load1_start": 0.49,
+            "load1_end": 0.85,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/01e740ed4f78ae95.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 01e740ed4f78ae95",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+            "results": {
+              "dt0_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "dt0_mutant": "raise:ZeroDivisionError: division by zero",
+              "dt0_mutant_raises": "1",
+              "null_dt_quarter_diff": "0",
+              "thread_factor": "1.000",
+              "load1": "1.25",
+              "swapins": "0"
+            },
+            "inputs_tried": "dt 0 on a 4-step day; null: dt 0.25",
+            "direction": "zero schedule -> ZeroDivisionError",
+            "metric": "what _price_ranked_start delivers at dt = 0 (energy 1 kWh, p_max 2 kW): a schedule or a raise"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _price_ranked_start degenerate-input case at dt = 0, asserting a zero schedule",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_price_ranked_start's dt <= 0 guard boundary (optimizer.py:2126) is unpinned by the full gate",
+            "claim": "Turning `dt <= 0` into `dt < 0` in _price_ranked_start makes dt = 0 raise ZeroDivisionError where the baseline returns a zero schedule, and GATE_SCOPE=full GOLDEN_MODE=drift stays green; no production caller passes dt = 0.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "hygiene",
+            "metric_definition": "what _price_ranked_start delivers at dt = 0 (energy 1 kWh, p_max 2 kW): a schedule or a raise",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_price_ranked_start",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2126 `if energy_kwh <= 0 or p_max <= 0 or dt <= 0:` -> `if energy_kwh <= 0 or p_max <= 0 or dt < 0:`",
+              "expected_direction": "up",
+              "observed_value": "dt0_mutant_raises=1"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+              "value": "null_dt_quarter_diff=0",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "26180738b4dfa52e",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 GUARD_OFF",
+          "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if False:",
+          "function": "_price_ranked_start",
+          "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+          "slice": "u1a",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3683.6,
+            "load1_start": 0.8,
+            "load1_end": 1.0,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/26180738b4dfa52e.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 26180738b4dfa52e",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py",
+            "results": {
+              "pmax_neg_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "pmax_neg_mutant": "ok:[-1.0, -1.0, -1.0, -1.0]",
+              "pmax_neg_mutant_min_kw": "-1.000 kW",
+              "dt_zero_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "dt_zero_mutant": "raise:ZeroDivisionError: division by zero",
+              "dt_neg_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "dt_neg_mutant": "ok:[0.0, -4.0, 0.0, 0.0]",
+              "energy_neg_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "energy_neg_mutant": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "pmax_zero_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "pmax_zero_mutant": "ok:[0.0, 0.0, 0.0, 0.0]",
+              "null_ordinary_diff": "0",
+              "thread_factor": "1.000",
+              "load1": "1.31",
+              "swapins": "0"
+            },
+            "inputs_tried": "p_max -1, dt 0, dt -0.25, energy -1, p_max 0, on a 4-step day; null: an ordinary call",
+            "direction": "down: negative powers in the start (min 0 -> -1 kW), or a raise at dt = 0",
+            "metric": "the minimum value of the start _price_ranked_start returns for p_max = -1 kW (energy 1 kWh, dt 0.25 h), and its outcome at dt = 0 and dt < 0"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _price_ranked_start degenerate-input case (p_max < 0, dt <= 0), asserting a zero schedule",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_price_ranked_start's degenerate-input guard (optimizer.py:2126) can be deleted with the full gate green",
+            "claim": "Deleting the `energy_kwh <= 0 or p_max <= 0 or dt <= 0` early return lets _price_ranked_start emit negative powers (min -1 kW at p_max -1; [0,-4,0,0] at dt -0.25) or raise at dt = 0, where the baseline returns zeros, and GATE_SCOPE=full GOLDEN_MODE=drift stays green; energy <= 0 and p_max = 0 stay equal.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "hygiene",
+            "metric_definition": "the minimum value of the start _price_ranked_start returns for p_max = -1 kW (energy 1 kWh, dt 0.25 h), and its outcome at dt = 0 and dt < 0",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_price_ranked_start",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2126 `if energy_kwh <= 0 or p_max <= 0 or dt <= 0:` -> `if False:`",
+              "expected_direction": "down",
+              "observed_value": "pmax_neg_mutant_min_kw=-1.000"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py",
+              "value": "null_ordinary_diff=0",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "09e80cfe3036223e",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2130 GUARD_OFF",
+          "patch": "if remaining <= 0: -> if False:",
+          "function": "_price_ranked_start",
+          "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+          "slice": "u1a",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3611.9,
+            "load1_start": 0.92,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/09e80cfe3036223e.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 09e80cfe3036223e",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py",
+            "results": {
+              "inputs_tried": "20000",
+              "inputs_moved": "195",
+              "max_abs_diff": "1.47e-15 kW",
+              "example_n_pmax_dt_energy_mutant_min": "(96, 8.789800417329076, 0.15086986044293943, 96.78484412188455, -1.471762512891108e-15)",
+              "golden_plan_max_abs_diff": "0 kW (winter_typical, summer_negative, shoulder)",
+              "thread_factor": "1.002",
+              "load1": "1.31",
+              "swapins": "0"
+            },
+            "inputs_tried": "20000 seeded random draws (n 2..96, p_max 0.3..9 kW, dt 0.05..1 h, energy up to n*p_max*dt); golden winter_typical, summer_negative, shoulder",
+            "direction": "down: a ~-1e-15 kW entry appears after a negative float residue; no golden plan moves",
+            "metric": "max abs difference of the start schedule over 20000 random (prices, energy, p_max, dt) draws, and of the solved plan on three golden scenarios"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _price_ranked_start case asserting every entry is >= 0 on an energy that leaves a negative residue",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_price_ranked_start's remaining <= 0 break (optimizer.py:2130) can be deleted with the full gate green",
+            "claim": "Deleting `if remaining <= 0: break` makes _price_ranked_start write a ~-1.5e-15 kW entry after a negative float residue (195 of 20000 seeded draws) where the baseline leaves 0, and GATE_SCOPE=full GOLDEN_MODE=drift stays green; no golden plan moves (L-BFGS-B clips the start into its bounds).",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "hygiene",
+            "metric_definition": "max abs difference of the start schedule over 20000 random (prices, energy, p_max, dt) draws, and of the solved plan on three golden scenarios",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_price_ranked_start",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2130 `if remaining <= 0:` -> `if False:`",
+              "expected_direction": "down",
+              "observed_value": "max_abs_diff=1.47e-15 kW"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py",
+              "value": "",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "8206a42b98c8dd86",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2144 CMP_BOUND",
+          "patch": "if baseline_cost <= 0.01: -> if baseline_cost < 0.01:",
+          "function": "_savings_percentage",
+          "cluster": "optimizer.py:_savings_percentage@2144-2146",
+          "slice": "u1c",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 4124.8,
+            "load1_start": 0.78,
+            "load1_end": 0.93,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/8206a42b98c8dd86.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 8206a42b98c8dd86",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py",
+            "results": {
+              "pct_baseline": "0.000 %",
+              "pct_mutant": "50.000 %",
+              "pct_abs_diff": "50.000 %",
+              "null_baseline_cost_0p02_diff": "0.000 %",
+              "null_baseline_cost_0p009_diff": "0.000 %",
+              "thread_factor": "1.000",
+              "load1": "1.45",
+              "swapins": "0"
+            },
+            "inputs_tried": "baseline 0.01 (the boundary); null: 0.02 and 0.009",
+            "direction": "up: 0 -> 50 %",
+            "metric": "the savings percentage _savings_percentage returns for savings 0.005 on a baseline cost of exactly 0.01"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _savings_percentage case at baseline_cost = 0.01 asserting 0.0",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_savings_percentage's near-zero baseline boundary (optimizer.py:2144 `<=`) is unpinned by the full gate",
+            "claim": "Turning `baseline_cost <= 0.01` into `< 0.01` makes a baseline cost of exactly 0.01 publish savings 0.005 as 50 % instead of 0 %, and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "low",
+            "stop_rule_class": "bug",
+            "metric_definition": "the savings percentage _savings_percentage returns for savings 0.005 on a baseline cost of exactly 0.01",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_savings_percentage",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2144 `if baseline_cost <= 0.01:` -> `if baseline_cost < 0.01:`",
+              "expected_direction": "up",
+              "observed_value": "pct 0 -> 50 %"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py",
+              "value": "null_baseline_cost_0p02_diff=0.000 %; null_baseline_cost_0p009_diff=0.000 %",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        },
+        {
+          "key": "e670e7e026a9f4ec",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2146 CLAMP_DROP",
+          "patch": "return float(np.clip(savings / baseline_cost * 100.0, -100.0, 100.0)) -> return float((savings / baseline_cost * 100.0))",
+          "function": "_savings_percentage",
+          "cluster": "optimizer.py:_savings_percentage@2144-2146",
+          "slice": "u1d",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 4206.2,
+            "load1_start": 1.76,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/e670e7e026a9f4ec.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e670e7e026a9f4ec",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_e670e7e026a9f4ec.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_e670e7e026a9f4ec.py",
+            "results": {
+              "over_pct_baseline": "100.000 %",
+              "over_pct_mutant": "200.000 %",
+              "under_pct_baseline": "-100.000 %",
+              "under_pct_mutant": "-300.000 %",
+              "null_inside_band_diff": "0.000 %",
+              "cell_summer_typical_dhw_pct_baseline_mutant": "22.67,22.67",
+              "cell_summer_typical_nodhw_pct_baseline_mutant": "26.17,26.17",
+              "cell_summer_negative_dhw_pct_baseline_mutant": "16.17,16.17",
+              "cell_summer_negative_nodhw_pct_baseline_mutant": "0.00,0.00",
+              "cell_shoulder_nodhw_pct_baseline_mutant": "45.95,45.95",
+              "cell_winter_typical_dhw_pct_baseline_mutant": "50.62,50.62",
+              "golden_cells": "6",
+              "golden_cells_moved": "0 []",
+              "thread_factor": "1.003",
+              "load1": "1.49",
+              "swapins": "0"
+            },
+            "inputs_tried": "(savings, baseline) (2, 1), (-3, 1); null (0.4, 1); golden summer_typical +/-dhw, summer_negative +/-dhw, shoulder, winter_typical",
+            "direction": "out of the [-100, 100] band (100 -> 200 %, -100 -> -300 %); no golden cell reaches it",
+            "metric": "the savings percentage for savings outside [-baseline, baseline], and the published savings_percentage of six golden HeatPumpOptimizer.optimize cells"
+          },
+          "should_fail": {
+            "script": "tests/features.py",
+            "assertion": "a _savings_percentage case with |savings| > baseline_cost asserting the clamp (OptimizationResult.savings_percentage is documented -100..100)",
+            "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+          },
+          "finding": {
+            "title": "_savings_percentage's [-100, 100] clip (optimizer.py:2146) can be deleted with the full gate green",
+            "claim": "Dropping the np.clip(.., -100, 100) in _savings_percentage makes the published plan_savings_percentage leave its documented -100..100 range whenever |savings| exceeds the baseline (savings 2 on baseline 1 -> 200 %; -3 -> -300 %), and GATE_SCOPE=full GOLDEN_MODE=drift stays green; none of six golden cells reaches the band.",
+            "step": "D3.M3",
+            "scope": "D3-s1",
+            "class_guess": "I1",
+            "severity_claimed": "medium",
+            "stop_rule_class": "bug",
+            "metric_definition": "the savings percentage for savings outside [-baseline, baseline], and the published savings_percentage of six golden HeatPumpOptimizer.optimize cells",
+            "harness_paths": [
+              "dev/audit/rounds/round11/D3/s1/fullgate.py",
+              "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_e670e7e026a9f4ec.py"
+            ],
+            "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_e670e7e026a9f4ec.py",
+            "instrumented_symbol": "heatpump_optimizer.optimizer:_savings_percentage",
+            "perturbation": {
+              "change": "custom_components/heatpump_optimizer/optimizer.py:2146 `return float(np.clip(savings / baseline_cost * 100.0, -100.0, 100.0))` -> `return float((savings / baseline_cost * 100.0))`",
+              "expected_direction": "up",
+              "observed_value": "200 % vs 100 %"
+            },
+            "null_control": {
+              "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_e670e7e026a9f4ec.py",
+              "value": "null_inside_band_diff=0.000 %",
+              "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+            },
+            "files": [
+              "custom_components/heatpump_optimizer/optimizer.py"
+            ]
+          }
+        }
+      ],
+      "equivalent_candidates": [
+        {
+          "key": "a99da4c347a19ca5",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+          "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh <= 0 or p_max < 0 or dt <= 0:",
+          "function": "_price_ranked_start",
+          "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+          "slice": "u1c",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3753.4,
+            "load1_start": 0.93,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/a99da4c347a19ca5.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a99da4c347a19ca5",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_a99da4c347a19ca5.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_a99da4c347a19ca5.py",
+            "results": {
+              "inputs_tried": "360",
+              "max_abs_diff": "0",
+              "signbit_only_diffs": "48",
+              "thread_factor": "1.000",
+              "load1": "1.45",
+              "swapins": "0"
+            },
+            "inputs_tried": "4 price vectors x energy {1, 0, -1, 1e-12, 1e9, 3} x p_max {0, 0.0, -0.0, 5e-324, 1e-300} x dt {0.25, 1, 1e-9}",
+            "direction": "none found: equivalent-candidate",
+            "metric": "max abs difference between baseline and mutant schedules over the grid of inputs where the mutant opens the loop (p_max == 0)"
+          },
+          "should_fail": null,
+          "equivalence": "p_max == 0 is the only input the `<` opens: take = min(0, remaining/dt) = 0 at every step, so the schedule stays all zeros (360 inputs, max_abs_diff 0; p_max = -0.0 writes -0.0 entries, equal under ==)."
+        },
+        {
+          "key": "cd7f83f0f8961444",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+          "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh < 0 or p_max <= 0 or dt <= 0:",
+          "function": "_price_ranked_start",
+          "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+          "slice": "u1d",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3702.5,
+            "load1_start": 0.72,
+            "load1_end": 0.99,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/cd7f83f0f8961444.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cd7f83f0f8961444",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_cd7f83f0f8961444.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_cd7f83f0f8961444.py",
+            "results": {
+              "inputs_tried": "300",
+              "max_abs_diff": "0",
+              "signbit_only_diffs": "0",
+              "thread_factor": "1.000",
+              "load1": "1.49",
+              "swapins": "0"
+            },
+            "inputs_tried": "4 price vectors (one with +inf) x energy {0, 0.0, -0.0} x p_max {2, 1e-9, 1e9, -1, 0} x dt {0.25, 1, 1e-9, 0, -0.25}",
+            "direction": "none found: equivalent-candidate",
+            "metric": "max abs difference between baseline and mutant schedules over the grid of inputs where the mutant opens the loop (energy == 0)"
+          },
+          "should_fail": null,
+          "equivalence": "energy == 0 is the only input the `<` opens: the loop's first `remaining <= 0` test breaks at once and returns the same zero schedule (300 inputs incl. +inf prices, dt 0 and dt < 0, max_abs_diff 0)."
+        },
+        {
+          "key": "57196c29f220bbc6",
+          "site": "custom_components/heatpump_optimizer/optimizer.py:2130 CMP_BOUND",
+          "patch": "if remaining <= 0: -> if remaining < 0:",
+          "function": "_price_ranked_start",
+          "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+          "slice": "u1b",
+          "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3953.2,
+            "load1_start": 0.86,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "fail_lines": {
+              "python3 tests/closure.py selftest": 2,
+              "python3 tests/entities.py": 1,
+              "python3 tests/harness_headers.py": 4
+            },
+            "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/57196c29f220bbc6.json",
+            "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 57196c29f220bbc6",
+            "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+          },
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_57196c29f220bbc6.py",
+            "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_57196c29f220bbc6.py",
+            "results": {
+              "inputs_tried": "5144",
+              "inputs_reaching_remaining_exactly_zero": "4875",
+              "max_abs_diff": "0",
+              "signbit_only_diffs": "0",
+              "thread_factor": "1.000",
+              "load1": "1.31",
+              "swapins": "0"
+            },
+            "inputs_tried": "exact multiples energy = k*p_max*dt (k 0..8, p_max {1,2,0.5,4}, dt {0.25,0.5,1,0.125}) and 5000 seeded random draws",
+            "direction": "none found: equivalent-candidate",
+            "metric": "max abs difference between baseline and mutant schedules over inputs whose remaining energy reaches exactly 0.0 (the only band the < opens)"
+          },
+          "should_fail": null,
+          "equivalence": "remaining == 0.0 is the only input the `<` opens: every later take is min(p_max, 0/dt) = 0, writing zeros the schedule already holds (5144 inputs, 4875 reaching exactly 0.0, max_abs_diff 0)."
+        }
+      ]
+    }
+  }
+}

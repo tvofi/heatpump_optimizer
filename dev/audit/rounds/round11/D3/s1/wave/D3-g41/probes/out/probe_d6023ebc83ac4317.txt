@@ -1,0 +1,5 @@
+RESULT inputs_tried=60 count (each a 5-tank row with the tie)
+RESULT moved_inputs=0 count
+RESULT thread_factor=0.984 ratio
+RESULT load1=1.14
+RESULT swapins=0 count

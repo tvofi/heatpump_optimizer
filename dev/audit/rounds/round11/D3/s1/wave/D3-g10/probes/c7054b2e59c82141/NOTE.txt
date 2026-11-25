@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: curve bias reset at margin exactly 0 (0.0 -> -1.0 kept); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

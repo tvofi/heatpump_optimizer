@@ -1,0 +1,15 @@
+# Metric: hours and shape of the learned DHW windows over 10 patterns (contiguous runs, wrap past midnight, alternating hours, plateaus, single peaks, non-normalised).
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_9b890e4f1fdfcd41.py
+# EXPECTED RESULT window_hours_baseline=12.0 h
+# EXPECTED RESULT window_hours_mutant=12.0 h
+# EXPECTED RESULT inputs_moved=0 of 10
+# Tolerance: exact (counts, verdicts and float64 prices are deterministic on one numpy build).
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692.
+# Machine: box D3-g16 (Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, /opt/hpo/venv-ci CPython).
+# Instrumented symbol: custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._effective_dhw_windows (custom_components/heatpump_optimizer/dhw_planner.py:556 `if hour == prev + 1:`).
+# Perturbation: mutant 9b890e4f1fdfcd41, `if hour == prev + 1:` -> `if False:`, applied in memory: the method is re-compiled from
+#   its own source with the one line replaced and called beside the untouched baseline method on the same input.
+#   Direction: none found: one-hour windows are merged back by dhw_schedule._normalize (start <= last_end), which parse_windows(format_windows(...)) applies.
+# Reach: production learned windows.
+# Null control: the grid itself.
+# Count key: the value the production method returns (never an input attribute).

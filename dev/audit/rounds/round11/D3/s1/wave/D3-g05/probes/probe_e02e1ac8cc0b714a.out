@@ -1,0 +1,7 @@
+RESULT empty_room baseline(leads,promise_calls,promises_kept)=(0, 0, 0) mutant=(0, 1, 0)
+RESULT one_point baseline(leads,promise_calls,promises_kept)=(0, 1, 0) mutant=(0, 1, 0)
+RESULT solved_97 baseline(leads,promise_calls,promises_kept)=(5, 1, 1) mutant=(5, 1, 1)
+RESULT moved_kept_records=0 count  (note_promise calls may differ; kept promises and leads are the output)
+RESULT thread_factor=1.028 ratio
+RESULT load1=1.22
+RESULT swapins=0 count

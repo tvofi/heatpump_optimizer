@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_fafb0d2c15e72efb.py: pins repair issues 'solve_failures' raised after 3 consecutive failed solves (and the failure count at which the first is raised); baseline issues_after_3=1, first_issue_at=3, mutant issues_after_3=0, first_issue_at=6 (candidate)

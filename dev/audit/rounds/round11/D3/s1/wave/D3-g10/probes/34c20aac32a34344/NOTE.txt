@@ -1,0 +1,1 @@
+probe written+run on baseline worktree: curve comfortable_days at bias 0 miss (5 -> 0); class pending gate verdict (probe moves -> candidate if SURVIVED/RED-AS-NULL)

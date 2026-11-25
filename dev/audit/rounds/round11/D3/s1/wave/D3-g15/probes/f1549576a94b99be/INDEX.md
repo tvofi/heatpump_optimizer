@@ -1,0 +1,1 @@
+dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py -- pins: the largest run-up floor DhwPlanner._dhw_legionella_ceilings writes, and the number of steps whose folded requirement min(max(floor, run-up), ceiling) is at the boost top, when the pump cannot carry the ramp (a heavy draw before the cycle), baseline vs mutant.

@@ -1,0 +1,78 @@
+{
+ "key": "4e79ba6ea642d086",
+ "site": "custom_components/heatpump_optimizer/price_model.py:258 CMP_BOUND",
+ "patch": "usable = hour_means > 1e-6 -> usable = hour_means >= 1e-6",
+ "function": "PriceShapeModel.observe_day_quarters",
+ "cluster": "price_model.py:PriceShapeModel.observe_day_quarters@252-275",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3405.2,
+  "load1_start": 0.86,
+  "load1_end": 1.12,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/4e79ba6ea642d086.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py",
+  "baseline": {
+   "qf_h3q3_hour_mean_exactly_1e-6": "1.0"
+  },
+  "mutant": {
+   "qf_h3q3_hour_mean_exactly_1e-6": "3.368421"
+  },
+  "moved": {
+   "qf_h3q3_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "hour_mean_exactly_1e-6,hour_all_zero,ramp",
+  "all_results": {
+   "hour_mean_is_exact": "1 count",
+   "qf_h3q3_hour_mean_exactly_1e-6_baseline": "1.0",
+   "qf_h3q3_hour_mean_exactly_1e-6_mutant": "3.368421",
+   "null_qf_h3q3_hour_all_zero_baseline": "1.0",
+   "null_qf_h3q3_hour_all_zero_mutant": "1.0",
+   "null_qf_h3q3_ramp_baseline": "1.1",
+   "null_qf_h3q3_ramp_mutant": "1.1",
+   "qf_h3q3_inputs_moved": "1 count",
+   "null_delta": "0 count",
+   "inputs_tried": "hour_mean_exactly_1e-6,hour_all_zero,ramp",
+   "thread_factor": "1.000",
+   "load1": "1.10",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "An hour of quarters [0, 0, 0, 4e-6] (mean exactly 1e-6) keeps factor 1.0 at the baseline and learns 3.368421 for its :45 quarter under the mutant through PriceShapeLearner.fold; an all-zero hour and an ordinary ramp behave alike in both arms.",
+ "should_fail": "tests/features.py G8 observe_day_quarters arms (~58809-58820) and tests/finite_boundary.py (traced executing line 258): they test a short, non-finite and all-zero day; they lack an hour whose mean is exactly 1e-6 asserting its factors stay 1.0.",
+ "finding": {
+  "title": "price_model.py:258 observe_day_quarters' usable-hour guard > -> >= survives the full gate (float-exact boundary)",
+  "claim": "An hour of quarters [0, 0, 0, 4e-6] (mean exactly 1e-6) keeps factor 1.0 at the baseline and learns 3.368421 for its :45 quarter under the mutant through PriceShapeLearner.fold; an all-zero hour and an ordinary ramp behave alike in both arms.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "learned quarter factor of hour 3 quarter 3 (quarter_factors[weekday][15]) after one quarter day folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_4e79ba6ea642d086.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4e79ba6ea642d086",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.observe_day_quarters), custom_components/heatpump_optimizer/price_model.py:258",
+  "perturbation": "the one-line mutant 4e79ba6ea642d086: `usable = hour_means > 1e-6` -> `usable = hour_means >= 1e-6`; direction qf_h3q3_hour_mean_exactly_1e-6: 1.0 -> 3.368421",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}

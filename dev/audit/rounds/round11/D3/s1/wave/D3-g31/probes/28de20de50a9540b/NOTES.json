@@ -1,0 +1,28 @@
+{
+ "cls": "candidate",
+ "base": "weekend days 2, weekday days 5 after one Mon..Sun week; Saturday 03:00 guessed price at level 1.0 = 0.737143",
+ "mut": "weekend days 1, weekday days 6; Saturday 03:00 guessed price = 0.564779",
+ "inputs": "one week of hourly rows Mon 2026-01-05..Sun 01-11 folded by PriceShapeLearner.fold with distinct weekday/weekend shapes; null: Mon-Fri and Sunday profile indices",
+ "should_fail": "tests/features.py, which folds price days through PriceShapeLearner on the traced baseline, lacks a check folding a Saturday and asserting it lands in PROFILE_WEEKEND (no check in tests/ names _profile_index or PROFILE_WEEKEND; grep count 0)",
+ "finding": {
+  "title": "No check folds a Saturday into the weekend price profile; Saturday as a weekday is unseen",
+  "claim": "With price_model.py:155 `weekday() >= 5` -> `> 5`, one folded week learns 1 weekend day instead of 2 and the Saturday 03:00 guessed price at level 1.0 moves 0.737143 -> 0.564779, and the full gate stays green",
+  "severity": "medium",
+  "metric_definition": "model.days[PROFILE_WEEKEND] after folding one Mon..Sun week, and predict(Sat 03:00, level 1.0)",
+  "perturbation": {
+   "change": "price_model.py:155 `when.weekday() >= 5` -> `when.weekday() > 5`",
+   "expected_direction": "down",
+   "observed_value": 1
+  },
+  "null_control": {
+   "command": "the same probe's Mon-Fri/Sunday index comparison",
+   "value": "null_days_differ=0",
+   "note": "only Saturday changes profile"
+  },
+  "phenomenon_property": "Saturday and Sunday are learned and predicted on the weekend profile",
+  "files": [
+   "custom_components/heatpump_optimizer/price_model.py"
+  ],
+  "proposed_fix_scope": "tests/features.py: fold a week and assert days per profile and a Saturday prediction"
+ }
+}

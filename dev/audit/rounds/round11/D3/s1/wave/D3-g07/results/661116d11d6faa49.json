@@ -1,0 +1,58 @@
+{
+ "key": "661116d11d6faa49",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9170 GUARD_OFF",
+ "patch": "if not entity_id: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._indoor_humidity_value",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._indoor_humidity_value@9170-9170",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "wall_s": 3643.5,
+  "child_cpu_s": 6034.0,
+  "load1_start": 0.93,
+  "load1_end": 0.97,
+  "provisional": true,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/661116d11d6faa49.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 661116d11d6faa49",
+ "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+ "class": "equivalent-candidate",
+ "red_as_null": true,
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_661116d11d6faa49.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_661116d11d6faa49.py",
+  "rc": 0,
+  "baseline_value": "0",
+  "mutant_value": "0",
+  "baseline_result": "inputs_differing",
+  "mutant_result": "inputs_differing",
+  "all_results": {
+   "inputs_tried": "12",
+   "inputs_differing": "0",
+   "positive_baseline": "55.0",
+   "positive_mutant": "55.0",
+   "thread_factor": "1.000",
+   "load1": "0.97",
+   "swapins": "0"
+  },
+  "inputs_tried": "indoor_humidity_entity unset / None / '' x bus empty / live 55 % sensor / unavailable sensor / 150 % sensor = 12 inputs, comparing the value and the count of log records at every level: 0 differ (InputReader(hass, {}) with no entity id returns ok=False and its InputHealth is local to the call); positive arm: a configured entity reads 55.0 in both"
+ },
+ "traced_reach": [
+  "tests/config_flow_steps.py",
+  "tests/entities.py",
+  "tests/features.py"
+ ],
+ "should_fail": "none: with no entity id, the fall-through read returns ok=False, so the function returns None as the early exit does"
+}

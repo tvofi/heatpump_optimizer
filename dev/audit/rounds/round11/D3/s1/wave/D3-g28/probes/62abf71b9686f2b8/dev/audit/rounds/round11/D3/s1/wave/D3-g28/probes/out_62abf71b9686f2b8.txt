@@ -1,0 +1,10 @@
+RESULT mean_is_exactly_eps=1
+RESULT guess_baseline_range=0.2000..1.0000
+RESULT guess_mutant_range=0.2000..1.0000
+RESULT guess_max_abs_diff=0.2358
+RESULT null_ordinary_prices_diff=0
+RESULT golden_plan_max_abs_diff=0.3127 kW
+RESULT golden_cost_rel_diff=0.000161
+RESULT thread_factor=1.004
+RESULT load1=1.31
+RESULT swapins=0

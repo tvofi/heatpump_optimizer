@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+# Metric: the irradiance series HeatPumpOptimizerCoordinator._apply_open_meteo returns (or the exception it raises) for a
+#   6-step horizon whose weather-entity solar list has 3 entries and whose Open-Meteo stub covers only the first 2 steps.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_37e0face2a901e71.py
+# EXPECTED RESULT short_solar_baseline=[100.0, 101.0, 7.0, 0.0, 0.0, 0.0] ; short_solar_mutant=IndexError
+# EXPECTED RESULT null_delta=0 count  (solar as long as the horizon, and full Open-Meteo coverage)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._apply_open_meteo
+#   line 7419 (`value = solar[i] if i < len(solar) else 0.0`), live coordinator, _open_meteo replaced by a stub
+#   (available=True, irradiance_for keyed on the production utc_step_starts grid). Reach: _forecast_arrays
+#   (coordinator.py:7473) calls it BEFORE the hold-flat padding at 7476, so a weather forecast shorter than the horizon
+#   arrives here short.
+# Perturbation: key 37e0face2a901e71, `i < len(solar)` -> `i <= len(solar)`, in memory (method recompiled from source).
+#   Direction: a series -> IndexError at i == len(solar) (the forecast assembly raises instead of falling back).
+# Null control: a solar list as long as the horizon (i < len always), and full Open-Meteo coverage (fallback unused).

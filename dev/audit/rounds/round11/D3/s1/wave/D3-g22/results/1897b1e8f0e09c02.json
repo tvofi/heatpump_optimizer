@@ -1,0 +1,42 @@
+{
+ "key": "1897b1e8f0e09c02",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6509 CLAMP_DROP",
+ "patch": "filtered.append(round(float(np.clip(effective, d_min, d_max)), 1)) -> filtered.append(round(float((effective)), 1))",
+ "function": "HeatPumpOptimizer._power_to_displace_schedule",
+ "cluster": "optimizer.py:HeatPumpOptimizer._power_to_displace_schedule@6497-6509",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3843.4,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/gates/1897b1e8f0e09c02.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1897b1e8f0e09c02",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1897b1e8.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_1897b1e8.py",
+  "baseline_value": "admitted windows: max_abs_delta=0.0 over 576 cells",
+  "mutant_value": "refused windows (d_min 2 / d_max -2): max_abs_delta=2.0",
+  "inputs_tried": [
+   "windows (-20,20) (-30,0) (0,30) (0,0) (-0.5,0.5) (-30,30) x tau 0.01/0.25/1.5/24 h x 4 power x 3 outdoor x 2 forecast factors: delta 0.0",
+   "windows (2,10) and (-10,-2), refused by config flow and service: delta 2.0"
+  ],
+  "reach_census": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/reach_scan.py",
+  "answer": "equivalent on every window the config flow (config_flow.py:1888, [-30,0] / [0,30]) and the service (services.py:517-522) admit: alpha is clipped to [0,1] at line 6504 and the EWMA starts at 0, which every admitted window contains, so it never leaves the window; it moves only for a window excluding 0"
+ },
+ "should_fail": "none reachable: a check would need a displace window excluding 0, which no input surface admits"
+}

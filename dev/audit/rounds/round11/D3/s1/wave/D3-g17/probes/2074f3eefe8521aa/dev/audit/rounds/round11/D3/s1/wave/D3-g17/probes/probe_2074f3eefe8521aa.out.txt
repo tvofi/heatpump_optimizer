@@ -1,0 +1,9 @@
+RESULT status1_baseline=None status1_mutant=plan
+RESULT status1_mutant_plan=[0,0,0,0,0,0,0,0,0,0,1.47660443,0,0,0,0,0]
+RESULT status2_baseline=None status2_mutant=None
+RESULT real_differing=0
+RESULT reach=the LP carries a priced shortfall slack and finite bounds, so it is feasible and bounded on every input tried; a real success=False needs a solver limit or numerical failure, which this probe stubs (mock.patch.object on dhw_planner.linprog)
+RESULT inputs_tried=stubbed status 1 with x; stubbed status 2 without x; unmocked (null)
+RESULT thread_factor=1.014
+RESULT load1=1.18
+RESULT swapins=0

@@ -1,0 +1,65 @@
+{
+ "key": "e58e8eb0f54fe274",
+ "site": "optimizer.py:2417 CMP_BOUND",
+ "patch": "if pin >= 0.5: -> if pin > 0.5:",
+ "function": "_apply_pins_to_bounds",
+ "cluster": "optimizer.py:_apply_pins_to_bounds@2412-2418",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3492.2,
+  "load1_start": 0.72,
+  "load1_end": 1.01,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/e58e8eb0f54fe274.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e58e8eb0f54fe274",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_e58e8eb0f54fe274.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_e58e8eb0f54fe274.py",
+  "baseline_value": "(0.0,0.3)",
+  "mutant_value": "(0.0,0.0)",
+  "example_input": "pin=0.5,bounds=(0.0,0.3),min_on_power=0.0",
+  "results": [
+   "example_input=pin=0.5,bounds=(0.0,0.3),min_on_power=0.0",
+   "bounds_baseline=(0.0,0.3)",
+   "bounds_mutant=(0.0,0.0)",
+   "grid_inputs_tried=180 count",
+   "grid_inputs_moved=16 count",
+   "domain_inputs_tried=60 count",
+   "domain_inputs_moved=0 count",
+   "inverted_boxes_on_pins_baseline=0 count",
+   "inverted_boxes_on_pins_mutant=0 count",
+   "production_calls=4 count",
+   "production_calls_moved=0 count",
+   "production_calls_inverted_under_mutant=0 count",
+   "production_pins_not_0_1_nan=0 count",
+   "production_low_headroom_dhw_steps_pinned_on=0 count",
+   "production_mutant_solve_error=none",
+   "production_plan_max_abs_delta_kw=0 kW",
+   "production_objective_max_abs_delta=0",
+   "capped_step36_total_kw_baseline=0.1 kW",
+   "capped_step36_total_kw_mutant=0.1 kW",
+   "capped_step36_cap_kw=0.05 kW",
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ],
+  "inputs_tried": "production domain: pins as production builds them: PIN_ON 1.0 / PIN_OFF 0.0 / PIN_FREE NaN (manual_plan.ManualOverride.channel_pins; optimizer.py:565's np.where); grid_inputs_tried=180 count; domain_inputs_tried=60 count",
+  "null": [
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ]
+ },
+ "step4": "moves only at pin == 0.5 (a pin of exactly 0.5 becomes an off pin); production pins are 1.0/0.0/NaN, so 0 of 60 production-domain grid inputs and 0 of 4 production calls move",
+ "should_fail": "tests/manual_plan.py (executes optimizer.py:2417 on the traced baseline; also tests/features.py, tests/optimality.py, tests/env_drift.py) has no _apply_pins_to_bounds check at pin == 0.5; none is owed through production, which never builds a 0.5 pin",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "non_finding": {
+  "claim": "optimizer.py:2417 CMP_BOUND e58e8eb0f54fe274 survives the full gate but is equivalent at every production-reachable input tried: moves only at pin == 0.5 (a pin of exactly 0.5 becomes an off pin); production pins are 1.0/0.0/NaN, so 0 of 60 production-domain grid inputs and 0 of 4 production calls move",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_e58e8eb0f54fe274.py",
+  "value": "grid_inputs_moved=16 count; domain_inputs_moved=0 count; production_calls_moved=0 count; null_inputs_moved=0 count"
+ }
+}

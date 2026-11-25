@@ -1,0 +1,58 @@
+import os
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+import inspect, sys, textwrap, warnings
+from unittest import mock
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
+sys.path.insert(0, str(ROOT))
+import numpy as np  # noqa: E402
+from custom_components.heatpump_optimizer import price_model as pm  # noqa: E402
+
+warnings.simplefilter("ignore", RuntimeWarning)
+
+
+def mutant(func, line, old, new):
+    """``func`` recompiled from its own source with file line ``line`` mutated (in memory only)."""
+    lines, start = inspect.getsourcelines(func)
+    i = line - start
+    assert lines[i].rstrip("\n") == old, f"anchor line {line} moved: {lines[i]!r}"
+    lines[i] = new + "\n"
+    src = textwrap.dedent("".join(lines))
+    ns = dict(pm.__dict__)
+    exec(compile(src, pm.__file__, "exec"), ns)
+    return ns[func.__name__]
+
+
+def same(a, b):
+    """Exact equality that treats nan == nan and compares arrays and exceptions."""
+    if isinstance(a, BaseException) or isinstance(b, BaseException):
+        return type(a) is type(b)
+    if isinstance(a, tuple) and isinstance(b, tuple):
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
+    if isinstance(a, np.ndarray) or isinstance(b, np.ndarray):
+        return np.array_equal(np.asarray(a), np.asarray(b), equal_nan=True)
+    if isinstance(a, float) and isinstance(b, float):
+        return (a == b) or (np.isnan(a) and np.isnan(b))
+    return a == b
+
+
+def call(fn, *args, **kw):
+    try:
+        return fn(*args, **kw)
+    except Exception as err:  # the mutant may raise where the baseline does not
+        return err

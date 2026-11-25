@@ -1,0 +1,103 @@
+{
+ "key": "df066a5f3f3d3e0f",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5139 CMP_BOUND",
+ "patch": "if new_cap < float(power_caps[i]) - 1e-9: -> if new_cap <= float(power_caps[i]) - 1e-9:",
+ "function": "HeatPumpOptimizer._tighten_buffer_caps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._tighten_buffer_caps@5120-5145",
+ "slice": "u1d",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2777.3,
+  "load1_start": 0.81,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 4599.9,
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/gates/df066a5f3f3d3e0f.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df066a5f3f3d3e0f",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/out/df066a5f3f3d3e0f.txt",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+  "metric": "mutant_cases_moved",
+  "baseline_value": 0,
+  "mutant_value": 1,
+  "extra": {},
+  "moving_cases": [
+   "CASE refused_real_cap_tie(new_cap==cap-1e-9): baseline=('ok', False, [1.7941224499795918, 3.0, 3.0, 3.0], []) mutant=('ok', True, [1.7941224489795917, 3.0, 3.0, 3.0], [1]) moved=1"
+  ],
+  "inputs_tried": "the 12 _tighten_core cases, incl. a cap c with float(c) - 1e-9 == new_cap exactly (found by nextafter search)",
+  "thread_factor": "1.000",
+  "load1": "1.15"
+ },
+ "should_fail": {
+  "traced_scripts_executing_line": [
+   "tests/features.py"
+  ],
+  "assertion_lacking": "tests/features.py (the only closure script whose traced baseline executes line 5139) has no tie case asserting changed False"
+ },
+ "class": "candidate",
+ "finding": {
+  "title": "No check sets a cap with new_cap == cap - 1e-9; _tighten_buffer_caps' < -> <= is unseen",
+  "claim": "Mutant df066a5f3f3d3e0f (optimizer.py:5139 `<` -> `<=`) survives the full gate, yet at a cap c with c - 1e-9 == new_cap exactly _tighten_buffer_caps returns False on the baseline and True (cap lowered by 1e-9 kW, one more re-solve) under the mutant.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "severity_consequence": "at the float tie a repair round is spent re-solving for a 1e-9 kW cap change, the cost the line's own comment says the margin avoids",
+  "stop_rule_class": "bug",
+  "metric_definition": "cases of _tighten_core.cases() whose (changed, caps, logged count) moves under the mutant",
+  "phenomenon_property": "A cap counts as changed only when the new cap is below the old by more than 1e-9 kW (optimizer.py:5139)",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._tighten_buffer_caps",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+   "value": 1,
+   "unit": "count",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "tolerance": "exact",
+   "thread_factor": "1.000",
+   "load1": "1.15",
+   "machine": "box D3-g24: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython 3.14"
+  },
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:5139 if new_cap < float(power_caps[i]) - 1e-9: -> if new_cap <= float(power_caps[i]) - 1e-9: applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df066a5f3f3d3e0f",
+   "expected_direction": "up",
+   "observed_value": 1
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+   "value": "null_cases_moved=0",
+   "note": "the baseline method against itself on the same inputs; the full-gate null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ],
+  "proposed_fix_scope": "a check in tests/features.py pinning the boundary the probe's moving case exercises",
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g24/probes/probe_df066a5f3f3d3e0f.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key df066a5f3f3d3e0f"
+  ]
+ }
+}

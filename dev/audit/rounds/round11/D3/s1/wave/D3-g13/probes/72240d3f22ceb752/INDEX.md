@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_72240d3f22ceb752.py: mutant 72240d3f22ceb752; pins: count of no-weak plans whose _apply_dhw_min_run result differs baseline vs mutant: production-shaped sweep vs direct inputs outside [0, p_dhw_max].

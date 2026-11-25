@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_58fe17a0726473a6.py: pins buffer-cooling samples/rate/saves after one interval starting under 4 K above ambient, with the start-delta guard deleted. EQUIVALENT-MUTANT probe (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

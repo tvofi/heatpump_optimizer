@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_6af4c3b8f521e3d3.py: pins 6af4c3b8f521e3d3 (candidate if the full gate survives): moves on 4 of 121 finite value pairs, all at the exact tie margin; 0 production calls in the probe's solves

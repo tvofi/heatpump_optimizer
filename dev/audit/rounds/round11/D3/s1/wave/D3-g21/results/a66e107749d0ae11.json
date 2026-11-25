@@ -1,0 +1,91 @@
+{
+ "key": "a66e107749d0ae11",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5945 CLAMP_DROP",
+ "patch": "float(max(dhw_floor_temps[0], dhw_ready_temps[0])) -> float((dhw_floor_temps[0]))",
+ "function": "HeatPumpOptimizer._optimize_with_dhw",
+ "cluster": "optimizer.py:HeatPumpOptimizer._optimize_with_dhw@5902-5962",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2442.5,
+  "load1_start": 0.85,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/a66e107749d0ae11.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/a66e107749d0ae11.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py",
+  "metric": "predictive_info.dhw_required_temperature_now (published as the DHW sensor's dhw_required_temperature attribute, sensor.py:1191) per start hour",
+  "baseline_value": "55.0 C",
+  "mutant_value": "20.0 C",
+  "baseline_name": "required_now_baseline",
+  "mutant_name": "required_now_mutant",
+  "inputs_tried": [
+   "all 24 start hours of a hot-water solve (4 differ: 5, 6, 16, 17)",
+   "the 20 other hours (null)"
+  ],
+  "results": {
+   "first_differing_hour": "5",
+   "required_now_baseline": "55.0 C",
+   "required_now_mutant": "20.0 C",
+   "hours_differ": "4 count",
+   "differing_hours": "5,6,16,17",
+   "null_delta": "0 count",
+   "thread_factor": "1.001",
+   "load1": "1.71",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_a66e107749d0ae11.txt"
+ },
+ "should_fail": "tests/entities.py (traced baseline executes optimizer.py:5945; block_duty, features, manual_plan, optimality, plan_view, validate, card.mjs and card_drift.mjs too; every golden's solve starts outside a window): no check or golden starts a hot-water solve inside a demand window and pins dhw_required_temperature",
+ "title": "No check reads dhw_required_temperature_now inside a demand window; dropping max(floor, ready) publishes the floor",
+ "claim": "Mutant a66e107749d0ae11 at custom_components/heatpump_optimizer/optimizer.py:5945 (float(max(dhw_floor_temps[0], dhw_ready_temps[0])) -> float((dhw_floor_temps[0]))) is not failed by the full gate (RED-AS-NULL), yet the probe's predictive_info.dhw_required_temperature_now (published as the DHW sensor's dhw_required_temperature attribute, sensor.py:1191) per start hour moves: baseline 55.0 C, mutant 20.0 C.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "high",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "Inside a demand window the published required hot-water temperature now is the ready target (max of floor and ready), not the idle floor",
+ "metric_definition": "predictive_info.dhw_required_temperature_now (published as the DHW sensor's dhw_required_temperature attribute, sensor.py:1191) per start hour",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._optimize_with_dhw",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py",
+ "perturbation": {
+  "change": "optimizer.py:5945 float(max(dhw_floor_temps[0], dhw_ready_temps[0])) -> float((dhw_floor_temps[0])), applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a66e107749d0ae11",
+  "expected_direction": "down: 55.0 -> 20.0 C at the first in-window hour; 4 of 24 start hours move"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py",
+  "value": "null_delta=0 count",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/entities.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

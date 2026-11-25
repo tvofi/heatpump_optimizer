@@ -1,0 +1,9 @@
+# Metric: over the event sequence fail, fail, recover on a live coordinator: the WARNING / INFO / DEBUG records the
+#   coordinator logger emits about the weather fetch, then _weather_outage_cycles and whether _weather_stale_since is set.
+# Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_KEY.py
+# Expected: EXPECTED_LINE
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g10, 4 vCPU Intel Xeon @ 2.30GHz, 16 GB.
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator.SYMBOL
+# Perturbation: PERTURBATION, in memory (the method recompiled from its own source and attached with
+#   mock.patch.object for the mutant arm only). Direction: DIRECTION
+# Null control: NULLDESC

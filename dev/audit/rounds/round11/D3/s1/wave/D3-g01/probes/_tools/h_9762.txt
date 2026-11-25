@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+# Metric: pump service calls (and any exception) HeatPumpOptimizerCoordinator._async_drive_pumps makes in one tick when
+#   neither a VVC pump nor a drivable space pump exists, on a live coordinator.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_97628f4b14aec1b9.py
+# EXPECTED RESULT no_pumps_calls_baseline=[] ; no_pumps_calls_mutant=[]  (equivalent: both branches below are gated
+#   on the same two entities, so dropping the early return only adds a dt_util.now() read)
+# EXPECTED RESULT moved_inputs=0 count
+# EXPECTED RESULT positive_control_calls=1 count  (a configured VVC pump: the harness does see a command)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_drive_pumps
+#   line 4497 (`if not vvc_entity and not space_entity:`), hass.services.async_call recorded, dt_util.now pinned.
+# Perturbation: key 97628f4b14aec1b9, `if not vvc_entity and not space_entity:` -> `if False:` (GUARD_OFF), in memory.
+#   Direction: none found (equivalent-candidate): every input below gives identical calls.
+# Null control: the inputs are themselves the null; positive control: a configured VVC pump issues one command.

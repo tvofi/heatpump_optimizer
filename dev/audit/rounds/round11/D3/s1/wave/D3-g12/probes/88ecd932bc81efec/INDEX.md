@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_88ecd932bc81efec.py: step-4 probe for 88ecd932bc81efec; pins the value _plausible_forecast_rows keeps for a forecast field sitting exactly on the UPPER edge of its _FORECAST_FIELD_RANGE window (kept value, or None when dr (output beside it, .out)

@@ -1,0 +1,8 @@
+RESULT wood_logs_baseline=(warnings,infos,format_errors,temps)(1, 2, 0, (60.0, 60.0, None, None, 58.0))
+RESULT wood_logs_mutant=(warnings,infos,format_errors,temps)(3, 2, 0, (60.0, 60.0, None, None, 58.0))
+RESULT temps_moved=0 count
+RESULT null_moved=0 count (null input ('60.0',))
+RESULT probe_cpu_s=0.02 s provisional
+RESULT thread_factor=1.000
+RESULT load1=1.12
+RESULT swapins=0

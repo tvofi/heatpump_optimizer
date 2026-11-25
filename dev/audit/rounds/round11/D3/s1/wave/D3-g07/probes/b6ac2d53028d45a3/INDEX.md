@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py (with dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/_probe_lib.py): _interval_space_power() in kW (None = "skip this sample", printed as -1) with a power entity configured,

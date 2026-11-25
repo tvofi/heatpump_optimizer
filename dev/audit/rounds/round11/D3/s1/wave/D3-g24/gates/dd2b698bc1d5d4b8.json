@@ -1,0 +1,35 @@
+{
+ "key": "dd2b698bc1d5d4b8",
+ "mutant": {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "line": 4717,
+  "old": "        if price_sigma is not None and self.config.price_risk_lambda > 0.0:",
+  "new": "        if price_sigma is not None and self.config.price_risk_lambda >= 0.0:",
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._stash_price_horizon CMP_BOUND 99240c85"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3669.9,
+ "child_cpu_s": 6320.4,
+ "load1_start": 0.79,
+ "load1_end": 0.92,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

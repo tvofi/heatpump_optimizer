@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: consecutive cycles _await_optimize carries with an in-process solve while the process worker is unusable
+#   (ProcessWorkerUnavailable every cycle) before it raises UpdateFailed and keeps the last plan.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_676e8bfb416ff635.py
+# EXPECTED RESULT inprocess_solves_before_skip_baseline=3 count ; _mutant=6 count
+# EXPECTED RESULT null_delta=0 count  (a healthy worker: 0 fallbacks in 10 cycles either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:_await_optimize (reads WORKER_FALLBACK_CAP at
+#   coordinator.py:2331; the constant is coordinator.py:829), with _await_process stubbed to raise
+#   ProcessWorkerUnavailable and optimize_in_process stubbed to count the in-process solves; real FakeHass.data streak.
+# Perturbation: key 676e8bfb416ff635, `WORKER_FALLBACK_CAP = 3` -> `= 6`, in memory (mock.patch.object on the module
+#   global). Direction: 3 -> 6 GIL-holding in-process solves before the skip.
+# Null control: a worker that answers every cycle, where the cap is never consulted.

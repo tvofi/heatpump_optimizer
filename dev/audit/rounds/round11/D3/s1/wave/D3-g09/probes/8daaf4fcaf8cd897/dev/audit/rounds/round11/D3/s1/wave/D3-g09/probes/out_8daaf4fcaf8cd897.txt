@@ -1,0 +1,10 @@
+RESULT tie_prices=[0.6, 0.6972972972972973] ratio=0.15
+RESULT calls_tie_baseline=1 evidence_delta=-0.007292
+RESULT calls_tie_mutant=0 evidence_delta=0.0
+RESULT calls_spread010_baseline=0 evidence_delta=0.0
+RESULT calls_spread010_mutant=0 evidence_delta=0.0
+RESULT calls_spread030_baseline=1 evidence_delta=-0.007292
+RESULT calls_spread030_mutant=1 evidence_delta=-0.007292
+RESULT thread_factor=1.000
+RESULT load1=1.07
+RESULT swapins=0

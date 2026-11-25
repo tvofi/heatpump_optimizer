@@ -1,0 +1,96 @@
+{
+ "key": "8611ebe645da9f19",
+ "site": "tariff.py:391 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/tariff.py",
+ "line": 391,
+ "patch": "if len(self.peaks) < n: -> if len(self.peaks) <= n:",
+ "function": "PeakTracker.threshold_kw",
+ "cluster": "tariff.py:PeakTracker.threshold_kw@391-391",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2796.0,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "null_failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/gates/8611ebe645da9f19.json",
+ "provisional": true,
+ "machine": "box D3-g39: 4 vCPU Intel Xeon @ 2.30GHz, 16 GB (MACHINE.txt)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_8611ebe645da9f19.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/_mutload.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_8611ebe645da9f19.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/out/probe_8611ebe645da9f19.out",
+  "cases_moved": 0,
+  "null_cases_moved": 0,
+  "inputs_tried": {
+   "len_eq_n0": {
+    "baseline": "3.0",
+    "mutant": "3.0"
+   },
+   "len_eq_n1": {
+    "baseline": "3.0",
+    "mutant": "3.0"
+   },
+   "len_eq_n3": {
+    "baseline": "1.0",
+    "mutant": "1.0"
+   },
+   "len_eq_nan": {
+    "baseline": "nan",
+    "mutant": "nan"
+   },
+   "len_eq_unsorted": {
+    "baseline": "2.0",
+    "mutant": "2.0"
+   },
+   "len_gt": {
+    "baseline": "2.0",
+    "mutant": "2.0"
+   },
+   "len_lt": {
+    "baseline": "2.0",
+    "mutant": "2.0"
+   }
+  },
+  "baseline_value": "equal on every input tried",
+  "mutant_value": "equal on every input tried"
+ },
+ "should_fail": {
+  "scripts": [
+   "tests/entities.py",
+   "tests/features.py",
+   "tests/finite_boundary.py"
+  ],
+  "trace_source": "dev/audit/rounds/round11/D3/s1/state/baselines.json (fast-net traced baseline hits)",
+  "assertion": "none can: at len(peaks) == n the mutant returns peaks[-1], which is peaks[n-1]"
+ },
+ "non_finding": {
+  "claim": "tariff.py:391 CMP_BOUND mutant 8611ebe645da9f19 survives the full gate but is equivalent on every input tried",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_8611ebe645da9f19.py",
+  "value": "cases_moved=0 over 7 inputs (len_eq_n0, len_eq_n1, len_eq_n3, len_eq_nan, len_eq_unsorted, len_gt, len_lt); none can: at len(peaks) == n the mutant returns peaks[-1], which is peaks[n-1]"
+ }
+}

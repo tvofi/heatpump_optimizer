@@ -1,0 +1,49 @@
+{
+ "key": "ef125fd473e20ed2",
+ "site": "dhw_planner.py:1822 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1822,
+ "patch": "if decay > 1e-6: -> if decay >= 1e-6:",
+ "function": "DhwPlanner._repair_dhw_floor",
+ "cluster": "dhw_planner.py:DhwPlanner._repair_dhw_floor@1800-1893",
+ "slice": "u1d",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3286.9,
+  "load1_start": 0.79,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/ef125fd473e20ed2.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/ef125fd473e20ed2.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ef125fd473e20ed2",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_ef125fd473e20ed2.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_ef125fd473e20ed2.py",
+  "baseline_value": "exact_decay_ties=0 of 40001 ratios; differing_derived_decay=0 of 1500",
+  "mutant_value": "differing only with a context forced to report decay = 1e-6: 1 of 300",
+  "inputs_tried": "the 40001 doubles x around 1 - 1e-6 through dhw_planner._tank_decay; 1500 seeded calls with the derived decay; 300 seeded calls whose _DhwPlanContext subclass reports tank_decay = (1e-6, gain)",
+  "reach": "decay = clip(1 - ua*dt/c, 0, 1): for x >= 0.5, 1 - x is exact and a multiple of 2^-53, and 1e-6 is not, so the derived decay never equals 1e-6; _DhwPlanContext.tank_decay -> _tank_decay is the only producer. Equivalent at the production seam."
+ },
+ "should_fail": "none: no tank volume, loss or step length yields decay == 1e-6."
+}
