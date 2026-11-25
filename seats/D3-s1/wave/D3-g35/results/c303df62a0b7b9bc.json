@@ -1,0 +1,86 @@
+{
+ "key": "c303df62a0b7b9bc",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2187 GUARD_OFF",
+ "patch": "if drift_c_per_h is not None and a.shape[1] >= 4: -> if False:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/structure.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3799.7,
+  "load1_start": 0.86,
+  "load1_end": 0.94
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/gates/c303df62a0b7b9bc.json",
+ "class": "killed",
+ "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c303df62a0b7b9bc.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/probe_c303df62a0b7b9bc.py",
+  "baseline_value": "0.9813074506931991",
+  "mutant_value": "0.9815294051605464",
+  "differing_cases": 14,
+  "cases": 30,
+  "hunt": null,
+  "inputs_tried": [
+   "KEY drift+0.01",
+   "clean",
+   "drift+0.01",
+   "drift-0.01",
+   "drift+0.05",
+   "noise0.02_s0",
+   "noise0.02_s1",
+   "noise0.02_s2",
+   "noise0.02_s3",
+   "noise0.02_s4",
+   "noise0.005_s0",
+   "noise0.005_s1",
+   "noise0.005_s2",
+   "gains0",
+   "gains-0.3",
+   "gains1.9",
+   "gains3",
+   "cadence30",
+   "cadence60",
+   "unsettled1.3",
+   "q0.1",
+   "q1e-5",
+   "q0",
+   "tau~200",
+   "ua~5",
+   "ua~0.01",
+   "tau~0.1",
+   "settle_dT_1e-6",
+   "prior0.05",
+   "short"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/features.py (its traced baseline executes the line: the slice box's closure trace; the one-state identify() checks near features.py:7850-7972 and 29353-29387 drive it)",
+  "assertion": "a drifting-sensor identify() check asserting the published confidence equals the drift-corrected excursion's (0.98131 at +0.01 C/h)"
+ },
+ "killed_by": [
+  "python3 tests/structure.py"
+ ],
+ "failing_lines": {
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/structure.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "null_fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  }
+ }
+}
