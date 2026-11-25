@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_log.py:<module> CONST f34207b8",
+  "killed_by": "tests/features.py",
+  "old": "REGISTER_MAX = 0xFFFFFFFF",
+  "reason": "CONST (doubled) on the 32-bit register cap this diff added. The inventory's textual mutant is `REGISTER_MAX = 8589934590xFFFFFFFF`: `_NUM` matches only the leading `0` of a hex literal, so `--pin-killed` reports it SKIP-UNPARSEABLE and never drives it. Applied as the value the operator names, `REGISTER_MAX = 0x1FFFFFFFE`, in a detached worktree at 08fc04fe96: `PYTHONPATH=tests/hastub:tools/devices python3 tools/audit/seat/features_block.py --prelude 'exec(open(OUT).read())' 'from heatpump_optimizer import fault_log as _fl' '# 7: the ring and the tally.'` (OUT from `--emit-prelude`) went from rc=0, 7 passed to rc=1, 1 of 7 failed: `the flag slot: ... null control, the same state on a binary_sensor reads through the flag path` (`str(0x100000000)` read as code `0x100000000` instead of NO_CODE). Null control: the same value written `4294967295` keeps rc=0, 7 passed. Measured 2026-11-25."
+}
