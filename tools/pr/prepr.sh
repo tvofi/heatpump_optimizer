@@ -4710,7 +4710,9 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
 # CI's `governance` job runs it on every pull request; this is the cheaper
 # detector. A diff that cannot be listed is treated as owing it.
-if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
+if [ -n "${PREPR_OVERLAY_SKIP_SELFTEST:-}" ]; then
+  say skip "self-test" "LOCAL OVERLAY: $PREPR_OVERLAY_SKIP_SELFTEST"
+elif ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
   take_slot
   if test -f tools/audit/prepr.sh; then heavy_run /tmp/prepr-stlog.$$ bash tools/audit/prepr.sh --self-test; else heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test; fi
