@@ -1,0 +1,81 @@
+{
+ "key": "01e740ed4f78ae95",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2126 CMP_BOUND",
+ "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh <= 0 or p_max <= 0 or dt < 0:",
+ "function": "_price_ranked_start",
+ "cluster": "optimizer.py:_price_ranked_start@2126-2130",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3774.0,
+  "load1_start": 0.49,
+  "load1_end": 0.85,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/01e740ed4f78ae95.json",
+  "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 01e740ed4f78ae95",
+  "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+  "results": {
+   "dt0_baseline": "ok:[0.0, 0.0, 0.0, 0.0]",
+   "dt0_mutant": "raise:ZeroDivisionError: division by zero",
+   "dt0_mutant_raises": "1",
+   "null_dt_quarter_diff": "0",
+   "thread_factor": "1.000",
+   "load1": "1.25",
+   "swapins": "0"
+  },
+  "inputs_tried": "dt 0 on a 4-step day; null: dt 0.25",
+  "direction": "zero schedule -> ZeroDivisionError",
+  "metric": "what _price_ranked_start delivers at dt = 0 (energy 1 kWh, p_max 2 kW): a schedule or a raise"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "a _price_ranked_start degenerate-input case at dt = 0, asserting a zero schedule",
+  "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+ },
+ "finding": {
+  "title": "_price_ranked_start's dt <= 0 guard boundary (optimizer.py:2126) is unpinned by the full gate",
+  "claim": "Turning `dt <= 0` into `dt < 0` in _price_ranked_start makes dt = 0 raise ZeroDivisionError where the baseline returns a zero schedule, and GATE_SCOPE=full GOLDEN_MODE=drift stays green; no production caller passes dt = 0.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "what _price_ranked_start delivers at dt = 0 (energy 1 kWh, p_max 2 kW): a schedule or a raise",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+  "instrumented_symbol": "heatpump_optimizer.optimizer:_price_ranked_start",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:2126 `if energy_kwh <= 0 or p_max <= 0 or dt <= 0:` -> `if energy_kwh <= 0 or p_max <= 0 or dt < 0:`",
+   "expected_direction": "up",
+   "observed_value": "dt0_mutant_raises=1"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py",
+   "value": "null_dt_quarter_diff=0",
+   "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ]
+ }
+}
