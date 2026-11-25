@@ -1,0 +1,8 @@
+RESULT reached_fit_gap=1
+RESULT raised_dup=1 (ZeroDivisionError)
+RESULT reached_fit_null=1
+RESULT ua_31=None reason='fit gave implausible signs'
+RESULT ua_31_null=0.11999999998433901 reason='ok'
+RESULT thread_factor=1.000
+RESULT load1=0.96
+RESULT swapins=0

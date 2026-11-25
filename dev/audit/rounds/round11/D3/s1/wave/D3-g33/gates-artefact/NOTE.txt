@@ -1,0 +1,7 @@
+Gate 0b6e291153f1d738 (2026-11-25 00:52-01:39Z) ran with the box's 16 step-4 probes present under wave/D3-g33/probes/
+(restored there by `gate_wave.sh restore` on the re-fire). tests/harness_headers.py's check "every inlined walk matches the
+canonical helper and no depth root remains" FAILED naming those probe files (4 FAIL lines vs the null's 3), so fullgate.py
+read KILLED by python3 tests/harness_headers.py. Every earlier gate of this box, and the null, read that check `ok`.
+The kill is an artefact of the box's own files in the gated tree, not of the mutant: the record is set aside here and the key is
+re-gated with the probes held outside the tree (they stay in the checkpointed seat dir). Gate e38d4bea802156c3 was running when
+the probes were moved out (01:55Z, before harness_headers.py ran); its log is checked for the same line.

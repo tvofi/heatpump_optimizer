@@ -1,0 +1,86 @@
+{
+ "key": "adc459d2db521041",
+ "site": "sysid.py:1708 CMP_BOUND",
+ "patch": "or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0",
+ "function": "SystemIdentification._unadoptable",
+ "cluster": "sysid.py:SystemIdentification._unadoptable@1705-1715",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3670.4,
+  "load1_start": 0.85,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key adc459d2db521041",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/adc459d2db521041.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py [--mutant]",
+  "metric": "consulted_tie",
+  "baseline_value": "1",
+  "mutant_value": "0",
+  "null_metric": "consulted_null",
+  "null_baseline": "1",
+  "null_mutant": "1",
+  "all_results_baseline": {
+   "consulted_tie": "1",
+   "refuses_tie": "1",
+   "halfwidth_tie": "[0.11157312536429365]",
+   "refuses_tie_stub": "1",
+   "consulted_below": "1",
+   "consulted_above": "0",
+   "consulted_null": "1",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "consulted_tie": "0",
+   "refuses_tie": "0",
+   "halfwidth_tie": "[]",
+   "refuses_tie_stub": "0",
+   "consulted_below": "1",
+   "consulted_above": "0",
+   "consulted_null": "1",
+   "thread_factor": "1.000",
+   "load1": "1.14",
+   "swapins": "0"
+  },
+  "inputs_tried": "settle interval 2.0 h (the tie), 1.99 h, 2.01 h; null 0.25 h; real halfwidth and a stub returning 1.0 (> bar)",
+  "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+ },
+ "reach": "reachable only when two settle samples are exactly 7200 s apart (a stalled cycle landing on the edge)",
+ "should_fail": "tests/features.py (traced, executes sysid.py:1708; tests/entities.py too): no check drives _unadoptable with settle samples exactly 2.0 h apart asserting the declared night is still read (here it refuses); tests/dst_checks.py:2309-2329 uses 1.0 h only",
+ "title": "No check pins _unadoptable's upper settle-interval edge (dt == 2.0 h); <= -> < is unseen",
+ "claim": "Mutant adc459d2db521041 at sysid.py:1708 CMP_BOUND (or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's consulted_tie moves 1 -> 0 while its null consulted_null stays 1 -> 1. reachable only when two settle samples are exactly 7200 s apart (a stalled cycle landing on the edge).",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._unadoptable",
+ "metric_definition": "consulted = 1 when SystemIdentification._unadoptable reads _declared_night_halfwidth for two settle samples exactly 2.0 h apart; refuses = 1 when it returns a reason.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py --mutant",
+ "perturbation": {
+  "change": "the one-line mutant at sysid.py:1708 (or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key adc459d2db521041",
+  "expected_direction": "down",
+  "baseline_value": "1",
+  "observed_value": "0"
+ },
+ "null_control": {
+  "probe_arm": "consulted_null: 1 -> 1 (an input where the edit cannot matter)",
+  "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+ }
+}

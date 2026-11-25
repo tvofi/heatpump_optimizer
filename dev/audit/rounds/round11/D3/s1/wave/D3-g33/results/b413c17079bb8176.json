@@ -1,0 +1,70 @@
+{
+ "key": "b413c17079bb8176",
+ "site": "sysid.py:1922 GUARD_OFF",
+ "patch": "if dt_h <= 1e-3 or dt_h > 2.0: -> if False:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/structure.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3105.8,
+  "load1_start": 0.85,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/structure.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b413c17079bb8176",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/b413c17079bb8176.json",
+ "class": "killed",
+ "should_fail": "n/a: the suite fails on it (tests/structure.py, max_cc ratchet); behaviourally no check pins the guard (see kill_note)",
+ "fail_lines": {
+  "python3 tests/structure.py": [
+   "gain max_cc 43 (budget 44, -1; not yet recorded -- see below)",
+   "1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED",
+   ">>> FAILED: python3 tests/structure.py"
+  ]
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b413c17079bb8176.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b413c17079bb8176.py [--mutant]",
+  "metric": "raised_dup",
+  "baseline_value": "0",
+  "mutant_value": "1 (ZeroDivisionError)",
+  "null_metric": "reached_fit_null",
+  "null_baseline": "1",
+  "null_mutant": "1",
+  "all_results_baseline": {
+   "reached_fit_gap": "0",
+   "raised_dup": "0",
+   "reached_fit_null": "1",
+   "ua_31": "None reason='fit gave implausible signs'",
+   "ua_31_null": "0.11999999998433901 reason='ok'",
+   "thread_factor": "1.000",
+   "load1": "0.96",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "reached_fit_gap": "1",
+   "raised_dup": "1 (ZeroDivisionError)",
+   "reached_fit_null": "1",
+   "ua_31": "None reason='fit gave implausible signs'",
+   "ua_31_null": "0.11999999998433901 reason='ok'",
+   "thread_factor": "1.000",
+   "load1": "0.96",
+   "swapins": "0"
+  },
+  "inputs_tried": "interval 3.0 h, 0.0 h (duplicate timestamp), 1e-4 h; null all 0.25 h; ua_31 on tests/features.py's 31-sample series with one 3 h gap",
+  "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+ },
+ "reach": "reachable: a duplicated sample timestamp (dt 0) or a stalled-cycle gap over 2 h is an ordinary input; under the mutant the gap is fitted as one interval and a duplicate raises ZeroDivisionError out of identify",
+ "kill_note": "KILLED by the structural ratchet only: if False: removes one decision point from identify (sysid.py:1890, cc 44 -> 43, the tree's max_cc), and structure.py refuses an unrecorded improvement (#350). No behavioural check failed: every other red script is the null's own (closure.py selftest 2, entities.py 1, harness_headers.py 3 FAIL lines, equal to the null). The step-4 probe still moves (raised_dup 0 -> 1: a duplicated timestamp makes identify raise ZeroDivisionError; reached_fit_gap 0 -> 1). Carried as a lead: a GUARD_OFF that keeps the decision count (e.g. `if dt_h != dt_h:`) might escape the ratchet (untested hypothesis, not gated)."
+}

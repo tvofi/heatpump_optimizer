@@ -1,0 +1,7 @@
+RESULT reached_fit_6=0
+RESULT reached_fit_7=1
+RESULT reached_fit_7_gap=0
+RESULT reason_6='not enough usable intervals'
+RESULT thread_factor=1.000
+RESULT load1=0.96
+RESULT swapins=0

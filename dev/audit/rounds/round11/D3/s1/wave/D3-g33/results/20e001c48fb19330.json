@@ -1,0 +1,80 @@
+{
+ "key": "20e001c48fb19330",
+ "site": "sysid.py:1549 CMP_BOUND",
+ "patch": "in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour",
+ "function": "SystemIdentification.conditions_met",
+ "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2721.6,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 20e001c48fb19330",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/20e001c48fb19330.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py [--mutant]",
+  "metric": "open_hours",
+  "baseline_value": "6",
+  "mutant_value": "7",
+  "null_metric": "open_hours_flat",
+  "null_baseline": "4",
+  "null_mutant": "4",
+  "all_results_baseline": {
+   "open_hours": "6",
+   "end_hour_open": "0",
+   "open_hours_flat": "4",
+   "open_hours_wrap2": "4",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "open_hours": "7",
+   "end_hour_open": "1",
+   "open_hours_flat": "4",
+   "open_hours_wrap2": "5",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": "default window (23,5) over hours 0..23; null (1,5); (22,2)",
+  "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+ },
+ "reach": "reachable: production builds the default wrapping window (23, 5); under the mutant the 05:00-05:59 hour is admitted",
+ "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no conditions_met check at hour == SysIdConfig().end_hour (5) under the default window asserting it refuses with 'outside the night window'",
+ "title": "No check pins conditions_met's exclusive night-window end (05:00) on the default window; < -> <= is unseen",
+ "claim": "Mutant 20e001c48fb19330 at sysid.py:1549 CMP_BOUND (in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's open_hours moves 6 -> 7 while its null open_hours_flat stays 4 -> 4. reachable: production builds the default wrapping window (23, 5); under the mutant the 05:00-05:59 hour is admitted.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.conditions_met",
+ "metric_definition": "open_hours = hours of 0..23 (at :30) for which SystemIdentification.conditions_met at the production default SysIdConfig (window 23..5) does not refuse with 'outside the night window'.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py --mutant",
+ "perturbation": {
+  "change": "the one-line mutant at sysid.py:1549 (in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 20e001c48fb19330",
+  "expected_direction": "up",
+  "baseline_value": "6",
+  "observed_value": "7"
+ },
+ "null_control": {
+  "probe_arm": "open_hours_flat (non-wrapping window (1,5), branch not taken): 4 -> 4",
+  "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+ }
+}

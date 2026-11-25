@@ -1,0 +1,35 @@
+{
+ "key": "adc459d2db521041",
+ "mutant": {
+  "kind": "CMP_BOUND",
+  "file": "custom_components/heatpump_optimizer/sysid.py",
+  "line": 1708,
+  "old": "            or self._baseline_temp is None or not 1e-3 < dt <= 2.0",
+  "new": "            or self._baseline_temp is None or not 1e-3 < dt < 2.0",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._unadoptable CMP_BOUND 9330e956"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3670.4,
+ "child_cpu_s": 6054.0,
+ "load1_start": 0.85,
+ "load1_end": 1.0,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

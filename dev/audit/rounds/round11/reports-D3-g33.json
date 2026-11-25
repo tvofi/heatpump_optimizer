@@ -1,0 +1,1550 @@
+{
+  "box": "D3-g33",
+  "missing": [],
+  "reports": {
+    "D3-s1": {
+      "dimension": "D3",
+      "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+      "box": "D3-g33",
+      "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/REPORT.md",
+      "exposure": "No docs/ or GitHub read. Two seats on this box: the first (stalled) took the null, gated 7 keys and wrote the probes and 6 records; the re-fire resumed from its checkpoint and read COMMON.md, D3.md, finding.schema.json's location, REPORT-D3-u1b.json's coverage rows, the production lines under test (sysid.py, coordinator.py:4045 and :6379), and box D3-g13's returned build_report.py and wave_boxes/ key lists (handoff/audit-r11-find-D3-g13; key lists and the report builder only, not its results). No register, round11/J/ or verifier report read.",
+      "coverage": [
+        {
+          "step": "D3.M1",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+          "universe": 1260,
+          "examined": 1260,
+          "not_reached": [],
+          "redispatched": [
+            {
+              "item": "C8",
+              "state": "examined"
+            }
+          ],
+          "evidence": "carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+          "carried": "verbatim from REPORT-D3-u1b.json (box D3-u1b); not re-driven on box D3-g33"
+        },
+        {
+          "step": "D3.M2",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+          "universe": 1260,
+          "examined": 343,
+          "not_reached": [
+            "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+            "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+            "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+            "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+            "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+            "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+            "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+            "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+            "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+            "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+            "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+            "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+            "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+            "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+            "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+            "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+            "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+            "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+            "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+            "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+            "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+            "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+            "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+            "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+            "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+            "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+            "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+            "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+            "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+          ],
+          "redispatched": [
+            {
+              "item": "C2",
+              "state": "examined"
+            },
+            {
+              "item": "C6",
+              "state": "examined"
+            }
+          ],
+          "evidence": "box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+          "carried": "verbatim from REPORT-D3-u1b.json (box D3-u1b); not re-driven on box D3-g33"
+        },
+        {
+          "step": "D3.M3",
+          "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+          "universe": 742,
+          "examined": 16,
+          "not_reached": [
+            "assigned to box D3-g01: 16 keys (coordinator.py 822-10331)",
+            "assigned to box D3-g02: 16 keys (coordinator.py 4525-5800)",
+            "assigned to box D3-g03: 16 keys (coordinator.py 4831-10855)",
+            "assigned to box D3-g04: 16 keys (coordinator.py 4391-10445)",
+            "assigned to box D3-g05: 16 keys (coordinator.py 5083-10231)",
+            "assigned to box D3-g06: 16 keys (coordinator.py 5382-10231)",
+            "assigned to box D3-g07: 16 keys (coordinator.py 5049-9402)",
+            "assigned to box D3-g08: 16 keys (coordinator.py 5108-10603)",
+            "assigned to box D3-g09: 16 keys (coordinator.py 8900-11091)",
+            "assigned to box D3-g10: 16 keys (coordinator.py 5234-10678)",
+            "assigned to box D3-g11: 16 keys (coordinator.py 490-11271)",
+            "assigned to box D3-g12: 16 keys (coordinator.py 467-3417; defrost.py 124-566)",
+            "assigned to box D3-g13: 16 keys (defrost.py 169-804; dhw_planner.py 2055-2075)",
+            "assigned to box D3-g14: 16 keys (dhw_planner.py 1138-2106)",
+            "assigned to box D3-g15: 16 keys (dhw_planner.py 596-807)",
+            "assigned to box D3-g16: 16 keys (dhw_planner.py 470-2280)",
+            "assigned to box D3-g17: 16 keys (dhw_planner.py 1510-2307)",
+            "assigned to box D3-g18: 16 keys (dhw_planner.py 1613-1893; flow_lift.py 51-232; grid_fee.py 187-483)",
+            "assigned to box D3-g19: 16 keys (grid_fee.py 219-496; optimizer.py 2006-4272)",
+            "assigned to box D3-g20: 16 keys (optimizer.py 3402-6097)",
+            "assigned to box D3-g21: 16 keys (optimizer.py 3997-5962)",
+            "assigned to box D3-g22: 16 keys (optimizer.py 4876-6509)",
+            "assigned to box D3-g23: 16 keys (optimizer.py 5211-6038)",
+            "assigned to box D3-g24: 16 keys (optimizer.py 3772-6559)",
+            "assigned to box D3-g25: 16 keys (optimizer.py 6565-6655)",
+            "assigned to box D3-g26: 16 keys (optimizer.py 2412-6661)",
+            "assigned to box D3-g27: 16 keys (optimizer.py 1567-2494)",
+            "assigned to box D3-g28: 16 keys (optimizer.py 1948-2172)",
+            "assigned to box D3-g29: 16 keys (optimizer.py 2286-3338; price_model.py 66-69)",
+            "assigned to box D3-g30: 16 keys (price_model.py 72-400)",
+            "assigned to box D3-g31: 16 keys (price_model.py 141-844)",
+            "assigned to box D3-g32: 16 keys (price_model.py 544-855; sysid.py 549-2411)",
+            "assigned to box D3-g34: 16 keys (sysid.py 1942-2126)",
+            "assigned to box D3-g35: 16 keys (sysid.py 2141-2246)",
+            "assigned to box D3-g36: 16 keys (sysid.py 835-2381)",
+            "assigned to box D3-g37: 16 keys (sysid.py 129-1073)",
+            "assigned to box D3-g38: 15 keys (sysid.py 266-1279)",
+            "assigned to box D3-g39: 15 keys (sysid.py 610-610; tariff.py 128-904)",
+            "assigned to box D3-g40: 15 keys (tariff.py 528-832)",
+            "assigned to box D3-g41: 15 keys (tariff.py 588-1225; thermal_model.py 3328-4482)",
+            "assigned to box D3-g42: 15 keys (thermal_model.py 3366-5012)",
+            "assigned to box D3-g43: 15 keys (thermal_model.py 3389-4714)",
+            "assigned to box D3-g44: 15 keys (thermal_model.py 303-4822)",
+            "assigned to box D3-g45: 15 keys (thermal_model.py 270-2583)",
+            "assigned to box D3-g46: 15 keys (thermal_model.py 2583-2998)",
+            "assigned to box D3-g47: 15 keys (thermal_model.py 2851-3080)"
+          ],
+          "redispatched": [
+            {
+              "item": "C3",
+              "state": "not_reached"
+            },
+            {
+              "item": "C5",
+              "state": "examined"
+            }
+          ],
+          "evidence": "box D3-g33 gated 16 of its 16 keys with `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>` driven by gate_wave.sh run (GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1, one gate at a time, 4 h cap); records dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/<key>.json, per-key analysis dev/audit/rounds/round11/D3/s1/wave/D3-g33/results/<key>.json; null control dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json (gate_rc=1, failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']). The wave list is the union of keys.tsv over dispatch/finder-r11-D3-g01..g47 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/wave_boxes/, 742 keys, as box D3-g13 collected them); earlier boxes' D3.M3 rows (D3-top6, D3-rem) contribute none of these keys (their 8 overlaps were deduped out of the wave). redispatched carried verbatim from REPORT-D3-u1b.json."
+        },
+        {
+          "step": "D3.M4",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+          "universe": 268,
+          "examined": 225,
+          "not_reached": [
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+            "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+          ],
+          "redispatched": [],
+          "evidence": "m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+          "carried": "verbatim from REPORT-D3-u1b.json (box D3-u1b); not re-driven on box D3-g33"
+        },
+        {
+          "step": "D3.M5",
+          "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+          "universe": 27,
+          "examined": 23,
+          "not_reached": [
+            "assigned to box D3-m5: tests/card.mjs",
+            "assigned to box D3-m5: tests/card_drift.mjs",
+            "assigned to box D3-m5: tests/golden.py",
+            "assigned to box D3-m5: tests/stress.py"
+          ],
+          "redispatched": [
+            {
+              "item": "C1",
+              "state": "examined"
+            },
+            {
+              "item": "C4",
+              "state": "not_reached"
+            },
+            {
+              "item": "C7",
+              "state": "not_reached"
+            },
+            {
+              "item": "C9",
+              "state": "not_reached"
+            }
+          ],
+          "evidence": "carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+          "carried": "verbatim from REPORT-D3-u1b.json (box D3-u1b); not re-driven on box D3-g33"
+        }
+      ],
+      "unfinished": [],
+      "findings": [],
+      "non_findings": [
+        {
+          "claim": "null control: the box's full gate on a comment-only marker (fullgate.py null)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null",
+          "value": "gate_rc=1 failed_scripts=['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'] fail_lines={'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 3} wall_s=3964.5 (provisional) load1 0.69..0.98"
+        },
+        {
+          "claim": "sysid.py:1545 CMP_BOUND (SystemIdentification.conditions_met) mutant ad7a177d7ca99cad [if cfg.start_hour <= cfg.end_hour: -> if cfg.start_hour < cfg.end_hour:] full gate RED-AS-NULL; equivalent-candidate through production: unreachable through production (open_hours_default 6 under both arms); none through production: coordinator.py:4044 builds SysIdConfig without start_hour/end_hour, so the window is always (23, 5) and start_hour == end_hour never occurs; a direct unit call with start_hour == end_hour separates",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py [--mutant]",
+          "value": "baseline: open_hours_default=6; open_hours_tie=0; open_hours_tie0=0; open_hours_flat=4; open_hours_wrap2=4 | mutant: open_hours_default=6; open_hours_tie=24; open_hours_tie0=24; open_hours_flat=4; open_hours_wrap2=4"
+        },
+        {
+          "claim": "sysid.py:1545 GUARD_OFF (SystemIdentification.conditions_met) mutant b61d1402aad5a055 [if cfg.start_hour <= cfg.end_hour: -> if False:] full gate RED-AS-NULL; equivalent-candidate through production: unreachable through production (open_hours_default 6 under both arms); none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so the window is always the wrapping default (23, 5) and the non-wrapping branch never runs; a direct unit call with a non-wrapping window (1,5) separates (4 -> 24 open hours)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b61d1402aad5a055.py [--mutant]",
+          "value": "baseline: open_hours_default=6; open_hours_flat=4; open_hours_flat06=6; open_hours_tie=0; open_hours_wrap2=4 | mutant: open_hours_default=6; open_hours_flat=24; open_hours_flat06=24; open_hours_tie=24; open_hours_wrap2=4"
+        },
+        {
+          "claim": "sysid.py:1546 CMP_BOUND (SystemIdentification.conditions_met) mutant 0b6e291153f1d738 [in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour <= hour <= cfg.end_hour] full gate RED-AS-NULL; equivalent-candidate through production: unreachable through production (open_hours_default 6 under both arms); none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 5 open hours)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_0b6e291153f1d738.py [--mutant]",
+          "value": "baseline: open_hours_default=6; open_hours_flat=4; end_hour_open=0; open_hours_flat06=6; open_hours_wrap2=4 | mutant: open_hours_default=6; open_hours_flat=5; end_hour_open=1; open_hours_flat06=7; open_hours_wrap2=4"
+        },
+        {
+          "claim": "sysid.py:1546 CMP_BOUND (SystemIdentification.conditions_met) mutant e38d4bea802156c3 [in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour < hour < cfg.end_hour] full gate RED-AS-NULL; equivalent-candidate through production: unreachable through production (open_hours_default 6 under both arms); none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 3 open hours)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py [--mutant]",
+          "value": "baseline: open_hours_default=6; open_hours_flat=4; start_hour_open=1; open_hours_flat06=6; open_hours_wrap2=4 | mutant: open_hours_default=6; open_hours_flat=3; start_hour_open=0; open_hours_flat06=5; open_hours_wrap2=4"
+        },
+        {
+          "claim": "sysid.py:1557 BOOLOP (SystemIdentification.conditions_met) mutant d435f0054d7c9881 [if price_horizon is not None and len(price_horizon): -> if price_horizon is not None or len(price_horizon):] full gate RED-AS-NULL; equivalent-candidate through production: unreachable through production: the only caller (sysid.py:1756) runs after coordinator.py:6379 has returned 'no_prices' for any horizon of fewer than 4 steps, so neither None nor an empty horizon reaches it; none through production; a direct unit call with price_horizon None or empty separates (raised 0 -> 2)",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py [--mutant]",
+          "value": "baseline: raised=0; ok_ramp=1; ok_flat=1 | mutant: raised=2; ok_ramp=1; ok_flat=1"
+        },
+        {
+          "claim": "sysid.py:1922 GUARD_OFF (SystemIdentification.identify) mutant b413c17079bb8176 [if dt_h <= 1e-3 or dt_h > 2.0: -> if False:] is pinned by the suite: KILLED by the full gate",
+          "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b413c17079bb8176",
+          "value": "killed_by=['python3 tests/structure.py'] gate_rc=1 failed_scripts=['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py', 'python3 tests/structure.py'] wall_s=3105.8 (provisional) load1 0.85..1.0; failing checks: {'python3 tests/structure.py': ['gain max_cc 43 (budget 44, -1; not yet recorded -- see below)', '1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED', '>>> FAILED: python3 tests/structure.py']}; KILLED by the structural ratchet only: if False: removes one decision point from identify (sysid.py:1890, cc 44 -> 43, the tree's max_cc), and structure.py refuses an unrecorded improvement (#350). No behavioural check failed: every other red script is the null's own (closure.py selftest 2, entities.py 1, harness_headers.py 3 FAIL lines, equal to the null). The step-4 probe still moves (raised_dup 0 -> 1: a duplicated timestamp makes identify raise ZeroDivisionError; reached_fit_gap 0 -> 1). Carried as a lead: a GUARD_OFF that keeps the decision count (e.g. `if dt_h != dt_h:`) might escape the ratchet (untested hypothesis, not gated)."
+        }
+      ],
+      "harnesses": [
+        "dev/audit/rounds/round11/D3/s1/fullgate.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/build_records.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/build_report.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_0b6e291153f1d738.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b413c17079bb8176.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b61d1402aad5a055.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py",
+        "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py"
+      ],
+      "leads": [
+        {
+          "owner": "D3",
+          "file": "custom_components/heatpump_optimizer/sysid.py",
+          "symbol": "SystemIdentification.identify",
+          "what": "b413c17079bb8176 (sysid.py:1922 GUARD_OFF, if dt_h <= 1e-3 or dt_h > 2.0: -> if False:) is KILLED only by the tests/structure.py max_cc ratchet, not by a behavioural check: KILLED by the structural ratchet only: if False: removes one decision point from identify (sysid.py:1890, cc 44 -> 43, the tree's max_cc), and structure.py refuses an unrecorded improvement (#350). No behavioural check failed: every other red script is the null's own (closure.py selftest 2, entities.py 1, harness_headers.py 3 FAIL lines, equal to the null). The step-4 probe still moves (raised_dup 0 -> 1: a duplicated timestamp makes identify raise ZeroDivisionError; reached_fit_gap 0 -> 1). Carried as a lead: a GUARD_OFF that keeps the decision count (e.g. `if dt_h != dt_h:`) might escape the ratchet (untested hypothesis, not gated)."
+        },
+        {
+          "owner": "orchestrator (gate_wave.sh)",
+          "file": "gate_wave.sh restore",
+          "symbol": "restore",
+          "what": "a re-fire's `gate_wave.sh restore` copies the checkpointed probes/*.py back into the gated tree, where tests/harness_headers.py's inlined-walk check fails on them and fullgate.py reads the next gate KILLED; on this box it hit 0b6e291153f1d738 (record set aside under gates-artefact/, key re-gated with the probes held outside the tree)"
+        }
+      ],
+      "gated": [
+        {
+          "key": "822c0c6477ed703e",
+          "site": "sysid.py:1708 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "adc459d2db521041",
+          "site": "sysid.py:1708 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "a23ed12204379870",
+          "site": "sysid.py:1715 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "6e67f128730b3ecd",
+          "site": "sysid.py:1541 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "cf96494341270371",
+          "site": "sysid.py:1541 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "ad7a177d7ca99cad",
+          "site": "sysid.py:1545 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "b61d1402aad5a055",
+          "site": "sysid.py:1545 GUARD_OFF",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "0b6e291153f1d738",
+          "site": "sysid.py:1546 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "e38d4bea802156c3",
+          "site": "sysid.py:1546 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "20e001c48fb19330",
+          "site": "sysid.py:1549 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "d435f0054d7c9881",
+          "site": "sysid.py:1557 BOOLOP",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "equivalent-candidate"
+        },
+        {
+          "key": "95090bc58c6535b2",
+          "site": "sysid.py:1913 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "505422349a01c3ff",
+          "site": "sysid.py:1922 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "7dbbb95252ced538",
+          "site": "sysid.py:1922 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        },
+        {
+          "key": "b413c17079bb8176",
+          "site": "sysid.py:1922 GUARD_OFF",
+          "verdict": "KILLED",
+          "killed_by": [
+            "python3 tests/structure.py"
+          ],
+          "class": "killed"
+        },
+        {
+          "key": "aa6d264aa0411bcd",
+          "site": "sysid.py:1942 CMP_BOUND",
+          "verdict": "RED-AS-NULL",
+          "killed_by": [],
+          "class": "candidate"
+        }
+      ],
+      "gate_survivors": [
+        {
+          "key": "822c0c6477ed703e",
+          "site": "sysid.py:1708 CMP_BOUND",
+          "patch": "or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 <= dt <= 2.0",
+          "function": "SystemIdentification._unadoptable",
+          "cluster": "sysid.py:SystemIdentification._unadoptable@1705-1715",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3784.1,
+            "load1_start": 0.92,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 822c0c6477ed703e",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/822c0c6477ed703e.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py [--mutant]",
+            "metric": "consulted_tie",
+            "baseline_value": "0",
+            "mutant_value": "1",
+            "null_metric": "consulted_null",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "consulted_tie": "0",
+              "refuses_tie": "0",
+              "halfwidth_tie": "[]",
+              "refuses_tie_stub": "0",
+              "consulted_below": "0",
+              "consulted_above": "1",
+              "consulted_null": "1",
+              "thread_factor": "1.000",
+              "load1": "1.06",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "consulted_tie": "1",
+              "refuses_tie": "1",
+              "halfwidth_tie": "[0.145803120583144]",
+              "refuses_tie_stub": "1",
+              "consulted_below": "0",
+              "consulted_above": "1",
+              "consulted_null": "1",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "inputs_tried": "settle interval 0.001 h (the tie), 0.0009 h, 0.0011 h; null 0.25 h; real halfwidth and a stub returning 1.0 (> bar)",
+            "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+          },
+          "reach": "reachable only when two settle samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces",
+          "should_fail": "tests/features.py (traced, executes sysid.py:1708; tests/entities.py too): no check drives _unadoptable with two settle samples exactly 1e-3 h apart asserting it returns None without reading the declared night; the nearest check, tests/dst_checks.py:2309-2329, drives it only at a 1.0 h interval",
+          "title": "No check pins _unadoptable's lower settle-interval edge (dt == 1e-3 h); <-> <= is unseen",
+          "claim": "Mutant 822c0c6477ed703e at sysid.py:1708 CMP_BOUND (or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 <= dt <= 2.0) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's consulted_tie moves 0 -> 1 while its null consulted_null stays 1 -> 1. reachable only when two settle samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._unadoptable",
+          "metric_definition": "consulted = 1 when SystemIdentification._unadoptable reads _declared_night_halfwidth (the gate's noise-free night) for two settle samples exactly 1e-3 h (3.6 s) apart; refuses = 1 when it returns a reason with the real halfwidth.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1708 (or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 <= dt <= 2.0), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 822c0c6477ed703e",
+            "expected_direction": "up",
+            "baseline_value": "0",
+            "observed_value": "1"
+          },
+          "null_control": {
+            "probe_arm": "consulted_null: 1 -> 1 (an input where the edit cannot matter)",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "adc459d2db521041",
+          "site": "sysid.py:1708 CMP_BOUND",
+          "patch": "or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0",
+          "function": "SystemIdentification._unadoptable",
+          "cluster": "sysid.py:SystemIdentification._unadoptable@1705-1715",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3670.4,
+            "load1_start": 0.85,
+            "load1_end": 1.0,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key adc459d2db521041",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/adc459d2db521041.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py [--mutant]",
+            "metric": "consulted_tie",
+            "baseline_value": "1",
+            "mutant_value": "0",
+            "null_metric": "consulted_null",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "consulted_tie": "1",
+              "refuses_tie": "1",
+              "halfwidth_tie": "[0.11157312536429365]",
+              "refuses_tie_stub": "1",
+              "consulted_below": "1",
+              "consulted_above": "0",
+              "consulted_null": "1",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "consulted_tie": "0",
+              "refuses_tie": "0",
+              "halfwidth_tie": "[]",
+              "refuses_tie_stub": "0",
+              "consulted_below": "1",
+              "consulted_above": "0",
+              "consulted_null": "1",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "inputs_tried": "settle interval 2.0 h (the tie), 1.99 h, 2.01 h; null 0.25 h; real halfwidth and a stub returning 1.0 (> bar)",
+            "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+          },
+          "reach": "reachable only when two settle samples are exactly 7200 s apart (a stalled cycle landing on the edge)",
+          "should_fail": "tests/features.py (traced, executes sysid.py:1708; tests/entities.py too): no check drives _unadoptable with settle samples exactly 2.0 h apart asserting the declared night is still read (here it refuses); tests/dst_checks.py:2309-2329 uses 1.0 h only",
+          "title": "No check pins _unadoptable's upper settle-interval edge (dt == 2.0 h); <= -> < is unseen",
+          "claim": "Mutant adc459d2db521041 at sysid.py:1708 CMP_BOUND (or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's consulted_tie moves 1 -> 0 while its null consulted_null stays 1 -> 1. reachable only when two settle samples are exactly 7200 s apart (a stalled cycle landing on the edge).",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._unadoptable",
+          "metric_definition": "consulted = 1 when SystemIdentification._unadoptable reads _declared_night_halfwidth for two settle samples exactly 2.0 h apart; refuses = 1 when it returns a reason.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1708 (or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key adc459d2db521041",
+            "expected_direction": "down",
+            "baseline_value": "1",
+            "observed_value": "0"
+          },
+          "null_control": {
+            "probe_arm": "consulted_null: 1 -> 1 (an input where the edit cannot matter)",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "a23ed12204379870",
+          "site": "sysid.py:1715 CMP_BOUND",
+          "patch": "if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:",
+          "function": "SystemIdentification._unadoptable",
+          "cluster": "sysid.py:SystemIdentification._unadoptable@1705-1715",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3600.7,
+            "load1_start": 0.92,
+            "load1_end": 1.0,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a23ed12204379870",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/a23ed12204379870.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py [--mutant]",
+            "metric": "refuses_tie",
+            "baseline_value": "0",
+            "mutant_value": "1",
+            "null_metric": "refuses_below",
+            "null_baseline": "0",
+            "null_mutant": "0",
+            "all_results_baseline": {
+              "refuses_tie": "0",
+              "refuses_above": "1",
+              "refuses_below": "0",
+              "refuses_real": "1",
+              "halfwidth_real_minus_bar": "[0.015294384822610571]",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "refuses_tie": "1",
+              "refuses_above": "1",
+              "refuses_below": "0",
+              "refuses_real": "1",
+              "halfwidth_real_minus_bar": "[0.015294384822610571]",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "inputs_tried": "halfwidth == bar (stubbed, the tie), nextafter above/below, the real halfwidth on the dst_checks plant",
+            "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+          },
+          "reach": "a float tie of a computed halfwidth with log(1.10): the probe stubs _declared_night_halfwidth to the bar; the real one on the dst_checks plant sits 0.0153 above it",
+          "should_fail": "tests/features.py (traced, executes sysid.py:1715; tests/entities.py too): no check sets the declared night's halfwidth exactly at UA_ADOPTION_HALFWIDTH_BAR asserting _unadoptable returns None (the adoption gate's own <= at sysid.py:1263 admits the tie)",
+          "title": "No check pins _unadoptable's tie at the adoption bar (hw == UA_ADOPTION_HALFWIDTH_BAR); <= -> < is unseen",
+          "claim": "Mutant a23ed12204379870 at sysid.py:1715 CMP_BOUND (if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's refuses_tie moves 0 -> 1 while its null refuses_below stays 0 -> 0. a float tie of a computed halfwidth with log(1.10): the probe stubs _declared_night_halfwidth to the bar; the real one on the dst_checks plant sits 0.0153 above it.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification._unadoptable",
+          "metric_definition": "refuses = 1 when SystemIdentification._unadoptable returns a reason when the declared night's halfwidth equals UA_ADOPTION_HALFWIDTH_BAR exactly (log 1.10), settle interval 15 min.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1715 (if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a23ed12204379870",
+            "expected_direction": "up",
+            "baseline_value": "0",
+            "observed_value": "1"
+          },
+          "null_control": {
+            "probe_arm": "refuses_below: 0 -> 0 (an input where the edit cannot matter)",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "6e67f128730b3ecd",
+          "site": "sysid.py:1541 CMP_BOUND",
+          "patch": "if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp < outdoor_temp <= cfg.max_outdoor_temp):",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3713.1,
+            "load1_start": 0.85,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6e67f128730b3ecd",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/6e67f128730b3ecd.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py [--mutant]",
+            "metric": "band_refused",
+            "baseline_value": "0",
+            "mutant_value": "1",
+            "null_metric": "band_refused_inside",
+            "null_baseline": "0",
+            "null_mutant": "0",
+            "all_results_baseline": {
+              "band_refused": "0",
+              "band_refused_inside": "0",
+              "band_refused_scan": "10000",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "band_refused": "1",
+              "band_refused_inside": "0",
+              "band_refused_scan": "11000",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "inputs_tried": "outdoor -5.0 (the tie), -5.1, -4.9, 0.0 (null), 10.0",
+            "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+          },
+          "reach": "reachable: production builds the default band (-5.0, 10.0) and an outdoor sensor reading of exactly -5.0 C is an ordinary 0.1-resolution value",
+          "should_fail": "tests/features.py (traced, executes sysid.py:1541): no conditions_met check at outdoor_temp == SysIdConfig.min_outdoor_temp (-5.0 C) asserting the safe-band check passes",
+          "title": "No check pins conditions_met's inclusive lower outdoor bound (-5.0 C); <= -> < is unseen",
+          "claim": "Mutant 6e67f128730b3ecd at sysid.py:1541 CMP_BOUND (if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp < outdoor_temp <= cfg.max_outdoor_temp):) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's band_refused moves 0 -> 1 while its null band_refused_inside stays 0 -> 0. reachable: production builds the default band (-5.0, 10.0) and an outdoor sensor reading of exactly -5.0 C is an ordinary 0.1-resolution value.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.conditions_met",
+          "metric_definition": "band_refused = 1 when SystemIdentification.conditions_met refuses with 'outdoor temperature outside the safe band' at outdoor_temp == SysIdConfig().min_outdoor_temp (-5.0 C), default window, hour 1, cheap price.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1541 (if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp < outdoor_temp <= cfg.max_outdoor_temp):), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6e67f128730b3ecd",
+            "expected_direction": "up",
+            "baseline_value": "0",
+            "observed_value": "1"
+          },
+          "null_control": {
+            "probe_arm": "band_refused_inside: 0 -> 0 (an input where the edit cannot matter)",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "cf96494341270371",
+          "site": "sysid.py:1541 CMP_BOUND",
+          "patch": "if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3761.2,
+            "load1_start": 0.72,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cf96494341270371",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/cf96494341270371.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py [--mutant]",
+            "metric": "band_refused",
+            "baseline_value": "0",
+            "mutant_value": "1",
+            "null_metric": "band_refused_inside",
+            "null_baseline": "0",
+            "null_mutant": "0",
+            "all_results_baseline": {
+              "band_refused": "0",
+              "band_refused_inside": "0",
+              "band_refused_scan": "00001",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "band_refused": "1",
+              "band_refused_inside": "0",
+              "band_refused_scan": "00011",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "inputs_tried": "outdoor 10.0 (the tie), 9.9, 10.1, 0.0 (null), -5.0",
+            "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+          },
+          "reach": "reachable: an outdoor reading of exactly 10.0 C at the default band",
+          "should_fail": "tests/features.py (traced, executes sysid.py:1541): no conditions_met check at outdoor_temp == SysIdConfig.max_outdoor_temp (10.0 C) asserting the safe-band check passes",
+          "title": "No check pins conditions_met's inclusive upper outdoor bound (10.0 C); <= -> < is unseen",
+          "claim": "Mutant cf96494341270371 at sysid.py:1541 CMP_BOUND (if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's band_refused moves 0 -> 1 while its null band_refused_inside stays 0 -> 0. reachable: an outdoor reading of exactly 10.0 C at the default band.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.conditions_met",
+          "metric_definition": "band_refused = 1 when SystemIdentification.conditions_met refuses with 'outdoor temperature outside the safe band' at outdoor_temp == SysIdConfig().max_outdoor_temp (10.0 C), default window, hour 1, cheap price.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1541 (if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cf96494341270371",
+            "expected_direction": "up",
+            "baseline_value": "0",
+            "observed_value": "1"
+          },
+          "null_control": {
+            "probe_arm": "band_refused_inside: 0 -> 0 (an input where the edit cannot matter)",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "20e001c48fb19330",
+          "site": "sysid.py:1549 CMP_BOUND",
+          "patch": "in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 2721.6,
+            "load1_start": 0.79,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 20e001c48fb19330",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/20e001c48fb19330.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py [--mutant]",
+            "metric": "open_hours",
+            "baseline_value": "6",
+            "mutant_value": "7",
+            "null_metric": "open_hours_flat",
+            "null_baseline": "4",
+            "null_mutant": "4",
+            "all_results_baseline": {
+              "open_hours": "6",
+              "end_hour_open": "0",
+              "open_hours_flat": "4",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "open_hours": "7",
+              "end_hour_open": "1",
+              "open_hours_flat": "4",
+              "open_hours_wrap2": "5",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "inputs_tried": "default window (23,5) over hours 0..23; null (1,5); (22,2)",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "reachable: production builds the default wrapping window (23, 5); under the mutant the 05:00-05:59 hour is admitted",
+          "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no conditions_met check at hour == SysIdConfig().end_hour (5) under the default window asserting it refuses with 'outside the night window'",
+          "title": "No check pins conditions_met's exclusive night-window end (05:00) on the default window; < -> <= is unseen",
+          "claim": "Mutant 20e001c48fb19330 at sysid.py:1549 CMP_BOUND (in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's open_hours moves 6 -> 7 while its null open_hours_flat stays 4 -> 4. reachable: production builds the default wrapping window (23, 5); under the mutant the 05:00-05:59 hour is admitted.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.conditions_met",
+          "metric_definition": "open_hours = hours of 0..23 (at :30) for which SystemIdentification.conditions_met at the production default SysIdConfig (window 23..5) does not refuse with 'outside the night window'.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1549 (in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 20e001c48fb19330",
+            "expected_direction": "up",
+            "baseline_value": "6",
+            "observed_value": "7"
+          },
+          "null_control": {
+            "probe_arm": "open_hours_flat (non-wrapping window (1,5), branch not taken): 4 -> 4",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "95090bc58c6535b2",
+          "site": "sysid.py:1913 CMP_BOUND",
+          "patch": "if len(usable) < 6: -> if len(usable) <= 6:",
+          "function": "SystemIdentification.identify",
+          "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 2707.3,
+            "load1_start": 0.87,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 95090bc58c6535b2",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/95090bc58c6535b2.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py [--mutant]",
+            "metric": "reached_fit_6",
+            "baseline_value": "1",
+            "mutant_value": "0",
+            "null_metric": "reached_fit_7",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "reached_fit_5": "0",
+              "reached_fit_6": "1",
+              "reached_fit_7": "1",
+              "reached_fit_21": "1",
+              "reason_6": "'ok'",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "reached_fit_5": "0",
+              "reached_fit_6": "0",
+              "reached_fit_7": "1",
+              "reached_fit_21": "1",
+              "reason_6": "'not enough samples'",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "inputs_tried": "5, 6 (the tie), 7, 21 samples at 0.25 h on the tests/features.py _sid_samples plant",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "reachable: an experiment that collects exactly six usable samples (a 1.5 h run at the 15-min cadence) is refused 'not enough samples' under the mutant",
+          "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no identify check on exactly six usable samples asserting it gets past the sample-count gate (the documented minimum is six)",
+          "title": "No check pins identify's six-sample minimum at the tie; < 6 -> <= 6 is unseen",
+          "claim": "Mutant 95090bc58c6535b2 at sysid.py:1913 CMP_BOUND (if len(usable) < 6: -> if len(usable) <= 6:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's reached_fit_6 moves 1 -> 0 while its null reached_fit_7 stays 1 -> 1. reachable: an experiment that collects exactly six usable samples (a 1.5 h run at the 15-min cadence) is refused 'not enough samples' under the mutant.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+          "metric_definition": "reached_fit_6 = 1 when SystemIdentification.identify on exactly six usable 15-min samples of the features.py plant returns a reason other than 'not enough samples' / 'not enough usable intervals'.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1913 (if len(usable) < 6: -> if len(usable) <= 6:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 95090bc58c6535b2",
+            "expected_direction": "down",
+            "baseline_value": "1",
+            "observed_value": "0"
+          },
+          "null_control": {
+            "probe_arm": "reached_fit_7 (seven samples): 1 -> 1",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "505422349a01c3ff",
+          "site": "sysid.py:1922 CMP_BOUND",
+          "patch": "if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:",
+          "function": "SystemIdentification.identify",
+          "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 2777.2,
+            "load1_start": 0.78,
+            "load1_end": 0.86,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 505422349a01c3ff",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/505422349a01c3ff.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py [--mutant]",
+            "metric": "reached_fit_tie",
+            "baseline_value": "0",
+            "mutant_value": "1",
+            "null_metric": "reached_fit_null",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "reached_fit_tie": "0",
+              "reached_fit_below": "0",
+              "reached_fit_above": "1",
+              "reached_fit_zero": "0",
+              "reached_fit_null": "1",
+              "ua_31": "None reason='fitted gains outside plausible bounds'",
+              "ua_31_null": "0.11999999998433901 reason='ok'",
+              "thread_factor": "1.000",
+              "load1": "0.96",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "reached_fit_tie": "1",
+              "reached_fit_below": "0",
+              "reached_fit_above": "1",
+              "reached_fit_zero": "0",
+              "reached_fit_null": "1",
+              "ua_31": "None reason='fit gave implausible signs'",
+              "ua_31_null": "0.11999999998433901 reason='ok'",
+              "thread_factor": "1.000",
+              "load1": "0.96",
+              "swapins": "0"
+            },
+            "inputs_tried": "interval 0.001 h (the tie), 0.0009 h, 0.0011 h, 0.0 h; null all 0.25 h; ua_31 on tests/features.py's 31-sample series with one 3.6 s interval",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "reachable only when two samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces",
+          "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no identify check with an interval exactly 1e-3 h asserting it is dropped as unusable",
+          "title": "No check pins identify's exclusive 1e-3 h minimum interval at the tie; <= -> < is unseen",
+          "claim": "Mutant 505422349a01c3ff at sysid.py:1922 CMP_BOUND (if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's reached_fit_tie moves 0 -> 1 while its null reached_fit_null stays 1 -> 1. reachable only when two samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+          "metric_definition": "reached_fit_tie = 1 when identify gets past the usable-interval gate on six samples whose third interval is exactly 1e-3 h, the others 15 min.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1922 (if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 505422349a01c3ff",
+            "expected_direction": "up",
+            "baseline_value": "0",
+            "observed_value": "1"
+          },
+          "null_control": {
+            "probe_arm": "reached_fit_null (all 15-min intervals): 1 -> 1",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "7dbbb95252ced538",
+          "site": "sysid.py:1922 CMP_BOUND",
+          "patch": "if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h <= 1e-3 or dt_h >= 2.0:",
+          "function": "SystemIdentification.identify",
+          "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 2978.4,
+            "load1_start": 0.75,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7dbbb95252ced538",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/7dbbb95252ced538.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py [--mutant]",
+            "metric": "reached_fit_tie",
+            "baseline_value": "1",
+            "mutant_value": "0",
+            "null_metric": "reached_fit_null",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "reached_fit_tie": "1",
+              "reached_fit_below": "1",
+              "reached_fit_above": "0",
+              "reached_fit_null": "1",
+              "ua_31": "None reason='fit gave implausible signs'",
+              "ua_31_null": "0.11999999998433901 reason='ok'",
+              "thread_factor": "1.000",
+              "load1": "0.96",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "reached_fit_tie": "0",
+              "reached_fit_below": "1",
+              "reached_fit_above": "0",
+              "reached_fit_null": "1",
+              "ua_31": "None reason='fit gave implausible signs'",
+              "ua_31_null": "0.11999999998433901 reason='ok'",
+              "thread_factor": "1.000",
+              "load1": "0.96",
+              "swapins": "0"
+            },
+            "inputs_tried": "interval 2.0 h (the tie), 1.99 h, 2.01 h; null all 0.25 h; ua_31 on tests/features.py's 31-sample series with one 2.0 h interval",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "reachable only when two samples are exactly 7200 s apart (a stalled cycle landing on the edge)",
+          "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no identify check with an interval exactly 2.0 h asserting it is kept as usable",
+          "title": "No check pins identify's inclusive 2.0 h maximum interval at the tie; > -> >= is unseen",
+          "claim": "Mutant 7dbbb95252ced538 at sysid.py:1922 CMP_BOUND (if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h <= 1e-3 or dt_h >= 2.0:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's reached_fit_tie moves 1 -> 0 while its null reached_fit_null stays 1 -> 1. reachable only when two samples are exactly 7200 s apart (a stalled cycle landing on the edge).",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+          "metric_definition": "reached_fit_tie = 1 when identify gets past the usable-interval gate on six samples whose third interval is exactly 2.0 h, the others 15 min.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1922 (if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h <= 1e-3 or dt_h >= 2.0:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7dbbb95252ced538",
+            "expected_direction": "down",
+            "baseline_value": "1",
+            "observed_value": "0"
+          },
+          "null_control": {
+            "probe_arm": "reached_fit_null (all 15-min intervals): 1 -> 1",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        },
+        {
+          "key": "aa6d264aa0411bcd",
+          "site": "sysid.py:1942 CMP_BOUND",
+          "patch": "if len(rows) < 5: -> if len(rows) <= 5:",
+          "function": "SystemIdentification.identify",
+          "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3045.7,
+            "load1_start": 0.85,
+            "load1_end": 1.0,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aa6d264aa0411bcd",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/aa6d264aa0411bcd.json",
+          "class": "candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py [--mutant]",
+            "metric": "reached_fit_6",
+            "baseline_value": "1",
+            "mutant_value": "0",
+            "null_metric": "reached_fit_7",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "reached_fit_6": "1",
+              "reached_fit_7": "1",
+              "reached_fit_7_gap": "1",
+              "reason_6": "'ok'",
+              "thread_factor": "1.000",
+              "load1": "0.96",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "reached_fit_6": "0",
+              "reached_fit_7": "1",
+              "reached_fit_7_gap": "0",
+              "reason_6": "'not enough usable intervals'",
+              "thread_factor": "1.000",
+              "load1": "0.96",
+              "swapins": "0"
+            },
+            "inputs_tried": "6 samples (5 intervals, the tie), 7 samples, 8 samples with one 3.6 s interval (5 usable)",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "reachable: six usable samples give five usable intervals, which the mutant refuses 'not enough usable intervals'",
+          "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no identify check on exactly five usable intervals asserting it gets past the interval-count gate",
+          "title": "No check pins identify's five-interval minimum at the tie; < 5 -> <= 5 is unseen",
+          "claim": "Mutant aa6d264aa0411bcd at sysid.py:1942 CMP_BOUND (if len(rows) < 5: -> if len(rows) <= 5:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's reached_fit_6 moves 1 -> 0 while its null reached_fit_7 stays 1 -> 1. reachable: six usable samples give five usable intervals, which the mutant refuses 'not enough usable intervals'.",
+          "step": "D3.M3",
+          "scope": "D3-s1",
+          "class_guess": "I1",
+          "severity_claimed": "low",
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+          "metric_definition": "reached_fit_6 = 1 when identify on six usable 15-min samples (five usable intervals, noise-free plant) gets past both sample-count gates.",
+          "harness_paths": [
+            "dev/audit/rounds/round11/D3/s1/fullgate.py",
+            "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py"
+          ],
+          "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py --mutant",
+          "perturbation": {
+            "change": "the one-line mutant at sysid.py:1942 (if len(rows) < 5: -> if len(rows) <= 5:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key aa6d264aa0411bcd",
+            "expected_direction": "down",
+            "baseline_value": "1",
+            "observed_value": "0"
+          },
+          "null_control": {
+            "probe_arm": "reached_fit_7 (six intervals): 1 -> 1",
+            "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+          }
+        }
+      ],
+      "equivalent_candidates": [
+        {
+          "key": "ad7a177d7ca99cad",
+          "site": "sysid.py:1545 CMP_BOUND",
+          "patch": "if cfg.start_hour <= cfg.end_hour: -> if cfg.start_hour < cfg.end_hour:",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3500.8,
+            "load1_start": 0.8,
+            "load1_end": 0.96,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ad7a177d7ca99cad",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/ad7a177d7ca99cad.json",
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py [--mutant]",
+            "metric": "open_hours_tie",
+            "baseline_value": "0",
+            "mutant_value": "24",
+            "null_metric": "open_hours_default",
+            "null_baseline": "6",
+            "null_mutant": "6",
+            "all_results_baseline": {
+              "open_hours_default": "6",
+              "open_hours_tie": "0",
+              "open_hours_tie0": "0",
+              "open_hours_flat": "4",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "open_hours_default": "6",
+              "open_hours_tie": "24",
+              "open_hours_tie0": "24",
+              "open_hours_flat": "4",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "1.14",
+              "swapins": "0"
+            },
+            "inputs_tried": "windows (23,5) default, (3,3) tie, (0,0), (1,5) non-wrapping, (22,2); each over hours 0..23",
+            "machine": "cloud box D3-g33: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
+          },
+          "reach": "unreachable through production (open_hours_default 6 under both arms)",
+          "should_fail": "none through production: coordinator.py:4044 builds SysIdConfig without start_hour/end_hour, so the window is always (23, 5) and start_hour == end_hour never occurs; a direct unit call with start_hour == end_hour separates"
+        },
+        {
+          "key": "b61d1402aad5a055",
+          "site": "sysid.py:1545 GUARD_OFF",
+          "patch": "if cfg.start_hour <= cfg.end_hour: -> if False:",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3572.4,
+            "load1_start": 0.74,
+            "load1_end": 1.25,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b61d1402aad5a055",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/b61d1402aad5a055.json",
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b61d1402aad5a055.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b61d1402aad5a055.py [--mutant]",
+            "metric": "open_hours_flat",
+            "baseline_value": "4",
+            "mutant_value": "24",
+            "null_metric": "open_hours_default",
+            "null_baseline": "6",
+            "null_mutant": "6",
+            "all_results_baseline": {
+              "open_hours_default": "6",
+              "open_hours_flat": "4",
+              "open_hours_flat06": "6",
+              "open_hours_tie": "0",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.69",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "open_hours_default": "6",
+              "open_hours_flat": "24",
+              "open_hours_flat06": "24",
+              "open_hours_tie": "24",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.69",
+              "swapins": "0"
+            },
+            "inputs_tried": "windows (23,5) default, (1,5), (0,6), (3,3), (22,2); each over hours 0..23",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while gate 0b6e291153f1d738 ran (load1 0.69)"
+          },
+          "reach": "unreachable through production (open_hours_default 6 under both arms)",
+          "should_fail": "none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so the window is always the wrapping default (23, 5) and the non-wrapping branch never runs; a direct unit call with a non-wrapping window (1,5) separates (4 -> 24 open hours)"
+        },
+        {
+          "key": "0b6e291153f1d738",
+          "site": "sysid.py:1546 CMP_BOUND",
+          "patch": "in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour <= hour <= cfg.end_hour",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 3209.8,
+            "load1_start": 0.74,
+            "load1_end": 1.01,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 0b6e291153f1d738",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/0b6e291153f1d738.json",
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_0b6e291153f1d738.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_0b6e291153f1d738.py [--mutant]",
+            "metric": "open_hours_flat",
+            "baseline_value": "4",
+            "mutant_value": "5",
+            "null_metric": "open_hours_default",
+            "null_baseline": "6",
+            "null_mutant": "6",
+            "all_results_baseline": {
+              "open_hours_default": "6",
+              "open_hours_flat": "4",
+              "end_hour_open": "0",
+              "open_hours_flat06": "6",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "open_hours_default": "6",
+              "open_hours_flat": "5",
+              "end_hour_open": "1",
+              "open_hours_flat06": "7",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "inputs_tried": "windows (23,5) default, (1,5), (0,6), (22,2); each over hours 0..23",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "unreachable through production (open_hours_default 6 under both arms)",
+          "should_fail": "none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 5 open hours)"
+        },
+        {
+          "key": "e38d4bea802156c3",
+          "site": "sysid.py:1546 CMP_BOUND",
+          "patch": "in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour < hour < cfg.end_hour",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 2788.3,
+            "load1_start": 0.78,
+            "load1_end": 0.92,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e38d4bea802156c3",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/e38d4bea802156c3.json",
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py [--mutant]",
+            "metric": "open_hours_flat",
+            "baseline_value": "4",
+            "mutant_value": "3",
+            "null_metric": "open_hours_default",
+            "null_baseline": "6",
+            "null_mutant": "6",
+            "all_results_baseline": {
+              "open_hours_default": "6",
+              "open_hours_flat": "4",
+              "start_hour_open": "1",
+              "open_hours_flat06": "6",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "open_hours_default": "6",
+              "open_hours_flat": "3",
+              "start_hour_open": "0",
+              "open_hours_flat06": "5",
+              "open_hours_wrap2": "4",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "inputs_tried": "windows (23,5) default, (1,5), (0,6), (22,2); each over hours 0..23",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "unreachable through production (open_hours_default 6 under both arms)",
+          "should_fail": "none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 3 open hours)"
+        },
+        {
+          "key": "d435f0054d7c9881",
+          "site": "sysid.py:1557 BOOLOP",
+          "patch": "if price_horizon is not None and len(price_horizon): -> if price_horizon is not None or len(price_horizon):",
+          "function": "SystemIdentification.conditions_met",
+          "cluster": "sysid.py:SystemIdentification.conditions_met@1541-1557",
+          "gate": {
+            "verdict": "RED-AS-NULL",
+            "killed_by": [],
+            "gate_rc": 1,
+            "wall_s": 2715.5,
+            "load1_start": 0.86,
+            "load1_end": 0.94,
+            "failed_scripts": [
+              "python3 tests/closure.py selftest",
+              "python3 tests/entities.py",
+              "python3 tests/harness_headers.py"
+            ],
+            "cap_s": null,
+            "provisional": true
+          },
+          "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d435f0054d7c9881",
+          "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/d435f0054d7c9881.json",
+          "class": "equivalent-candidate",
+          "probe": {
+            "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py",
+            "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py [--mutant]",
+            "metric": "raised",
+            "baseline_value": "0",
+            "mutant_value": "2",
+            "null_metric": "ok_ramp",
+            "null_baseline": "1",
+            "null_mutant": "1",
+            "all_results_baseline": {
+              "raised": "0",
+              "ok_ramp": "1",
+              "ok_flat": "1",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "all_results_mutant": {
+              "raised": "2",
+              "ok_ramp": "1",
+              "ok_flat": "1",
+              "thread_factor": "1.000",
+              "load1": "0.87",
+              "swapins": "0"
+            },
+            "inputs_tried": "price_horizon None, np.array([]), ramp 0.5..2.0 (24 steps), flat ones(24); price 0.5",
+            "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+          },
+          "reach": "unreachable through production: the only caller (sysid.py:1756) runs after coordinator.py:6379 has returned 'no_prices' for any horizon of fewer than 4 steps, so neither None nor an empty horizon reaches it",
+          "should_fail": "none through production; a direct unit call with price_horizon None or empty separates (raised 0 -> 2)"
+        }
+      ],
+      "tally": {
+        "verdicts": {
+          "RED-AS-NULL": 15,
+          "KILLED": 1
+        },
+        "classes": {
+          "candidate": 10,
+          "equivalent-candidate": 5,
+          "killed": 1
+        }
+      },
+      "gate_procedure": "gate_wave.sh (shipped on dispatch/finder-r11-D3-g33): null once, then for each key of keys.tsv in order: reset the tree to the baseline, `timeout -s INT -k 300 14400 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>` (apply the one-line mutant, commit, take the gate_lock lease, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh, record, reset), checkpoint after every gate",
+      "report_md": "# D3-s1 round 11, box D3-g33: full gate for 16 D3.M3 full-net survivors (wave), baseline 92d38ecb\n\n## Machine and controls\n\nFirst container (null and gates 1-7):\n\n```\nnproc: 4\n               total        used        free      shared  buff/cache   available\nMem:           16087        1073       13510          12        1802       15014\nSwap:              0           0           0\nmodel name\t: Intel(R) Xeon(R) Processor @ 2.10GHz\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda        252G   12G   58G  18% /\nload1: 0.79\nSun Nov 22 21:44:11 UTC 2026\n```\n\nRe-fired container (gates 8-16 and the 0b6e291153f1d738 re-gate; the null reused from the checkpoint):\n\n```\nnproc: 4\n               total        used        free      shared  buff/cache   available\nMem:           16087         799       14012          12        1546       15287\nSwap:              0           0           0\nmodel name\t: Intel(R) Xeon(R) Processor @ 2.30GHz\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/vda        252G   12G   58G  17% /\nload1: 0.45\nWed Nov 25 00:52:18 UTC 2026\n```\n\nNull control (`fullgate.py null`, comment-only marker): gate_rc=1, failed scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'], fail lines {'python3 tests/closure.py selftest': 2, 'python3 tests/entities.py': 1, 'python3 tests/harness_headers.py': 3}, summary ['3 TEST SCRIPT(S) FAILED'], wall 3964.5 s, load1 0.69..0.98 (provisional). The three red scripts are artefact checks of the stripped tree. A mutant counts KILLED only when a script fails beyond this null; red with no script beyond it is RED-AS-NULL (read as survived).\n\nEvery wall, CPU and load figure is provisional (nproc 4; Intel Xeon @ 2.10GHz first container, @ 2.30GHz re-fire; the judge re-takes it); counts are final. Probes apply the mutant in memory to `git show <baseline>:sysid.py`, never to the gate's tree.\n\n### Box artefact, set aside\n\nGate 0b6e291153f1d738 (2026-11-25 00:52-01:39Z) ran with the box's 16 step-4 probes present under wave/D3-g33/probes/\n(restored there by `gate_wave.sh restore` on the re-fire). tests/harness_headers.py's check \"every inlined walk matches the\ncanonical helper and no depth root remains\" FAILED naming those probe files (4 FAIL lines vs the null's 3), so fullgate.py\nread KILLED by python3 tests/harness_headers.py. Every earlier gate of this box, and the null, read that check `ok`.\nThe kill is an artefact of the box's own files in the gated tree, not of the mutant: the record is set aside here and the key is\nre-gated with the probes held outside the tree (they stay in the checkpointed seat dir). Gate e38d4bea802156c3 was running when\nthe probes were moved out (01:55Z, before harness_headers.py ran); its log is checked for the same line.\n\n## Tally\n\nGated 16 of 16 keys; verdicts {'RED-AS-NULL': 15, 'KILLED': 1}; classes {'candidate': 10, 'equivalent-candidate': 5, 'killed': 1}.\n\n| key | site | function | full gate | killed by | wall s | load1 | class |\n|---|---|---|---|---|---|---|---|\n| 822c0c6477ed703e | sysid.py:1708 CMP_BOUND | SystemIdentification._unadoptable | RED-AS-NULL | - | 3784.1 | 0.92..0.92 | candidate |\n| adc459d2db521041 | sysid.py:1708 CMP_BOUND | SystemIdentification._unadoptable | RED-AS-NULL | - | 3670.4 | 0.85..1.0 | candidate |\n| a23ed12204379870 | sysid.py:1715 CMP_BOUND | SystemIdentification._unadoptable | RED-AS-NULL | - | 3600.7 | 0.92..1.0 | candidate |\n| 6e67f128730b3ecd | sysid.py:1541 CMP_BOUND | SystemIdentification.conditions_met | RED-AS-NULL | - | 3713.1 | 0.85..0.92 | candidate |\n| cf96494341270371 | sysid.py:1541 CMP_BOUND | SystemIdentification.conditions_met | RED-AS-NULL | - | 3761.2 | 0.72..0.92 | candidate |\n| ad7a177d7ca99cad | sysid.py:1545 CMP_BOUND | SystemIdentification.conditions_met | RED-AS-NULL | - | 3500.8 | 0.8..0.96 | equivalent-candidate |\n| b61d1402aad5a055 | sysid.py:1545 GUARD_OFF | SystemIdentification.conditions_met | RED-AS-NULL | - | 3572.4 | 0.74..1.25 | equivalent-candidate |\n| 0b6e291153f1d738 | sysid.py:1546 CMP_BOUND | SystemIdentification.conditions_met | RED-AS-NULL | - | 3209.8 | 0.74..1.01 | equivalent-candidate |\n| e38d4bea802156c3 | sysid.py:1546 CMP_BOUND | SystemIdentification.conditions_met | RED-AS-NULL | - | 2788.3 | 0.78..0.92 | equivalent-candidate |\n| 20e001c48fb19330 | sysid.py:1549 CMP_BOUND | SystemIdentification.conditions_met | RED-AS-NULL | - | 2721.6 | 0.79..0.92 | candidate |\n| d435f0054d7c9881 | sysid.py:1557 BOOLOP | SystemIdentification.conditions_met | RED-AS-NULL | - | 2715.5 | 0.86..0.94 | equivalent-candidate |\n| 95090bc58c6535b2 | sysid.py:1913 CMP_BOUND | SystemIdentification.identify | RED-AS-NULL | - | 2707.3 | 0.87..0.92 | candidate |\n| 505422349a01c3ff | sysid.py:1922 CMP_BOUND | SystemIdentification.identify | RED-AS-NULL | - | 2777.2 | 0.78..0.86 | candidate |\n| 7dbbb95252ced538 | sysid.py:1922 CMP_BOUND | SystemIdentification.identify | RED-AS-NULL | - | 2978.4 | 0.75..0.92 | candidate |\n| b413c17079bb8176 | sysid.py:1922 GUARD_OFF | SystemIdentification.identify | KILLED | python3 tests/structure.py | 3105.8 | 0.85..1.0 | killed |\n| aa6d264aa0411bcd | sysid.py:1942 CMP_BOUND | SystemIdentification.identify | RED-AS-NULL | - | 3045.7 | 0.85..1.0 | candidate |\n\n## Survivors: the step-4 answer and the probe numbers\n\n### 822c0c6477ed703e sysid.py:1708 CMP_BOUND (SystemIdentification._unadoptable): RED-AS-NULL, candidate\n\nPatch `or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 <= dt <= 2.0`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py [--mutant]`: metric consulted_tie 0 -> 1, null consulted_null 1 -> 1. Baseline: consulted_tie=0; refuses_tie=0; halfwidth_tie=[]; refuses_tie_stub=0; consulted_below=0; consulted_above=1; consulted_null=1. Mutant: consulted_tie=1; refuses_tie=1; halfwidth_tie=[0.145803120583144]; refuses_tie_stub=1; consulted_below=0; consulted_above=1; consulted_null=1.\n\nInputs tried: settle interval 0.001 h (the tie), 0.0009 h, 0.0011 h; null 0.25 h; real halfwidth and a stub returning 1.0 (> bar).\n\nReach: reachable only when two settle samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:1708; tests/entities.py too): no check drives _unadoptable with two settle samples exactly 1e-3 h apart asserting it returns None without reading the declared night; the nearest check, tests/dst_checks.py:2309-2329, drives it only at a 1.0 h interval\n\nCandidate: **No check pins _unadoptable's lower settle-interval edge (dt == 1e-3 h); <-> <= is unseen** (low, class_guess I1). Perturbation direction up. Null: consulted_null: 1 -> 1 (an input where the edit cannot matter).\n\n### adc459d2db521041 sysid.py:1708 CMP_BOUND (SystemIdentification._unadoptable): RED-AS-NULL, candidate\n\nPatch `or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py [--mutant]`: metric consulted_tie 1 -> 0, null consulted_null 1 -> 1. Baseline: consulted_tie=1; refuses_tie=1; halfwidth_tie=[0.11157312536429365]; refuses_tie_stub=1; consulted_below=1; consulted_above=0; consulted_null=1. Mutant: consulted_tie=0; refuses_tie=0; halfwidth_tie=[]; refuses_tie_stub=0; consulted_below=1; consulted_above=0; consulted_null=1.\n\nInputs tried: settle interval 2.0 h (the tie), 1.99 h, 2.01 h; null 0.25 h; real halfwidth and a stub returning 1.0 (> bar).\n\nReach: reachable only when two settle samples are exactly 7200 s apart (a stalled cycle landing on the edge).\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:1708; tests/entities.py too): no check drives _unadoptable with settle samples exactly 2.0 h apart asserting the declared night is still read (here it refuses); tests/dst_checks.py:2309-2329 uses 1.0 h only\n\nCandidate: **No check pins _unadoptable's upper settle-interval edge (dt == 2.0 h); <= -> < is unseen** (low, class_guess I1). Perturbation direction down. Null: consulted_null: 1 -> 1 (an input where the edit cannot matter).\n\n### a23ed12204379870 sysid.py:1715 CMP_BOUND (SystemIdentification._unadoptable): RED-AS-NULL, candidate\n\nPatch `if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py [--mutant]`: metric refuses_tie 0 -> 1, null refuses_below 0 -> 0. Baseline: refuses_tie=0; refuses_above=1; refuses_below=0; refuses_real=1; halfwidth_real_minus_bar=[0.015294384822610571]. Mutant: refuses_tie=1; refuses_above=1; refuses_below=0; refuses_real=1; halfwidth_real_minus_bar=[0.015294384822610571].\n\nInputs tried: halfwidth == bar (stubbed, the tie), nextafter above/below, the real halfwidth on the dst_checks plant.\n\nReach: a float tie of a computed halfwidth with log(1.10): the probe stubs _declared_night_halfwidth to the bar; the real one on the dst_checks plant sits 0.0153 above it.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:1715; tests/entities.py too): no check sets the declared night's halfwidth exactly at UA_ADOPTION_HALFWIDTH_BAR asserting _unadoptable returns None (the adoption gate's own <= at sysid.py:1263 admits the tie)\n\nCandidate: **No check pins _unadoptable's tie at the adoption bar (hw == UA_ADOPTION_HALFWIDTH_BAR); <= -> < is unseen** (low, class_guess I1). Perturbation direction up. Null: refuses_below: 0 -> 0 (an input where the edit cannot matter).\n\n### 6e67f128730b3ecd sysid.py:1541 CMP_BOUND (SystemIdentification.conditions_met): RED-AS-NULL, candidate\n\nPatch `if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp < outdoor_temp <= cfg.max_outdoor_temp):`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py [--mutant]`: metric band_refused 0 -> 1, null band_refused_inside 0 -> 0. Baseline: band_refused=0; band_refused_inside=0; band_refused_scan=10000. Mutant: band_refused=1; band_refused_inside=0; band_refused_scan=11000.\n\nInputs tried: outdoor -5.0 (the tie), -5.1, -4.9, 0.0 (null), 10.0.\n\nReach: reachable: production builds the default band (-5.0, 10.0) and an outdoor sensor reading of exactly -5.0 C is an ordinary 0.1-resolution value.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:1541): no conditions_met check at outdoor_temp == SysIdConfig.min_outdoor_temp (-5.0 C) asserting the safe-band check passes\n\nCandidate: **No check pins conditions_met's inclusive lower outdoor bound (-5.0 C); <= -> < is unseen** (low, class_guess I1). Perturbation direction up. Null: band_refused_inside: 0 -> 0 (an input where the edit cannot matter).\n\n### cf96494341270371 sysid.py:1541 CMP_BOUND (SystemIdentification.conditions_met): RED-AS-NULL, candidate\n\nPatch `if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py [--mutant]`: metric band_refused 0 -> 1, null band_refused_inside 0 -> 0. Baseline: band_refused=0; band_refused_inside=0; band_refused_scan=00001. Mutant: band_refused=1; band_refused_inside=0; band_refused_scan=00011.\n\nInputs tried: outdoor 10.0 (the tie), 9.9, 10.1, 0.0 (null), -5.0.\n\nReach: reachable: an outdoor reading of exactly 10.0 C at the default band.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:1541): no conditions_met check at outdoor_temp == SysIdConfig.max_outdoor_temp (10.0 C) asserting the safe-band check passes\n\nCandidate: **No check pins conditions_met's inclusive upper outdoor bound (10.0 C); <= -> < is unseen** (low, class_guess I1). Perturbation direction up. Null: band_refused_inside: 0 -> 0 (an input where the edit cannot matter).\n\n### ad7a177d7ca99cad sysid.py:1545 CMP_BOUND (SystemIdentification.conditions_met): RED-AS-NULL, equivalent-candidate\n\nPatch `if cfg.start_hour <= cfg.end_hour: -> if cfg.start_hour < cfg.end_hour:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py [--mutant]`: metric open_hours_tie 0 -> 24, null open_hours_default 6 -> 6. Baseline: open_hours_default=6; open_hours_tie=0; open_hours_tie0=0; open_hours_flat=4; open_hours_wrap2=4. Mutant: open_hours_default=6; open_hours_tie=24; open_hours_tie0=24; open_hours_flat=4; open_hours_wrap2=4.\n\nInputs tried: windows (23,5) default, (3,3) tie, (0,0), (1,5) non-wrapping, (22,2); each over hours 0..23.\n\nReach: unreachable through production (open_hours_default 6 under both arms).\n\nShould have failed (D3.M4): none through production: coordinator.py:4044 builds SysIdConfig without start_hour/end_hour, so the window is always (23, 5) and start_hour == end_hour never occurs; a direct unit call with start_hour == end_hour separates\n\n### b61d1402aad5a055 sysid.py:1545 GUARD_OFF (SystemIdentification.conditions_met): RED-AS-NULL, equivalent-candidate\n\nPatch `if cfg.start_hour <= cfg.end_hour: -> if False:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b61d1402aad5a055.py [--mutant]`: metric open_hours_flat 4 -> 24, null open_hours_default 6 -> 6. Baseline: open_hours_default=6; open_hours_flat=4; open_hours_flat06=6; open_hours_tie=0; open_hours_wrap2=4. Mutant: open_hours_default=6; open_hours_flat=24; open_hours_flat06=24; open_hours_tie=24; open_hours_wrap2=4.\n\nInputs tried: windows (23,5) default, (1,5), (0,6), (3,3), (22,2); each over hours 0..23.\n\nReach: unreachable through production (open_hours_default 6 under both arms).\n\nShould have failed (D3.M4): none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so the window is always the wrapping default (23, 5) and the non-wrapping branch never runs; a direct unit call with a non-wrapping window (1,5) separates (4 -> 24 open hours)\n\n### 0b6e291153f1d738 sysid.py:1546 CMP_BOUND (SystemIdentification.conditions_met): RED-AS-NULL, equivalent-candidate\n\nPatch `in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour <= hour <= cfg.end_hour`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_0b6e291153f1d738.py [--mutant]`: metric open_hours_flat 4 -> 5, null open_hours_default 6 -> 6. Baseline: open_hours_default=6; open_hours_flat=4; end_hour_open=0; open_hours_flat06=6; open_hours_wrap2=4. Mutant: open_hours_default=6; open_hours_flat=5; end_hour_open=1; open_hours_flat06=7; open_hours_wrap2=4.\n\nInputs tried: windows (23,5) default, (1,5), (0,6), (22,2); each over hours 0..23.\n\nReach: unreachable through production (open_hours_default 6 under both arms).\n\nShould have failed (D3.M4): none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 5 open hours)\n\n### e38d4bea802156c3 sysid.py:1546 CMP_BOUND (SystemIdentification.conditions_met): RED-AS-NULL, equivalent-candidate\n\nPatch `in_window = cfg.start_hour <= hour < cfg.end_hour -> in_window = cfg.start_hour < hour < cfg.end_hour`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py [--mutant]`: metric open_hours_flat 4 -> 3, null open_hours_default 6 -> 6. Baseline: open_hours_default=6; open_hours_flat=4; start_hour_open=1; open_hours_flat06=6; open_hours_wrap2=4. Mutant: open_hours_default=6; open_hours_flat=3; start_hour_open=0; open_hours_flat06=5; open_hours_wrap2=4.\n\nInputs tried: windows (23,5) default, (1,5), (0,6), (22,2); each over hours 0..23.\n\nReach: unreachable through production (open_hours_default 6 under both arms).\n\nShould have failed (D3.M4): none through production: coordinator.py:4045 builds SysIdConfig without start_hour/end_hour, so only the wrapping default (23, 5) runs and the non-wrapping branch at sysid.py:1546 never executes in production; a direct unit call with window (1,5) separates (4 -> 3 open hours)\n\n### 20e001c48fb19330 sysid.py:1549 CMP_BOUND (SystemIdentification.conditions_met): RED-AS-NULL, candidate\n\nPatch `in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py [--mutant]`: metric open_hours 6 -> 7, null open_hours_flat 4 -> 4. Baseline: open_hours=6; end_hour_open=0; open_hours_flat=4; open_hours_wrap2=4. Mutant: open_hours=7; end_hour_open=1; open_hours_flat=4; open_hours_wrap2=5.\n\nInputs tried: default window (23,5) over hours 0..23; null (1,5); (22,2).\n\nReach: reachable: production builds the default wrapping window (23, 5); under the mutant the 05:00-05:59 hour is admitted.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:{line}): no conditions_met check at hour == SysIdConfig().end_hour (5) under the default window asserting it refuses with 'outside the night window'\n\nCandidate: **No check pins conditions_met's exclusive night-window end (05:00) on the default window; < -> <= is unseen** (low, class_guess I1). Perturbation direction up. Null: open_hours_flat (non-wrapping window (1,5), branch not taken): 4 -> 4.\n\n### d435f0054d7c9881 sysid.py:1557 BOOLOP (SystemIdentification.conditions_met): RED-AS-NULL, equivalent-candidate\n\nPatch `if price_horizon is not None and len(price_horizon): -> if price_horizon is not None or len(price_horizon):`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py [--mutant]`: metric raised 0 -> 2, null ok_ramp 1 -> 1. Baseline: raised=0; ok_ramp=1; ok_flat=1. Mutant: raised=2; ok_ramp=1; ok_flat=1.\n\nInputs tried: price_horizon None, np.array([]), ramp 0.5..2.0 (24 steps), flat ones(24); price 0.5.\n\nReach: unreachable through production: the only caller (sysid.py:1756) runs after coordinator.py:6379 has returned 'no_prices' for any horizon of fewer than 4 steps, so neither None nor an empty horizon reaches it.\n\nShould have failed (D3.M4): none through production; a direct unit call with price_horizon None or empty separates (raised 0 -> 2)\n\n### 95090bc58c6535b2 sysid.py:1913 CMP_BOUND (SystemIdentification.identify): RED-AS-NULL, candidate\n\nPatch `if len(usable) < 6: -> if len(usable) <= 6:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py [--mutant]`: metric reached_fit_6 1 -> 0, null reached_fit_7 1 -> 1. Baseline: reached_fit_5=0; reached_fit_6=1; reached_fit_7=1; reached_fit_21=1; reason_6='ok'. Mutant: reached_fit_5=0; reached_fit_6=0; reached_fit_7=1; reached_fit_21=1; reason_6='not enough samples'.\n\nInputs tried: 5, 6 (the tie), 7, 21 samples at 0.25 h on the tests/features.py _sid_samples plant.\n\nReach: reachable: an experiment that collects exactly six usable samples (a 1.5 h run at the 15-min cadence) is refused 'not enough samples' under the mutant.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:{line}): no identify check on exactly six usable samples asserting it gets past the sample-count gate (the documented minimum is six)\n\nCandidate: **No check pins identify's six-sample minimum at the tie; < 6 -> <= 6 is unseen** (low, class_guess I1). Perturbation direction down. Null: reached_fit_7 (seven samples): 1 -> 1.\n\n### 505422349a01c3ff sysid.py:1922 CMP_BOUND (SystemIdentification.identify): RED-AS-NULL, candidate\n\nPatch `if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py [--mutant]`: metric reached_fit_tie 0 -> 1, null reached_fit_null 1 -> 1. Baseline: reached_fit_tie=0; reached_fit_below=0; reached_fit_above=1; reached_fit_zero=0; reached_fit_null=1; ua_31=None reason='fitted gains outside plausible bounds'; ua_31_null=0.11999999998433901 reason='ok'. Mutant: reached_fit_tie=1; reached_fit_below=0; reached_fit_above=1; reached_fit_zero=0; reached_fit_null=1; ua_31=None reason='fit gave implausible signs'; ua_31_null=0.11999999998433901 reason='ok'.\n\nInputs tried: interval 0.001 h (the tie), 0.0009 h, 0.0011 h, 0.0 h; null all 0.25 h; ua_31 on tests/features.py's 31-sample series with one 3.6 s interval.\n\nReach: reachable only when two samples land exactly 3.6 s apart: a float tie a coordinator cycle rarely produces.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:{line}): no identify check with an interval exactly 1e-3 h asserting it is dropped as unusable\n\nCandidate: **No check pins identify's exclusive 1e-3 h minimum interval at the tie; <= -> < is unseen** (low, class_guess I1). Perturbation direction up. Null: reached_fit_null (all 15-min intervals): 1 -> 1.\n\n### 7dbbb95252ced538 sysid.py:1922 CMP_BOUND (SystemIdentification.identify): RED-AS-NULL, candidate\n\nPatch `if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h <= 1e-3 or dt_h >= 2.0:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py [--mutant]`: metric reached_fit_tie 1 -> 0, null reached_fit_null 1 -> 1. Baseline: reached_fit_tie=1; reached_fit_below=1; reached_fit_above=0; reached_fit_null=1; ua_31=None reason='fit gave implausible signs'; ua_31_null=0.11999999998433901 reason='ok'. Mutant: reached_fit_tie=0; reached_fit_below=1; reached_fit_above=0; reached_fit_null=1; ua_31=None reason='fit gave implausible signs'; ua_31_null=0.11999999998433901 reason='ok'.\n\nInputs tried: interval 2.0 h (the tie), 1.99 h, 2.01 h; null all 0.25 h; ua_31 on tests/features.py's 31-sample series with one 2.0 h interval.\n\nReach: reachable only when two samples are exactly 7200 s apart (a stalled cycle landing on the edge).\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:{line}): no identify check with an interval exactly 2.0 h asserting it is kept as usable\n\nCandidate: **No check pins identify's inclusive 2.0 h maximum interval at the tie; > -> >= is unseen** (low, class_guess I1). Perturbation direction down. Null: reached_fit_null (all 15-min intervals): 1 -> 1.\n\n### aa6d264aa0411bcd sysid.py:1942 CMP_BOUND (SystemIdentification.identify): RED-AS-NULL, candidate\n\nPatch `if len(rows) < 5: -> if len(rows) <= 5:`. Probe `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py [--mutant]`: metric reached_fit_6 1 -> 0, null reached_fit_7 1 -> 1. Baseline: reached_fit_6=1; reached_fit_7=1; reached_fit_7_gap=1; reason_6='ok'. Mutant: reached_fit_6=0; reached_fit_7=1; reached_fit_7_gap=0; reason_6='not enough usable intervals'.\n\nInputs tried: 6 samples (5 intervals, the tie), 7 samples, 8 samples with one 3.6 s interval (5 usable).\n\nReach: reachable: six usable samples give five usable intervals, which the mutant refuses 'not enough usable intervals'.\n\nShould have failed (D3.M4): tests/features.py (traced, executes sysid.py:{line}): no identify check on exactly five usable intervals asserting it gets past the interval-count gate\n\nCandidate: **No check pins identify's five-interval minimum at the tie; < 5 -> <= 5 is unseen** (low, class_guess I1). Perturbation direction down. Null: reached_fit_7 (six intervals): 1 -> 1.\n\n## Killed (non-findings)\n\n- b413c17079bb8176 sysid.py:1922 GUARD_OFF `if dt_h <= 1e-3 or dt_h > 2.0: -> if False:`: KILLED by ['python3 tests/structure.py'] (`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b413c17079bb8176`); {'python3 tests/structure.py': ['gain max_cc 43 (budget 44, -1; not yet recorded -- see below)', '1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED', '>>> FAILED: python3 tests/structure.py']}. KILLED by the structural ratchet only: if False: removes one decision point from identify (sysid.py:1890, cc 44 -> 43, the tree's max_cc), and structure.py refuses an unrecorded improvement (#350). No behavioural check failed: every other red script is the null's own (closure.py selftest 2, entities.py 1, harness_headers.py 3 FAIL lines, equal to the null). The step-4 probe still moves (raised_dup 0 -> 1: a duplicated timestamp makes identify raise ZeroDivisionError; reached_fit_gap 0 -> 1). Carried as a lead: a GUARD_OFF that keeps the decision count (e.g. `if dt_h != dt_h:`) might escape the ratchet (untested hypothesis, not gated).\n\n## Leads\n\n- D3, custom_components/heatpump_optimizer/sysid.py SystemIdentification.identify: b413c17079bb8176 (sysid.py:1922 GUARD_OFF, if dt_h <= 1e-3 or dt_h > 2.0: -> if False:) is KILLED only by the tests/structure.py max_cc ratchet, not by a behavioural check: KILLED by the structural ratchet only: if False: removes one decision point from identify (sysid.py:1890, cc 44 -> 43, the tree's max_cc), and structure.py refuses an unrecorded improvement (#350). No behavioural check failed: every other red script is the null's own (closure.py selftest 2, entities.py 1, harness_headers.py 3 FAIL lines, equal to the null). The step-4 probe still moves (raised_dup 0 -> 1: a duplicated timestamp makes identify raise ZeroDivisionError; reached_fit_gap 0 -> 1). Carried as a lead: a GUARD_OFF that keeps the decision count (e.g. `if dt_h != dt_h:`) might escape the ratchet (untested hypothesis, not gated).\n- orchestrator (gate_wave.sh), gate_wave.sh restore restore: a re-fire's `gate_wave.sh restore` copies the checkpointed probes/*.py back into the gated tree, where tests/harness_headers.py's inlined-walk check fails on them and fullgate.py reads the next gate KILLED; on this box it hit 0b6e291153f1d738 (record set aside under gates-artefact/, key re-gated with the probes held outside the tree)\n\n## Unfinished\n\n- none\n\n## Harnesses\n\n- `dev/audit/rounds/round11/D3/s1/fullgate.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/build_records.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/build_report.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_0b6e291153f1d738.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_505422349a01c3ff.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_6e67f128730b3ecd.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_7dbbb95252ced538.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_822c0c6477ed703e.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_a23ed12204379870.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_aa6d264aa0411bcd.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_ad7a177d7ca99cad.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_adc459d2db521041.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b413c17079bb8176.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_b61d1402aad5a055.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_cf96494341270371.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_d435f0054d7c9881.py`\n- `dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_e38d4bea802156c3.py`\n\nProcedure: gate_wave.sh (shipped on dispatch/finder-r11-D3-g33): null once, then for each key of keys.tsv in order: reset the tree to the baseline, `timeout -s INT -k 300 14400 python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>` (apply the one-line mutant, commit, take the gate_lock lease, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh, record, reset), checkpoint after every gate\n\n## Exposure\n\nNo docs/ or GitHub read. Two seats on this box: the first (stalled) took the null, gated 7 keys and wrote the probes and 6 records; the re-fire resumed from its checkpoint and read COMMON.md, D3.md, finding.schema.json's location, REPORT-D3-u1b.json's coverage rows, the production lines under test (sysid.py, coordinator.py:4045 and :6379), and box D3-g13's returned build_report.py and wave_boxes/ key lists (handoff/audit-r11-find-D3-g13; key lists and the report builder only, not its results). No register, round11/J/ or verifier report read.\n\n"
+    }
+  }
+}

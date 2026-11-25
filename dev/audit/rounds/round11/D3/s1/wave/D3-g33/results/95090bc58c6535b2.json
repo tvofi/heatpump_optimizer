@@ -1,0 +1,82 @@
+{
+ "key": "95090bc58c6535b2",
+ "site": "sysid.py:1913 CMP_BOUND",
+ "patch": "if len(usable) < 6: -> if len(usable) <= 6:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2707.3,
+  "load1_start": 0.87,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 95090bc58c6535b2",
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/95090bc58c6535b2.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py [--mutant]",
+  "metric": "reached_fit_6",
+  "baseline_value": "1",
+  "mutant_value": "0",
+  "null_metric": "reached_fit_7",
+  "null_baseline": "1",
+  "null_mutant": "1",
+  "all_results_baseline": {
+   "reached_fit_5": "0",
+   "reached_fit_6": "1",
+   "reached_fit_7": "1",
+   "reached_fit_21": "1",
+   "reason_6": "'ok'",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "all_results_mutant": {
+   "reached_fit_5": "0",
+   "reached_fit_6": "0",
+   "reached_fit_7": "1",
+   "reached_fit_21": "1",
+   "reason_6": "'not enough samples'",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": "5, 6 (the tie), 7, 21 samples at 0.25 h on the tests/features.py _sid_samples plant",
+  "machine": "cloud box D3-g33 (re-fire container): Linux x86_64, nproc 4, Intel Xeon @ 2.30GHz, 16 GB, venv-ci CPython; probe run while a gate ran (load1 ~0.7)"
+ },
+ "reach": "reachable: an experiment that collects exactly six usable samples (a 1.5 h run at the 15-min cadence) is refused 'not enough samples' under the mutant",
+ "should_fail": "tests/features.py (traced, executes sysid.py:{line}): no identify check on exactly six usable samples asserting it gets past the sample-count gate (the documented minimum is six)",
+ "title": "No check pins identify's six-sample minimum at the tie; < 6 -> <= 6 is unseen",
+ "claim": "Mutant 95090bc58c6535b2 at sysid.py:1913 CMP_BOUND (if len(usable) < 6: -> if len(usable) <= 6:) survives the full GATE_SCOPE=full GOLDEN_MODE=drift gate (RED-AS-NULL), yet the probe's reached_fit_6 moves 1 -> 0 while its null reached_fit_7 stays 1 -> 1. reachable: an experiment that collects exactly six usable samples (a 1.5 h run at the 15-min cadence) is refused 'not enough samples' under the mutant.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+ "metric_definition": "reached_fit_6 = 1 when SystemIdentification.identify on exactly six usable 15-min samples of the features.py plant returns a reason other than 'not enough samples' / 'not enough usable intervals'.",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_95090bc58c6535b2.py --mutant",
+ "perturbation": {
+  "change": "the one-line mutant at sysid.py:1913 (if len(usable) < 6: -> if len(usable) <= 6:), applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 95090bc58c6535b2",
+  "expected_direction": "down",
+  "baseline_value": "1",
+  "observed_value": "0"
+ },
+ "null_control": {
+  "probe_arm": "reached_fit_7 (seven samples): 1 -> 1",
+  "gate": "fullgate.py null on box D3-g33 (dev/audit/rounds/round11/D3/s1/wave/D3-g33/gates/null.json)"
+ }
+}

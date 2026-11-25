@@ -1,0 +1,6 @@
+Box D3-g33 null control (fullgate.py null, comment-only marker): gate_rc=1, wall 3964.5 s, load1 0.69..0.98 (provisional), nproc 4, Intel Xeon @ 2.10GHz.
+Red scripts, all artefact checks of the stripped baseline worktree (not the machine; no card.mjs heap failure), so the null is usable and was not re-taken:
+- python3 tests/closure.py selftest: 2 of 118 closure shrink pins FAILED ("a refused merge surfaces merge()'s reason..." and its null control: status='skip-not-under-scoped' with an empty log in this worktree).
+- python3 tests/entities.py: 1 of 2723 FAILED ("and is accepted when it does [the scoped path records only what the diff can reach]").
+- python3 tests/harness_headers.py: 3 of 115 FAILED, all dev/audit/rounds/round4/D6/claims.py (claims_true 122 vs header 123, claims_false 1 vs 0, its committed output left modified): the finder wall stripped part of the docs corpus it counts.
+Same artefact family as box D3-top6's null (closure.py selftest, entities.py, harness_headers.py). A key is KILLED only when it fails more checks in some script than this null.
