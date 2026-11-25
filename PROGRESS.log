@@ -10,3 +10,5 @@
 1795604005 HB alive
 1795604559 CKPT entities.py exit 1 under recording; re-running alone snapshot 559900cb0c0f
 1795604608 HB alive
+1795605215 HB alive
+1795605216 CKPT entities.py red pre-exists at e4d40de (#1218 note 182 vs 184); starting scoped gate snapshot 7975e984ba74
