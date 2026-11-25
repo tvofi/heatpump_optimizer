@@ -2,3 +2,4 @@
 1795612970 HB alive
 1795612978 CKPT merge-tree: real conflicts coordinator.py, tests/features.py; budgets auto by ledger driver snapshot 95308dffe91e
 1795613574 HB alive
+1795613642 CKPT merge resolved (coordinator, features, frost_hold log moved into gate); max_class_loc +1 over main budget; features rerun snapshot c019037314d9
