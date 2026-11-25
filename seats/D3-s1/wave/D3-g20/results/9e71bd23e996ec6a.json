@@ -1,0 +1,62 @@
+{
+ "key": "9e71bd23e996ec6a",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:4828 CMP_BOUND",
+ "patch": "if extra.size < n_steps: -> if extra.size <= n_steps:",
+ "function": "HeatPumpOptimizer._build_space_power_caps",
+ "cluster": "optimizer.py:HeatPumpOptimizer._build_space_power_caps@4802-4828",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2831.6,
+  "load1_start": 0.85,
+  "load1_end": 1.01,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "cap_s": null,
+  "note": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/gates/9e71bd23e996ec6a.json",
+  "provisional": true,
+  "nproc": 4,
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.30GHz"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_9e71bd23e996ec6a.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_9e71bd23e996ec6a.py",
+  "rc": 0,
+  "result_lines": [
+   "RESULT inputs_tried=264 count",
+   "RESULT inputs_moved=4 count",
+   "RESULT inputs_moved_beyond_exception_type=0 count (rows where both arms raise, differing only in the exception type: 4)",
+   "RESULT moved n=1 extra=0-d 2.5 blocked=False: baseline=raises IndexError mutant=raises ValueError",
+   "RESULT moved n=1 extra=0-d 2.5 blocked=False: baseline=raises IndexError mutant=raises ValueError",
+   "RESULT moved n=1 extra=0-d 2.5 blocked=True: baseline=raises IndexError mutant=raises ValueError",
+   "RESULT moved n=1 extra=0-d 2.5 blocked=True: baseline=raises IndexError mutant=raises ValueError",
+   "RESULT null_delta=0 count (n=96 extra=None blocked=False off=None)",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.87",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "identical caps for every array input",
+  "mutant_value": "identical; a 0-d extra cap raises on both arms (IndexError vs ValueError)",
+  "inputs_tried": "264 (as 0275af97); moved 4, beyond exception type 0"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none (executed by tests/env_drift, features.py)",
+ "non_finding": {
+  "claim": "9e71bd23e996ec6a (custom_components/heatpump_optimizer/optimizer.py:4828 CMP_BOUND) is an equivalent-candidate: at extra.size == n_steps the mutant concatenates an empty pad (a no-op)",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_9e71bd23e996ec6a.py",
+  "value": "RESULT inputs_tried=264 count; RESULT inputs_moved=4 count; RESULT inputs_moved_beyond_exception_type=0 count (rows where both arms raise, differing only in the exception type: 4)"
+ }
+}
