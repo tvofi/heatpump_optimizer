@@ -77,7 +77,10 @@ REFERENCE_BASIS_META = "reference_basis"
 #: ceiling (released in v7.1.17), where pull request 3587 holds it at the valve top.
 #: 3 held a single-zone valved house short of its setpoint, its curve missing the
 #: slab in series (released in v10.0.0), which R11-VALVE-REFERENCE's curve reaches.
-REFERENCE_BASIS = 4
+#: 4 held a two-zone house whose valve feeds the slab short of its setpoint, its
+#: curve missing the slab in series and the gains (released in v10.1.0), which
+#: R11-SEAM-two-zone-slab's curve reaches.
+REFERENCE_BASIS = 5
 
 #: What ``migrate_ledger_v1`` stamps: every month a v1 store booked savings in predates it.
 OLD_REFERENCE_BASIS = 0
