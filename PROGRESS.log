@@ -55,3 +55,4 @@
 1795585867 HB alive
 1795586391 CKPT prepr #1 at 76b84e40: only body refusals (stored figure block); stripped, prepr #2 running snapshot f075c985a7a5
 1795586470 HB alive
+1795586779 DONE blocked: code 76b84e40 handed off, prepr clean; body_push refused brief-carries 0-6 (DRAWMAP part F); BLOCKED.md pushed
