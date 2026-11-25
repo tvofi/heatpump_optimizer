@@ -99371,5 +99371,18 @@ R.check(
     and np.allclose(_r3_cb_long, [0.5, 0.5]) and np.allclose(_r3_cb_fl[2], [0.5, 0.5]),
     f"short={_r3_cb_short} bare={_r3_cb_bare} long={_r3_cb_long} full={_r3_cb_fl[2]}",
 )
+# The margins are fitted to the horizon before the floor is raised: a forecast
+# shorter than the horizon pads with zeros and a negative margin lowers nothing.
+_r3_cb_base = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)[1]
+_r3_cb_pad = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.3]), None)[1] - _r3_cb_base
+_r3_cb_neg = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([-0.2, 0.3]), None)[1] - _r3_cb_base
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a margin series shorter than the horizon raises only its own steps, and a negative "
+    "margin raises nothing (0.3 then 0; 0 then 0.3); null control, the same margins at full length raise both",
+    np.allclose(_r3_cb_pad, [0.3, 0.0]) and np.allclose(_r3_cb_neg, [0.0, 0.3])
+    and np.allclose(_cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.3, 0.3]), None)[1] - _r3_cb_base,
+                    [0.3, 0.3]),
+    f"pad={_r3_cb_pad} neg={_r3_cb_neg}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
