@@ -8,3 +8,13 @@ Swap:              0           0           0
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 python3: /root/venv-ci -> /opt/hpo/venv-ci (symlink made by this box; the image ships venv-ci at /opt/hpo)
+--- re-fire resume 2026-11-25T00:46:16Z (new container, same shape)
+nproc: 4
+cpu:  Intel(R) Xeon(R) Processor @ 2.10GHz
+load1: 0.62
+               total        used        free      shared  buff/cache   available
+Mem:           16087         716       14094          12        1547       15370
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+python3: /root/venv-ci -> /opt/hpo/venv-ci (symlink re-made by this box)
