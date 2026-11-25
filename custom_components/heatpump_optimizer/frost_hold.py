@@ -156,16 +156,10 @@ def _freeze(held: ArbiterState, inputs: Callable[[], ArbiterInputs], now: dateti
     return FREEZE_FROST if until is not None and now < until else None
 
 
-def log_skip(held: ArbiterState, entity: str, mode_label: str) -> None:
-    """Say why the supply gate wrote nothing to ``entity``: a hold, or the pump's mode."""
+def log_skip(held: ArbiterState, entity: str) -> None:
+    """Say that a frost hold kept ``entity`` on; ``supply_hold`` logs the mode's own skip."""
     if held.frost_holding:
         _LOGGER.debug("Not switching %s off: frost hold", entity)
-        return
-    _LOGGER.debug(
-        "Not switching %s off: mode %s is cooling or blocks both channels, so "
-        "an empty plan is this integration's doing rather than a decision to "
-        "stop the pump", entity, mode_label,
-    )
 
 
 def diagnostics_view(held: ArbiterState, inp: ArbiterInputs) -> dict[str, Any]:

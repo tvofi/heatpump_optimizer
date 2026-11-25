@@ -19,7 +19,8 @@ WHY (R10-CI-SELFTEST-SCOPE, owner lever 3, #201 comment 6707834331).
 job ran every step on every pull request that touched anything but product.
 Now a step runs on a pull request only when the diff reaches its MEASURED read
 set, the way CLAUDE.md rule 1 selects test scripts from tests/closures.json,
-and every push to main runs every step and re-measures them all.
+and every push to main that is not light (tools/ci/prelude.py, #3885) runs
+every step and re-measures them all; a light push is scoped as a pull request.
 
 THE TABLE, `tools/ci/selftest_closures.json`, is measured, never written by
 hand: `record` runs the job's steps in order, each through
@@ -44,7 +45,8 @@ THE SELECTION, `select`, on a pull request (prelude.py calls `selection`):
   otherwise a step runs when a changed path is in its files, when it read the
   object store, or when the path is added or deleted and is one of its
   probes, sits in one of its dirs, or the step read the index.
-Every other event is FULL. `MODE: SCOPED -- 0 step(s) run` and `MODE: FULL`
+Every other event is FULL, a light push aside (the prelude passes it its range
+base, so it is scoped as a pull request is). `MODE: SCOPED -- 0 step(s) run` and `MODE: FULL`
 mean opposite things: key on the mode line.
 
 THE DRIFT CHECK, `check`, runs on every push to main over the traces that
