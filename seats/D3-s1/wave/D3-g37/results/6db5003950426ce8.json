@@ -1,0 +1,100 @@
+{
+ "key": "6db5003950426ce8",
+ "site": "custom_components/heatpump_optimizer/sysid.py:328 CMP_BOUND",
+ "patch": "while remaining > 1e-12: -> while remaining >= 1e-12:",
+ "function": "_predict_step_excursion_plant",
+ "cluster": "sysid.py:_predict_step_excursion_plant@328-328",
+ "slice": "u1b",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3695.7,
+  "child_cpu_s": 6089.9,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/6db5003950426ce8.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/6db5003950426ce8.log",
+ "provisional": true,
+ "machine": "box D3-g37: nproc 4, Intel Xeon @ 2.10GHz, 16 GB; walls and load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_6db5003950426ce8.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_6db5003950426ce8.py",
+  "results": {
+   "unit_step_1e-12_baseline": "(0.08246082627876561, 0.08246082627876561)",
+   "unit_step_1e-12_mutant": "(0.08246082627870521, 0.08246082627870521)",
+   "unit_step_1e-12_moved": "1 count",
+   "unit_relax_1e-12_baseline": "(0.06645262975512267, 0.06645262975512267)",
+   "unit_relax_1e-12_mutant": "(0.06645262975518662, 0.06645262975518662)",
+   "unit_relax_1e-12_moved": "1 count",
+   "unit_both_1e-12_baseline": "(0.0, 0.0)",
+   "unit_both_1e-12_mutant": "(0.0, 0.0)",
+   "unit_both_1e-12_moved": "0 count",
+   "unit_dt_leaves_1e-12_baseline": "(0.06610848689436111, 0.06610848689436111)",
+   "unit_dt_leaves_1e-12_mutant": "(0.06610848689436111, 0.06610848689436111)",
+   "unit_dt_leaves_1e-12_moved": "0 count",
+   "null_quarter_grid_baseline": "(0.10226561017985958, 0.07598617410885922)",
+   "null_quarter_grid_mutant": "(0.10226561017985958, 0.07598617410885922)",
+   "null_quarter_grid_moved": "0 count",
+   "null_step_2e-12_baseline": "(0.08246082627864126, 0.08246082627864126)",
+   "null_step_2e-12_mutant": "(0.08246082627864126, 0.08246082627864126)",
+   "null_step_2e-12_moved": "0 count",
+   "unit_moved": "2 count",
+   "null_moved": "0 count",
+   "reach_runs": "168 count",
+   "reach_calls": "560 count",
+   "reach_calls_separating": "0 count",
+   "reach_outcomes_differ": "0 count",
+   "thread_factor": "1.000",
+   "load1": "2.86",
+   "swapins": "0"
+  },
+  "answer": "Unit: a phase of exactly 1e-12 h takes one extra 1e-12 h substep, moving (peak, final) by ~6e-14 K; the quarter-hour grid and 2e-12 h do not move. Production: phase lengths are configured hours on the dt grid, so remaining reaches 0.0 or a value far from 1e-12: 560 calls over the sweep, 0 separating, 0 outcomes differ",
+  "harness": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py (in-memory mutant), dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py (production sweep)",
+  "baseline_value": {
+   "unit_step_1e-12_baseline": "(0.08246082627876561, 0.08246082627876561)",
+   "unit_relax_1e-12_baseline": "(0.06645262975512267, 0.06645262975512267)",
+   "unit_both_1e-12_baseline": "(0.0, 0.0)",
+   "unit_dt_leaves_1e-12_baseline": "(0.06610848689436111, 0.06610848689436111)",
+   "null_quarter_grid_baseline": "(0.10226561017985958, 0.07598617410885922)",
+   "null_step_2e-12_baseline": "(0.08246082627864126, 0.08246082627864126)"
+  },
+  "mutant_value": {
+   "unit_step_1e-12_mutant": "(0.08246082627870521, 0.08246082627870521)",
+   "unit_relax_1e-12_mutant": "(0.06645262975518662, 0.06645262975518662)",
+   "unit_both_1e-12_mutant": "(0.0, 0.0)",
+   "unit_dt_leaves_1e-12_mutant": "(0.06610848689436111, 0.06610848689436111)",
+   "null_quarter_grid_mutant": "(0.10226561017985958, 0.07598617410885922)",
+   "null_step_2e-12_mutant": "(0.08246082627864126, 0.08246082627864126)"
+  },
+  "inputs_tried": [
+   "null_quarter_grid",
+   "null_step_2e-12",
+   "unit_both_1e-12",
+   "unit_dt_leaves_1e-12",
+   "unit_relax_1e-12",
+   "unit_step_1e-12",
+   "production sweep: 168 count runs (_drive.sweep / slab sweep)"
+  ]
+ },
+ "should_fail": "none: a 6e-14 K difference at an exact 1e-12 h phase is below any meaningful tolerance"
+}
