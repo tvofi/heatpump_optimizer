@@ -22,3 +22,4 @@
 1795320156 DONE verdict pushed: merge pending-ci gate (probe/rev-3838-dc0e98e6 25575a96)
 1795604596 HB alive
 1795604685 CKPT setup ok; role pack and packet rendered snapshot 567ba590802e
+1795604994 CKPT mutants run (3b, cb); edge.py on survivors running; fast red being located snapshot 3e81a4cadcd2
