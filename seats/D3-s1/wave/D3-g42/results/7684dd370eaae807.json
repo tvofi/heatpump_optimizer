@@ -1,0 +1,27 @@
+{
+ "key": "7684dd370eaae807",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3517 CMP_BOUND",
+ "patch": "if solar_radiation <= 0: -> if solar_radiation < 0:",
+ "function": "ThermalModel.compute_solar_gain",
+ "cluster": "thermal_model.py:ThermalModel.compute_solar_gain@3517-3517",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3879.1,
+  "load1_start": 0.83,
+  "load1_end": 0.99
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_7684dd370eaae807.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_7684dd370eaae807.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_7684dd370eaae807.out",
+  "metrics_moved": null,
+  "numbers": {},
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "",
+ "note": "radiation == 0: product is 0.0 for every finite parameter set (default, 1e6 m2, zero area, negative scale); the only difference over 15 cells is the sign of a zero (-0.0 for input -0.0 / negative scale, equal under ==)",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json"
+}

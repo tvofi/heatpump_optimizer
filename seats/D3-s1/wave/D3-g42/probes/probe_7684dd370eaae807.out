@@ -1,31 +1,10 @@
-RESULT gain_big_-0.0_baseline='0.0'
-RESULT gain_big_-0.0_mutant='-0.0'
-RESULT gain_big_0.0_baseline='0.0'
-RESULT gain_big_0.0_mutant='0.0'
-RESULT gain_big_1e-300_baseline='4.899999999999999e-298'
-RESULT gain_big_1e-300_mutant='4.899999999999999e-298'
-RESULT gain_default_-0.0_baseline='0.0'
-RESULT gain_default_-0.0_mutant='-0.0'
-RESULT gain_default_0.0_baseline='0.0'
-RESULT gain_default_0.0_mutant='0.0'
-RESULT gain_default_1e-300_baseline='4.8999999999999994e-303'
-RESULT gain_default_1e-300_mutant='4.8999999999999994e-303'
-RESULT gain_inf_area_-0.0_baseline='0.0'
-RESULT gain_inf_area_-0.0_mutant='-0.0'
-RESULT gain_inf_area_0.0_baseline='0.0'
-RESULT gain_inf_area_0.0_mutant='0.0'
-RESULT gain_inf_area_1e-300_baseline='4.9e-306'
-RESULT gain_inf_area_1e-300_mutant='4.9e-306'
-RESULT gain_neg_scale_-0.0_baseline='0.0'
-RESULT gain_neg_scale_-0.0_mutant='0.0'
-RESULT gain_neg_scale_0.0_baseline='0.0'
-RESULT gain_neg_scale_0.0_mutant='-0.0'
-RESULT gain_neg_scale_1e-300_baseline='-4.8999999999999994e-303'
-RESULT gain_neg_scale_1e-300_mutant='-4.8999999999999994e-303'
-RESULT gain_zero_area_-0.0_baseline='0.0'
-RESULT gain_zero_area_-0.0_mutant='-0.0'
-RESULT gain_zero_area_0.0_baseline='0.0'
-RESULT gain_zero_area_0.0_mutant='0.0'
-RESULT gain_zero_area_1e-300_baseline='4.9e-306'
-RESULT gain_zero_area_1e-300_mutant='4.9e-306'
-RESULT metrics_moved=5
+Traceback (most recent call last):
+  File "/root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_7684dd370eaae807.py", line 32, in <module>
+    main("7684dd370eaae807", measure, __file__)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/_common.py", line 45, in main
+    d = scratch(key)
+  File "/root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/_common.py", line 24, in scratch
+    assert lines[rec["line"] - 1] == rec["old"], (lines[rec["line"] - 1], rec["old"])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('        if False:', '        if solar_radiation <= 0:')
