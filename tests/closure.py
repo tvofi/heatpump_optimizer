@@ -129,6 +129,9 @@ NOT_A_TEST = {
     # and run first. Measured through their closures; entities.py runs its
     # self-test.
     "case_sample.py",
+    # The case runner and recorder (R11-CI-CASE-SELECT): a gate file below,
+    # never a test of its own; tests/entities.py runs its self-test.
+    "case_select.py",
     # The comment ratchet (R11-SEAM-comments-tests): an arm of doc_claims.py,
     # which imports and runs it. Measured through doc_claims.py's closure.
     "comment_ratchet.py",
@@ -523,6 +526,12 @@ GATE_FILES = (
     # run.sh changes what they run. It cannot be a measured closure of
     # itself, so it is a gate file -- the same argument as closure.py.
     "tests/lane_skip.py",
+    # R11-CI-CASE-SELECT (design 25fa1f76): the case splitter, runner and
+    # recorder, and the per-span table it writes. How a long script's cases
+    # are cut, run and recorded is as load-bearing as how its closure is
+    # derived, so a change to either runs everything.
+    "tests/case_select.py",
+    "tests/case_closures.json",
 )
 
 

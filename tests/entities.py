@@ -44027,4 +44027,21 @@ R.check(
     (_cs_run.stdout + _cs_run.stderr)[-600:],
 )
 
+
+R.section("The case runner and recorder (R11-CI-CASE-SELECT)")
+# tests/case_select.py cuts features.py and this script into spans, runs them
+# span by span, and records per span what it reads and which earlier spans it
+# needs, into tests/case_closures.json. Its self-test checks the splitter
+# against the R.section line count of both scripts, that a span-wise run prints
+# what python3 prints, the recorder's static and dynamic reads, the needs rules
+# (in-place binding, RNG draws, module moves) and the table's merge arm.
+_csel_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_select.py")), "--self-test"],
+                           capture_output=True, text=True, timeout=600)
+R.check(
+    "the case runner's self-test passes: spans match the R.section count, a span-wise run equals the script's "
+    "own output, the recorder sees reads no code runs and moves no store shows, and the table merges per span",
+    _csel_run.returncode == 0 and "CASE-SELECT SELF-TEST: PASSED" in _csel_run.stdout,
+    (_csel_run.stdout + _csel_run.stderr)[-600:],
+)
+
 sys.exit(R.close("ENTITY CHECKS"))
