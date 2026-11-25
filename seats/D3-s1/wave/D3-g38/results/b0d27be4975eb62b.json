@@ -1,0 +1,47 @@
+{
+ "key": "b0d27be4975eb62b",
+ "site": "custom_components/heatpump_optimizer/sysid.py:643 CMP_BOUND",
+ "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s >= 1e-9 and k_s > 1e-9):",
+ "function": "slab_mode_identifiability",
+ "cluster": "sysid.py:slab_mode_identifiability@643-643",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3886.7,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g38/gates/b0d27be4975eb62b.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; null control gates/null.json (closure.py selftest, entities.py, harness_headers.py red as artefact checks)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_b0d27be4975eb62b.py",
+  "command": "cd <clean baseline checkout> && HPO_PROBE_ROOT=$PWD PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 <box tree>/dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_b0d27be4975eb62b.py",
+  "baseline": "admit[c_s=exact_1e-9,constructor]=1; admit[c_s=exact_1e-9,setattr_bypass]=0; admit[c_s=null_zero,constructor]=1; admit[c_s=null_zero,setattr_bypass]=0; admit[c_s=null_1e-3,constructor]=1; admit[c_s=null_1e-3,setattr_bypass]=1; admit[c_s=null_default,constructor]=1; admit[c_s=null_default,setattr_bypass]=1",
+  "mutant": "admit[c_s=exact_1e-9,constructor]=1; admit[c_s=exact_1e-9,setattr_bypass]=1; admit[c_s=null_zero,constructor]=1; admit[c_s=null_zero,setattr_bypass]=0; admit[c_s=null_1e-3,constructor]=1; admit[c_s=null_1e-3,setattr_bypass]=1; admit[c_s=null_default,constructor]=1; admit[c_s=null_default,setattr_bypass]=1",
+  "summary": "inputs_differing_via_constructor=0 of 4",
+  "output": [
+   "RESULT admit[c_s=exact_1e-9,constructor] baseline=1 mutant=1 (attribute read 0.1)",
+   "RESULT admit[c_s=exact_1e-9,setattr_bypass] baseline=0 mutant=1 (attribute read 1e-09)",
+   "RESULT admit[c_s=null_zero,constructor] baseline=1 mutant=1 (attribute read 0.1)",
+   "RESULT admit[c_s=null_zero,setattr_bypass] baseline=0 mutant=0 (attribute read 0.0)",
+   "RESULT admit[c_s=null_1e-3,constructor] baseline=1 mutant=1 (attribute read 0.1)",
+   "RESULT admit[c_s=null_1e-3,setattr_bypass] baseline=1 mutant=1 (attribute read 0.001)",
+   "RESULT admit[c_s=null_default,constructor] baseline=1 mutant=1 (attribute read 20.0)",
+   "RESULT admit[c_s=null_default,setattr_bypass] baseline=1 mutant=1 (attribute read 20.0)",
+   "RESULT inputs_differing_via_constructor=0 of 4"
+  ],
+  "inputs_tried": "c_s=1e-9, 0.0, 1e-3, default through the constructor (all read 0.1 or 20); and 1e-9, 0.0, 1e-3, default written past clamp by setattr (only 1e-9 differs)"
+ },
+ "should_fail": "none can: ThermalParameters.clamp() (thermal_model.py:252) floors slab_thermal_mass at THERMAL_MASS_FLOOR 0.1, so c_s == 1e-9 never reaches line 643 through a constructed plant",
+ "equivalence": "none can: ThermalParameters.clamp() (thermal_model.py:252) floors slab_thermal_mass at THERMAL_MASS_FLOOR 0.1, so c_s == 1e-9 never reaches line 643 through a constructed plant"
+}
