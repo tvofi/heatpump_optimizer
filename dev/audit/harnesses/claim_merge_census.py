@@ -13,7 +13,8 @@ with the one the merge commit recorded.
 ``driver-ref`` defaults to the working tree's ``tests/env_drift.py``; pass a
 commit (the merge base) for the baseline driver. Needs the full history
 (``git fetch --unshallow``). The case list is P196's (``dev/programme/
-triage/s6-batch34.md``), plus #2876's P209 shape where its commits resolve.
+triage/s6-batch34.md``), plus #2876's P209 shape where its commits resolve,
+and the ``st:`` rows: a pre-stamp head merged with a release stamp (needs the tags).
 
 A row reads ``resolved`` or ``refused``; ``hand=`` is ``same`` when the
 driver's claim map equals the hand resolution's, ``differs`` when not, ``-``
@@ -53,6 +54,15 @@ CASES = (
     ("3a07c2eaa", "3a07c2eaa^1", "3a07c2eaa^2", "3a07c2eaa"),
     ("e438816e3", "e438816e3^1", "e438816e3^2", "e438816e3"),
     ("5bf232eac", "5bf232eac^1", "5bf232eac^2", "5bf232eac"),
+    # Pre-stamp heads against the release stamp that emptied main's list
+    # (dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md's three; PC-1113-18's two
+    # handoff tips against the v7.1.16 stamp). `st:2d010b091` deleted scenarios
+    # main had claimed: a per-scenario clash, refused under either driver.
+    ("st:d7d4c511b", "d7d4c511b", "v7.1.6", None),
+    ("st:fb5658f13", "fb5658f13", "v7.1.6", None),
+    ("st:2d010b091", "2d010b091", "v7.1.6", None),
+    ("st:fc372c80", "fc372c80", "v7.1.16", None),
+    ("st:f919d224", "f919d224", "v7.1.16", None),
 )
 
 
@@ -97,7 +107,7 @@ def main() -> int:
             cmp = "same" if same else "differs"
             hand_same += same
             hand_diff += not same
-        print(f"{label:10} ours={len(o_changed):3} theirs={len(t_changed):3} "
+        print(f"{label:13} ours={len(o_changed):3} theirs={len(t_changed):3} "
               f"overlap={len(overlap):3} {verdict:8} hand={cmp}")
     print(f"RESULT resolved={resolved}")
     print(f"RESULT refused={refused}")

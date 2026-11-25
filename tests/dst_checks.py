@@ -2397,6 +2397,7 @@ from heatpump_optimizer.boost import BoostState as _EcBoost  # noqa: E402
 from heatpump_optimizer.pump_arbiter import ArbiterInputs as _EcInputs  # noqa: E402
 
 _EC_UTC = timezone.utc
+_EC_IDS = __import__("itertools").count()
 
 
 def _ec_world(t0, switch_since):
@@ -2409,7 +2410,8 @@ def _ec_world(t0, switch_since):
                      "sensor.room": FakeState("21.0")})
     hass.async_create_task = lambda coro: asyncio.run(coro)
     inp = _EcInputs(
-        hass=hass, config={"indoor_temp_entity": "sensor.room",
+        hass=hass, entry=FakeEntry(data={}, entry_id=f"ec-world-{next(_EC_IDS)}"),  # the off write arms a restore, kept per entry
+        config={"indoor_temp_entity": "sensor.room",
                            "heat_pump_switch_entity": "switch.hp", "optimization_interval": 30},
         mode=const.MODE_AUTO, plan=plan, plan_stale=False, entry_released=False,
         state=SimpleNamespace(dhw_temperature=50.0, lower_floor_temperature=21.0),

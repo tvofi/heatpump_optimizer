@@ -16,7 +16,7 @@ python3 tests/env_drift.py --install-merge-driver
 It unions the notes and merges three-way claims per scenario and `may-drift`
 lines per fixture: a side's change or deletion wins over the other's silence.
 It **refuses**, naming them, where both sides rewrote one scenario's claims,
-one fixture's `may-drift` line or the `claims-for:` stamp, or both changed claims under stamps that differ:
+one fixture's `may-drift` line or the `claims-for:` stamp, or both changed claims under stamps that differ, unless the side that moved the stamp holds no claim (a release stamp: the branch's claims then merge over it):
 `merge=union` would reinstate a deleted line the inherited-claims guard misses. Uninstalled, it falls back to the text
 merge; git reads `.gitattributes` from the branch merged **into**.
 
