@@ -2,3 +2,4 @@
 1795611094 CKPT merge-tree: 3 content conflicts (duty_legs, duty_switch, optimizer) + 2 ledger rename/rename snapshot 81e60a637f21
 1795611112 HB alive
 1795611221 CKPT conflicts resolved (leg_rule unlatched+minimum legs union, _fields over config_fields, ledger via --carry-rows); fixing main's 2-tuple leg_rule asserts snapshot f5942d9316b0
+1795611447 CKPT merge committed; structure.py green after 1-line pay; features.py running snapshot f04f9a09caa3
