@@ -1,37 +1,54 @@
-Fix review: merge 1d3b792575aa15072dd0614c23d2c184d8ffdf0b
+Fix review: blocked 392fe0b7eb427ab84c9d4971256defe611b9a839 metric-gamed: structure: module_excess_loc 21756 is met only by ec6be8dbdf's re-wrap of optimizer._leg_rule's call
 
-bus-nonce: cdb182f2648538e5f6c6236b1b8f7fc2
-pending-ci: gate
+bus-nonce: 5e1012c3a47b5bc870dc9f56b6b7740b
 
 ## Summary
 
-Round 2: the delta after my round-1 block at 8ca95413 (`blocked mutation-vacuous`, probe/rev-3869-8ba22bbd 7c308abb). I reviewed the delta (tvofi 2026-11-09). That is `git diff 8ca95413 1d3b7925` restricted to this branch's own commits. The rest of the range is main merges and the `mutation-autofix` pin commit 1aa635d2.
+This is round 3, a delta review: `git diff 1d3b7925 392fe0b7`. My round-2 verdict at 1d3b7925 was `merge` with `pending-ci: gate`. Since then the fixer has merged two mains, 02fc3cde92 (clean) and c0a750fa6e (three production content conflicts, resolved by hand). The fixer has also made three repair commits: ec6be8dbdf, a production and test repair; 180da49d41 and 54a8c81c15, pin drops; and b736a6addc, pins. The rest of the range is main's own history, plus `mutation-autofix`'s f4ec7bf618.
 
-- Production delta: one line, 8630bbf58c. It adds `entry_config._leg_minutes` to `_DEFAULTED_NUMBERS`. `_leg_minutes` returns the default for a non-finite value and for one outside 0..PLAN_STEP_MINUTES, so it is a defaulted parse like `_interval_minutes`. The `_MIG_NUMERIC_PARSES` census line in tests/entities.py matches it.
-- Test delta: T6b, T6c, T6d and T6e in tests/features.py, each with a null control. ff7aa67a is comment-only.
-- Every repair the block asked for is built. (1) A heating leg at the plan's end is kept: T6b(a). (2) Idle steps join the pump's hot-water leg: T6c. (3) A space-first short heating leg is kept: T6b(b).
+I read the merge resolution of `duty_legs.leg_rule`, `duty_switch._fields` and `optimizer._leg_rule` / `OptimizationConfig`. It is the union both sides intend: main's `unlatched` mask goes third, and this PR's `heat_min`, `dhw_min` and `before` come after it. Main's `both_step_legs` stays deleted. Eight mutants on the resolved lines test it: six are killed in the two blocks, R4 is killed by the full suite, and R6 survives the full suite (see Block).
+
+## Block
+
+1. **metric-gamed: structure: module_excess_loc** (step 14).
+   - The merged ledger sets `module_excess_loc` to 21756 (`LEDGER-MERGE: ... 21775 + both deltas = 21756`). That figure assumes the conflict resolution adds no line, but the union of the two `_leg_rule` calls adds one.
+   - ec6be8dbdf pays that line by re-wrapping the call's arguments onto fewer lines ("_leg_rule pays the ratchet's line"). Nothing else in the code changes.
+   - Removing the mechanism the commit names: with only that re-wrap reverted at the head, `tests/structure.py` prints `FAIL module_excess_loc 21757 > 21756 (+1)` (`ev/structure_rewrap.txt`). So the re-wrap alone is what meets the recorded budget.
+   - `module_excess` (tests/structure.py:3022) counts physical lines, `tree.body[-1].end_lineno`. So re-wrapping any call in a module over the limit makes the same move with nothing improved, and the diff's change is exactly that shape.
+   - Owed: revert the re-wrap, or pay the line with a change that improves code. Otherwise record `module_excess_loc` at the measured 21757 with the reason in the commit message. That is still 6 below the merge base's 21763 (d3d66c40), so it is not a raise. The body's "pays the merged tree's `module_excess_loc` +1" line must then say which one was done.
+2. **Surviving mutant on a line the merge resolution wrote, which CI's mutation lane cannot draw** (step 1, widened per step 12).
+   - The site is `custom_components/heatpump_optimizer/duty_legs.py`, `leg_rule`'s return line, which c0a750fa6e rewrote. The mutant is `leg_minimum(heat_min), leg_minimum(dhw_min), before)` -> `... IDLE)`. It survives the whole `tests/features.py`. The only FAIL is `_bootstrap`, which the body records as failing outside `run.sh`'s interpreter, and it fails identically under R4 (`ev/full_suite_R6.txt`).
+   - The mutant is not equivalent (`ev/R6_equivalence.txt`). Take minimums 10/10, a both step whose hot-water share is 6 min, and the pump in a hot-water leg as the solve starts. `plan_legs` serves `(('dhw', 6.0), ('space', 9.0))` with `before=DHW` and `(('dhw', 10.0), ('space', 5.0))` with `before=IDLE`.
+   - The arbiter reads `before` from `rec.solve_before` (`duty_switch.leg_rule`). The planner reads it only through this argument and `optimizer._leg_rule`'s `opt.config.duty_leg_before`. With this argument dropped, the planner prices a lengthened hot-water leg that the arbiter does not serve. That breaks the body's "planner and arbiter read one rule", and no check notices.
+   - Its operator (an argument replaced by a constant) is not one of the mutation lane's operators, so `tests / mutation` cannot report it.
+   - Owed: a check that drives `optimizer._leg_rule` (or a solve) with `duty_leg_before` set to the pump's hot-water leg, failing with the argument dropped, plus its null control.
 
 ## Findings
 
-- `custom_components/heatpump_optimizer/duty_switch.py:592` survives when `current == wanted` is dropped (M17). It is equivalent on every input: both later branches return `current`, which equals `wanted`. The site is on the body's Unpinned sites list, so `mutation-autofix` triages it. Carry: dismissed: equivalent mutant; the PR's own mutation lane records its disposition
+none
 
 ## Evidence
 
-- Head reviewed: 1d3b792575aa15072dd0614c23d2c184d8ffdf0b (`ev/HEAD.txt`). Its tree, 7ad3a1d6, is identical to 39b182d75f's, the SHA the body measured at. Merge base b18edd59. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
-- `git merge-tree --write-tree origin/main <head>` at origin/main f52e700d: rc 0. `LEDGER-MERGE: resolved` structure_budgets.json and closures.json (`ev/merge_tree.txt`).
-- RESULT round-1 block resolved (step 1). I ran my round-1 driver (`ev/mutant_driver.py`, mutant texts unchanged from 7c308abb) over the R11-OWNER-MODE-LEGS block, `# --- R11-OWNER-MODE-LEGS (#3859)` to `# --- R10-CEILING-PROBE (#2498`. Baseline: `ALL 19 FEATURES BLOCK PASSED` (`ev/ml_block_at_head.txt`). Results are in `ev/mutants_mode_legs_block.txt`:
-  - M09, R2's left side dropped: killed by T6b.
-  - M10, R2's right side dropped: killed by T6b.
-  - M12, forward fill `before` -> `IDLE`: killed by T6c.
-  - M08, `leg_minimum` clamp dropped, a round-1 survivor I had read as equivalent: now killed by T6e.
-  - M01, M11, M20 and M24 were re-run as controls: all killed.
-  - M17 (`duty_switch.py:592` `current == wanted` dropped) survives. It is equivalent: with current == wanted, both later branches return `current`, which is `wanted`.
-- The duty-switch block baseline at the head reads `ALL 90 FEATURES BLOCK PASSED` (`ev/ds_block_at_head.txt`), equal to the body's 90. I stopped a full 24-mutant re-run over that block after M01 and M02 (both killed, `ev/mutants_duty_switch_block_partial.txt`). The production code it covers is unchanged since round 1, where the same driver killed 19 of 24.
-- The one production line, 8630bbf58c (`ev/entry_config_mutant.txt`). At the head, `number_repairs` on stored `"abc"` and `None` for the two leg keys returns repairs for both. With `_leg_minutes` removed from `_DEFAULTED_NUMBERS` in memory, it returns `{}`, so the line carries the migration repair. The body's entities.py half-application figures (`1 of 2761` per half) were not re-run.
-- Step 14: `python3 tests/structure.py` at the head prints `module_excess_loc 21768 <= 21768`, `STRUCTURE RATCHET PASSED` (`ev/structure.txt`). Main's budget reads 21775, so the branch lowers it by 7, as the body states (21779 -> 21772 at 8ef4). I judged that move earned in round 1, and the delta adds no production line counted against it.
-- Step 5: `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched (three-dot). The claim file adds `config_flow` only, unchanged since round 1.
-- Step 10: the forward-carries to R11-OWNER-FAULT-HOLD and R11-OWNER-FROST-HOLD are on `handoff/audit-r11-roster` f19b546a. The FAULT-HOLD carry now names its own pin, "the fault hold wins with a young leg latched", which resolves my round-1 follow-up. carry_audit at the head: `3 routed, 0 unrouted`.
-- Step 16: `_kept_leg`'s hold is bounded by the minimum (0..15 min). Its release is pinned by T2, as in round 1. The delta adds no actuator path.
-- Step 2: there is no finder's harness, because the issue is an owner feature. The fixer's `dev/audit/harnesses/mode_legs.py` figures were re-derived in round 1, and the delta does not touch the harness or the code it measures.
-- Step 11, owed reds. `tests / mutation` is red at this head with `MUTATION TABLE REFUSED -- 1904 unpinned site(s) against 1860 ..., 45 of them added by this diff`. The body's `## Red checks` answers it: `mutation-autofix` pins the new sites, which is the ci-autofix path, and `tests / mutation-pins` shards were running. The `gate` failures read `FAIL run(s) [45554090363] at this head are still being judged`. `nightly-ha` and `nightly-status` are not in the owed-reds set. CI state: `ev/classify_poll.log`.
-- CI wait: `merge_train.py classify` read `WAIT 1d3b7925... pending: gate red: none` on every poll from 07:13Z to 07:44Z (`ev/classify_poll.log`), with `tests / mutation-pins` shards still queued or running. The `pending-ci: gate` line hands the post to the relay.
+- Head reviewed: 392fe0b7eb427ab84c9d4971256defe611b9a839 (`ev/HEAD.txt`), the PR head at read time, as the body's `## Head` names. Merge base d3d66c40. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty. This is round 3. My round-1 block at 8ca95413 and round-2 merge at 1d3b7925 came before it.
+- Step 13: `git merge-tree --write-tree origin/main 392fe0b7` at origin/main 91f6e91bea exits 0. The output reads `MERGE-CLAIM: resolved tests/golden/claimed_drift.txt` and `LEDGER-MERGE: resolved` for structure_budgets.json and closures.json (`ev/merge_tree.txt`).
+- Merge-resolution mutants (`ev/mutant_driver.py`, run over the R11-OWNER-MODE-LEGS block, whose baseline is ALL 19 PASSED, and the R10-DUTY-SWITCH-PLANNER-PRICE / issue-3849 block, whose baseline is rc 0). Results are in `ev/mutants_merge_resolution_{ml,dsp}_block.txt`:
+  - R1, `leg_rule`'s off time read from the unmasked stop (the branch's pre-merge side): KILLED, 4 checks.
+  - R2, `leg_rule` ignores `unlatched`: KILLED, 5.
+  - R3, the planner's `_leg_rule` mask -> `(False, False)`: KILLED, 2.
+  - R5, `heat_min` dropped: KILLED in both blocks.
+  - R7, `split()` ignores `unlatched`: KILLED, 3, including ec6be8dbdf's rewritten issue-3849 arbiter check (`[['space', 'space', 'dhw', 'dhw']`). That shows the `both_step_duty` -> `served_leg` rewrite still separates.
+  - R8, the planner's stops -> `(0.0, 0.0)`: KILLED, 7.
+  - R4, `_fields` drops the learner's `**fields`: survives both blocks, but the full `tests/features.py` kills it with 2 coordinator checks ("the coordinator passes the learner's read ...", "the coordinator passes the unlatched mask with the pairs ..."), `ev/full_suite_R4.txt`.
+  - R6: see Block 2.
+- Previous finding (M17, `duty_switch.py:592` `current == wanted`): dismissed as equivalent in round 2. The delta does not touch it.
+- Step 5: three-dot `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched. `tests/golden/claimed_drift.txt` keeps the branch's `config_flow` claim, and `claims-for: 10.1.3` equals `VERSION`. The card claim file's two-dot delta is main's (R11-OWNER-CARD-EXTERNAL-HEAT).
+- Pin repairs: 180da49d41 drops main's two pins on returns the merge replaced, b736a6addc adds 5 pins, f244a4b7b5 merges the bot's f4ec7bf618, and 54a8c81c15 drops the bot's stale `leg_rule` CMP_BOUND pin. This is consistent with the head's `tests / mutation` log, which reads `MUTATION TABLE REFUSED -- 1862 unpinned site(s) against 1851 ..., 12 of them added by this diff`. That count equals the body's Unpinned sites (9 lines, 12 mutants).
+- Step 11, owed reds (`merge_train.py owed-reds`). The body's `## Red checks` names and answers `tests / mutation`, through the `mutation-autofix` path that pins new sites, which is in `ci-autofix.md`. It also names and answers `tests / fast (3.14)` at 1aa635d275 and `codeql / Analyze (python)` at f4ec7bf618, and I checked that each was answered. `gate` reads failure in the packet digest, but `merge_train.py classify` reads `WAIT 392fe0b7... pending: gate red: none` on every poll from 21:37Z to 22:22Z (`ev/classify_poll.log`). `nightly-ha` and `nightly-status` are not in the owed set.
+- Step 14 controls: `tests/structure.py` at the head prints `ok module_excess_loc 21756 <= 21756` and `STRUCTURE RATCHET PASSED`. With ec6be8dbdf's optimizer hunk reverted it prints `FAIL ... 21757 > 21756 (+1)` (`ev/structure_rewrap.txt`).
+- Step 2: there is no finder's harness, because the issue is an owner feature. The delta does not touch `dev/audit/harnesses/mode_legs.py`.
+- Step 10: the carries to R11-OWNER-FAULT-HOLD and R11-OWNER-FROST-HOLD are unchanged since round 2. The packet's carry_audit reads `3 routed, 0 unrouted`.
+- The body's figures in `## Gate at head` (`ALL 2763 ENTITY CHECKS PASSED` at b736a6addc, `ALL 6190 FEATURE CHECKS PASSED` at 180da49d41) were not re-run as such. My two full `tests/features.py` runs at the head were mutant runs.
+
+## Friction
+
+none

@@ -1,2 +1,0 @@
-head   : {'mode_leg_heat_min_minutes': None, 'mode_leg_dhw_min_minutes': 10.0}
-mutant : {}

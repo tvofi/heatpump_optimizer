@@ -1,9 +1,0 @@
-M01 R1 short never: KILLED rc=1 fails=4 | TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'
-     FAIL T3, R1: a lone 6-min hot-water leg is lengthened to M = 10 (heating 5), and served whole hot water at M =
-     FAIL T5, the rule runs to a fixed point: R1's lengthening leaves a 5-min heating leg between hot-water legs, w
-     FAIL T6c, idle steps between the pump's hot-water leg and step 2's 6-min hot-water leg join the two, so M = 10
-     FAIL T7, 400 seeded random 12-step plans with M and N drawn from {5, 10, 12, 15}: no plan has a leg under its 
-M02 keep -> 0: KILLED rc=1 fails=3 | Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
-     FAIL T2, a hot-water leg younger than its minimum is not left: the re-solve at 00:01 switches to Heating at 00
-     FAIL T10, a boost, a hot-water block, a disinfection hold and a mode the plan does not command are never held:
-     FAIL a hot-water leg stamped ahead of the reading clock is not held (its age is unknowable, never 0); null con
