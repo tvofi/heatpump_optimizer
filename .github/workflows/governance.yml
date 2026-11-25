@@ -275,7 +275,12 @@ jobs:
     # request whose every changed file is product (prelude.machinery).
     if: inputs.machinery != 'false'
     runs-on: ubuntu-latest
-    # 30 minutes. Run in line, this job's steps reached it: two main runs
+    # 45 minutes on a pull request (P-R11-SELFTEST-TIMEOUT). A full-scope
+    # run, which a gate-file diff makes (all 128 steps), took 1783 s green on
+    # #3868 at 2ac9d407. On #3880 at 29187b1e it was cancelled at the old 30,
+    # at 1812 s and 1814 s, with no step hanging; the same work ran in 1292 s
+    # on 2026-11-23. The old 30 came from this history. Run in line, this
+    # job's steps reached it: two main runs
     # were cancelled there and its last four successful ones finished inside
     # its final 90 s, mostly in five self-tests (prepr.sh's, beatd.py's, and
     # pr_args.sh's once alone and once each through open_pr.sh and
@@ -295,9 +300,12 @@ jobs:
     # that misses what it read (`drift`), so a wrong closure turns main red
     # within one merge. The rule, its fail-closed arms and its blind spots
     # are tools/ci/selftest_scope.py's docstring.
-    # A push traces every step and folds the traces, so it gets 90
-    # (r11-hotfix-main-selftest-red). Over main's eleven ci.yml push runs on
-    # 2026-11-15 (b046b22d to 66865be3) the job finished in 34.5 to 52.9
+    # A push traces every step and folds the traces, so it gets 120
+    # (P-R11-SELFTEST-TIMEOUT). Of main's last seven completed push attempts
+    # to 2026-11-25, three were cancelled at the old 90 (5416-5418 s:
+    # 2f4e32c2, 3153a635 attempt 1, 8531d607) and the rest finished in 2958
+    # to 4331 s. The 90 came from this history (r11-hotfix-main-selftest-red).
+    # Over main's eleven ci.yml push runs on 2026-11-15 (b046b22d to 66865be3) the job finished in 34.5 to 52.9
     # minutes or was cancelled at 60; each cancelled one had reached the
     # mutant step at 57.2 to 59.8 minutes, which with the mutant and drift
     # steps' own spread (1.0-1.4 and 4.3-6.0, flat across runs) projects to
@@ -307,7 +315,7 @@ jobs:
     # drift check and the selftest-closures artifact per shard. Re-derive,
     # never carry: list the job in main's ci.yml push runs, duration =
     # completed_at - started_at, and the mutant step's started_at.
-    timeout-minutes: ${{ github.event_name == 'push' && 90 || 30 }}
+    timeout-minutes: ${{ github.event_name == 'push' && 120 || 45 }}
     env:
       HPO_JOB_GRADES: nothing
       SELFTEST_TRACE: ${{ github.event_name == 'push' && '1' || '' }}
