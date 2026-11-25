@@ -102,7 +102,7 @@ None at cfe3dfcec0a27240d63e182674eee237149541f1: every site below is pinned und
 
 ## Forward-carry
 
-- The card's `statusPill` external-heat branch must also test `attributes.block_ignored !== true` on the twin binary sensor, with the mutation target "drop the `block_ignored` test, a tests/card.mjs case with the switch effective fails" and this group's switch-off case as the null; this PR publishes `block_ignored` in `binary_sensor.<prefix>_external_heat_source`'s attributes as its input. Landed in the group's `carry` on dev/programme/rosters/wave-r11-groups.json at handoff/audit-r11-roster (58e94013). Carry: dismissed: already landed as R11-OWNER-CARD-EXTERNAL-HEAT's roster carry (58e94013), which is carries-open and receives no second copy
+- The card's `statusPill` external-heat branch must also test `attributes.block_ignored !== true` on the twin binary sensor, with the mutation target "drop the `block_ignored` test, a tests/card.mjs case with the switch effective fails" and this group's switch-off case as the null; this PR publishes `block_ignored` in `binary_sensor.<prefix>_external_heat_source`'s attributes as its input. Landed in the group's `carry` on dev/programme/rosters/wave-r11-groups.json at handoff/audit-r11-roster (58e94013). Carry: dismissed: landed on main at 58e94013 (R11-OWNER-CARD-EXTERNAL-HEAT now carries-open)
 
 ## Friction
 
