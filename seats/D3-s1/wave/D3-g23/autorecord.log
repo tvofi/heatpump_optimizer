@@ -26,3 +26,4 @@ RESULT 70791cdb98f8ddd7 verdict=RED-AS-NULL class=candidate
 RESULT 7516dd3d9e66d3ef verdict=RED-AS-NULL class=candidate
 2026-11-25T07:09:36Z recorded+ckpt 7516dd3d9e66d3ef
 RESULT 65e0ffa75d60d319 verdict=RED-AS-NULL class=equivalent-candidate
+2026-11-25T08:05:42Z recorded+ckpt 65e0ffa75d60d319
