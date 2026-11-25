@@ -107,6 +107,9 @@
 == .claude/workflows/carry-1921.json ==
   -- 0 error(s), 0 warning(s)
 
+== dev/programme/carries/carry-3885.json ==
+  -- 0 error(s), 0 warning(s)
+
 == dev/archive/carries/carry-681.json ==
   -- 0 error(s), 0 warning(s)
 
@@ -122,9 +125,9 @@
 == dev/audit/README.md ==
   -- 0 error(s), 0 warning(s)
 
-CARRY: 39 carry file(s) (dev/programme/carries/carry-<issue>.json)
+CARRY: 40 carry file(s) (dev/programme/carries/carry-<issue>.json)
 
-TOTAL: 0 error(s) across 40 file(s)
+TOTAL: 0 error(s) across 41 file(s)
 
 == tools/policy/fixtures/wave-1b-931dffe.json ==
   ERROR   [W1-G2] counts: states 22 for metrics in tests/structure_budgets.json; derived 21. Derive the count, do not carry one. (brief line 5)

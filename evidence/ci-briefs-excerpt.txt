@@ -1,3 +1,0 @@
-2026-11-25T05:30:08.5847805Z == dev/programme/carries/carry-3885.json ==
-2026-11-25T05:30:08.5848694Z   ERROR   [carry-3885.json carry 0 control] path: dev/audit/harnesses/ci3885_light.py: not in the tree, and no tag SHA is cited alongside it
-2026-11-25T05:30:09.8278212Z TOTAL: 1 error(s) across 41 file(s)
