@@ -65436,6 +65436,206 @@ R.check(
     and 90 > _PA_FLOW_HEAT_C_MAX,
     f"{_pa_bl_offer=}",
 )
+# R11-OWNER-FLOWCAP (tvofi, 2026-11-22: "add an option to manually configure the
+# high-limit if there is no such sensor"). The space water set-point's high limit is
+# flow_limit's: the controller's sensor and the manual option, each judged alone (a
+# limit under the lowest heating write is dropped, one equal to it kept), then the
+# lower of the two. The gate is bounded up to the entity's minimum, so a limit under
+# that minimum is under the lowest heating write too, and dropped. Heating
+# writes, a boost and the feedback loop stay under it; the gate, the draw-range
+# ceiling and an indoor unit do not read it. Synthetic numbers throughout; 48 is
+# the fixture's hot-water write, so no limit here is 48.
+from heatpump_optimizer import flow_limit as _fl  # noqa: E402
+from heatpump_optimizer import draw_range as _fl_dr  # noqa: E402
+from heatpump_optimizer.const import CONF_SPACE_SETPOINT_HIGH_LIMIT_C as _FL_KEY  # noqa: E402
+
+_fl_pure = {
+    "both, option lower": _fl.high_limit(52.0, 46.0, 27.0),
+    "both, sensor lower": _fl.high_limit(52.0, 58.0, 27.0),
+    "option only": _fl.high_limit(None, 46.0, 27.0),
+    "neither": _fl.high_limit(None, None, 27.0),
+    "sensor under lowest": _fl.high_limit(26.0, 46.0, 27.0),
+    "option under lowest": _fl.high_limit(52.0, 26.0, 27.0),
+    "sensor at lowest": _fl.high_limit(27.0, None, 27.0),
+}
+R.check(
+    "R11-OWNER-FLOWCAP: the lower of sensor and option binds; a source under the lowest heating write is "
+    "dropped and named with the other in force, one equal to it kept; null control: neither source is no limit",
+    {k: tuple(v) for k, v in _fl_pure.items()} == {
+        "both, option lower": (46.0, ()), "both, sensor lower": (52.0, ()),
+        "option only": (46.0, ()), "neither": (None, ()),
+        "sensor under lowest": (46.0, ("sensor",)), "option under lowest": (52.0, ("option",)),
+        "sensor at lowest": (27.0, ()),
+    },
+    f"{_fl_pure=}",
+)
+_fl_opts = [_fl.option_c(v) for v in (29.5, 30, 70, 70.5, "x", None, "46")]
+R.check(
+    "R11-OWNER-FLOWCAP: the option reads only inside the 30-70 degC the options flow offers; "
+    "outside it, not a number, or unset is no option",
+    _fl_opts == [None, 30.0, 70.0, None, None, None, 46.0],
+    f"{_fl_opts=}",
+)
+
+
+def _fl_coord(kw=1.0, how=None, attrs=None, option=None, sensor=None, low_sensor=None, unit="flow"):
+    """One pass on a two-step space plan at ``kw`` of a 0.4-2.0 kW band; the space writes."""
+    coord = _PaCoord(_PA_TUYA, duties="ss")
+    coord.hass.states.set("number.water_set", FakeState("40", attributes=attrs or {"min": 25, "max": 70}))
+    coord._optimization_result.power_schedule = [kw, kw]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": unit}
+    if option is not None:
+        extra[_FL_KEY] = option
+    for key, entity, value in (("space_setpoint_high_limit_entity", "sensor.fl_hi", sensor),
+                               ("space_setpoint_low_limit_entity", "sensor.fl_lo", low_sensor)):
+        if value is not None:
+            extra[key] = entity
+            coord.hass.states.set(entity, FakeState(str(value), unit="°C"))
+    with_config(coord, extra)
+    if how == "channel":
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    _pa_run(coord, 1)
+    return coord, [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0]
+
+
+_fl_boost = {
+    name: _fl_coord(how="channel", **kw)[1]
+    for name, kw in {
+        "option 46": {"option": 46}, "sensor 52, option 46": {"sensor": 52, "option": 46},
+        "sensor 52, option 58": {"sensor": 52, "option": 58},
+        "sensor unavailable, option 46": {"sensor": "unavailable", "option": 46},
+        "crossed pair, option 58": {"sensor": 52, "low_sensor": 60, "option": 58},
+        "option 70 over a 60 maximum": {"option": 70, "attrs": {"min": 25, "max": 60}},
+        "neither": {},
+    }.items()
+}
+R.check(
+    "R11-OWNER-FLOWCAP: a space boost writes the high limit: the option, the lower of sensor and option, "
+    "the option where the sensor is unavailable or its pair crossed, and never above the entity's "
+    "maximum; null control: with neither it writes the entity's maximum, 70",
+    _fl_boost == {
+        "option 46": [46], "sensor 52, option 46": [46], "sensor 52, option 58": [52],
+        "sensor unavailable, option 46": [46], "crossed pair, option 58": [58],
+        "option 70 over a 60 maximum": [60], "neither": [70],
+    },
+    f"{_fl_boost=}",
+)
+_fl_top = {o: _fl_coord(kw=2.0, option=o)[1] for o in (46, 58, None)}
+R.check(
+    "R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating "
+    "ceiling; null controls: an option above the ceiling and no option both write the ceiling",
+    _fl_top == {46: [46], 58: [55], None: [55]},
+    f"{_fl_top=}",
+)
+_fl_min = {}
+for _name, _attrs in (("min 40", {"min": 40, "max": 70}), ("min 41, step 5", {"min": 41, "max": 70, "step": 5})):
+    _c, _w = _fl_coord(how="channel", option=35, attrs=_attrs)
+    _fl_min[_name] = (_w, _pa.state_for(_c).written["space_setpoint"][0])
+_c, _w = _fl_coord(how="channel", option=45, attrs={"min": 40, "max": 70})
+_fl_min["option 45 over min 40"] = (_w, _pa.state_for(_c).written["space_setpoint"][0])
+R.check(
+    "R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) "
+    "is under the gate the minimum lifts, so it is dropped and a boost writes the entity's maximum, never a "
+    "value under the minimum, with the record equal to what was sent; null control: an option over the "
+    "minimum is written as itself",
+    _fl_min == {"min 40": ([70], 70.0), "min 41, step 5": ([70], 70.0), "option 45 over min 40": ([45], 45.0)},
+    f"{_fl_min=}",
+)
+def _fl_ceiling_coord(option):
+    coord = _PaCoord(_PA_TUYA, duties="ss")
+    coord.hass.states.set("number.water_set", FakeState("40", attributes={"min": 25, "max": 60}))
+    coord._optimization_result.power_schedule = [2.0, 2.0]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": "flow", "flow_heat_c": 70}
+    if option is not None:
+        extra[_FL_KEY] = option
+    with_config(coord, extra)
+    _pa_run(coord, 1)
+    return [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0], \
+        _pa.state_for(coord).written["space_setpoint"][0]
+
+
+_fl_over = {o: _fl_ceiling_coord(o) for o in (65, 50, None)}
+R.check(
+    "R11-OWNER-FLOWCAP: a limit above the entity's own maximum never lifts a heating write past it: a "
+    "band-top step under a 70 degC heating ceiling with option 65 on a 60 maximum writes and records 60, "
+    "not 65 (which the entity would read back as 60, an edit); option 50 writes 50; null control: no "
+    "option writes the maximum, 60",
+    _fl_over == {65: ([60], 60.0), 50: ([50], 50.0), None: ([60], 60.0)},
+    f"{_fl_over=}",
+)
+_fl_part = {o: _fl_coord(kw=1.2, option=o)[1] for o in (46, None)}
+R.check(
+    "R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the "
+    "limit and the unlimited level's value, not on the limit itself; null control: no option maps on 55",
+    len(_fl_part[46]) == 1 and len(_fl_part[None]) == 1
+    and _fl_part[46][0] < min(46, _fl_part[None][0]),
+    f"{_fl_part=}",
+)
+_fl_hold = {}
+for _o in (30, None):
+    _c = _fl_coord(option=_o)[0]
+    _fl_hold[_o] = _pa._flow_target(_c.arbiter_inputs(), None, _PA_T0)
+R.check(
+    "R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no "
+    "option holds above it",
+    _fl_hold[30] == 30.0 and _fl_hold[None] is not None and _fl_hold[None] > 30.0,
+    f"{_fl_hold=}",
+)
+_fl_room = {}
+for _o in (46, None):
+    _c, _w = _fl_coord(option=_o, unit="indoor", attrs={"min": 5, "max": 30})
+    _fl_room[_o] = (_w, _pa._space_limit_c(_c.arbiter_inputs()))
+_fl_flow_limit = _pa._space_limit_c(_fl_coord(option=46)[0].arbiter_inputs())
+R.check(
+    "R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option "
+    "stored as without; null control: the same option on a flow unit is its limit, 46",
+    _fl_room[46] == (_fl_room[None][0], None) and _fl_room[None][1] is None and _fl_flow_limit == 46.0,
+    f"{_fl_room=} {_fl_flow_limit=}",
+)
+_fl_cmd = {o: _pa.flow_command(_fl_coord(kw=2.0, option=o)[0]) for o in (46, None)}
+_fl_at_top = {o: c is not None and c.written_c >= c.ceiling_c - _fl_dr.CEILING_TOLERANCE_K for o, c in _fl_cmd.items()}
+R.check(
+    "R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top "
+    "draw (written 46 under the 55 ceiling draw_range keys on); null control: with no option the band-top "
+    "write is the ceiling",
+    _fl_at_top == {46: False, None: True}
+    and (_fl_cmd[46].written_c, _fl_cmd[46].ceiling_c) == (46.0, 55.0),
+    f"{_fl_cmd=}",
+)
+
+
+def _fl_loop_hi(**kw):
+    coord = _fl_coord(**kw)[0]
+    run = _pa.FeedbackRun(_PA_T0, 40.0, _PA_T0)
+    return _pa._feedback_bounds(_pa.state_for(coord), run, coord.arbiter_inputs(), 35.0)[1]
+
+
+_fl_loop = {"option 46": _fl_loop_hi(option=46), "sensor 52, option 58": _fl_loop_hi(sensor=52, option=58),
+            "neither": _fl_loop_hi()}
+R.check(
+    "R11-OWNER-FLOWCAP: the feedback loop's ceiling is the high limit (the option, the lower of the two); "
+    "null control: with neither it is the 55 degC heating ceiling",
+    _fl_loop == {"option 46": 46.0, "sensor 52, option 58": 52.0, "neither": 55.0},
+    f"{_fl_loop=}",
+)
+_fl_row = [row for row in _pa_cf._OPTION_FIELDS if row.key == _FL_KEY]
+_fl_fit = _pa_cf._fit_stored_values(__import__("voluptuous").Schema(
+    {__import__("voluptuous").Optional(_FL_KEY, description={"suggested_value": 80.0}): _fl_row[0].widget}))[1]
+_fl_fit_in = _pa_cf._fit_stored_values(__import__("voluptuous").Schema(
+    {__import__("voluptuous").Optional(_FL_KEY, description={"suggested_value": 46.0}): _fl_row[0].widget}))[1]
+R.check(
+    "R11-OWNER-FLOWCAP: the option row offers 30 to 70 degC with no default, and a stored 80 widens it and "
+    "is named for stored_value_out_of_range; null control: a stored 46 widens nothing",
+    len(_fl_row) == 1 and (_fl_row[0].widget.config["min"], _fl_row[0].widget.config["max"]) == (30.0, 70.0)
+    and _fl_row[0].default is _pa_cf._STORED and _fl_fit == [_FL_KEY] and _fl_fit_in == [],
+    f"{_fl_row=} {_fl_fit=} {_fl_fit_in=}",
+)
+
+
 _pa_bl_fb, _ = _pa_boost_level("ss", 1.0, "channel", power_meter=True)
 _pa_bl_fb_on = _pa._feedback_on(_pa_bl_fb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
                                 boost_mod.held_for(_pa_bl_fb))
@@ -80890,7 +81090,7 @@ from heatpump_optimizer import inputs as _bst_in  # noqa: E402
 def _bst_sent(value, attrs=None, unit="°C", entity="number.bst_q"):
     hass = FakeHass({entity: FakeState("40", unit=unit, attributes=attrs or {})})
     _bst_aio.run(_bst_in.write_setpoint(hass, entity, value))
-    return [data["value" if not entity.startswith("climate") else "temperature"]
+    return [data["value" if entity.startswith("number") else "temperature"]
             for _d, _s, data in hass.services.calls]
 
 
@@ -80906,6 +81106,69 @@ R.check(
 R.check(
     "null control: an already-whole write sends the same whole number",
     _bst_sent(35.0) == [35] and _bst_sent(35) == [35],
+)
+# The entity's own range binds at that same one call, read at write time,
+# whatever the caller (owner item: a flow set-point written above the pump's
+# maximum). A number's ``min``/``max``, a climate or water heater's
+# ``min_temp``/``max_temp``, in the entity's own unit; the maximum rounds
+# down onto the step and the minimum up, so the value sent is one the
+# entity accepts. A range with its ends crossed is clamped to the maximum.
+R.check(
+    "a set-point above the entity's maximum is sent as the maximum, below its "
+    "minimum as the minimum: a number's min/max and a climate's min_temp/max_temp",
+    _bst_sent(65.0, {"min": 5, "max": 62}) == [62]
+    and _bst_sent(3.0, {"min": 5, "max": 62}) == [5]
+    and _bst_sent(65.0, {"min_temp": 5, "max_temp": 62}, entity="climate.bst_q") == [62]
+    and _bst_sent(65.0, {"min_temp": 5, "max_temp": 62}, entity="water_heater.bst_q") == [62],
+    f"{_bst_sent(65.0, {'min': 5, 'max': 62})} {_bst_sent(3.0, {'min': 5, 'max': 62})} "
+    f"{_bst_sent(65.0, {'min_temp': 5, 'max_temp': 62}, entity='climate.bst_q')}",
+)
+R.check(
+    "the range ends land on the step the entity accepts: a maximum off the step "
+    "rounds down, a minimum off it rounds up; crossed ends send the maximum",
+    _bst_sent(65.0, {"max": 63, "step": 5}) == [60]
+    and _bst_sent(10.0, {"min": 22, "step": 5}) == [25]
+    and _bst_sent(50.0, {"min": 60, "max": 40}) == [40],
+    f"{_bst_sent(65.0, {'max': 63, 'step': 5})} {_bst_sent(10.0, {'min': 22, 'step': 5})} "
+    f"{_bst_sent(50.0, {'min': 60, 'max': 40})}",
+)
+R.check(
+    "null control: a value inside the range, an entity stating no range, a "
+    "non-numeric bound and an entity with no state are sent unchanged",
+    _bst_sent(45.0, {"min": 5, "max": 62}) == [45]
+    and _bst_sent(65.0) == [65]
+    and _bst_sent(65.0, {"max": "unknown"}) == [65]
+    and (lambda h: (_bst_aio.run(_bst_in.write_setpoint(h, "number.bst_none", 65.0)),
+                    [d["value"] for _d, _s, d in h.services.calls])[1])(FakeHass({})) == [65],
+)
+
+
+def _bst_c_sent(value_c, attrs, unit):
+    hass = FakeHass({"number.bst_q": FakeState("100", unit=unit, attributes=attrs)})
+    _bst_aio.run(_bst_in.write_setpoint_c(hass, "number.bst_q", value_c))
+    return [data["value"] for _d, _s, data in hass.services.calls]
+
+
+R.check(
+    "a degC write to a Fahrenheit entity is clamped in the entity's own unit: "
+    "65 degC (149 degF) to a 140 degF maximum sends 140",
+    _bst_c_sent(65.0, {"max": 140}, "°F") == [140],
+    f"{_bst_c_sent(65.0, {'max': 140}, '°F')}",
+)
+
+
+def _bst_valve_sent(target_c, attrs):
+    from heatpump_optimizer import coordinator as _bst_cmod
+    hass = FakeHass({"number.bst_valve": FakeState("40", unit="°C", attributes=attrs)})
+    _bst_aio.run(_bst_cmod._valve_write_problem(hass, "number.bst_valve", target_c))
+    return [data["value"] for _d, _s, data in hass.services.calls]
+
+
+R.check(
+    "a production caller that bounds nothing itself, the mixing-valve write, is "
+    "held inside the entity's maximum by the one call",
+    _bst_valve_sent(65.0, {"max": 62}) == [62] and _bst_valve_sent(45.0, {"max": 62}) == [45],
+    f"{_bst_valve_sent(65.0, {'max': 62})} {_bst_valve_sent(45.0, {'max': 62})}",
 )
 
 
@@ -87360,6 +87623,40 @@ R.check(
     and _bt_cc_held.mode_since is None and _bt_cc_held.space_settle_until is not None
     and _bt_cc_held.space_boosted is not None,
     f"{_bt_cc_in} {_bt_cc_held}",
+)
+
+# ADR-005: boost answers "is the global boost mode live" from what it was told,
+# so a restart that restores the boost mode tells it. Restarted in boost: live,
+# and leaving owes the unseen start's full tail. Null control: a restart in auto.
+_bt_rs_seen = {}
+for _bt_rs_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
+    _bt_rs_entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"bt_rs_{_bt_rs_mode}")
+    _bt_asyncio.run(Coord(FakeHass(), _bt_rs_entry).async_set_mode(_bt_rs_mode, refresh=False))
+    _bt_rs = Coord(FakeHass(), _bt_rs_entry)
+    _bt_asyncio.run(_bt_rs._async_load_accuracy())
+    _bt_rs_live = boost_mod.space_boost_active(_bt_rs, NOW)
+    _bt_asyncio.run(_bt_rs.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+    _bt_rs_held = boost_mod.held_for(_bt_rs)
+    _bt_rs_seen[_bt_rs_mode] = (_bt_rs_live, _bt_rs_held.space_boosted, _bt_rs_held.space_settle_until is None)
+R.check(
+    "a restart restoring the boost mode reads it live, and leaving it owes the unseen start's tail",
+    _bt_rs_seen == {boost_mod.MODE_BOOST: (True, None, False), _fb_const.MODE_AUTO: (False, timedelta(0), True)},
+    f"{_bt_rs_seen}",
+)
+# The unseen sum stays unknown whichever restore runs first: a persisted tail
+# restored after the mode does not replace it. Null control: no mode restored.
+_bt_ro = {}
+for _bt_ro_mode in (boost_mod.MODE_BOOST, _fb_const.MODE_AUTO):
+    _bt_ro_coord = _BtCoord()
+    boost_mod.note_mode_change(_bt_ro_coord, None, _bt_ro_mode, NOW)
+    _bt_ro_held = boost_mod.held_for(_bt_ro_coord)
+    boost_mod._restore_settle(_bt_ro_held, {"space_settle": {
+        "until": (NOW + timedelta(hours=1)).isoformat(), "boosted_h": 0.5}}, NOW)
+    _bt_ro[_bt_ro_mode] = (_bt_ro_held.mode_since, _bt_ro_held.space_boosted)
+R.check(
+    "a persisted tail restored after the boost mode keeps its boosted sum unknown",
+    _bt_ro == {boost_mod.MODE_BOOST: (NOW, None), _fb_const.MODE_AUTO: (None, timedelta(hours=0.5))},
+    f"{_bt_ro}",
 )
 
 
@@ -94401,11 +94698,27 @@ R.check(
     "the loop",
     _fb_sim(limits=(None, _fb_old), **_FB_STEP_UP)["writes"] == _fb_limit_hi["writes"],
 )
-# The limits act on the loop alone (I1, I3): today's target is not moved by
-# them, so an install the loop does not act on writes the same with them.
+# The limits act on the loop alone (I1, I3), but for the high limit. Today's
+# target is not moved by the low one. R11-OWNER-FLOWCAP (owner ruling,
+# 2026-11-22) holds every heating write at or under the high one, which is the
+# most the pump accepts. So an install the loop does not act on writes the same
+# with both sensors as with neither wherever that write sits under the high
+# limit, and the limit where it sat above; an indoor unit writes the same.
+
+
+def _fb_capped(limited, blind, high):
+    """``limited`` is ``blind`` with every value above ``high`` held at it, a
+    held value that repeats the last one sent not sent again."""
+    want = []
+    for minute, sent, _ret in blind:
+        if not want or want[-1][1] != min(sent, high):
+            want.append((minute, min(sent, high)))
+    return bool(blind) and [(m, v) for m, v, _r in limited] == want
+
+
 _fb_limit_cells = {
-    label: _fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"]
-    == _fb_sim(minutes=60, **kw)["writes"]
+    label: _fb_capped(_fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"],
+                      _fb_sim(minutes=60, **kw)["writes"], 99.0 if label == "indoor" else 27.6)
     for label, kw in (
         ("indoor", {"unit": "indoor"}),
         ("no power entity", {"power_entity": False}),
@@ -94413,8 +94726,9 @@ _fb_limit_cells = {
     )
 }
 R.check(
-    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit, no power entity or the option "
-    "off writes the same with both limit sensors as with neither",
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit writes the same with both limit "
+    "sensors as with neither; no power entity or the option off writes the same but held "
+    "at the 27.6 degC high limit (R11-OWNER-FLOWCAP)",
     all(_fb_limit_cells.values()),
     f"same: {_fb_limit_cells}",
 )
@@ -94515,8 +94829,9 @@ R.check(
 )
 # The sibling write paths of the space set-point (the indoor target, today's
 # open-loop target with the loop off or unmetered, the gate of a step that
-# does not heat, the start hold) read neither sensor: a high limit that binds
-# the loop, and one at the gate, change none of their writes.
+# does not heat, the start hold) read no loop bound: a high limit at the gate,
+# or below it, changes none of their writes, and one that binds the loop holds
+# a heating write at it and changes nothing under it (R11-OWNER-FLOWCAP).
 _FB_SIBLINGS = (
     ("indoor", {"unit": "indoor", "minutes": 60}),
     ("no power entity", {"power_entity": False, "minutes": 60}),
@@ -94526,13 +94841,15 @@ _FB_SIBLINGS = (
 )
 _fb_sibling_blind = {label: _fb_sim(**kw)["writes"] for label, kw in _FB_SIBLINGS}
 _fb_sibling_same = {
-    (label, high): _fb_sim(limits=(None, high), **kw)["writes"] == _fb_sibling_blind[label]
+    (label, high): _fb_capped(_fb_sim(limits=(None, high), **kw)["writes"],
+                              _fb_sibling_blind[label], high if label != "indoor" and high > 20.0 else 99.0)
     for label, kw in _FB_SIBLINGS for high in (24.0, 20.0, 15.0)
 }
 R.check(
     "R10-WATER-SETPOINT-FEEDBACK part 3 I1: the indoor target, an unmetered or switched-off "
     "loop, a step that does not heat and the start hold each write the same under a high "
-    "limit that binds the loop, one at the gate and one below it as with no sensor",
+    "limit at the gate or below it as with no sensor, and under one that binds the loop the "
+    "same but held at it (R11-OWNER-FLOWCAP)",
     all(_fb_sibling_same.values()) and all(_fb_sibling_blind.values()),
     f"same: {_fb_sibling_same}, writes { {k: len(v) for k, v in _fb_sibling_blind.items()} }",
 )
@@ -94925,6 +95242,33 @@ R.check(
     and _fb_cuts == (26.5, 27.6),
     f"stop {_fb_stop_lo}, gate {_fb_gate_lo}, cuts {_fb_cuts}",
 )
+# The upper bound's filter is closed at the lowest heating write
+# (_heating_floor_c). A return-limit cut or an upper-limit sensor
+# (_space_limit_c) exactly on it is kept and bounds the loop there. One a step
+# under it leaves no heating value, so the 32 degC ceiling binds: each arm's
+# null control.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_lowest = _fb_pa._heating_floor_c(_fb_i)[1]
+_fb_edge_cut = {
+    off: _fb_pa._feedback_bounds(
+        _fb_h, _fb_running(3600, 0, cut_hi_c=round(_fb_lowest - off, 2)), _fb_i, 26.0)[1]
+    for off in (0.0, 0.1)
+}
+_fb_edge_sensor = {}
+for _fb_off in (0.0, 0.1):
+    _fb_c, _fb_h, _fb_i = _fb_unit(limits=(None, round(_fb_lowest - _fb_off, 2)))
+    _fb_edge_sensor[_fb_off] = (_fb_pa._space_limit_c(_fb_i), _fb_pa._feedback_bounds(
+        _fb_h, _fb_running(3600, 0), _fb_i, 26.0)[1])
+R.check(
+    "R11-OWNER-FLOWCAP: a return-limit cut or an upper-limit sensor exactly on the "
+    "lowest heating write bounds the loop there; one a 0.1 K step under it is set "
+    "aside and the 32 degC heating ceiling binds",
+    abs(_fb_edge_cut[0.0] - _fb_lowest) < 1e-9 and _fb_edge_cut[0.1] == 32.0
+    and _fb_edge_sensor[0.0][0] is not None
+    and abs(_fb_edge_sensor[0.0][1] - _fb_lowest) < 1e-9
+    and _fb_edge_sensor[0.1] == (None, 32.0),
+    f"lowest {_fb_lowest}, cut {_fb_edge_cut}, sensor {_fb_edge_sensor}",
+)
 # R1's bracket is closed at both ends: a reading exactly SETPOINT_TOLERANCE
 # under the replaced record, or over the write, is a cut.
 def _fb_bracket(observed):
@@ -95178,9 +95522,11 @@ R.check(
     f"{_p3_none} {_p3_live} {_p3_cancel} {_p3_press}",
 )
 class _P3Coord:
-    mode = "auto"
+    pass
 _p3_c = _P3Coord()
-_p3_mode = type("C", (), {"mode": boost_mod.MODE_BOOST})()
+_p3_mode = _P3Coord()
+# Boost reads the mode it was told (ADR-005), not an attribute of the coordinator.
+boost_mod.note_mode_change(_p3_mode, "auto", boost_mod.MODE_BOOST, NOW)
 # Both hold a running tail, so only the global mode can make the end unknown.
 boost_mod.held_for(_p3_c).space_settle_until = NOW + _p3_td(hours=5)
 boost_mod.held_for(_p3_mode).space_settle_until = NOW + _p3_td(hours=5)
