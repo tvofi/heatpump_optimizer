@@ -1,0 +1,38 @@
+{
+ "key": "3b6228b7d69c32bc",
+ "mutant": {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "line": 7693,
+  "old": "            np.clip(displace_value, self._ecl110_displace_min, self._ecl110_displace_max)",
+  "new": "            (displace_value)",
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_publish_ecl110_command CLAMP_DROP f237d800"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py",
+  "python3 tests/structure.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 4
+ },
+ "summary": [
+  "4 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3341.7,
+ "child_cpu_s": 5565.1,
+ "load1_start": 0.66,
+ "load1_end": 0.93,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [
+  "python3 tests/structure.py"
+ ],
+ "verdict": "KILLED"
+}
