@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_hold.py:holding CLAMP_DROP ea67468b",
+  "killed_by": "tests/features.py",
+  "old": "        latch.since = min(dt_util.as_utc(changed), now) if changed is not None else now",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`latch.since = (dt_util.as_utc(changed)) if changed is not None else now`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

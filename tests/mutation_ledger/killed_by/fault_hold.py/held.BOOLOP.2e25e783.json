@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_hold.py:held BOOLOP 2e25e783",
+  "killed_by": "tests/features.py",
+  "old": "    return latch is not None and latch.holding",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return latch is not None or latch.holding`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

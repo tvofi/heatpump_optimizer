@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_release_row BOOLOP 2a46488d",
+  "killed_by": "tests/features.py",
+  "old": "    if coord is None or (reason == \"unload\" and fault_hold.unload_holds(coord.entry)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if coord is None or (reason == \"unload\" or fault_hold.unload_holds(coord.entry)):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}

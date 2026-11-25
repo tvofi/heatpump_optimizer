@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_hold.py:release BOOLOP 88f5261f",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    was = latch is not None and latch.holding",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`was = latch is not None or latch.holding`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

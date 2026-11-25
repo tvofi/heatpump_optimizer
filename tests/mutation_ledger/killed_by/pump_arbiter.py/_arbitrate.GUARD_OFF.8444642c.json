@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF 8444642c",
+  "killed_by": "tests/structure.py",
+  "old": "    if mode != DUTY_CONTROL or _pump_off(inp, held) or _fault_stands(inp.hass, held, faulted):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}
