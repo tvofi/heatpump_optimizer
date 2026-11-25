@@ -1,0 +1,46 @@
+app_push: ROW-ONLY: prepr RUNS: the body file is not the live pull-request body under one new `## Head` note
+  ok       body path              not directly in a shared root
+  ok       merge-base             ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae
+  ok       code steps             reused from the receipt at 1: no heavy slot, and the steps keyed to the code alone are dropped
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  skip     code-keyed steps       PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, machinery ratchet, brief_lint, field coverage, agreement lane, register check
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since ada9da5c7bf5
+  ok       ref privacy            ref_privacy --check at HEAD: 31 file(s) with a push site, 12 guarded, 739 line(s) added since ada9da5c7bf5 judged, 0 refused
+  skip     code-keyed steps       PREPR_SKIP_CODE: pinned graders, self-test, wave-script
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: ada9da5c7bf542b8cdedb2d5fbe878edd1b3a8ae ok
+  skip     closures               PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left
+  ok       merged structure       STRUCTURE RATCHET PASSED (tests/structure.py at 0bbfb379dd35, HEAD merged with origin/main)
+  ok       ci predict             CI PREDICT: no closures, fast, governance or instrument red predicted against ada9da5c7bf5 (a data-file read is not seen) (at 0bbfb379dd35, HEAD merged with origin/main)
+  skip     code-keyed steps       PREPR_SKIP_CODE: diff mutants, no-copies
+  ok       layout guard           layout: GUARD: 0 refusal(s) against ada9da5c7bf5
+  skip     code-keyed steps       PREPR_SKIP_CODE: throwaway git, claims register
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/r10s6/pr/r11-arch-objective/body.md -- 4 budget raise(s), budget-raise-gate red until tvofi approves at the head: .claude/workflows/policy_budgets.json: files.dev/governance/roles/architect-planner.md: 85 -> 89 (a cap went up)
+  ok       figures                FIGURES: 14 resolved, 2 not verified, 0 refused
+  ok       figure blocks          figure_block verify: 1 block(s), 0 refused
+  ok       carry                  CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 81b8d88796
+  info     carry targets          Valid `Carry:` targets (live consumers of R11-ARCH-OBJECTIVE: groups after it or sharing its files): R11-PRE-PRODUCT-READS
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  WARN     push order             HEAD is 1 commit(s) ahead of origin/fix/r11-arch-objective -- A PUSH MUST FOLLOW THIS BODY EDIT
+  ok       ancestry reds          no red check run stands on any commit this branch pushed
+  skip     receipt                PREPR_SKIP_CODE set, so no full run and none written
+  !!! HEAD is 1 commit(s) ahead of origin/fix/r11-arch-objective: the push must follow at once (the full warning is in the  REFUSE   ci predict             
+  ok       merged structure       STRUCTURE RATCHET PASSED (tests/structure.py at 609617eefc54, HEAD merged with origin/main)
+  ok       diff mutants           no survivor among the diff's first 40 mutant(s) under: python3 tools/audit/seat/plan_audit.py --self-test
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 4ecca4cc580b
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  skip     claims register        no change to anything the claims generator reads
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/r10s6/pr/r11-arch-objective/body2.md -- 4 budget raise(s), budget-raise-gate red until tvofi approves at the head: .claude/workflows/policy_budgets.json: files.dev/governance/roles/architect-planner.md: 85 -> 89 (a cap went up)
+  ok       figures                FIGURES: 14 resolved, 2 not verified, 0 refused
+  REFUSE   figure blocks          figure_block verify: 1 block(s), 1 refused
+  ok       carry                  CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 8a10870e33
+  info     carry targets          Valid `Carry:` targets (live consumers of R11-ARCH-OBJECTIVE: groups after it or sharing its files): R11-PRE-PRODUCT-READS
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  ok       push order             origin/handoff/r11-arch-objective is at 6142e16f7a -- local mirror, unfetched
+  skip     ancestry reds          no pushed commit carries any check run, so there is no red to answer and none confirmed absent
+  skip     receipt                rc=1, so none written
+PRE-PR: 6142e16f7adf3e28bb9d92889410ed72f0baf4c5 00000000000000000000010000000100 rc=1; full log: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T//prepr-log.D7w8C05r (PREPR_VERBOSE=1 prints it on stdout)
