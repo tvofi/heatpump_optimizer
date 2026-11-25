@@ -10,13 +10,13 @@ file is.
 
 1. **The gate is scoped by measured dependency closures.** `GATE_SCOPE=auto`
    runs only the scripts your diff can reach, as measured in
-   `tests/closures.json`. A push to `main` forces `full`: if a closure is ever
-   wrong, main goes red within one burst instead of never.
+   `tests/closures.json`. A push to `main` touching production or `.github/`
+   runs `full`, so a wrong closure reddens main at the next one; any other
+   push is light (`tools/ci/prelude.py`).
    **`MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both print zero and mean
-   opposite things.** Key on the mode line, never the count — but that line
-   only exists on a branch; a push to `main` prints none at all, because the
-   forced `full` never calls the code that prints it. Commands, the gate lease
-   and the re-derivation trap: `gate-scoping.md`.
+   opposite things.** Key on the mode line, never the count — but a `full` push
+   prints none at all, because it never calls the code that prints it.
+   Commands, the gate lease and the re-derivation trap: `gate-scoping.md`.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
    metric in `tests/structure_budgets.json` — **derive the count, do not carry
    one**: it is the budget file's keys less `recorded_at`; `structure.py`'s
