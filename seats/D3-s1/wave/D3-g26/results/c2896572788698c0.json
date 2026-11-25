@@ -1,0 +1,59 @@
+{
+ "key": "c2896572788698c0",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2412 CLAMP_DROP",
+ "patch": "for i in range(min(len(out), len(pins))): -> for i in range((len(out))):",
+ "function": "_apply_pins_to_bounds",
+ "cluster": "optimizer.py:_apply_pins_to_bounds@2412-2418",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3599.0,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/c2896572788698c0.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c2896572788698c0 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_c2896572788698c0.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_c2896572788698c0.py",
+  "baseline_value": "0 (the metric is a baseline-vs-mutant delta)",
+  "mutant_value": "4 count  ['len0:IndexError', 'len1:IndexError', 'len2:IndexError', 'len3:IndexError']",
+  "metric": "cells_moved",
+  "unit": "grid cells whose outcome differs",
+  "all_results": {
+   "grid_cells": "7 count",
+   "cells_moved": "4 count  ['len0:IndexError', 'len1:IndexError', 'len2:IndexError', 'len3:IndexError']",
+   "null_cells_moved": "0 count",
+   "reach_solves": "4 count",
+   "reach_pairs": "[(96, 96), (96, None)]",
+   "reach_distinguishing_calls": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.26",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "4 bounds x pin vectors of length 0..6: 4 cells move (pins shorter than bounds: IndexError); equal and longer pins identical",
+   "reach: 4 coordinator refresh cycles, manual plan on and off: pairs [(96, 96), (96, None)], 0 distinguishing calls; _normalise_pins pads/truncates pins to the horizon, and the candidate-levels caller (_run_bounds, optimizer.py:565) builds its mask from the same plan as its bounds"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/manual_plan.py, tests/features.py, tests/optimality.py, tests/env_drift.py execute line 2412",
+  "assertion": "none through production: only a pin vector shorter than the bounds separates the arms, and every caller hands equal lengths"
+ },
+ "non_finding": {
+  "claim": "mutant c2896572788698c0 at custom_components/heatpump_optimizer/optimizer.py:2412 (for i in range(min(len(out), len(pins))): -> for i in range((len(out))):) survives the full gate but is equivalent through production: none through production: only a pin vector shorter than the bounds separates the arms, and every caller hands equal lengths",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_c2896572788698c0.py",
+  "value": "cells_moved: baseline 0 (the metric is a baseline-vs-mutant delta), mutant 4 count  ['len0:IndexError', 'len1:IndexError', 'len2:IndexError', 'len3:IndexError']; 4 bounds x pin vectors of length 0..6: 4 cells move (pins shorter than bounds: IndexError); equal and longer pins identical; reach: 4 coordinator refresh cycles, manual plan on and off: pairs [(96, 96), (96, None)], 0 distinguishing calls; _normalise_pins pads/truncates pins to the horizon, and the candidate-levels caller (_run_bounds, optimizer.py:565) builds its mask from the same plan as its bounds"
+ }
+}
