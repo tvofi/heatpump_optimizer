@@ -8025,6 +8025,54 @@
     "last_step": null,
     "next_step": "designer (designer.md) when its last predecessor merges; design review; fixer only on Design review: approve"
    }
+  },
+  {
+   "group": "R11-OUTSIDE-CI-3885",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "ci",
+   "severity": "high",
+   "size": "L",
+   "wave": 1,
+   "issues": [
+    3885
+   ],
+   "fixes": [],
+   "after": [],
+   "files": [
+    ".github/workflows/ci.yml",
+    "tools/ci/prelude.py",
+    "tools/ci/gate.py",
+    "tools/ci/sweep.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "source": "outside",
+   "brief": "Outside issue #3885 (GitHub Actions product team): reduce the runner-minutes ci.yml spends. Owner priority (tvofi, 2026-11-25): every #3885 pull request, fixer, designer and reviewer runs as a critical-path item, recorded on #3394 comment 7157667401. One owning seam, the CI workflow and tools/ci: light grading, stress and case scope on pull requests, superseded-run cancel, the sweep and Pages trims already merged; the open work is the duplicate verified dispatch (dev/programme/carries/carry-3885.json, which needs a decision-0014 design before a fixer if reuse is needed), the merge-queue design (design/r11-ci-3885-queue) and per-case selection (design/R11-CI-CASE-SELECT, pull request 3896). Each pull request posts its landed state and main-push result on #3885 and leaves #3885 open; the issue closes only when the owner or the reporter calls it done. Re-measure every carried figure at your own merge base.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "commit": null,
+    "branch": "handoff/ci-3885-dup-dispatch",
+    "last_step": "merged off-roster before this group existed: #3887, #3888, #3893, #3894, #3895, #3899",
+    "next_step": "duplicate verified dispatch (carry-3885.json); merge-queue design; R11-CI-CASE-SELECT pull request 3896 in review",
+    "note": "wired by the roster-wiring seat 2026-11-25: #3885 was open with no group although its work was running; outside item folds into round 11 (not deferred by the owner or the reporter)",
+    "pr": 3896
+   }
   }
  ]
 }
