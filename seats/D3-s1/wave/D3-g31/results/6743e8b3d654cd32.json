@@ -1,0 +1,43 @@
+{
+ "key": "6743e8b3d654cd32",
+ "site": "custom_components/heatpump_optimizer/price_model.py:586 GUARD_OFF",
+ "patch": "`if not np.isfinite(value):` -> `if False:`",
+ "function": "_entries_by_day",
+ "cluster": "price_model.py:_entries_by_day@586-586",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3247.1,
+  "load1_start": 0.2,
+  "load1_end": 1.04,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5340.8,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/gates/6743e8b3d654cd32.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6743e8b3d654cd32",
+ "machine": "box D3-g31: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB (walls and loads provisional)",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_6743e8b3d654cd32.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_6743e8b3d654cd32.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_6743e8b3d654cd32.out",
+  "baseline_value": "ingress: (1,0) learned for a quarter day with one nan quarter; direct: (1,0)",
+  "mutant_value": "ingress: (1,0); direct: (0,0) (the nan quarter makes its hour mean nan and observe_day rejects the day)",
+  "inputs_tried": "quarter-resolution day with a nan / inf / -inf quarter, an hourly day with a nan hour, an all-finite quarter day; each fed raw and through prices_from_tibber_payload; apply_price_adjustments on a nan total"
+ },
+ "should_fail": "none through production: both ingress paths (prices_from_tibber_payload via _raw_value/finite_float, apply_price_adjustments) drop non-finite totals before self._prices, the only list PriceShapeLearner.fold reads; a direct fold of raw rows separates",
+ "note": "Defence in depth behind the ingress filters (#2236): 0 of 5 cases move through ingress (nonfinite rows after Tibber and entity ingress: 0 and 0); 3 of 5 move on raw rows (days learned 1 -> 0). Equivalent through production."
+}
