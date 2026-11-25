@@ -133,3 +133,4 @@
 1795614649 CKPT D3-s1 99 file(s)
 1795614730 HB alive
 1795614733 CKPT D3-s1 99 file(s)
+1795614738 HB comms loop restarted after session restart (stale proxy port); ckpt after 7c25d8795fa2d46c had failed once, re-run once
