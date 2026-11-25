@@ -1,3 +1,4 @@
 1795577343 INIT r11-seam-two-zone-slab
 1795577350 HB alive
 1795577369 CKPT cherry-picked dd106606 onto bot pin 3e2dc1b6 snapshot b494ac83e106
+1795577434 CKPT pin-killed drive running on 3417bbc2; extracting 4 sites snapshot 74e17e739152
