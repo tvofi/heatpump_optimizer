@@ -7,8 +7,9 @@
 # the prelude's `workset` names it, the set gate.py also keys its sources on.
 # Every program runs the BASE's copy (restored before it runs), as every
 # grader does. tests/entities.py pins this file: the triggers, the run-name,
-# the run-id group, one `gate` job whose `if:` no event can make false, the
-# caller set and its naming rule, and no `checks:` or `statuses: write`.
+# the run-id group (a push's first attempt aside), one `gate` job whose `if:`
+# no event can make false, the caller set and its naming rule, and no
+# `checks:` or `statuses: write`.
 
 name: CI
 
@@ -65,9 +66,14 @@ permissions: {}
 
 # A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
-# let a re-run cancel a live run. Supersession is cancel-superseded's alone.
+# let a re-run cancel a pending run. Supersession is cancel-superseded's alone.
+# Except a push to main's first attempt (CI-5, owner 2026-11-21): one `CI-main`
+# group, cancelling nothing in progress, so one push run executes at a time and
+# GitHub replaces a pending one with the newest before it starts; a burst of
+# merges is graded once, at its last tip, and no started run is cancelled. A
+# re-run (attempt 2+) keeps its run-id group, so it never displaces that tip.
 concurrency:
-  group: CI-${{ github.run_id }}
+  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || format('CI-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -93,6 +99,11 @@ jobs:
       selftests: ${{ steps.derive.outputs.selftests }}
       # R10-CI-OWN-DELIVERY-ROW: the same with the PR's own delivery row ignored (arch-instrument).
       machinery_rowblind: ${{ steps.derive.outputs.machinery_rowblind }}
+      # #3885: 'true' on a run whose changed list holds no production file; the lanes
+      # it stands down; a push's range base (prelude.light, stand_down, push_range).
+      light: ${{ steps.derive.outputs.light }}
+      stand_down: ${{ steps.derive.outputs.stand_down }}
+      range_base: ${{ steps.derive.outputs.range_base }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -131,6 +142,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          # A dispatch naming a PR reads its own list (prelude.dispatch_diff, CI-2).
           : > "$RUNNER_TEMP/changed.txt"
           if [ "$EVENT" = pull_request ]; then
             python3 -I tools/pr/codeql_scope.py changed --base "$BASE_SHA" \
@@ -191,6 +203,9 @@ jobs:
       no-skip: ${{ inputs.no-skip }}
       machinery: ${{ needs.prelude.outputs.machinery }}
       machinery_rowblind: ${{ needs.prelude.outputs.machinery_rowblind }}
+      light: ${{ needs.prelude.outputs.light }}
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
+      range_base: ${{ needs.prelude.outputs.range_base }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
@@ -206,6 +221,7 @@ jobs:
     uses: ./.github/workflows/codeql.yml
     with:
       legs: ${{ needs.prelude.outputs.legs }}
+      range_base: ${{ needs.prelude.outputs.range_base }}
     permissions:
       contents: read
       security-events: write
@@ -217,6 +233,8 @@ jobs:
       base: ${{ needs.prelude.outputs.base }}
       machinery: ${{ needs.prelude.outputs.machinery }}
       selftests: ${{ needs.prelude.outputs.selftests }}
+      light: ${{ needs.prelude.outputs.light }}
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
     permissions:
       contents: read
       pull-requests: read
@@ -225,12 +243,16 @@ jobs:
     needs: prelude
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' hassfest ')
     uses: ./.github/workflows/hassfest.yml
+    with:
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
     permissions:
       contents: read
   validate:
     needs: prelude
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' validate ')
     uses: ./.github/workflows/validate.yml
+    with:
+      stand_down: ${{ needs.prelude.outputs.stand_down }}
     permissions:
       contents: read
   kernel-points:

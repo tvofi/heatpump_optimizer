@@ -80,6 +80,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         run: >-
@@ -204,6 +206,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         run: >-
@@ -461,6 +465,8 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tests/requirements-*.txt
 
       - name: Install pinned test dependencies
         run: >-
@@ -497,6 +503,19 @@ jobs:
           DRIFT_VALUE_REPORT: "1"
           PYTHONPATH: tests/hastub
         run: python3 tests/env_drift.py --all "$GOLDEN_REF"
+
+      # A pull request no longer runs tests/stress.py (#3885: tests.yml's
+      # fast job skips it on that event); the push to main and this lane do.
+      # The job's steps run one at a time, so nothing shares the box with it;
+      # its solver-work check reads GOLDEN_REF, resolved above.
+      - name: Stress and solve-time guards
+        if: success() || failure()
+        env:
+          PYTHONPATH: tests/hastub
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: python3 tests/stress.py
 
       - name: Closed-loop simulation
         env:

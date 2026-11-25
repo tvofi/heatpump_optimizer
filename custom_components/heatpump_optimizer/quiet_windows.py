@@ -155,7 +155,7 @@ def step_actions(
 def silent_rows(spec: Any) -> TypeGuard[str]:
     """Whether ``spec`` names a silent window the week can reach.
 
-    The same ``step_actions`` the solve uses, over seven days from a Monday,
+    The same :func:`step_actions` the solve uses, over seven days from a Monday,
     so a weekday token and an overnight window are rows and an empty or
     unreadable spec is not. No rows means the switch is never written.
     True only for a ``str``, which is what lets the caller pass it to
@@ -164,22 +164,18 @@ def silent_rows(spec: Any) -> TypeGuard[str]:
     if not isinstance(spec, str) or not spec.strip():
         return False
     monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
-    actions = step_actions(
-        monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None,
-    )
+    actions = step_actions(monday, 7 * 24 * 60 // PLAN_STEP_MINUTES, PLAN_STEP_HOURS, spec, None)
     return actions is not None
 
 
 def inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
     """Whether the step covering ``now`` is silent, off winning an overlap.
 
-    The same ``step_actions`` the solve uses, so a hand-edited store whose
+    The same :func:`step_actions` the solve uses, so a hand-edited store whose
     off row overlaps a silent row holds the switch off: that step is idle,
     not a silent one.
     """
-    actions = step_actions(
-        plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec,
-    )
+    actions = step_actions(plan_step_start(now), 1, PLAN_STEP_HOURS, silent_spec, off_spec)
     return actions is not None and int(actions[0]) == ACTION_SILENT
 
 
