@@ -76509,6 +76509,16 @@ R.check(
     _x62_dg_on == {"switch_on": True, "block_ignored": False},
     repr(_x62_dg_on),
 )
+_x62_dg_eff = _r9egb1_coord()
+_x62_dg_eff._external_heat = _x62_det()
+_x62_set(_x62_dg_eff, True)
+_x62_dg_eff.data = {**(_x62_dg_eff.data or {}), **_x62_dg_eff._external_heat_view()}
+_x62_dg_eff_row = _x62_dg_rows["external_heat_block_ignore"](_x62_dg_eff)
+R.check(
+    "diagnostics report the switch on and, with detection enabled, effective (#3862)",
+    _x62_dg_eff_row == {"switch_on": True, "block_ignored": True},
+    repr(_x62_dg_eff_row),
+)
 
 
 # --- #1955 planner power on an unmetered install ---------------------------

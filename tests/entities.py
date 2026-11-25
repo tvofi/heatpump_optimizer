@@ -11840,6 +11840,18 @@ R.check(
     and _boost_mod.extheat_block_ignored(_xh_sw.coordinator) is False,
     f"on={_xh_sw_on} off={_xh_sw.is_on}",
 )
+# The attribute reads the published flag, so an effective override reads True.
+_xh_sw_eff = next(
+    s for s in collect(switch_mod, data={
+        **DATA, "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)",
+    _xh_sw_eff.extra_state_attributes == {"block_ignored": True},
+    str(_xh_sw_eff.extra_state_attributes),
+)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
