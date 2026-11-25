@@ -1,0 +1,31 @@
+ a_per_h (0.05 /h) and the gain as b_k_per_h
+  ok   a calling fraction whose quartiles lie exactly FLAT_IQR apart is enough, and a period spent exactly half on space heating counts
+  ok   the sensor state counts the separable rooms of a report
+  ok   the report is re-read only when the ring grows: the same object twice, a new one with a new row
+  ok   the first cycle loads the stored ring before it notes anything: the stored rows are kept
+  ok   a period with no house value measured stores nulls: no outdoor, no floor return, no power, no space heating
+  ok   the save cadence is 12 rows (6 h) and pairs never span more than two hours: 121 minutes apart is two stretches
+  ok   three common rows are enough to read a correlation; the always-calling fraction is published to three decimals
+  ok   the house line needs MIN_PAIRS periods and no more: 144 read enough
+  ok   a production coordinator's diagnostics carry the room-history report once a cycle with a room list made a record; null control, a coordinator whose cycles had none carries no key
+  ok   factory reset keeps the room history: no _FACTORY_VOID row and not among the restored stores
+  ok   the Room Separability sensor publishes the report's rooms, house line and row count as attributes; null control, a coordinator with no record publishes no state and None for each
+  ok   a gain three to six standard errors clear of zero reads separable: MIN_T is the bar, not twice it
+  ok   a calling gain exactly MIN_T standard errors clear of zero reads separable (the bar is inclusive)
+  ok   a room whose calling moves with another's at exactly COLLINEAR_R is collinear (the bar is inclusive); just under it is not
+  ok   an exact fit (a residual sum of exactly zero) keeps finite t-statistics, which the report rounds and diagnostics serialise
+  ok   a pair needs the room's temperature and the outdoor temperature in both rows: 200 rows missing one or the other every fifth row step 159 times
+  ok   a period after an outage longer than the ring fills only the ring's 14 days with null rows, not the whole outage
+  ok   one period: a reading with a problem and one reporting no action are not calling samples (share 5000, one call of two), the target is the period's last (22.0), power is the mean of the cycles' (2.25 kW, not the last 3.0), and a hot-water cycle is not space heating (three of four cycles)
+  ok   a pair needs the first row's calling share: 200 rows, every tenth with none, step 179 times and the fit reads finite; null control, the same ring with every share held steps 199 times
+  ok   stored row times off the half-hour grid empty the ring, the first row's included; null control, the same rows on the grid load
+  ok   the house line reads only periods spent mostly on space heating: 100 of 200 rows; null control, 200 with every period on space heating
+  ok   a full ring's report is re-read when a row replaces its oldest: the row count stays HISTORY_LENGTH and the report is a new object; null control, read again with no new row it is the same object
+  ok   a production coordinator's cycle hands the room history this cycle's outdoor reading (not the context the cycle started with: the first cycle reads -3.0, not the 5.0 default), the floor return (28.0), metered power and the plan's space and hot-water kW, and the closed row holds them: outdoor the period's last -500, return 2800, power the period's mean 200 (not the last 300), space heating two cycles of three (the hot-water one not); null control, each value distinct from the one it could be swapped for
+/root/wt2/tests/harness.py:598: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+  ok   unloading the entry saves the rows the last save missed: two closed rows, unsaved before the unload, are in the store after it; null control, the store held nothing before the unload
+
+ALL 6117 FEATURE CHECKS PASSED
+rc=0 983s
