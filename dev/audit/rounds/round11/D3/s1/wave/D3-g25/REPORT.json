@@ -1,0 +1,1721 @@
+{
+ "dimension": "D3",
+ "seat": "D3-s1",
+ "box": "D3-g25",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/REPORT.md",
+ "exposure": "No docs/ or GitHub read. Read COMMON.md's and D3.md's report shape and the carried slice/top6/rem reports through haiku extractors, the box's dispatch/inbox/wip refs, and its own gate records and probes. Re-fire: a predecessor seat on another account stalled after 8 of 16 gates; its checkpoint (wip 18adf7d6) was restored and continued, its 8 gate records and results kept, not re-run.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g25): carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+   "carried": true
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g25): box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+   "carried": true
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 16,
+   "not_reached": [
+    "assigned to box D3-g01",
+    "assigned to box D3-g02",
+    "assigned to box D3-g03",
+    "assigned to box D3-g04",
+    "assigned to box D3-g05",
+    "assigned to box D3-g06",
+    "assigned to box D3-g07",
+    "assigned to box D3-g08",
+    "assigned to box D3-g09",
+    "assigned to box D3-g10",
+    "assigned to box D3-g11",
+    "assigned to box D3-g12",
+    "assigned to box D3-g13",
+    "assigned to box D3-g14",
+    "assigned to box D3-g15",
+    "assigned to box D3-g16",
+    "assigned to box D3-g17",
+    "assigned to box D3-g18",
+    "assigned to box D3-g19",
+    "assigned to box D3-g20",
+    "assigned to box D3-g21",
+    "assigned to box D3-g22",
+    "assigned to box D3-g23",
+    "assigned to box D3-g24",
+    "assigned to box D3-g26",
+    "assigned to box D3-g27",
+    "assigned to box D3-g28",
+    "assigned to box D3-g29",
+    "assigned to box D3-g30",
+    "assigned to box D3-g31",
+    "assigned to box D3-g32",
+    "assigned to box D3-g33",
+    "assigned to box D3-g34",
+    "assigned to box D3-g35",
+    "assigned to box D3-g36",
+    "assigned to box D3-g37",
+    "assigned to box D3-g38",
+    "assigned to box D3-g39",
+    "assigned to box D3-g40",
+    "assigned to box D3-g41",
+    "assigned to box D3-g42",
+    "assigned to box D3-g43",
+    "assigned to box D3-g44",
+    "assigned to box D3-g45",
+    "assigned to box D3-g46",
+    "assigned to box D3-g47"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "examined"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "box D3-g25: 16 of its 16 keys full-gated, one at a time, by gate_wave.sh run -> PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key> (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh); records dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/<key>.json, null control dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/null.json (gate_rc 1, failed ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py']). The 742-key wave list excludes the 8 keys already gated by boxes D3-top6/D3-rem (35 gates, REPORT-D3-top6.json, REPORT-D3-rem.json); SURVIVORS.tsv is the orchestrator's wave list, not in the baseline tree; the other 726 keys are named by box in not_reached."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g25): m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+   "carried": true
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried verbatim from REPORT-D3-u1b.json (not re-driven by box D3-g25): carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+   "carried": true
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_119b25afdd5d4988.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_57f696b2f988d5a9.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_6aec51dc6f670787.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_970ed4d74c36caa1.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b2e075c0da35240d.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_d0de1c16101369f5.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e16ae8a6fd6cea40.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e96ae75a1f1f213e.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f58c6d034aa31e46.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f8b7db7badd35158.py"
+ ],
+ "leads": [],
+ "gated": [
+  {
+   "key": "f3126cd40dc76143",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6565 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "f58c6d034aa31e46",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6566 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "6aec51dc6f670787",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6584 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "b2e075c0da35240d",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6602 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "57f696b2f988d5a9",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6604 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "b143b01c4ea02159",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6604 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "a581feadd69c6c42",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6606 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "e96ae75a1f1f213e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6606 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "d0de1c16101369f5",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6632 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "f8b7db7badd35158",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6638 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "cd766b55c44ca3ee",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6640 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "724471c27310230f",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6644 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "970ed4d74c36caa1",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6648 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "1d11f24436471959",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6651 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "e16ae8a6fd6cea40",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6653 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "119b25afdd5d4988",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6655 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "f3126cd40dc76143",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6565 CMP_BOUND",
+   "patch": "step_s = starts[1] - starts[0] if len(starts) > 1 else 900.0 -> step_s = starts[1] - starts[0] if len(starts) >= 1 else 900.0",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2774.9,
+    "child_cpu_s": 4593.4,
+    "load1_start": 0.48,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/f3126cd40dc76143.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f3126cd40dc76143",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "mode=normal,power=2.0,setpoint=21.0",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "one-step plan, now = t0-300 s: baseline mode=normal,power=2.0,setpoint=21.0 | mutant raised:IndexError | moved 1",
+     "one-step plan, now = t0-900 s: baseline mode=normal,power=2.0,setpoint=21.0 | mutant raised:IndexError | moved 1",
+     "one-step plan, now = t0-1200 s: baseline mode=idle,power=0.5,setpoint=21.0 | mutant raised:IndexError | moved 1",
+     "two-step plan, now = t0-300 s [null]: baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=normal,power=2.0,setpoint=21.0 | moved 0",
+     "one-step plan, now = t0 (not pre-horizon): baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=normal,power=2.0,setpoint=21.0 | moved 0"
+    ],
+    "load1": 0.86,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py pre-horizon block (search 'a skew within one step length clamps to the FIRST step'; ~L28195-28233): every plan there has 3 steps, so `len(starts) > 1` is always true; it lacks a one-step plan read 5 min before its start asserting the step-0 action (tests/features.py alone executes L6565 on the traced baseline)",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads a one-step plan before its start; the 900 s step-length fallback is unpinned",
+    "claim": "Mutant f3126cd40dc76143 at optimizer.py:6565 (`step_s = starts[1] - starts[0] if len(starts) > 1 else 900.0` -> `step_s = starts[1] - starts[0] if len(starts) >= 1 else 900.0`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline mode=normal,power=2.0,setpoint=21.0, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "A plan with a single step, read within 900 s before its start, clamps to that step (the step-length fallback is 900 s)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py",
+    "perturbation": {
+     "change": "optimizer.py:6565 `step_s = starts[1] - starts[0] if len(starts) > 1 else 900.0` -> `step_s = starts[1] - starts[0] if len(starts) >= 1 else 900.0`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f3126cd40dc76143",
+     "direction": "step-0 action (mode normal) -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value mode=normal,power=2.0,setpoint=21.0"
+   }
+  },
+  {
+   "key": "f58c6d034aa31e46",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6566 CMP_BOUND",
+   "patch": "if starts[0] - now_s > step_s: -> if starts[0] - now_s >= step_s:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2843.4,
+    "child_cpu_s": 4760.6,
+    "load1_start": 0.86,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/f58c6d034aa31e46.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f58c6d034aa31e46",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f58c6d034aa31e46.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f58c6d034aa31e46.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "mode=normal,power=2.0,setpoint=21.0",
+    "mutant_value": "mode=idle,power=0.5,setpoint=21.0",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "4-step plan, now = t0-900 s (gap == step): baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=idle,power=0.5,setpoint=21.0 | moved 1",
+     "now = t0-300 s [null]: baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=normal,power=2.0,setpoint=21.0 | moved 0",
+     "now = t0-901 s: baseline mode=idle,power=0.5,setpoint=21.0 | mutant mode=idle,power=0.5,setpoint=21.0 | moved 0",
+     "now = t0-899 s: baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=normal,power=2.0,setpoint=21.0 | moved 0"
+    ],
+    "load1": 0.87,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py pre-horizon block (search 'a skew within one step length clamps to the FIRST step'; ~L28195-28233): it reads 5 min and 2 h before a 15-min-step plan, never exactly 15 min; it lacks now = t0 - step asserting the step-0 action (tests/features.py alone executes L6566)",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads the plan exactly one step before its start; the pre-horizon clamp/idle edge is unpinned",
+    "claim": "Mutant f58c6d034aa31e46 at optimizer.py:6566 (`if starts[0] - now_s > step_s:` -> `if starts[0] - now_s >= step_s:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline mode=normal,power=2.0,setpoint=21.0, mutant mode=idle,power=0.5,setpoint=21.0.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "A clock exactly one step length before the plan's first step clamps to step 0 (the idle cut is strictly beyond one step)",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f58c6d034aa31e46.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f58c6d034aa31e46.py",
+    "perturbation": {
+     "change": "optimizer.py:6566 `if starts[0] - now_s > step_s:` -> `if starts[0] - now_s >= step_s:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f58c6d034aa31e46",
+     "direction": "step-0 action (mode normal) -> idle action",
+     "expected_direction": "up",
+     "observed_value": "mode=idle,power=0.5,setpoint=21.0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f58c6d034aa31e46.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value mode=normal,power=2.0,setpoint=21.0"
+   }
+  },
+  {
+   "key": "6aec51dc6f670787",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6584 CMP_BOUND",
+   "patch": "if result.displace_schedule and i < len(result.displace_schedule) -> if result.displace_schedule and i <= len(result.displace_schedule)",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1b",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2844.8,
+    "child_cpu_s": 4728.3,
+    "load1_start": 0.86,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/6aec51dc6f670787.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6aec51dc6f670787",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_6aec51dc6f670787.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_6aec51dc6f670787.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "displace_value=0.0",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline displace_value=0.0 | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline displace_value=0.5 | mutant displace_value=0.5 | moved 0",
+     "now = step 3 (i > len): baseline displace_value=0.0 | mutant displace_value=0.0 | moved 0",
+     "now = step 0: baseline displace_value=0.5 | mutant displace_value=0.5 | moved 0"
+    ],
+    "load1": 0.86,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py also execute L6584 but only with full-length schedules. It lacks a read at step 2 asserting displace_value == 0.0 and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads displace_schedule at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant 6aec51dc6f670787 at optimizer.py:6584 (`if result.displace_schedule and i < len(result.displace_schedule)` -> `if result.displace_schedule and i <= len(result.displace_schedule)`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline displace_value=0.0, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_6aec51dc6f670787.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_6aec51dc6f670787.py",
+    "perturbation": {
+     "change": "optimizer.py:6584 `if result.displace_schedule and i < len(result.displace_schedule)` -> `if result.displace_schedule and i <= len(result.displace_schedule)`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6aec51dc6f670787",
+     "direction": "displace_value 0.0 -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_6aec51dc6f670787.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value displace_value=0.0"
+   }
+  },
+  {
+   "key": "b2e075c0da35240d",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6602 CMP_BOUND",
+   "patch": "elif p_norm < 0.4: -> elif p_norm <= 0.4:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1c",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2899.6,
+    "child_cpu_s": 4820.7,
+    "load1_start": 0.86,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/b2e075c0da35240d.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b2e075c0da35240d",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b2e075c0da35240d.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b2e075c0da35240d.py",
+    "metric": "mode of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "'normal'",
+    "mutant_value": "'eco'",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "space power 1.5 kW (p_norm 0.4): baseline 'normal' | mutant 'eco' | moved 1",
+     "space power 1.25 kW (p_norm 0.3) [null]: baseline 'eco' | mutant 'eco' | moved 0",
+     "space power 1.6 kW (p_norm 0.44): baseline 'normal' | mutant 'normal' | moved 0"
+    ],
+    "load1": 0.78,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json"
+   },
+   "should_fail": "tests/features.py #1499 mode block (search 'a space step at the pump's minimum modulation reads eco'; ~L48766-48780): it grades only p_norm 0 (eco) and 1 (boost), so no step ever lands in normal or pre_heat or on the 0.4/0.7/0.9 edges; entities.py and config_flow_steps.py execute L6602 without a mode assertion at the edge. It lacks a step at p_norm exactly 0.4 asserting mode 'normal'",
+   "class": "candidate",
+   "finding": {
+    "title": "No check pins the eco/normal mode edge at p_norm 0.4",
+    "claim": "Mutant b2e075c0da35240d at optimizer.py:6602 (`elif p_norm < 0.4:` -> `elif p_norm <= 0.4:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's mode moves: baseline 'normal', mutant 'eco'.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "mode of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action's mode bands are half-open: eco [0,0.4), normal [0.4,0.7), pre_heat [0.7,0.9), boost [0.9,1]",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b2e075c0da35240d.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b2e075c0da35240d.py",
+    "perturbation": {
+     "change": "optimizer.py:6602 `elif p_norm < 0.4:` -> `elif p_norm <= 0.4:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b2e075c0da35240d",
+     "direction": "normal -> eco",
+     "expected_direction": "up",
+     "observed_value": "'eco'"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b2e075c0da35240d.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 'normal'"
+   }
+  },
+  {
+   "key": "57f696b2f988d5a9",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6604 CMP_BOUND",
+   "patch": "elif p_norm < 0.7: -> elif p_norm <= 0.7:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1b",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2884.0,
+    "child_cpu_s": 4871.0,
+    "load1_start": 0.85,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/57f696b2f988d5a9.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 57f696b2f988d5a9",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_57f696b2f988d5a9.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_57f696b2f988d5a9.py",
+    "metric": "mode of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "'pre_heat'",
+    "mutant_value": "'normal'",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "space power 2.25 kW (p_norm 0.7): baseline 'pre_heat' | mutant 'normal' | moved 1",
+     "space power 2.0 kW (p_norm 0.6) [null]: baseline 'normal' | mutant 'normal' | moved 0",
+     "space power 2.4 kW (p_norm 0.76): baseline 'pre_heat' | mutant 'pre_heat' | moved 0"
+    ],
+    "load1": 0.86,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json"
+   },
+   "should_fail": "tests/features.py #1499 mode block (search 'a space step at the pump's minimum modulation reads eco'; ~L48766-48780): it grades only p_norm 0 (eco) and 1 (boost), so no step ever lands in normal or pre_heat or on the 0.4/0.7/0.9 edges; entities.py and config_flow_steps.py execute L6604 without a mode assertion at the edge. It lacks a step at p_norm exactly 0.7 asserting mode 'pre_heat'",
+   "class": "candidate",
+   "finding": {
+    "title": "No check pins the normal/pre_heat mode edge at p_norm 0.7",
+    "claim": "Mutant 57f696b2f988d5a9 at optimizer.py:6604 (`elif p_norm < 0.7:` -> `elif p_norm <= 0.7:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's mode moves: baseline 'pre_heat', mutant 'normal'.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "mode of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action's mode bands are half-open: eco [0,0.4), normal [0.4,0.7), pre_heat [0.7,0.9), boost [0.9,1]",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_57f696b2f988d5a9.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_57f696b2f988d5a9.py",
+    "perturbation": {
+     "change": "optimizer.py:6604 `elif p_norm < 0.7:` -> `elif p_norm <= 0.7:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 57f696b2f988d5a9",
+     "direction": "pre_heat -> normal",
+     "expected_direction": "up",
+     "observed_value": "'normal'"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_57f696b2f988d5a9.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 'pre_heat'"
+   }
+  },
+  {
+   "key": "b143b01c4ea02159",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6604 GUARD_OFF",
+   "patch": "elif p_norm < 0.7: -> elif False:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1c",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2859.6,
+    "child_cpu_s": 4766.3,
+    "load1_start": 0.87,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/b143b01c4ea02159.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b143b01c4ea02159",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py",
+    "metric": "mode of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "'normal'",
+    "mutant_value": "'pre_heat'",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "space power 2.0 kW (p_norm 0.6): baseline 'normal' | mutant 'pre_heat' | moved 1",
+     "space power 2.6 kW (p_norm 0.84) [null]: baseline 'pre_heat' | mutant 'pre_heat' | moved 0",
+     "space power 1.6 kW (p_norm 0.44): baseline 'normal' | mutant 'pre_heat' | moved 1"
+    ],
+    "load1": 0.88,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json"
+   },
+   "should_fail": "tests/features.py #1499 mode block (search 'a space step at the pump's minimum modulation reads eco'; ~L48766-48780): it grades only p_norm 0 (eco) and 1 (boost), so no step ever lands in normal or pre_heat or on the 0.4/0.7/0.9 edges; entities.py and config_flow_steps.py execute L6604 without asserting the mode. It lacks any step with p_norm in [0.4, 0.7) asserting mode 'normal'",
+   "class": "candidate",
+   "finding": {
+    "title": "No check ever yields mode 'normal' from get_current_action; dropping the band is unseen",
+    "claim": "Mutant b143b01c4ea02159 at optimizer.py:6604 (`elif p_norm < 0.7:` -> `elif False:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's mode moves: baseline 'normal', mutant 'pre_heat'.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "mode of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action's mode bands are half-open: eco [0,0.4), normal [0.4,0.7), pre_heat [0.7,0.9), boost [0.9,1]",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py",
+    "perturbation": {
+     "change": "optimizer.py:6604 `elif p_norm < 0.7:` -> `elif False:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b143b01c4ea02159",
+     "direction": "normal -> pre_heat",
+     "expected_direction": "up",
+     "observed_value": "'pre_heat'"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 'normal'"
+   }
+  },
+  {
+   "key": "a581feadd69c6c42",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6606 GUARD_OFF",
+   "patch": "elif p_norm < 0.9: -> elif False:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1c",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2822.5,
+    "child_cpu_s": 4710.8,
+    "load1_start": 0.84,
+    "load1_end": 0.96,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/a581feadd69c6c42.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a581feadd69c6c42",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+    "metric": "mode of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "'pre_heat'",
+    "mutant_value": "'boost'",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "space power 2.5 kW (p_norm 0.8): baseline 'pre_heat' | mutant 'boost' | moved 1",
+     "space power 2.0 kW (p_norm 0.6) [null]: baseline 'normal' | mutant 'normal' | moved 0",
+     "space power 2.25 kW (p_norm 0.7): baseline 'pre_heat' | mutant 'boost' | moved 1"
+    ],
+    "load1": 0.9,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json"
+   },
+   "should_fail": "tests/features.py #1499 mode block (search 'a space step at the pump's minimum modulation reads eco'; ~L48766-48780): it grades only p_norm 0 (eco) and 1 (boost), so no step ever lands in normal or pre_heat or on the 0.4/0.7/0.9 edges; entities.py and config_flow_steps.py execute L6606 without asserting the mode. It lacks any step with p_norm in [0.7, 0.9) asserting mode 'pre_heat'",
+   "class": "candidate",
+   "finding": {
+    "title": "No check ever yields mode 'pre_heat' from get_current_action; dropping the band is unseen",
+    "claim": "Mutant a581feadd69c6c42 at optimizer.py:6606 (`elif p_norm < 0.9:` -> `elif False:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's mode moves: baseline 'pre_heat', mutant 'boost'.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "mode of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action's mode bands are half-open: eco [0,0.4), normal [0.4,0.7), pre_heat [0.7,0.9), boost [0.9,1]",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+    "perturbation": {
+     "change": "optimizer.py:6606 `elif p_norm < 0.9:` -> `elif False:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a581feadd69c6c42",
+     "direction": "pre_heat -> boost",
+     "expected_direction": "up",
+     "observed_value": "'boost'"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_a581feadd69c6c42.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 'pre_heat'"
+   }
+  },
+  {
+   "key": "e96ae75a1f1f213e",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6606 CMP_BOUND",
+   "patch": "elif p_norm < 0.9: -> elif p_norm <= 0.9:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 2800.1,
+    "child_cpu_s": 4649.7,
+    "load1_start": 0.9,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.30GHz, one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/e96ae75a1f1f213e.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e96ae75a1f1f213e",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e96ae75a1f1f213e.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e96ae75a1f1f213e.py",
+    "metric": "mode of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "'boost'",
+    "mutant_value": "'pre_heat'",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "space power 2.75 kW (p_norm 0.9): baseline 'boost' | mutant 'pre_heat' | moved 1",
+     "space power 3.0 kW (p_norm 1) [null]: baseline 'boost' | mutant 'boost' | moved 0",
+     "space power 2.6 kW (p_norm 0.84): baseline 'pre_heat' | mutant 'pre_heat' | moved 0"
+    ],
+    "load1": 0.93,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py #1499 mode block (search 'a space step at the pump's minimum modulation reads eco'; ~L48766-48780): it grades only p_norm 0 (eco) and 1 (boost), so no step ever lands in normal or pre_heat or on the 0.4/0.7/0.9 edges; entities.py and config_flow_steps.py execute L6606 without a mode assertion at the edge. It lacks a step at p_norm exactly 0.9 asserting mode 'boost'",
+   "class": "candidate",
+   "finding": {
+    "title": "No check pins the pre_heat/boost mode edge at p_norm 0.9",
+    "claim": "Mutant e96ae75a1f1f213e at optimizer.py:6606 (`elif p_norm < 0.9:` -> `elif p_norm <= 0.9:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's mode moves: baseline 'boost', mutant 'pre_heat'.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "mode of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action's mode bands are half-open: eco [0,0.4), normal [0.4,0.7), pre_heat [0.7,0.9), boost [0.9,1]",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e96ae75a1f1f213e.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e96ae75a1f1f213e.py",
+    "perturbation": {
+     "change": "optimizer.py:6606 `elif p_norm < 0.9:` -> `elif p_norm <= 0.9:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e96ae75a1f1f213e",
+     "direction": "boost -> pre_heat",
+     "expected_direction": "up",
+     "observed_value": "'pre_heat'"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e96ae75a1f1f213e.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 'boost'"
+   }
+  },
+  {
+   "key": "d0de1c16101369f5",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6632 CMP_BOUND",
+   "patch": "if result.valve_target_schedule and i < len(result.valve_target_schedule): -> if result.valve_target_schedule and i <= len(result.valve_target_schedule):",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3695.8,
+    "child_cpu_s": 6097.6,
+    "load1_start": 0.68,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/d0de1c16101369f5.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d0de1c16101369f5",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_d0de1c16101369f5.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_d0de1c16101369f5.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "valve_target=absent",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline valve_target=absent | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline valve_target=0.5 | mutant valve_target=0.5 | moved 0",
+     "now = step 3 (i > len): baseline valve_target=absent | mutant valve_target=absent | moved 0",
+     "now = step 0: baseline valve_target=0.5 | mutant valve_target=0.5 | moved 0"
+    ],
+    "load1": 0.96,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py execute L6632 only with full-length schedules. It lacks a read at step 2 asserting no valve_target key and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads valve_target_schedule at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant d0de1c16101369f5 at optimizer.py:6632 (`if result.valve_target_schedule and i < len(result.valve_target_schedule):` -> `if result.valve_target_schedule and i <= len(result.valve_target_schedule):`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline valve_target=absent, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_d0de1c16101369f5.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_d0de1c16101369f5.py",
+    "perturbation": {
+     "change": "optimizer.py:6632 `if result.valve_target_schedule and i < len(result.valve_target_schedule):` -> `if result.valve_target_schedule and i <= len(result.valve_target_schedule):`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d0de1c16101369f5",
+     "direction": "valve_target absent -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_d0de1c16101369f5.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value valve_target=absent"
+   }
+  },
+  {
+   "key": "f8b7db7badd35158",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6638 CMP_BOUND",
+   "patch": "if result.upper_setpoints and i < len(result.upper_setpoints): -> if result.upper_setpoints and i <= len(result.upper_setpoints):",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3645.7,
+    "child_cpu_s": 6124.0,
+    "load1_start": 0.93,
+    "load1_end": 1.0,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/f8b7db7badd35158.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f8b7db7badd35158",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f8b7db7badd35158.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f8b7db7badd35158.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "upper_setpoint=absent",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline upper_setpoint=absent | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline upper_setpoint=0.5 | mutant upper_setpoint=0.5 | moved 0",
+     "now = step 3 (i > len): baseline upper_setpoint=absent | mutant upper_setpoint=absent | moved 0",
+     "now = step 0: baseline upper_setpoint=0.5 | mutant upper_setpoint=0.5 | moved 0"
+    ],
+    "load1": 0.92,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py execute L6638 only with full-length schedules. It lacks a read at step 2 asserting no upper_setpoint key and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads upper_setpoints at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant f8b7db7badd35158 at optimizer.py:6638 (`if result.upper_setpoints and i < len(result.upper_setpoints):` -> `if result.upper_setpoints and i <= len(result.upper_setpoints):`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline upper_setpoint=absent, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f8b7db7badd35158.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f8b7db7badd35158.py",
+    "perturbation": {
+     "change": "optimizer.py:6638 `if result.upper_setpoints and i < len(result.upper_setpoints):` -> `if result.upper_setpoints and i <= len(result.upper_setpoints):`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f8b7db7badd35158",
+     "direction": "upper_setpoint absent -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f8b7db7badd35158.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value upper_setpoint=absent"
+   }
+  },
+  {
+   "key": "cd766b55c44ca3ee",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6640 CMP_BOUND",
+   "patch": "if result.lower_setpoints and i < len(result.lower_setpoints): -> if result.lower_setpoints and i <= len(result.lower_setpoints):",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3521.0,
+    "child_cpu_s": 5801.1,
+    "load1_start": 1.01,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/cd766b55c44ca3ee.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cd766b55c44ca3ee",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "lower_setpoint=absent",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline lower_setpoint=absent | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline lower_setpoint=0.5 | mutant lower_setpoint=0.5 | moved 0",
+     "now = step 3 (i > len): baseline lower_setpoint=absent | mutant lower_setpoint=absent | moved 0",
+     "now = step 0: baseline lower_setpoint=0.5 | mutant lower_setpoint=0.5 | moved 0"
+    ],
+    "load1": 0.95,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py execute L6640 only with full-length schedules. It lacks a read at step 2 asserting no lower_setpoint key and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads lower_setpoints at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant cd766b55c44ca3ee at optimizer.py:6640 (`if result.lower_setpoints and i < len(result.lower_setpoints):` -> `if result.lower_setpoints and i <= len(result.lower_setpoints):`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline lower_setpoint=absent, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py",
+    "perturbation": {
+     "change": "optimizer.py:6640 `if result.lower_setpoints and i < len(result.lower_setpoints):` -> `if result.lower_setpoints and i <= len(result.lower_setpoints):`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key cd766b55c44ca3ee",
+     "direction": "lower_setpoint absent -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_cd766b55c44ca3ee.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value lower_setpoint=absent"
+   }
+  },
+  {
+   "key": "724471c27310230f",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6644 CMP_BOUND",
+   "patch": "if result.solar_gain_trajectory and i < len(result.solar_gain_trajectory): -> if result.solar_gain_trajectory and i <= len(result.solar_gain_trajectory):",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1b",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3585.4,
+    "child_cpu_s": 5996.6,
+    "load1_start": 0.94,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/724471c27310230f.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 724471c27310230f",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "solar_gain_kw=absent",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline solar_gain_kw=absent | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline solar_gain_kw=0.5 | mutant solar_gain_kw=0.5 | moved 0",
+     "now = step 3 (i > len): baseline solar_gain_kw=absent | mutant solar_gain_kw=absent | moved 0",
+     "now = step 0: baseline solar_gain_kw=0.5 | mutant solar_gain_kw=0.5 | moved 0"
+    ],
+    "load1": 0.77,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py execute L6644 only with full-length schedules. It lacks a read at step 2 asserting no solar_gain_kw key and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads solar_gain_trajectory at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant 724471c27310230f at optimizer.py:6644 (`if result.solar_gain_trajectory and i < len(result.solar_gain_trajectory):` -> `if result.solar_gain_trajectory and i <= len(result.solar_gain_trajectory):`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline solar_gain_kw=absent, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py",
+    "perturbation": {
+     "change": "optimizer.py:6644 `if result.solar_gain_trajectory and i < len(result.solar_gain_trajectory):` -> `if result.solar_gain_trajectory and i <= len(result.solar_gain_trajectory):`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 724471c27310230f",
+     "direction": "solar_gain_kw absent -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value solar_gain_kw=absent"
+   }
+  },
+  {
+   "key": "970ed4d74c36caa1",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6648 CMP_BOUND",
+   "patch": "if result.dhw_power_schedule and i < len(result.dhw_power_schedule): -> if result.dhw_power_schedule and i <= len(result.dhw_power_schedule):",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1c",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3612.8,
+    "child_cpu_s": 5961.9,
+    "load1_start": 0.77,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/970ed4d74c36caa1.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 970ed4d74c36caa1",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_970ed4d74c36caa1.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_970ed4d74c36caa1.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "dhw_power=absent",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline dhw_power=absent | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline dhw_power=0.5 | mutant dhw_power=0.5 | moved 0",
+     "now = step 3 (i > len): baseline dhw_power=absent | mutant dhw_power=absent | moved 0",
+     "now = step 0: baseline dhw_power=0.5 | mutant dhw_power=0.5 | moved 0"
+    ],
+    "load1": 0.77,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py execute L6648 only with full-length schedules. It lacks a read at step 2 asserting no dhw_power key and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads dhw_power_schedule at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant 970ed4d74c36caa1 at optimizer.py:6648 (`if result.dhw_power_schedule and i < len(result.dhw_power_schedule):` -> `if result.dhw_power_schedule and i <= len(result.dhw_power_schedule):`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline dhw_power=absent, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_970ed4d74c36caa1.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_970ed4d74c36caa1.py",
+    "perturbation": {
+     "change": "optimizer.py:6648 `if result.dhw_power_schedule and i < len(result.dhw_power_schedule):` -> `if result.dhw_power_schedule and i <= len(result.dhw_power_schedule):`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 970ed4d74c36caa1",
+     "direction": "dhw_power absent -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_970ed4d74c36caa1.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value dhw_power=absent"
+   }
+  },
+  {
+   "key": "1d11f24436471959",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6651 CMP_BOUND",
+   "patch": "action[\"dhw_heating_active\"] = dhw_power > 0.1 -> action[\"dhw_heating_active\"] = dhw_power >= 0.1",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1a",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3598.5,
+    "child_cpu_s": 6105.7,
+    "load1_start": 0.79,
+    "load1_end": 0.86,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/1d11f24436471959.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d11f24436471959",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+    "metric": "dhw_heating_active of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "False",
+    "mutant_value": "True",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "dhw_power 0.1 kW (exactly the threshold): baseline False | mutant True | moved 1",
+     "dhw_power 0.2 kW [null]: baseline True | mutant True | moved 0",
+     "dhw_power 0.0 kW: baseline False | mutant False | moved 0",
+     "dhw_power 0.1000001 kW: baseline True | mutant True | moved 0"
+    ],
+    "load1": 0.8,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (~L48684-48740) reads dhw_heating_active only at dhw_power 0.5, and tests/features.py ~L4764-4856 and ~L43295-43317 assert it on hand-built action dicts, not on get_current_action; entities.py executes L6651 without the edge. It lacks a get_current_action read at dhw_power exactly 0.1 asserting dhw_heating_active False",
+   "class": "candidate",
+   "finding": {
+    "title": "No check pins dhw_heating_active at exactly the 0.1 kW threshold",
+    "claim": "Mutant 1d11f24436471959 at optimizer.py:6651 (`action[\"dhw_heating_active\"] = dhw_power > 0.1` -> `action[\"dhw_heating_active\"] = dhw_power >= 0.1`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's dhw_heating_active moves: baseline False, mutant True.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "dhw_heating_active of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "dhw_heating_active is true strictly above 0.1 kW of planned DHW draw",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+    "perturbation": {
+     "change": "optimizer.py:6651 `action[\"dhw_heating_active\"] = dhw_power > 0.1` -> `action[\"dhw_heating_active\"] = dhw_power >= 0.1`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d11f24436471959",
+     "direction": "False -> True",
+     "expected_direction": "up",
+     "observed_value": "True"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value False"
+   }
+  },
+  {
+   "key": "e16ae8a6fd6cea40",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6653 CMP_BOUND",
+   "patch": "if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory): -> if result.dhw_temp_trajectory and i <= len(result.dhw_temp_trajectory):",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1d",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3462.4,
+    "child_cpu_s": 5676.9,
+    "load1_start": 0.72,
+    "load1_end": 0.92,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/e16ae8a6fd6cea40.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e16ae8a6fd6cea40",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e16ae8a6fd6cea40.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e16ae8a6fd6cea40.py",
+    "metric": "outcome of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "dhw_temperature=absent",
+    "mutant_value": "raised:IndexError",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline dhw_temperature=absent | mutant raised:IndexError | moved 1",
+     "now = step 1 (i < len) [null]: baseline dhw_temperature=0.5 | mutant dhw_temperature=0.5 | moved 0",
+     "now = step 3 (i > len): baseline dhw_temperature=absent | mutant dhw_temperature=absent | moved 0",
+     "now = step 0: baseline dhw_temperature=0.5 | mutant dhw_temperature=0.5 | moved 0"
+    ],
+    "load1": 0.8,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+   },
+   "should_fail": "tests/features.py short-schedule block (search 'past a short optional schedule get_current_action falls back'; ~L48684-48740): it reads a 2-long optional schedule at step 1 (inside) and at step 3 + 1 min (past), never at step 2, the one index equal to the schedule's length where `<` and `<=` differ; entities.py and config_flow_steps.py execute L6653 only with full-length trajectories. It lacks a read at step 2 asserting no dhw_temperature key and no exception",
+   "class": "candidate",
+   "finding": {
+    "title": "No check reads dhw_temp_trajectory at the index equal to its length; the bound is unpinned",
+    "claim": "Mutant e16ae8a6fd6cea40 at optimizer.py:6653 (`if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):` -> `if result.dhw_temp_trajectory and i <= len(result.dhw_temp_trajectory):`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's outcome moves: baseline dhw_temperature=absent, mutant raised:IndexError.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "outcome of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "get_current_action reads an optional per-step schedule only below its length and falls back (no IndexError) at every index >= len",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e16ae8a6fd6cea40.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e16ae8a6fd6cea40.py",
+    "perturbation": {
+     "change": "optimizer.py:6653 `if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):` -> `if result.dhw_temp_trajectory and i <= len(result.dhw_temp_trajectory):`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e16ae8a6fd6cea40",
+     "direction": "dhw_temperature absent -> IndexError raised",
+     "expected_direction": "up",
+     "observed_value": "raised:IndexError"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_e16ae8a6fd6cea40.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value dhw_temperature=absent"
+   }
+  },
+  {
+   "key": "119b25afdd5d4988",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:6655 GUARD_OFF",
+   "patch": "if result.predictive_info.get(\"dhw_target_temperature\") is not None: -> if False:",
+   "function": "HeatPumpOptimizer.get_current_action",
+   "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+   "slice": "u1a",
+   "fullnet": "SURVIVED",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3927.3,
+    "child_cpu_s": 6511.5,
+    "load1_start": 0.78,
+    "load1_end": 0.93,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "fail_lines": {
+     "python3 tests/closure.py selftest": 2,
+     "python3 tests/entities.py": 1,
+     "python3 tests/harness_headers.py": 3
+    },
+    "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+   },
+   "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/119b25afdd5d4988.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 119b25afdd5d4988",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_119b25afdd5d4988.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_119b25afdd5d4988.py",
+    "metric": "dhw_target_temperature of the action get_current_action returns ('raised:<exc>' when it raises)",
+    "baseline_value": "55.0",
+    "mutant_value": "'absent'",
+    "moved": 1,
+    "null_moved": 0,
+    "inputs_tried": [
+     "predictive_info dhw_target_temperature = 55.0: baseline 55.0 | mutant 'absent' | moved 1",
+     "predictive_info without the key [null]: baseline 'absent' | mutant 'absent' | moved 0",
+     "dhw_target_temperature = 0.0: baseline 0.0 | mutant 'absent' | moved 1"
+    ],
+    "load1": 0.66,
+    "thread_factor": 1.0,
+    "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json"
+   },
+   "should_fail": "tests/features.py, tests/entities.py and tests/config_flow_steps.py execute L6655, but no check calls get_current_action on a result whose predictive_info carries dhw_target_temperature and asserts the action's key (entities.py ~L13244 feeds 52.0 into the sensor data dict directly, past this copy). It lacks that assertion",
+   "class": "candidate",
+   "finding": {
+    "title": "No check asserts get_current_action copies predictive_info's dhw_target_temperature into the action",
+    "claim": "Mutant 119b25afdd5d4988 at optimizer.py:6655 (`if result.predictive_info.get(\"dhw_target_temperature\") is not None:` -> `if False:`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's dhw_target_temperature moves: baseline 55.0, mutant 'absent'.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "stop_rule_class": "hygiene",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+    "metric_definition": "dhw_target_temperature of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+    "phenomenon_property": "When the plan's predictive_info names a dhw_target_temperature, the current action carries it",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_119b25afdd5d4988.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_119b25afdd5d4988.py",
+    "perturbation": {
+     "change": "optimizer.py:6655 `if result.predictive_info.get(\"dhw_target_temperature\") is not None:` -> `if False:`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 119b25afdd5d4988",
+     "direction": "55.0 -> absent",
+     "expected_direction": "up",
+     "observed_value": "'absent'"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_119b25afdd5d4988.py",
+     "value": "null_moved=0 count",
+     "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+    },
+    "files": [
+     "custom_components/heatpump_optimizer/optimizer.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value 55.0"
+   }
+  }
+ ],
+ "equivalent_candidates": [],
+ "procedure": "gate_wave.sh (dispatch ref tool): null control once, then each key in keys.tsv order, one gate at a time, 4 h cap, checkpoint after every gate"
+}

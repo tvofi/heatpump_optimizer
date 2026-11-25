@@ -1,0 +1,85 @@
+{
+ "key": "1d11f24436471959",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6651 CMP_BOUND",
+ "patch": "action[\"dhw_heating_active\"] = dhw_power > 0.1 -> action[\"dhw_heating_active\"] = dhw_power >= 0.1",
+ "function": "HeatPumpOptimizer.get_current_action",
+ "cluster": "optimizer.py:HeatPumpOptimizer.get_current_action@6550-6661",
+ "slice": "u1a",
+ "fullnet": "SURVIVED",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3598.5,
+  "child_cpu_s": 6105.7,
+  "load1_start": 0.79,
+  "load1_end": 0.86,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "provisional_note": "wall/CPU/load provisional: nproc 4, Intel Xeon @ 2.10GHz (re-fire container; gates 1-8 ran on a 2.30GHz container), one gate at a time (judge re-takes)"
+ },
+ "gate_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/gates/1d11f24436471959.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d11f24436471959",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+  "metric": "dhw_heating_active of the action get_current_action returns ('raised:<exc>' when it raises)",
+  "baseline_value": "False",
+  "mutant_value": "True",
+  "moved": 1,
+  "null_moved": 0,
+  "inputs_tried": [
+   "dhw_power 0.1 kW (exactly the threshold): baseline False | mutant True | moved 1",
+   "dhw_power 0.2 kW [null]: baseline True | mutant True | moved 0",
+   "dhw_power 0.0 kW: baseline False | mutant False | moved 0",
+   "dhw_power 0.1000001 kW: baseline True | mutant True | moved 0"
+  ],
+  "load1": 0.8,
+  "thread_factor": 1.0,
+  "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json"
+ },
+ "should_fail": "tests/features.py short-schedule block (~L48684-48740) reads dhw_heating_active only at dhw_power 0.5, and tests/features.py ~L4764-4856 and ~L43295-43317 assert it on hand-built action dicts, not on get_current_action; entities.py executes L6651 without the edge. It lacks a get_current_action read at dhw_power exactly 0.1 asserting dhw_heating_active False",
+ "class": "candidate",
+ "finding": {
+  "title": "No check pins dhw_heating_active at exactly the 0.1 kW threshold",
+  "claim": "Mutant 1d11f24436471959 at optimizer.py:6651 (`action[\"dhw_heating_active\"] = dhw_power > 0.1` -> `action[\"dhw_heating_active\"] = dhw_power >= 0.1`) survives the full gate (RED-AS-NULL, gate_rc 1), yet the probe's dhw_heating_active moves: baseline False, mutant True.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action",
+  "metric_definition": "dhw_heating_active of get_current_action's action on the probe's first input, baseline arm vs the in-memory mutant arm",
+  "phenomenon_property": "dhw_heating_active is true strictly above 0.1 kW of planned DHW draw",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+  "perturbation": {
+   "change": "optimizer.py:6651 `action[\"dhw_heating_active\"] = dhw_power > 0.1` -> `action[\"dhw_heating_active\"] = dhw_power >= 0.1`, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1d11f24436471959",
+   "direction": "False -> True",
+   "expected_direction": "up",
+   "observed_value": "True"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+   "value": "null_moved=0 count",
+   "note": "the probe's [null] input, where the mutated comparison evaluates alike in both arms; the box's gate null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "tests/features.py"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's first input pinning the baseline value False"
+ }
+}
