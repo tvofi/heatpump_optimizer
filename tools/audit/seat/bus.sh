@@ -793,7 +793,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     # A red classify --pr reads from merge_train.introduced_at (R10-INTRODUCED-REDS-BARRIER)
     # carries INTRODUCED lines and names those, not a required context's.
     1) intro=$(printf '%s\n' "$cls" | sed -n 's/^INTRODUCED //p' | awk 'NR > 1 { printf "; " } { printf "%s", $0 }')
-       if [ -n "$intro" ]; then why="instrument-self-tests went red here and not at its merge base (INTRODUCED: $intro)"
+       if [ -n "$intro" ]; then why="instrument-self-tests went red here on a step its diff reaches (INTRODUCED: $intro)"
        else why="a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p'))"; fi
        printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: %s -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$why" >&2; exit 5 ;;
     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
@@ -2340,7 +2340,7 @@ B
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
   expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
   out=$(BUS_CLASSIFY_RC=1 BUS_CLASSIFY_INTRO='(the job concluded timed_out)' dhid 7 "$h1" cmsg_K); rc=$?
-  [ $rc = 5 ] && outhas -qF "is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: (the job concluded timed_out); census)" \
+  [ $rc = 5 ] && outhas -qF "is not reviewable: instrument-self-tests went red here on a step its diff reaches (INTRODUCED: (the job concluded timed_out); census)" \
     && ! outhas -q "required context" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
   expect "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context" $?
   out=$(BUS_CLASSIFY_RC=0 dhid 7 "$h1" cmsg_K); rc=$?

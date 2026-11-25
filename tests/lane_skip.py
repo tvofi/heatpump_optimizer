@@ -53,9 +53,9 @@ The guard rails, each of which ``self-test`` pins by name:
 
 WHAT THE LEVER COSTS, said plainly. A main-side break that lands inside a
 skipped lane's closure is no longer caught by this pull request's rerun: it
-is caught one merge later, by the push-to-main run of the FULL unscoped
+is caught one burst later, by the push-to-main run of the FULL unscoped
 suite on the merged tree -- the same backstop that already underwrites
-GATE_SCOPE=auto (CLAUDE.md rule 1: "main goes red within one merge instead
+GATE_SCOPE=auto (CLAUDE.md rule 1: "main goes red within one burst instead
 of never"). The lever extends the closures table's existing trust from the
 pull request's own diff to main's delta; the table is wrong in exactly the
 worlds where the scoped gate is already wrong, and the same full run

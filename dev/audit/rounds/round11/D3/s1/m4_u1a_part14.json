@@ -1,0 +1,5 @@
+{
+"3b6228b7d69c32bc": {"answer": "coordinator.py:7693 async_publish_ecl110_command: the [displace_min, displace_max] clip of the published ECL110 displacement is dropped, so curve-learner bias can push the MQTT command out of the controller's range. Should fail: an ECL110 publish test with a large learned bias asserting the published displacement is clipped; tests/ecl110 paths do not combine curve learning with a near-limit command.", "kind": "gap"},
+"3b87cd840077679e": {"answer": "grid_fee.py:445 CATALOG_VERSION 1 -> 2. Should fail: a test pinning the catalogue version a stored config is migrated against (or that a v1 store is re-read unchanged); no test reads CATALOG_VERSION.", "kind": "gap"},
+"3b989943cc05b614": {"answer": "thermal_model.py:2594 _valve_two_zone_delivery: drawn > available -> >=. At equality the scale is available/drawn = 1. Equivalent.", "kind": "equivalent"}
+}
