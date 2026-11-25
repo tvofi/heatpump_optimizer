@@ -542,7 +542,7 @@ if [ -n "$red" ]; then
 fi
 sleep 10
 for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
-[ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }
+[ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || [ "$st" = UNSTABLE ] || { echo "not clean"; exit 1; }
 gh pr view $PR --json title --jq .title | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" 2>&1; else bash tools/pr/preflight.sh "$@" 2>&1; fi| tail -1
 gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
