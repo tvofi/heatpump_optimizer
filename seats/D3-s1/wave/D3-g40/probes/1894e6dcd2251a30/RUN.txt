@@ -1,0 +1,22 @@
+DIFF [0, 60, 0.25, 0] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.25, 1] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.25, 2] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.25, 3] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.25, 5] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.5, 0] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.5, 1] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.5, 2] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.5, 3] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+DIFF [0, 60, 0.5, 5] {'len': (0, 1), 'vals': ([], [None]), 'nan': (0, 1), 'n_windows': (0, 1)}
+RESULT inputs=315 count
+RESULT differing_value_or_length=10 count
+RESULT n_peak_windows_differing=10 count
+RESULT nan_windows_mutant=10 count
+RESULT nan_windows_baseline=0 count
+RESULT alias_differing=10 count  (result is / is not the input array object; values equal)
+RESULT runtime_warnings_baseline=0 count
+RESULT runtime_warnings_mutant=40 count
+RESULT null_differing=0 count
+RESULT load1=1.46
+RESULT thread_factor=1.0 ratio  (single-threaded pure-value probe; thread pin set)
+RESULT swapins=0

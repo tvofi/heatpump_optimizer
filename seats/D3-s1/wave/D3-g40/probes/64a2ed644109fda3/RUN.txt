@@ -1,0 +1,12 @@
+RESULT inputs=315 count
+RESULT differing_value_or_length=0 count
+RESULT n_peak_windows_differing=0 count
+RESULT nan_windows_mutant=0 count
+RESULT nan_windows_baseline=0 count
+RESULT alias_differing=200 count  (result is / is not the input array object; values equal)
+RESULT runtime_warnings_baseline=0 count
+RESULT runtime_warnings_mutant=0 count
+RESULT null_differing=0 count
+RESULT load1=1.51
+RESULT thread_factor=1.0 ratio  (single-threaded pure-value probe; thread pin set)
+RESULT swapins=0

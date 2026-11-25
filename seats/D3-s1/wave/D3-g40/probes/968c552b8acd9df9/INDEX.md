@@ -1,0 +1,1 @@
+- probe_968c552b8acd9df9.py (+ probe_lib.py and its search module): 801 >=0 row filter: 0 caller-reachable moves; 20 direct moves on rows with max 0 and negatives (up to 6.0). RUN.txt is its output.
