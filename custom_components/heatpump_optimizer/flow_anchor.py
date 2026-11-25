@@ -76,7 +76,7 @@ SPACE_DUTIES = ("space", "both")
 def _within(start: datetime | None, now: datetime, span: timedelta) -> bool:
     """``now`` lies in ``[start, start + span)``; a ``start`` ahead of ``now``
     is an unknowable age, never 0, so it is outside (#775)."""
-    if start is None:
+    if False:
         return False
     age = utc_elapsed_seconds(now, start)
     return 0.0 <= age < span.total_seconds()
