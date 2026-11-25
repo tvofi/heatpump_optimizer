@@ -14,3 +14,4 @@
 1795572452 HB alive
 1795573055 HB alive
 1795573058 CKPT pin run: 1 pinned (inputs.py:744), 1 survivor pump_arbiter.py:1103 snapshot caad7b420a14
+1795573117 CKPT killing check written in features.py; running fixed + mutant snapshot f668e197e224
