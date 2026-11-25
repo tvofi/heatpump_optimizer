@@ -1995,13 +1995,19 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
         return None
     if boosts.active(boost.CHANNEL_SPACE, now) or boosts.active(boost.CHANNEL_DHW, now):
         return True
+    i = _covering_step(inp, now)
+    return None if i is None else plan_step_runs(inp.plan, i)
+
+
+def _covering_step(inp: ArbiterInputs, now: datetime) -> int | None:
+    """The plan step covering ``now``, or ``None`` outside the plan or past its power schedule."""
     i = plan_step_index(inp.plan, now)
-    return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
+    return None if i is None or i >= len(inp.plan.power_schedule or ()) else i
 
 
 def step_gate(inp: ArbiterInputs, now: datetime) -> bool:
-    """The one gate of the step tick's halves: :func:`_plan_speaks` on a plan covering ``now``."""
-    return _plan_speaks(inp) and plan_step_index(inp.plan, now) is not None
+    """The one gate of the step tick's halves: :func:`_plan_speaks` on a step :func:`_covering_step` reads."""
+    return _plan_speaks(inp) and _covering_step(inp, now) is not None
 
 
 def _plan_speaks(inp: ArbiterInputs) -> bool:

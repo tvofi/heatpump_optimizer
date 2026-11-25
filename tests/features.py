@@ -65603,6 +65603,7 @@ async def _r11ar_cycle(c, minute, post=False):
     _r11ar_dt.freeze(_R11AR_T0 + timedelta(minutes=minute))
     c._last_optimization = _R11AR_T0 + timedelta(minutes=minute)  # a fresh plan
     await c._apply_action()
+    await c.async_publish_current_action(reason="scheduled_update")  # the step tail's publish (it left _apply_action)
     await c._command_frequency()
     await c._command_valve_target()
     await c._async_drive_pumps()
@@ -70008,7 +70009,7 @@ async def _p6_switch(eid):
 from heatpump_optimizer import circulation as _circ  # noqa: E402
 async def _p6_pump(eid):
     key = eid.split(".p6_", 1)[1]  # the census names each entity after the slot it fills
-    coord = _p6_coord({}, **{key: eid})
+    coord = _p6_coord({eid: FakeState("off")}, **{key: eid})  # a write goes only to an entity with a state
     pump = _circ.SPACE if key == hp_const.CONF_SPACE_PUMP_ENTITY else _circ.DHW
     await _circ.command(coord.hass, coord.entry, coord._config, pump, True, "p6")
     await _circ.command(coord.hass, coord.entry, coord._config, pump, False, "p6")
@@ -70169,7 +70170,7 @@ async def _p6_off_ecl(eid):
 
 
 async def _p6_off_pumps(eid):
-    coord = _p6_coord({}, **{hp_const.CONF_VVC_PUMP_ENTITY: eid})
+    coord = _p6_coord({eid: FakeState("off")}, **{hp_const.CONF_VVC_PUMP_ENTITY: eid})
     await coord._async_drive_pumps()
     return coord.hass.services.calls
 
@@ -85429,7 +85430,7 @@ async def _ls_events_inside_learners():
     the house-loss await of one ``_update_current_state``."""
     coord = _ls_guard_coord()
     coord._current_action["displace_value"] = 2.0
-    track, learn = coord._legionella.async_track_cycle, coord._async_learn_house_heat_loss
+    track, learn = coord._legionella.async_observe, coord._async_learn_house_heat_loss  # the cycle's legionella await
 
     async def _track(*args, **kwargs):
         coord._async_handle_ecl110_state_message(
@@ -85440,7 +85441,7 @@ async def _ls_events_inside_learners():
         _ls_engage_guard(coord)
         return await learn(*args, **kwargs)
 
-    coord._legionella.async_track_cycle = _track
+    coord._legionella.async_observe = _track
     coord._async_learn_house_heat_loss = _learn
     await coord._update_current_state()
     expect = coord._thermal_model.update_ecl110_displace_state(
@@ -88556,11 +88557,26 @@ _SA_DUTIES = "s-ss--s-s---ss-s"
 
 def _sa_plan():
     n = len(_SA_DUTIES)
-    return SimpleNamespace(
+    # A real result: the step tick re-cuts the action from the plan, which reads the whole record.
+    return _OptResult(
         timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(n)],
         power_schedule=[1.5 if c == "s" else 0.0 for c in _SA_DUTIES],
         dhw_power_schedule=[0.0] * n,
         optimal_setpoints=[21.0] * n,
+        prices=[1.0] * n,
+        room_temp_trajectory=[21.0] * n, slab_temp_trajectory=[21.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0, savings_percentage=0.0, status="ok",
+    )
+
+
+def _sa_real(timestamps, power_schedule, dhw_power_schedule, optimal_setpoints):
+    """A real result, as ``_sa_plan``: the step tick re-cuts the action from it, which reads the whole record."""
+    n = len(timestamps)
+    return _OptResult(
+        timestamps=timestamps, power_schedule=power_schedule, dhw_power_schedule=dhw_power_schedule,
+        optimal_setpoints=optimal_setpoints, prices=[1.0] * n,
+        room_temp_trajectory=[21.0] * n, slab_temp_trajectory=[21.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0, savings_percentage=0.0, status="ok",
     )
 
 
@@ -88765,7 +88781,7 @@ async def _sa_gate_tick(cut=False, blocked=False):
     coord._mode = "auto"
     t0 = _SA_T0 - timedelta(minutes=15)
     duties = "s-ss"
-    coord._optimization_result = SimpleNamespace(
+    coord._optimization_result = _sa_real(
         timestamps=[t0 + timedelta(minutes=15 * i) for i in range(len(duties))],
         power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
         dhw_power_schedule=[0.0] * len(duties),
@@ -88919,7 +88935,7 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
         _mb_inputs = coord.arbiter_inputs
         coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
     t0 = _SA_T0 - timedelta(minutes=15)
-    coord._optimization_result = SimpleNamespace(
+    coord._optimization_result = _sa_real(
         timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
         dhw_power_schedule=[0.0, 0.0 if space else 2.0],
         optimal_setpoints=[21.0, 21.0],
@@ -89116,7 +89132,7 @@ async def _ms_stale(minute):
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"},
                                   entry_id=f"ms{next(_MS_IDS)}"))
     coord._mode = "auto"
-    coord._optimization_result = SimpleNamespace(
+    coord._optimization_result = _sa_real(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
         dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
     armed = _sa_pa.async_track_time_interval
@@ -89159,7 +89175,7 @@ async def _ms_cycle(minute, *, sched=(1.5, 0.0), cut=True, mode="auto", boosted=
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"},
                                   entry_id=f"ms{next(_MS_IDS)}"))  # a persisted off-restore record is per entry id
     coord._mode = mode
-    coord._optimization_result = SimpleNamespace(
+    coord._optimization_result = _sa_real(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=list(sched),
         dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
     armed, real = _sa_pa.async_track_time_interval, _sa_pa.cycle_supply
@@ -89265,10 +89281,14 @@ async def _ms_run(duties, switch, events, until=20, off_at=None, entity="switch.
     hass = FakeHass({} if not entity else {entity: FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": entity, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
-    coord._optimization_result = SimpleNamespace(
-        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+    n = len(duties)  # a real result: the step tick re-cuts the action from it, which reads the whole record
+    coord._optimization_result = _OptResult(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(n)],
         power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
-        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties)) if plan else None
+        dhw_power_schedule=[0.0] * n, optimal_setpoints=[21.0] * n, prices=[1.0] * n,
+        room_temp_trajectory=[21.0] * n, slab_temp_trajectory=[21.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0, savings_percentage=0.0, status="ok",
+    ) if plan else None
     writes, frozen = [], None
     try:
         for m in range(until + 1):
@@ -92673,12 +92693,13 @@ def _rp2_share(minutes_in):
 
 
 _rp2_real = (_rp2_share(5.9), _rp2_share(6.1), _pa.ArbiterState().log.maxlen)
-_rp2_saved = _pa.PLAN_STEP_MINUTES
-_pa.PLAN_STEP_MINUTES = 30
+from heatpump_optimizer import arbiter_record as _rp2_ar  # noqa: E402  (the record's log reads its own width)
+_rp2_saved = _pa.PLAN_STEP_MINUTES, _rp2_ar.PLAN_STEP_MINUTES
+_pa.PLAN_STEP_MINUTES = _rp2_ar.PLAN_STEP_MINUTES = 30
 try:
     _rp2_wide = (_rp2_share(11.9), _rp2_share(12.1), _pa.ArbiterState().log.maxlen)
 finally:
-    _pa.PLAN_STEP_MINUTES = _rp2_saved
+    _pa.PLAN_STEP_MINUTES, _rp2_ar.PLAN_STEP_MINUTES = _rp2_saved
 R.check(
     "R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a "
     "30-minute step (6 of a 15-minute one) and the log holds a day of steps",
