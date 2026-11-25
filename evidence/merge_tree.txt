@@ -1,3 +1,5 @@
-head 19eafc0fb12c80b3b2c8a7d6f130c28150690e7a origin/main 49cb3207a997b4f38c11cb2f1adf4b8d613e06ea
-440dd328e81281f3a63ab173b193d51172d0bfb3
-rc=0
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (600 entries)
+  re-run the gate that owns this file before pushing
+9cecf203f9e817a71b303a13a12fd43b45955334
+rc=0 origin/main bb6377b4dad4e398d1a28bde54d30036a5b25a82

@@ -1,51 +1,45 @@
-Fix review: blocked 19eafc0fb12c80b3b2c8a7d6f130c28150690e7a mutation-vacuous: pump_arbiter.py:936 GUARD_OFF (O-M7, the high-limit cap in _boost_ceiling_c) survives and is provably equivalent; the body says that cap was deleted, but it is still at the head
+Fix review: blocked 6fb0f76ae8f54632dc6e80fc6ca696dab104d5e0 tests-red: tests / fast (3.14) fails tests/entities.py's #1218 selection-cost note: this head's closures give 184 of the 561 pairs, tests/deployment_shape.py's note still says 182
 
-bus-nonce: 9dae893d9725ed0b50d989d7b76b7876
-
-Round 1 (full review, no reviewed head). Local fix-review seat replacing the unstarted cloud reviewer of this dispatch; worktree detached at the head, merge base 8cc3fb3e35.
+bus-nonce: 89c90a3b37b2015f2394929b0e7aaafa
 
 ## Block
 
-- `custom_components/heatpump_optimizer/pump_arbiter.py:936-937`, in `_boost_ceiling_c`: `if (limit := _space_limit_c(inp)) is not None: caps.append(limit)`. The body ("Departures", third bullet, and M7 under "Mutation proof") says this cap was removed in `ea4b6dd401` and that "the mutant site no longer exists". It was never removed: `ea4b6dd401` touches only `tests/features.py` (2+/2-), and every commit from `01a105fa9b` to the head carries the line (`ev/m7_site_at_head.txt`).
-- The site is a survivor. With GUARD_OFF applied (`if False:`), the FLOWCAP block passes 12 of 12 (`ev/mut_O_M7_boost_ceiling_cap_GUARD_OFF_.txt`). It is also equivalent by construction, so no test can kill it. `_boost_ceiling_c` has one caller, `_map_inputs` (`pump_arbiter.py:1009`). That caller takes `min(boost_c, _space_limit_c(inp) or inf)` over the same value, so `min(min(caps + [L]), L) == min(min(caps), L)`.
-- The body's `## Unpinned sites` lists `pump_arbiter.py:936 GUARD_OFF: pinned by mutation-autofix`. Autofix pins only killed mutants, so this site stays an unpinned survivor in `tests / mutation`.
-- Repair, which is what the body already says was done: delete the two lines, and the docstring clause "and by the high limit (:func:`_space_limit_c`: ...)", from `_boost_ceiling_c`. Then re-take M8 at the new head. On this head M8 alone fails 4 of 12 (`ev/mut_O_M8_map_top_ignores_limit_.txt`), not the body's "6 at the head". 6 is what M7 and M8 together fail here (`ev/mut_O_M7_M8_.txt`).
+Delta round (reviewed head 19eafc0fb12c, now 6fb0f76ae8f5). The prior finding is resolved, and the code delta is sound. The head is still not mergeable: the required `tests / fast (3.14)` is red, because of this branch's own merge.
+
+- CI run 45574230739, job 139069398309 (`ev/fast_job.log`):
+  - `FAILED python3 tests/entities.py`, `1 of 2762 ENTITY CHECKS FAILED`;
+  - the failing check is `and the lane's docstring records those measured numbers as the selection-cost note (#1218)`, with `missing markers -> ['184 of the 561']`;
+  - `gate` reads `FAIL tests / fast (3.14): failure (this run)`.
+- Cause (`ev/d308.txt`, entities.py's own pair predicate re-run on each tree's `tests/closures.json`):
+  - main f52e700d and main bb6377b4 both read 182 of 561, and the note matches.
+  - a83f56d8 (this branch, before its last merge) also reads 182.
+  - d25757cc (the merge of main f52e700d) reads 184. The +2 pairs are `env_drift.py`/`manual_plan.py` and `golden.py`/`manual_plan.py`: they are main's closures with this PR's `flow_limit.py` added to them. The production-file count is 122.
+  - `tests/deployment_shape.py`'s note still says `182 of the 561` and `all 182 among the 435`.
+  - The body's step-6 re-execution ran `deployment_shape.py` and `doc_claims.py` but not `tests/entities.py`, the script that owns this marker.
+- Repair: update the note in `tests/deployment_shape.py` to 184 (both places). Add a history clause: 182 on main before R11-OWNER-FLOWCAP's `flow_limit.py` joined those closures. Then re-run `tests/entities.py`. A delta reviewer judges the new head.
 
 ## Findings
 
-- Note: design-departure: design `fa8cd134` rule 5 (a limit under the entity's minimum is raised to the minimum) is not built. The design's own "Tests the build owes" line "option 35 with minimum 40 gives 40" is pinned the other way: the limit is dropped and a boost writes 70. The departure is disclosed and measured in the body. Rule 4 of the same note runs first and drops any limit under the lowest heating write. `_gate_c` is bounded up to the entity's minimum, so a limit under the minimum is always under that write, and raising it to the minimum would put the cap at the gate, which writes every heating step as off. Carry: dismissed: the design's rule order makes rule 5 unreachable, and the body discloses it with the `min 40` / `min 41, step 5` check as its pin
-- Note: harness: the owner item names no committed finder's harness (the review packet says "Finder's harness: none named"), and the body's `owner_flowcap_harness.py` is the fixer's, out of tree. This review traced the approved design's "Tests the build owes" list instead and did not run the fixer's harness. Carry: dismissed: a feature's harness is its judge's design (fix-review.md step 9); every owed test item but rule 5 is present (Evidence)
+- Prior finding (round 1, blocked 19eafc0fb12c, mutation-vacuous on `pump_arbiter.py:936` GUARD_OFF) is **resolved**, by 6d54e9bd:
+  - the two cap lines in `_boost_ceiling_c` are deleted;
+  - the docstring now points at `_map_inputs`;
+  - `_map_inputs` (:997-999) still takes `min(boost_c or heat ceiling, _space_limit_c(inp) or inf)`, so the boost stays capped where it is written.
+
+  Carry: dismissed: resolved at this head
+- b4a84ed9 shortens five pump_arbiter.py docstrings to pay `module_excess_loc` after #3812. I read each one: the rule and the finding id are kept in each, and no code changed. `docs/architecture.md` now says 65 HA-free modules, which doc_claims measures. Carry: dismissed: no defect
+- The new features.py edge check (8e00fd0f, 27d878ee) kills `pump_arbiter.py:1103` CMP_BOUND, and its 0.1 K arms are real null controls (below). Carry: dismissed: no defect
 
 ## Evidence
 
-- Head measured: 19eafc0fb12c80b3b2c8a7d6f130c28150690e7a (`ev/HEAD.txt`); it matches the body's `## Head`. The role contract is current: `git diff <merge-base>...origin/main -- dev/governance/roles/` printed nothing.
-- Merge: `git merge-tree --write-tree origin/main HEAD` at origin/main 49cb3207a9 exits 0 (`ev/merge_tree.txt`).
-- Mutation proof, re-run with the reviewer-built driver `ev/mut.py` (textual mutants, restored after each run; mutant_run.py was not used). Option block, 12 checks (`ev/flowcap_head.txt`: ALL 12 PASSED at the head):
-  - M1 (`min` to `max`) killed 3
-  - M2 (strict `>`) killed 1
-  - M3 (a dropped source voids the other) killed 1
-  - M4 (floor off) killed 1
-  - M5 (ceiling off) killed 1
-  - M6 (indoor unit reads the limit) killed 1
-  - M7 SURVIVED (above)
-  - M8 killed 4
-  - M9 killed 1
-  - M10 killed 1
-  - M11 (the sensor read bypasses `_setpoint_limits_c`) killed 1
-  - M12 (the option never read) killed 10; the body says 9
-- Clamp block, 7 checks (`ev/clamp_head.txt`: ALL 7 PASSED). C-M1 killed 4, C-M2 killed 2, C-M3 killed 1, C-M4 killed 1, C-M5 killed 1. These match the body's figures.
-- Class enumeration, both rules run at the head (`ev/enum_setpoint_service_calls.txt`, `ev/enum_space_setpoint_consumers.txt`). Every seam returned is in the diff or dispositioned in the body:
-  - Service calls: the valve `write_setpoint_c` at `coordinator.py:728`, the frequency `set_value`, `heat_curve`, `repairs.py`, `services.py`, the GCHV night `set_value` at `pump_arbiter.py:1647`, and `_write`.
-  - Consumers: room path 672 (indoor, excluded), gate 832, `flow_command` 878 (advertised, tested), heating step 972, hold 990, feedback 1079/1115, heating floor 1123, DHW-duty space write 1319 (entity minimum), adopt 1750.
-  - No `class-open`.
-- Design trace against `fa8cd134` "Tests the build owes":
-  - Present: precedence (lower binds, sensor unavailable, crossed pair, neither, option over the advertised maximum), the gate rule with its equality boundary, boost, band top, hold, feedback ceiling, the draw_range not-top check, the indoor exclusion, the options row's 30-70 range with `stored_value_out_of_range`, and the cleared-row seeding in `tests/config_flow_steps.py`.
-  - Departs: rule 5 (Findings).
-- Structure: `python3 tests/structure.py` at the head prints STRUCTURE RATCHET PASSED. The `module_excess_loc` drop is earned: `silent_rows`/`inside_silent` moved to `quiet_windows.py`, which has 694 lines, under the 2000 `MODULE_LOC_LIMIT`. archscore was not re-run.
-- VERSION, the manifest, RELEASE_NOTES.md, tests/golden/ and both claim files are untouched in the three-dot diff.
-- Red checks: `merge_train.py owed-reds` prints `tests / mutation`, `tests / typing`, `validate / validate-hacs`. The body answers `tests / fast (3.14)` and `tests / mutation` at f36611dd23. The head's `tests / mutation` would carry the O-M7 survivor above.
-- CI at this head: `merge_train.py classify 19eafc0f... --pr 3866` printed `WAIT ... pending: gate red: none` from 22:13Z to 22:16Z (arch-score and budget-raise-gate queued, the gate contexts skipped). The block is on code, so the waiter was stopped and no CI result is relied on.
-
-## Friction
-
-none
+- Head reviewed: 6fb0f76ae8f54632dc6e80fc6ca696dab104d5e0 (`ev/HEAD.txt`), which `refs/pull/3866/head` matches.
+  - Delta: `git diff 19eafc0fb12c 6fb0f76ae8f5` (`ev/delta.diff`). It is mostly main merges. The fixer's own commits are 6d54e9bd, 8c2c57a3, b4a84ed9, ee1abf61/7fb673f3/e813b123 (ledger pins), 8e00fd0f and 27d878ee (features.py), and a83f56d8 (closures.json resolution).
+  - `git merge-tree --write-tree origin/main <head>` is clean (`ev/merge_tree.txt`).
+- Harness: there is no finder's harness for this group. As in round 1, the trace is the design's "Tests the build owes" list, run as `tests/features.py` blocks through `tools/audit/seat/features_block.py` with emitted preludes (`ev/drive.sh`, `ev/muts.sh`, `ev/muts.log`):
+  - block A is R11-OWNER-FLOWCAP, 12 checks;
+  - block B is the `_fb_unit` boundary block, 10 checks.
+- Base (head, unmutated): A rc=0, B rc=0.
+- M1103 (`v >= lowest` -> `v > lowest` at :1103): B fails 1 of 10, the new edge check; A passes. The body's M13 claim is confirmed.
+- MCAP, the body's M8 (`_space_limit_c(inp) or math.inf` dropped in `_map_inputs`): A fails 6 of 12, which matches the body's "6 of 12 at 6d54e9bd". The space-boost check is among the six, so the deleted cap's work is now pinned at the one live site.
+- MRESTORE, the null control (the deleted round-1 lines re-added): A rc=0 and B rc=0. Nothing moves, which confirms the deleted lines were equivalent and the deletion changed no behaviour.
+- The tree was restored after each mutant, and `git status` is clean.
+- CI at the head, when read: codeql python, env-matrix, instrument-self-tests, browser and closures were still in progress. The red above is final for this head.

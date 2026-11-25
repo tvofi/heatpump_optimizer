@@ -1,0 +1,7 @@
+f52e700df1 121 182 of the 561 in note: True
+HEAD 122 184 of the 561 in note: False
+  new pairs vs f52e700df1 [('tests/env_drift.py', 'tests/manual_plan.py'), ('tests/golden.py', 'tests/manual_plan.py')] gone []
+bb6377b4da 121 182 of the 561 in note: True
+  new pairs vs f52e700df1 [] gone []
+a83f56d804 121 182 of the 561 in note: True
+  new pairs vs f52e700df1 [] gone []
