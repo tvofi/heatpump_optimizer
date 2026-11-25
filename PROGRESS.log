@@ -58,3 +58,4 @@
 1795566933 HB alive
 1795566948 CKPT setup ok; resuming from f7b68a6c snapshot 09f354abc06e
 1795567056 CKPT main merged at 0c625fae18; structure passes; wip pushed snapshot 8e923d0467f6
+1795567123 CKPT body drafted; prepr scoped running at 0c625fae18 snapshot 83e51b8a96e4
