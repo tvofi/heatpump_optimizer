@@ -14,7 +14,24 @@
 # Null: a draw that splits plan_view.py from card.mjs (SPLIT_PRODUCERS=1) fails card.mjs.
 set -u
 SEED="$1"; OUT="$2"; N="${3:-3}"
-cd "$(dirname "$0")/../../.." || exit 9
+repo_root() {
+  local d="$1"
+  if [ -f "$d" ]; then
+    d=$(dirname "$d")
+  fi
+  d=$(cd "$d" && pwd) || return 1
+  while [ "$d" != "/" ]; do
+    if [ -f "$d/custom_components/heatpump_optimizer/manifest.json" ]; then
+      printf '%s\n' "$d"
+      return 0
+    fi
+    d=$(dirname "$d")
+  done
+  printf 'no repository root above %s\n' "$1" >&2
+  return 1
+}
+ROOT="$(repo_root "$0")" || exit 9
+cd "$ROOT" || exit 9
 mkdir -p "$OUT"
 HPO_FAST_PLAN=$(SEED="$SEED" N="$N" python3 - <<'PY'
 import json, os, random, sys
