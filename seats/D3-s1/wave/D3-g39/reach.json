@@ -1,0 +1,58 @@
+{
+ "sysid.py:610": [
+  "tests/entities.py",
+  "tests/features.py"
+ ],
+ "tariff.py:128": [
+  "tests/config_flow_steps.py",
+  "tests/entities.py",
+  "tests/features.py"
+ ],
+ "tariff.py:235": [
+  "tests/config_flow_steps.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:279": [
+  "tests/config_flow_steps.py",
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:391": [
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:437": [
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:465": [
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:489": [
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:491": [
+  "tests/entities.py",
+  "tests/features.py",
+  "tests/finite_boundary.py"
+ ],
+ "tariff.py:744": [
+  "tests/features.py",
+  "tests/stress.py"
+ ],
+ "tariff.py:747": [
+  "tests/features.py",
+  "tests/stress.py"
+ ],
+ "tariff.py:904": [
+  "tests/features.py",
+  "tests/stress.py"
+ ]
+}
