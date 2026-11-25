@@ -250,7 +250,7 @@ class ExternalHeatIgnoreBlockSwitch(_KeyedSwitch):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Whether the switch is effective: False while detection is off."""
         published = (self.coordinator.data or {}).get("external_heat") or {}
-        return {"block_ignored": bool(published.get("block_ignored"))}
+        return {"block_ignored": False}
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await boost.set_extheat_block_ignored(self.coordinator, True)
