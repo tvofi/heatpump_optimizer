@@ -957,6 +957,20 @@ def self_test() -> int:
     check("C7a: the prelude's output on a product-only pull request", (out["machinery"], out["machinery_rowblind"]),
           ("false", "false"))
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
+    # R11-CI-CASE-SELECT P2: the fast shards are sized by the list the scope reads -- a pull
+    # request's diff, nothing on a full push -- and read their timings at the event's base.
+    seen = []
+
+    def fast(changed, ref):
+        seen.append((changed, ref))
+        return {"fast_shards": '["1/2","2/2"]', "fast_plan": "{}"}
+    bpr = {**pr, "base": {"ref": "main", "sha": "BASE"}}
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=bpr), ["README.md"], g(live), fast=fast)
+    check("P2: the prelude emits the planner's two outputs", (out.get("fast_shards"), out.get("fast_plan")),
+          ('["1/2","2/2"]', "{}"))
+    out, _ = outputs(ctx("push", before="B"), None, g(live), fast=fast)
+    check("P2: a pull request's plan reads its diff at its base; a full push reads all at `before`",
+          seen, [(["README.md"], "BASE"), (None, "B")])
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.
