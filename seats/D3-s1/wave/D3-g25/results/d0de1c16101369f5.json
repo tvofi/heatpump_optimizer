@@ -42,7 +42,7 @@
    "now = step 3 (i > len): baseline valve_target=absent | mutant valve_target=absent | moved 0",
    "now = step 0: baseline valve_target=0.5 | mutant valve_target=0.5 | moved 0"
   ],
-  "load1": 0.86,
+  "load1": 0.96,
   "thread_factor": 1.0,
   "carried_m4": "from dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
  },
