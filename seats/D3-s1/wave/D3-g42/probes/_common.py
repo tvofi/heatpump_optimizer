@@ -14,11 +14,15 @@ def root():
             return c
     raise RuntimeError("no root")
 
+def src_root():
+    """Directory holding the pristine baseline custom_components (env PROBE_BASE, a `git archive` of the baseline; falls back to the tree)."""
+    return Path(os.environ.get("PROBE_BASE") or root())
+
 def scratch(key):
     R = root()
     rec = json.load(open(R / "dev/audit/rounds/round11/D3/s1/state/results/complete" / f"{key}.json"))["mutant"]
     d = Path(tempfile.mkdtemp(prefix=f"d3g42-{key}-"))
-    shutil.copytree(R / "custom_components", d / "custom_components")
+    shutil.copytree(src_root() / "custom_components", d / "custom_components")
     f = d / rec["file"]
     lines = f.read_text().split("\n")
     assert lines[rec["line"] - 1] == rec["old"], (lines[rec["line"] - 1], rec["old"])
@@ -41,7 +45,7 @@ def main(key, measure, pyfile):
         for k, v in measure(mod):
             print(f"RESULT {k}={v!r}")
         return
-    base = child(key, str(root()), pyfile)
+    base = child(key, str(src_root()), pyfile)
     d = scratch(key)
     mut = child(key, str(d), pyfile)
     shutil.rmtree(d, ignore_errors=True)
