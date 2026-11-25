@@ -1065,6 +1065,7 @@
   "ecl110_mqtt_retain": true,
   "external_heat_detection_enabled": true,
   "external_heat_entity": "sensor.seed_external_heat_entity",
+  "fault_hold": true,
   "floor_return_temp_entity": "sensor.seed_floor_return_temp_entity",
   "flow_curve_cop_enabled": true,
   "flow_meter_entity": "sensor.seed_flow_meter_entity",
@@ -2330,6 +2331,12 @@
     "default": "'sensor.seed_dhw_hysteresis_entity'",
     "required": "Optional",
     "selector": "EntitySelector"
+   },
+   "fault_hold": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "BooleanSelector"
    },
    "heat_pump_backup_heater_entity": {
     "config": {
@@ -5085,6 +5092,12 @@
    "default": null,
    "required": "Optional",
    "selector": "EntitySelector"
+  },
+  "fault_hold": {
+   "config": null,
+   "default": "True",
+   "required": "Optional",
+   "selector": "BooleanSelector"
   },
   "heat_pump_backup_heater_entity": {
    "config": {

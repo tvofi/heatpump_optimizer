@@ -795,3 +795,4 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
+config_flow # R11-OWNER-FAULT-HOLD (#3872): the pump-entities page gains the fault_hold option (a BooleanSelector, default on) beside the Fault alarm entity, so the seed, the seeded render and the plain render each gain the key; all three moved leaves are "present on one side only", ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No solve fixture stores the option, so every other fixture is byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
