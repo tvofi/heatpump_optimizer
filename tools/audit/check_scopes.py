@@ -1383,6 +1383,11 @@ def ledger_round_self_test():
         no_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")], classes=whole[:1])
         arms["--round: a seat class with no row in the window prints unread (review/3898: a silent pass)"] = (
             no_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in no_cloud[1])
+        # tokens.tsv is cumulative: a class's row from before the window is no row in it (review/3898 round 2).
+        old_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")],
+                        classes=whole[:1] + [("2025-12-31T12:00:00Z", "cloud-x", "cloud")])
+        arms["--round: a seat class whose only row predates the window prints unread"] = (
+            old_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in old_cloud[1])
         unkeyed = run([("2026-01-02T00:00:00Z", "-"), ("2026-01-02T00:00:00Z", "r11-evaluator")])
         arms["--round: an unkeyed seat row prints unread, and a keyed seat found is still refused"] = (
             "LEDGER unread: 1 seat row(s) with no seat key" in unkeyed[1] and len(unkeyed[0]) == 1)
