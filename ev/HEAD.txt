@@ -1,0 +1,13 @@
+reviewed head: b53176e20626fe0d0a046584efbe5ee2b7a45e21
+pr head at render: bf58a82d54d41285969612255f45c50e1271f2a3
+review_carry: b53176e20 -> bf58a82d5  main=origin/main
+  branch-only commits: 1
+  why: bf58a82d54d41285969612255f45c50e1271f2a3 is a commit after the reviewed head, on a head that is no branch tip of origin: there only an automatic merge of main carries, whatever its subject or author says
+  bf58a82d5  ci: pin killed mutants
+review_carry: FRESH-REVIEW
+
+merge-tree origin/main b53176:
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17297 + both deltas = 17253
+  max_class_loc: 7841 + both deltas = 7823
+exit=0

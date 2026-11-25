@@ -1,0 +1,21 @@
+diff --git a/custom_components/heatpump_optimizer/button.py b/custom_components/heatpump_optimizer/button.py
+index 3e89993361..60dbcf3ab8 100644
+--- a/custom_components/heatpump_optimizer/button.py
++++ b/custom_components/heatpump_optimizer/button.py
+@@ -242,7 +242,7 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
+         """Run the diagnosis, raising as the ``diagnose_interval`` action does
+         when the worker cannot run it (D10-s1-02)."""
+         try:
+-            await self.coordinator.async_diagnose_interval()
++            off_the_action(self, self.coordinator.async_diagnose_interval())
+         except ProcessWorkerUnavailable as err:
+             raise HomeAssistantError(
+                 f"The interval diagnosis could not run for {self._entry.entry_id}: {err}",
+
+=== features block ===
+  ok   a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)
+  FAIL a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)  [(None, None) -- the press returned while its background task raised]
+  ok   a diagnose press whose diagnosis ran returns and asks for no refresh: the diagnosis publishes itself in place, so the press starts no solve (D10-s1-02, D9-s1-01)
+
+1 of 3 FEATURES BLOCK FAILED
+rc=1
