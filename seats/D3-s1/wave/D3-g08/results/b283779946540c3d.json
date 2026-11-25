@@ -1,0 +1,107 @@
+{
+ "key": "b283779946540c3d",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8785 CMP_BOUND",
+ "patch": "if 0.0 < spacing <= 0.25: -> if 0.0 < spacing < 0.25:",
+ "function": "HeatPumpOptimizerCoordinator._on_power_event",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._on_power_event@8766-8806",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3185.1,
+  "load1_start": 1.13,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "provisional": true,
+  "machine": "box D3-g08: nproc 4, Intel Xeon @ 2.10GHz, 16 GB (MACHINE.txt); walls and load1 provisional"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/gates/b283779946540c3d.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.out",
+  "result_lines": [
+   "RESULT three_events_baseline=(((2.0, inf), (6.0, inf), (4.5, inf)), False, 5.8, 1.611111, 0.277778)",
+   "RESULT three_events_mutant=(((2.0, inf), (5.5, inf), (4.0, inf)), False, 4.0, 0.111111, 0.027778)",
+   "RESULT two_events_900_baseline=(((2.0, inf), (6.0, inf)), False, 6.0, 1.5, 0.25)",
+   "RESULT two_events_900_mutant=(((2.0, inf), (5.5, inf)), False, 4.0, 0.0, 0.0)",
+   "RESULT pair_then_900_fuse_baseline=(((2.0, 10.0), (3.0, 10.0), (8.9, 10.0)), False, 8.625, 2.3, 0.266667)",
+   "RESULT pair_then_900_fuse_mutant=(((2.0, 10.0), (3.0, 10.0), (7.4, 10.0)), False, 3.0, 0.05, 0.016667)",
+   "RESULT null_spacing_899_baseline=(((2.0, inf), (6.0, inf), (4.499444, inf)), False, 5.7998, 1.609444, 0.2775) mutant=(((2.0, inf), (6.0, inf), (4.499444, inf)), False, 5.7998, 1.609444, 0.2775)",
+   "RESULT null_spacing_901_baseline=(((2.0, inf), (5.499444, inf), (4.0, inf)), False, 4.0, 0.111111, 0.027778) mutant=(((2.0, inf), (5.499444, inf), (4.0, inf)), False, 4.0, 0.111111, 0.027778)",
+   "RESULT null_spacing_60_baseline=(((2.0, inf), (6.0, inf), (4.033333, inf)), False, 5.0, 0.166667, 0.033333) mutant=(((2.0, inf), (6.0, inf), (4.033333, inf)), False, 5.0, 0.166667, 0.033333)",
+   "RESULT cases_moved=3 count of 3",
+   "RESULT null_moved=0 count of 3"
+  ],
+  "baseline_value": "events 900 s apart: the second sample weighted 0.25 h; window mean 5.8 kW (three_events), 6.0 kW (two events)",
+  "mutant_value": "the 900 s sample folds unweighted: window mean 4.0 kW (three_events), 4.0 kW (two events); guard projection 5.5 vs 6.0 kW; cases_moved=3 of 3",
+  "inputs_tried": "0/900/1000 s; 0/900 s; 0/60/960 s with a 10 kW fuse; nulls 899 s, 901 s and 60 s spacing",
+  "run_from": "a clean checkout of the baseline (the gate tree carries mutants while gates run)"
+ },
+ "reach": "a meter whose consecutive processed events are exactly 900 s apart (a 15-minute reporting meter)",
+ "should_fail": {
+  "script": "tests/features.py (traced baseline executes coordinator.py:8785)",
+  "assertion": "the listener checks at features.py:19387-19598 and 53212-53266 use short spacings; none folds a sample exactly 0.25 h after the last and pins its weight"
+ },
+ "finding": {
+  "title": "No check folds a meter sample exactly 15 min after the last; the 0.25 h clamp's <= -> < is unseen",
+  "claim": "Mutant b283779946540c3d (coordinator.py:8785 `spacing <= 0.25` -> `< 0.25`) survives the full gate, yet events 900 s apart move the capacity window's mean from 5.8 kW to 4.0 kW. Full gate verdict RED-AS-NULL.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "mechanism": "Reach: a meter whose consecutive processed events are exactly 900 s apart (a 15-minute reporting meter). Check that should have failed (D3.M4): tests/features.py (traced baseline executes coordinator.py:8785): the listener checks at features.py:19387-19598 and 53212-53266 use short spacings; none folds a sample exactly 0.25 h after the last and pins its weight.",
+  "metric_definition": "PeakTracker open-window mean (window_snapshot) after meter events of 2, 6, 4 kW at 0, 900, 1000 s",
+  "phenomenon_property": "A meter sample up to and including 0.25 h after the last fold is time-weighted",
+  "seam_rule": "awk -F'\\t' 'NR>1' dev/audit/rounds/round11/D3/s1/wave/D3-g08/keys.tsv (this box's full-gate survivors; the wave list: awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._on_power_event",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+   "value": 4.0,
+   "unit": "kW window mean (baseline 5.8)",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g08: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython",
+   "cpu_or_wall": "n/a",
+   "tolerance": "exact",
+   "contention_note": "deterministic value; the full-gate wall and load1 are provisional"
+  },
+  "perturbation": {
+   "change": "mutant b283779946540c3d at custom_components/heatpump_optimizer/coordinator.py:8785 (if 0.0 < spacing <= 0.25: -> if 0.0 < spacing < 0.25:), applied in memory by the probe; full gate: fullgate.py run --src complete --key b283779946540c3d",
+   "expected_direction": "down"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+   "value": "0 count",
+   "note": "899 s, 901 s and 60 s spacings: identical under both arms (null_moved=0 of 3); full-gate null: this box's fullgate.py null (gates/null.json)"
+  },
+  "reproduction_steps": [
+   "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_b283779946540c3d.py",
+   "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b283779946540c3d"
+  ],
+  "proposed_fix_scope": "tests only: a check at the probe's moving input pinning the baseline value",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ]
+ }
+}

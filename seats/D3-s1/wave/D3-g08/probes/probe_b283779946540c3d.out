@@ -1,0 +1,11 @@
+RESULT three_events_baseline=(((2.0, inf), (6.0, inf), (4.5, inf)), False, 5.8, 1.611111, 0.277778)
+RESULT three_events_mutant=(((2.0, inf), (5.5, inf), (4.0, inf)), False, 4.0, 0.111111, 0.027778)
+RESULT two_events_900_baseline=(((2.0, inf), (6.0, inf)), False, 6.0, 1.5, 0.25)
+RESULT two_events_900_mutant=(((2.0, inf), (5.5, inf)), False, 4.0, 0.0, 0.0)
+RESULT pair_then_900_fuse_baseline=(((2.0, 10.0), (3.0, 10.0), (8.9, 10.0)), False, 8.625, 2.3, 0.266667)
+RESULT pair_then_900_fuse_mutant=(((2.0, 10.0), (3.0, 10.0), (7.4, 10.0)), False, 3.0, 0.05, 0.016667)
+RESULT null_spacing_899_baseline=(((2.0, inf), (6.0, inf), (4.499444, inf)), False, 5.7998, 1.609444, 0.2775) mutant=(((2.0, inf), (6.0, inf), (4.499444, inf)), False, 5.7998, 1.609444, 0.2775)
+RESULT null_spacing_901_baseline=(((2.0, inf), (5.499444, inf), (4.0, inf)), False, 4.0, 0.111111, 0.027778) mutant=(((2.0, inf), (5.499444, inf), (4.0, inf)), False, 4.0, 0.111111, 0.027778)
+RESULT null_spacing_60_baseline=(((2.0, inf), (6.0, inf), (4.033333, inf)), False, 5.0, 0.166667, 0.033333) mutant=(((2.0, inf), (6.0, inf), (4.033333, inf)), False, 5.0, 0.166667, 0.033333)
+RESULT cases_moved=3 count of 3
+RESULT null_moved=0 count of 3
