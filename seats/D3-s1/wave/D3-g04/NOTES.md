@@ -22,3 +22,4 @@
 - 01:32Z container restart killed gate d06a2d8e53342785 at 46 min (no record). Stale gate_lock lease D3-s1-r11 and slot run.sh-1224 released (owner pids gone); partial state/gates log removed; re-started 01:33Z. The gate counts only the completed run.
 - probe toolchain (_tools) restored to $HOME/pgen; probes run from a clean baseline worktree $HOME/probe-tree, never the gate tree.
 - 05:5xZ second container restart killed gate 201955bf671ce8aa (started 05:31Z, ~20 min in; no record). Lease and slot run.sh-29876 released, partial state removed, re-run.
+- 2026-11-25T10:04:34Z all 16 gates recorded (GATES-DONE gated 16/16 RED-AS-NULL=16); REPORT built by probes/_tools/build_wave_report.py.
