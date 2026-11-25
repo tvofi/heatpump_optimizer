@@ -9,3 +9,4 @@
 1795607997 CKPT mutant1 killed by coverage check in stress.py; awaiting CI snapshot 6f69e91ef3fa
 1795608345 HB alive
 1795608942 HB alive
+1795608973 DONE verdict merge 8e92c8bb pending-ci gate; probe/rev-3890-5afaa51e at 342de163
