@@ -1,0 +1,21 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=M-newest failed=11 verdict=killed
+RESULT mutant=M-row failed=10 verdict=killed
+RESULT mutant=M-bound failed=8 verdict=killed
+RESULT mutant=M-older-side failed=9 verdict=killed
+RESULT mutant=M-newer-side failed=1 verdict=killed
+RESULT mutant=M-planned failed=4 verdict=killed
+RESULT mutant=M-full failed=1 verdict=killed
+RESULT mutant=M-verdicts failed=1 verdict=killed
+RESULT mutant=M-event failed=1 verdict=killed
+RESULT mutant=M-branch failed=1 verdict=killed
+RESULT mutant=M-dry failed=1 verdict=killed
+RESULT mutant=M-scope failed=2 verdict=killed
+RESULT mutant=M-health failed=4 verdict=killed
+RESULT mutant=M-health-age failed=2 verdict=killed
+RESULT mutant=M-health-read failed=2 verdict=killed
+RESULT mutant=M-listed failed=1 verdict=killed
+RESULT mutant=M-newest-push failed=1 verdict=killed
+RESULT mutant=M-poll failed=2 verdict=killed
+RESULT mutants=18
+RESULT survived=0

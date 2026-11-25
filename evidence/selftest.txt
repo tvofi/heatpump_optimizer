@@ -1,0 +1,3 @@
+  ok   #3885: a newer push's run already listed: this push cancels nothing (that push decides)
+  ok   #3885 null: by hand (no --scope, no --head-sha) the health gate still holds
+cancel_superseded self-test: 87 checks, 0 failed
