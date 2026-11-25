@@ -1,0 +1,16 @@
+key	src	file	line	function	cluster	slice	fullnet	kind	reach	m4_source
+559484953b5cdd5d	complete	custom_components/heatpump_optimizer/sysid.py	610	slab_mode_tau_fast	sysid.py:slab_mode_tau_fast@610-610	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+cb38833c854f6257	complete	custom_components/heatpump_optimizer/sysid.py	610	slab_mode_tau_fast	sysid.py:slab_mode_tau_fast@610-610	u1d	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+fa6fdd76e6fa619d	complete	custom_components/heatpump_optimizer/sysid.py	610	slab_mode_tau_fast	sysid.py:slab_mode_tau_fast@610-610	u1d	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+246043395831f540	complete	custom_components/heatpump_optimizer/tariff.py	128	CapacityTariff.marginal_price_per_kw	tariff.py:CapacityTariff.marginal_price_per_kw@128-128	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+de935c38786265e7	complete	custom_components/heatpump_optimizer/tariff.py	437	PeakTracker.from_dict	tariff.py:PeakTracker.from_dict@437-465	u1d	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json
+4ad3dc13bfdb70a8	complete	custom_components/heatpump_optimizer/tariff.py	465	PeakTracker.from_dict	tariff.py:PeakTracker.from_dict@437-465	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+7fcaf91cced5ce41	complete	custom_components/heatpump_optimizer/tariff.py	235	PeakTracker.observe	tariff.py:PeakTracker.observe@235-279	u1b	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+81557beca8f0a974	complete	custom_components/heatpump_optimizer/tariff.py	279	PeakTracker.observe	tariff.py:PeakTracker.observe@235-279	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+8611ebe645da9f19	complete	custom_components/heatpump_optimizer/tariff.py	391	PeakTracker.threshold_kw	tariff.py:PeakTracker.threshold_kw@391-391	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+37b3c9a03326d207	complete	custom_components/heatpump_optimizer/tariff.py	489	_one_per_day	tariff.py:_one_per_day@489-491	u1a	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+7f9297e43c9449d8	complete	custom_components/heatpump_optimizer/tariff.py	491	_one_per_day	tariff.py:_one_per_day@489-491	u1b	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+9d16dbc0d3aba164	complete	custom_components/heatpump_optimizer/tariff.py	904	_peak_excess	tariff.py:_peak_excess@904-904	u1c	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+6536ff6b094f971d	complete	custom_components/heatpump_optimizer/tariff.py	744	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1b	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+2d64a114647f1551	complete	custom_components/heatpump_optimizer/tariff.py	747	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+5371ee2b5e897750	complete	custom_components/heatpump_optimizer/tariff.py	747	_smooth_topk_sum	tariff.py:_smooth_topk_sum@744-773	u1b	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
