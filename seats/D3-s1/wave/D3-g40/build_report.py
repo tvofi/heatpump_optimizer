@@ -109,6 +109,7 @@ def main(boxdir):
                          "fail_lines": null.get("fail_lines"), "wall_s": null.get("wall_s"), "load1_start": null.get("load1_start"),
                          "load1_end": null.get("load1_end"), "provisional": True},
         "machine": machine,
+        "driver_notes": (W / "DRIVER-NOTES.txt").read_text().strip() if (W / "DRIVER-NOTES.txt").exists() else "",
     }
     (W / "REPORT.json").write_text(json.dumps(rep, indent=1) + "\n")
 
@@ -124,6 +125,8 @@ def main(boxdir):
           "Procedure: gate_wave.sh `null` then `run`: for each key, `fullgate.py run --src complete --key <key>` applies the "
           "one-line mutant, commits, runs `GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh`, records, resets "
           "to the baseline; one gate at a time, 4 h cap.", "",
+          "Driver note: " + ((W / "DRIVER-NOTES.txt").read_text().strip() if (W / "DRIVER-NOTES.txt").exists() else "none")
+          + " The interrupted attempt left no record; the key's only gate record is the complete re-run.", "",
           "## Tally", "",
           f"Gated {len(gated_rows)} of {len(keys)}: " + ", ".join(f"{v} {n}" for v, n in sorted(tally.items())) +
           (f"; KILLED by {', '.join(f'`{s}` ({n})' for s, n in kb.items())}" if kb else "") +
