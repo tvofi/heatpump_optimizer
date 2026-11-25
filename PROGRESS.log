@@ -3,3 +3,4 @@
 1795614783 CKPT mutation proof: both survivors killed, head passes; gate started snapshot 5fdf0937dbad
 1795621163 CKPT handoff 80412b13 pushed; body refused carry BAD-DEST; BLOCKED.md pushed snapshot d9b8e0bbe38a
 1795621171 DONE BLOCKED: head 80412b13b21110010499820e9799fe7dd4a0b3ce pushed to handoff (delta dc972220f313..80412b13b2; both survivors killed, scoped gate green); body_push REFUSED BODY-LINT on carry BAD-DEST R11-OWNER-CARD-EXTERNAL-HEAT (carries-open); question in BLOCKED.md at handoff-wip 882c2448
+1795621691 INBOX acked through 1
