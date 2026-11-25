@@ -861,12 +861,16 @@ writes, at every 15-minute plan step:
   the compressor running, the new duty asking for heat and the plan keeping
   that duty; a stop within 3 minutes of a counted switch counts against its
   direction, and a switch a person's own mode change explains is not
-  counted. Once a direction has
+  counted. From the first counted stop the plan charges that switch a share of
+  the **Cost of one compressor start**: the stops over the counted switches
+  plus 5, so three stops in three switches are charged 3/8 of a start, and
+  tries to place hot water where no such switch follows it (not on a combi
+  store). Once a direction has
   stopped the compressor on at least half of a weighted 5 or more switches,
-  seen on at least two calendar days (a switch weighs half after 14 days), the plan charges that switch a share of
-  the **Cost of one compressor start** and tries to place hot water where no
-  such switch follows it (not on a combi store). For a switch from hot water
-  to heating it also expects the median measured off time as heat not
+  seen on at least two calendar days (a switch weighs half after 14 days), the
+  share is the stops over the switches, and it is learned: only then does it
+  change the order of a split step (above). For a switch from hot water
+  to heating a learned direction also expects the median measured off time as heat not
   delivered in the heating that follows; a switch the other way is priced
   but costs no heat. With the start cost at 0 only that lost heat is planned
   for. The counts per direction are attributes of the
