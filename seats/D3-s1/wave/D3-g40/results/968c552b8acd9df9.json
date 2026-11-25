@@ -1,0 +1,95 @@
+{
+ "key": "968c552b8acd9df9",
+ "site": "custom_components/heatpump_optimizer/tariff.py:801 CMP_BOUND",
+ "patch": "positive = np.flatnonzero(np.any(values > 0, axis=1)) -> positive = np.flatnonzero(np.any(values >= 0, axis=1))",
+ "function": "_smooth_topk_sum_batch",
+ "cluster": "tariff.py:_smooth_topk_sum_batch@801-832",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/structure.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 4308.4,
+  "load1_start": 0.81,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/structure.py"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/gates/968c552b8acd9df9.json",
+  "provisional": true
+ },
+ "machine": "box D3-g40, nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz (MACHINE.txt); wall/load provisional",
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/structure.py"
+ ],
+ "failing_check_lines": [
+  "  FAIL a refused merge surfaces merge()'s reason, not just skip-merge-failed  [status='skip-not-under-scoped' log='']",
+  "  FAIL and a merge that succeeds carries no merge reason (null control)  [status='skip-not-under-scoped' log='']",
+  "2 of 118 closure shrink pins FAILED",
+  ">>> FAILED: python3 tests/closure.py selftest",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):",
+  "Traceback (most recent call last):"
+ ],
+ "non_finding": {
+  "claim": "mutant 968c552b8acd9df9 (positive = np.flatnonzero(np.any(values > 0, axis=1)) -> positive = np.flatnonzero(np.any(values >= 0, axis=1))) is killed by the full gate: ['python3 tests/structure.py']",
+  "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 968c552b8acd9df9",
+  "value": "gate_rc 1, killed_by ['python3 tests/structure.py']"
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_968c552b8acd9df9.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/probe_968c552b8acd9df9.py",
+  "metric": "differing_all_direct",
+  "baseline_value": 0,
+  "mutant_value": 20,
+  "unit": "count",
+  "observed": "direct differing 0 -> 20; [0,-1,-2,-3] k=4: 0.0 -> -6.0; caller-reachable differing 0",
+  "inputs_tried": "same corpus (batch mode, single rows and 3x3 stacked matrices)",
+  "run_output": "dev/audit/rounds/round11/D3/s1/wave/D3-g40/probes/968c552b8acd9df9/RUN.txt",
+  "probe_class": "candidate"
+ },
+ "should_fail": {
+  "scripts": {
+   "line_executing_per_carried_m4": [
+    "tests/env_drift.py",
+    "tests/features.py"
+   ],
+   "full_net_scripts_run_green": [
+    "tests/arch_score_head.py",
+    "tests/block_duty.py",
+    "tests/config_flow_steps.py",
+    "tests/deployment_shape.py",
+    "tests/doc_claims.py",
+    "tests/entities.py",
+    "tests/env_drift.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/harness_headers.py",
+    "tests/structure.py",
+    "tests/typing_ruler.py"
+   ]
+  },
+  "assertion_lacking": "a batch-vs-scalar parity unit over rows whose max is <= 0 (the docstring's 'Rows with nothing positive return 0.0, as the scalar guard does')"
+ }
+}
