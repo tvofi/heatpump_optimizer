@@ -14,7 +14,6 @@
   "thread_factor": "1.0"
  },
  "gates_pending": [
-  "D3-s1-67",
   "D3-s1-68",
   "D3-s1-69",
   "D3-s1-70",
@@ -187,15 +186,23 @@
    "severity": "low",
    "value": "unset holiday-DHW-windows option parses to [] instead of None in 3 of 3 unset forms; consequence: a holiday day has 0 DHW windows instead of 2",
    "metric_definition": "_holiday_dhw_windows(config) for absent/''/None; consequence = len(windows_for_day(..., holiday=True)) with the parser's value",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 050fdc4a20eba212`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3477 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "attacks": "consequence measured beyond the parser: holiday mode loses every DHW window (2 -> 0); the judge may weigh a raise above low",
-   "reproduced": "probe_050fdc4a.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): None -> [] for absent, '' and None; unset_forms_moved 3; null 0; reach_unset_calls 3; full gate PENDING",
+   "reproduced": "probe_050fdc4a.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): None -> [] for absent, '' and None; unset_forms_moved 3; null 0; reach_unset_calls 3; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 050fdc4a20eba212`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3477 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_67_consequence.py (own, dhw_schedule.windows_for_day): holiday day windows in force 2 -> 0; null (not a holiday day) 2 -> 2, delta 0",
    "reachable": "yes: the default install leaves the option unset and the holiday overlay is consulted whenever holiday mode is on (dhw_schedule.py:413 'holiday_windows is not None')",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at thermal_model.py:169, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "SURVIVED",
+    "gate_rc": "0",
+    "failed_scripts": "0",
+    "killed": "0",
+    "wall_s": "3477",
+    "load1": "0.92",
+    "thread_factor": "1.0"
+   }
   },
   {
    "id": "D3-s1-68",

@@ -8,7 +8,7 @@ Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-67, D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
+**Gates still pending:** D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
 
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
@@ -19,7 +19,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 | D3-s1-64 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-65 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-66 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-67 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-67 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-68 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-69 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-70 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
@@ -121,7 +121,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **verify**, severity low
 - value: unset holiday-DHW-windows option parses to [] instead of None in 3 of 3 unset forms; consequence: a holiday day has 0 DHW windows instead of 2
 - metric: _holiday_dhw_windows(config) for absent/''/None; consequence = len(windows_for_day(..., holiday=True)) with the parser's value
-- V1 reproduced: probe_050fdc4a.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): None -> [] for absent, '' and None; unset_forms_moved 3; null 0; reach_unset_calls 3; full gate PENDING
+- V1 reproduced: probe_050fdc4a.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): None -> [] for absent, '' and None; unset_forms_moved 3; null 0; reach_unset_calls 3; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 050fdc4a20eba212`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3477 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_67_consequence.py (own, dhw_schedule.windows_for_day): holiday day windows in force 2 -> 0; null (not a holiday day) 2 -> 2, delta 0
 - V3 reachable: yes: the default install leaves the option unset and the holiday overlay is consulted whenever holiday mode is on (dhw_schedule.py:413 'holiday_windows is not None')
 - V3 class: I1; class_guess 'new' corrected
