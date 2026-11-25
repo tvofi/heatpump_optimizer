@@ -4,3 +4,4 @@
 1795609671 CKPT step1: all three blocks resolved at ee7df28b, 6 mutants killed under features_block; no code change snapshot 78301683ba2a
 1795609991 CKPT handoff ref fast-forwarded to ee7df28b; structure/brief_lint/archscore run snapshot 9f3b9dcae848
 1795610106 HB alive
+1795610324 CKPT body drafted; mutation table re-taken (17 mutants killed); waiting on gate snapshot 1e58c2532d4a
