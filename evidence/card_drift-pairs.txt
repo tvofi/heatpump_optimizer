@@ -1,3 +1,0 @@
-minus 82 plus 82
-pairs differing beyond pill text: 0
-null control (no mapping): pairs differing: 82

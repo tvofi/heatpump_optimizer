@@ -1,4 +1,4 @@
- heatpump-optimizer-card  v10.1.2 
+ heatpump-optimizer-card  v10.1.3 
 defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
 customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
   ok    every card language is key-for-key with en and keeps en's placeholders
@@ -1211,7 +1211,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    and a card with no recorded history draws none
   ok    the live-edge chunk is fetched again once the clock has moved a plan step
   ok    the card element defines at most 26 members of its own (26)
-  ok    the card markup gate's claim file is stamped for v10.1.2
+  ok    the card markup gate's claim file is stamped for v10.1.3
   ok    a docs-only three-dot moves nothing a claim excuses
   ok    the card source moves something a claim excuses
   ok    justifiesCardClaim names the card and nothing beside it
@@ -1274,32 +1274,21 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    UI-3 pill: no plan on either sensor reads fallback, ahead of stale
   ok    UI-3 pill: a manual plan reads 'Manual plan until', ahead of everything else
   ok    UI-3 pill: no plan sensor at all draws no pill
-  FAIL  OWNER-EXTHEAT pill: space on, DHW off reads 'Heating space'
-        {"tone":"ok","key":"heating","text":"Heating now"}
-  FAIL  OWNER-EXTHEAT pill: space off, DHW on reads 'Heating DHW'
-        {"tone":"ok","key":"heating","text":"Heating now"}
-  FAIL  OWNER-EXTHEAT pill: space on, DHW on reads 'Heating space+DHW'
-        {"tone":"ok","key":"heating","text":"Heating now"}
+  ok    OWNER-EXTHEAT pill: space on, DHW off reads 'Heating space'
+  ok    OWNER-EXTHEAT pill: space off, DHW on reads 'Heating DHW'
+  ok    OWNER-EXTHEAT pill: space on, DHW on reads 'Heating space+DHW'
   ok    OWNER-EXTHEAT pill: space off, DHW off reads 'Idle'
-  FAIL  OWNER-EXTHEAT pill: the external heat sensor on reads 'External heat detected', ahead of heating
-        {"tone":"ok","key":"heating","text":"Heating now"}
-  FAIL  OWNER-EXTHEAT pill: its title says planned heating is held back
-        undefined
-  FAIL  OWNER-EXTHEAT pill: the sensor off leaves the pill on heating
-        {"tone":"ok","key":"heating","text":"Heating now"}
+  ok    OWNER-EXTHEAT pill: the external heat sensor on reads 'External heat detected', ahead of heating
+  ok    OWNER-EXTHEAT pill: its title says planned heating is held back
+  ok    OWNER-EXTHEAT pill: the sensor off leaves the pill on heating
   ok    OWNER-EXTHEAT pill: the sensor off leaves the pill on idle
-  FAIL  OWNER-EXTHEAT pill: the sensor on with block_ignored true falls through to the heating the plan earns
-        {"tone":"ok","key":"heating","text":"Heating now"}
-  FAIL  OWNER-EXTHEAT pill: block_ignored false still reads external heat
-        {"tone":"ok","key":"heating","text":"Heating now"}
+  ok    OWNER-EXTHEAT pill: the sensor on with block_ignored true falls through to the heating the plan earns
+  ok    OWNER-EXTHEAT pill: block_ignored false still reads external heat
   ok    OWNER-EXTHEAT pill: a stale plan outranks external heat
   ok    OWNER-EXTHEAT pill: an external heat sensor of another device prefix is not read
-  FAIL  OWNER-EXTHEAT pill: the sensor turning on redraws the pill with nothing else changing
-        {"tone":"ok","key":"heating","text":"Heating now"} -> {"tone":"ok","key":"heating","text":"Heating now"}
-  FAIL  OWNER-EXTHEAT pill: sv carries its own text for each new pill string
-        status.external_heat | status.external_heat_title | status.heating_space | status.heating_dhw | status.heating_both
-  FAIL  OWNER-EXTHEAT pill: de carries its own text for each new pill string
-        status.external_heat | status.external_heat_title | status.heating_space | status.heating_dhw | status.heating_both
+  ok    OWNER-EXTHEAT pill: the sensor turning on redraws the pill with nothing else changing
+  ok    OWNER-EXTHEAT pill: sv carries its own text for each new pill string
+  ok    OWNER-EXTHEAT pill: de carries its own text for each new pill string
   ok    UI-3 pill: crossing the stale limit redraws with no sensor changing
   ok    UI-3 fills: the price area is drawn at 16% and the solar area at 10%
   ok    UI-3 tiles: price now, planned heating, plan cost and indoor, in that order
@@ -1436,63 +1425,56 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    the savings tab still renders beside Health
   ok    the advisor tab still renders beside Health
   ok    the census records through the navigation surface the card loaded against
-  ok    haLink builds the three deep links Home Assistant routes
-  ok    haLink refuses an unknown kind and an entity link with no entity
-  ok    haLink without a resolved entry falls back to the domain, never a guessed entry
-  ok    the act set the census declares is the one the card's source dispatches
-  ok    the census pressed every act branch the card can dispatch
-  ok    the event arm has a literal type to allow, so it measures something
-  ok    no primitive this census does not instrument is reached for on a page or a press
-  ok    the census reached every navigateTo and openHaLink mention
-  ok    the census drove a listener from every addEventListener site in the card
-  ok    the card wires no handler outside addEventListener
-  ok    no press throws
-  ok    every link the census records from a press is one haLink builds for this entry
-  ok    every PENDING row still names a button that makes its unconverted navigation
-  ok    openSetupSlot opens the slot's picker, focused only from the keyboard
-  ok    openSetupSlot renders the page it opens
-  ok    openHaLink asks the registry for its own plan sensor and links this entry
-  ok    openHaLink falls back to the whole integration when the registry refuses
-  ok    why-now: a row per known driver, with its mark and signed share, in the published order
-  ok    why-now: the block and each row carry the plain-words metric as their hover
-  ok    why-now: each row names its direction in words: toward running, toward idle, no effect now
-  ok    why-now: no why_now attribute renders the no-data line and no rows
-  ok    why-now: every driver neutral renders the one all-neutral line
-  ok    why-now: Swedish words, hover and percent spacing
-  ok    why-now: German words, hover and percent spacing
-  ok    why-now: every en string has its twin in every card language, and every driver code has a label and an explanation
-  ok    collapse: both folds render a header button, collapsed by default
-  ok    collapse: a folded section renders no body
-  ok    collapse: the narrative summary is the rows' kWh and cost total, visible while folded
-  ok    collapse: the why-now summary is its strongest driver, visible while folded
-  ok    collapse: a click opens its own fold and only that one
-  ok    collapse: the toggle does not reach the card's open-on-click
-  ok    collapse: focus returns to the rebuilt header
-  ok    collapse: the why-now fold opens to its rows
-  ok    collapse: a second click folds it again
-  ok    collapse: a hass refresh rebuilds the card and keeps each fold as it was
-  ok    collapse: focus returns to the dialog's copy of the pressed header
-  ok    collapse: the doubly rendered headline mints no id and no aria-controls
-  ok    collapse: the folds sit after the savings figure and before the chart
-  ok    collapse: a rule under the last fold closes the headline off from the chart
-  ok    collapse: the fold summary wraps and never ellipsises
-  ok    collapse: the folded card keeps the visibility the dialog's chips last saved
-  ok    collapse: unpaired lines summarise as the first line; no why_now as the no-data line
-  ok    collapse: the folded card renders no series chip and no legend
-  ok    collapse: the expanded dialog carries the chips and the legend
-  ok    collapse: every fold string has its twin in en, sv and de
-  ok    collapse: the headers speak the card language
-  ok    user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language
-  ok    user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language
-  ok    user text: the invalid-window error names no channel, in every card language
-  ok    user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error
-  ok    user text: the refit row states the band_percent the refit publishes, in every card language
-  ok    user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
-  ok    failure text: a translated Home Assistant exception reads in the viewer's language
-  ok    failure text: a rejection with no translation key, or one localize cannot resolve, keeps its message
-  ok    failure text: a layout save failing under sv shows the sv exception and no en.json text
-  ok    failure text: a language switch asks for that language's exceptions once more
-  ok    history: a card panned daily for 30 days holds no more than the 48 h span's chunks, and its rows plateau
-  ok    history: the bound drops nothing the window can show -- every overlay point and the mode at its left edge match an unpruned source
 
-11 CARD CHECK(S) FAILED
+<--- Last few GCs --->
+
+[23486:0x778240c000]   522700 ms: Scavenge (during sweeping) 2045.5 (2082.2) -> 2044.8 (2082.5) MB, pooled: 0.0 MB, 2.83 / 0.00 ms (average mu = 0.340, current mu = 0.302) allocation failure; 
+[23486:0x778240c000]   524266 ms: Incremental Mark-Compact (reduce) 2046.8 (2083.6) -> 2045.3 (2082.1) MB, pooled: 0.0 MB, 940.16 / 0.00 ms (+ 241.2 ms in 30 steps since start of marking, biggest step 50.2 ms, walltime since start of marking 1224 ms) (ave
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 0x105ce5928 node::(anonymous namespace)::DefaultAbortHandler(char const*, char const*) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 2: 0x105ce5bb0 node::OOMErrorHandler(char const*, v8::OOMDetails const&) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 3: 0x104c66c04 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, v8::OOMDetails const&) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 4: 0x104e1a378 v8::internal::Heap::NotifyContextDisposed(bool) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 5: 0x104e19a60 v8::internal::Heap::GlobalConsumedBytes() const [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 6: 0x104e17de8 v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags, v8::internal::PerformHeapLimitCheck, v8::internal::PerformIneffectiveMarkCompactCheck) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 7: 0x104e11b70 v8::internal::HeapAllocator::CollectGarbageAndRetryAllocation(v8::base::FunctionRef<bool ()>, v8::internal::AllocationType) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 8: 0x104e119d8 v8::internal::HeapAllocator::RetryCustomAllocate(v8::base::FunctionRef<bool ()>, v8::internal::AllocationType) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+ 9: 0x104e116e0 v8::internal::HeapAllocator::RetryCustomAllocateOrFail(v8::base::FunctionRef<bool ()>, v8::internal::AllocationType) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+10: 0x104e01d88 v8::internal::Factory::NewFillerObject(int, v8::internal::AllocationAlignment, v8::internal::AllocationType, v8::internal::AllocationOrigin) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+11: 0x1050d4654 v8::internal::Runtime_AllocateInYoungGeneration(int, unsigned long*, v8::internal::Isolate*) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+12: 0x10554ccac Builtins_CEntry_Return1_ArgvOnStack_NoBuiltinExit [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+13: 0x10554e684 Builtins_SubString [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+14: 0x1055d8694 Builtins_RegExpReplace [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+15: 0x10553a448 Builtins_StringPrototypeReplace [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+16: 0x116a80394 
+17: 0x11645e690 
+18: 0x1054fdad8 Builtins_StoreIC [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+19: 0x1164e5604 
+20: 0x116511aa8 
+21: 0x1164e61e0 
+22: 0x116519434 
+23: 0x116575ef0 
+24: 0x1054fdad8 Builtins_StoreIC [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+25: 0x116708094 
+26: 0x1166fa1e0 
+27: 0x1169c6200 
+28: 0x1054e7764 Builtins_AsyncFunctionAwaitResolveClosure [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+29: 0x1055c5458 Builtins_PromiseFulfillReactionJob [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+30: 0x1054d6904 Builtins_RunMicrotasks [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+31: 0x1054a6678 Builtins_JSRunMicrotasksEntry [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+32: 0x104d8f8dc v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+33: 0x104d900dc v8::internal::(anonymous namespace)::InvokeWithTryCatch(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+34: 0x104db84c4 v8::internal::MicrotaskQueue::PerformCheckpointInternal(v8::Isolate*) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+35: 0x10496180c node::InternalCallbackScope::Close() [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+36: 0x104961638 node::InternalCallbackScope::~InternalCallbackScope() [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+37: 0x1049d24b4 node::Environment::RunTimers(uv_timer_s*) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+38: 0x100c4b870 uv__run_timers [/opt/homebrew/Cellar/libuv/1.53.0/lib/libuv.1.0.0.dylib]
+39: 0x100c4ed7c uv_run [/opt/homebrew/Cellar/libuv/1.53.0/lib/libuv.1.0.0.dylib]
+40: 0x104962400 node::SpinEventLoopInternal(node::Environment*) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+41: 0x104a9b18c node::NodeMainInstance::Run(node::ExitCode*, node::Environment*) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+42: 0x104a9aec4 node::NodeMainInstance::Run() [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+43: 0x104a031b4 node::Start(int, char**) [/opt/homebrew/Cellar/node/26.13.1_1/lib/libnode.147.dylib]
+44: 0x18274cd7c start [/usr/lib/dyld]
+rc=134
