@@ -6,3 +6,4 @@
 1795617952 CKPT finder harnesses both ends match body; structure/archscore ok; awaiting features mutants snapshot 4998dee32cfc
 1795618307 HB alive
 1795618903 CKPT review complete; verdict drafted; final CI polls snapshot 89b7306716b0
+1795619022 DONE Fix review: merge 0362d010bb pending-ci: gate; verdict at probe/rev-3897-0139ffea fa427415aa
