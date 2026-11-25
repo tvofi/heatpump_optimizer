@@ -79,7 +79,7 @@ def _within(start: datetime | None, now: datetime, span: timedelta) -> bool:
     if start is None:
         return False
     age = utc_elapsed_seconds(now, start)
-    return 0.0 <= age < span.total_seconds()
+    return 0.0 < age < span.total_seconds()
 
 
 @dataclass(frozen=True)
