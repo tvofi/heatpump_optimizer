@@ -1,0 +1,1 @@
+1 1795632152 NOTE RE-FIRE 18:42Z: this is now PR #3897 (critical path). A new semantic conflict with main 91773476 is in inputs.py: the branch's on_entity_grid/_range_attrs clamping vs main's _own_range/finite_float clamp in write_setpoint. Unify them into one clamp owner, keeping both behaviours, then push the handoff.
