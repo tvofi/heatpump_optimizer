@@ -2180,13 +2180,12 @@ def baseline_row(coord: Any, inp: ArbiterInputs, now: datetime) -> PumpCommand:
 async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> bool:
     """The off restore of :data:`ROW`: write the baseline row; True once every slot took it.
 
-    While the power switch reads off the pump takes no write
-    (:func:`_pump_off`), so the row stays owed and the next cycle tries
-    again; an unload has no next cycle and writes regardless, but not into
-    a latched fault (:mod:`fault_hold`), on the restore that runs again after
-    :func:`release` too: that row stays owed. Off ends the
-    hold, so its row is written. Takes no arbiter lock: a pass that forgets
-    the record between two of these writes drops only what is cleared here.
+    While the power switch reads off the pump takes no write (:func:`_pump_off`),
+    so the row stays owed and the next cycle tries again; an unload has no next
+    cycle and writes regardless, but not into a latched fault (:mod:`fault_hold`),
+    on the restore run again after :func:`release` too: that row stays owed. Off
+    ends the hold, so its row is written. Takes no arbiter lock: a pass that
+    forgets the record between two of these writes drops only what is cleared here.
     """
     coord = getattr(entry, "runtime_data", None)
     if coord is None or (reason == "unload" and fault_hold.unload_holds(coord.entry)):
