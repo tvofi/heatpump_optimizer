@@ -31,3 +31,4 @@
 1795634451 CKPT M1,M3 killed by new checks; M4 survives (equivalent triage); M2,M5,M0 running snapshot 8460076ec094
 1795634772 HB alive
 1795635377 HB alive
+1795635743 DONE verdict merge 44524f9a pending-ci tests/mutation,tests/closures; probe/rev-3841-ff642236 907d5254
