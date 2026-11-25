@@ -48,7 +48,7 @@ COMMAND (from the repository root):
 EXPECTED (re-recorded at ad7bcdf 2026-09-14, post-#989; the 7dd68dd
 expectations -- 2.5 - 2.7x to fail, a doubling passing all 51 -- are the
 finding's frozen record and history now):
-  scenarios_recorded = 51, memory_top_n = 6,
+  scenarios_recorded = 51, memory_top_n = 6 (retired by D9-s3-01),
   min/max_attrib_rss_multiple_required_to_fail = 1.5 (+/- 0),
   scenarios_where_2x_attrib_rss_fails = 51,
   inject2x_attrib_rule_fires = True.
@@ -61,7 +61,6 @@ FINAL RESULT (exact; #1005 review follow-up -- the marker above puts
 this harness in tests/harness_headers.py's executed set, which compares
 these lines to the run):
     RESULT scenarios_recorded=54             (51 until R9 F10.2 added three summer valve plants)
-    RESULT memory_top_n=6
     RESULT memory_budget_factor=1.5
     RESULT detection_target=2
     RESULT min_attrib_rss_multiple_required_to_fail=1.5
@@ -70,8 +69,8 @@ these lines to the run):
     RESULT min_traced_multiple_required_to_fail=1.5
     RESULT max_traced_multiple_required_to_fail=1.5
     RESULT scenarios_where_2x_traced_fails=54
-    RESULT scenarios_memory_probed=6
-    RESULT scenarios_never_memory_probed=48
+    RESULT scenarios_memory_probed=54        (6 until D9-s3-01: the gate probes every recorded row)
+    RESULT scenarios_never_memory_probed=0
     RESULT attrib_leader_label=typical_slab/winter   (unchanged by R9 F2.5: the review restored the table's memory caps to the base's -- the container's raises were a recording-environment artifact -- keeping only the fields the record measured lower; typical_slab/winter's own rss_attrib_mb is one of those, 16.7 -> 13.7, which moves the failing multiple below)
     RESULT attrib_fail_threshold_mb=20.55       (25.05 at the base; 20.55 at R9 F2.5, 1.5 x the leader's kept-lower 13.7 MiB cap)
     RESULT traced_fail_threshold_mb=5.145        (the base value; the review restored the raised memory caps)
@@ -106,6 +105,7 @@ for _t in (
 ):
     os.environ.setdefault(_t, "1")
 
+import ast  # noqa: E402
 import json  # noqa: E402
 import subprocess  # noqa: E402
 import sys  # noqa: E402
@@ -169,28 +169,20 @@ def inject_probe(spec: dict) -> dict:
 
 
 def memory_probe_labels(table: dict) -> list[str]:
-    """Mirror of stress.py's nested ``_memory_probe_labels``: half the
-    check-exposed set by traced peak, half by RSS watermark, from the
-    committed table, stable order, deduped. Transcribed because the
-    original is nested inside the check flow and not importable; the
-    threshold rules above are NOT transcribed -- they are the module's."""
-    half = max(1, stress.MEMORY_TOP_N // 2)
-    chosen: list[str] = []
-    for key in ("traced_peak_mb", "rss_peak_mb"):
-        ranked = sorted(
-            (-float(entry[key]), label)
-            for label, entry in table.items()
-            if isinstance(entry, dict) and float(entry.get(key, 0.0)) > 0.0
-        )
-        taken = 0
-        for _peak, label in ranked:
-            if taken >= half:
-                break
-            if label in chosen:
-                continue
-            chosen.append(label)
-            taken += 1
-    return chosen
+    """stress.py's own nested ``_memory_probe_labels``, executed: it sits
+    inside the check flow and is not importable, so its definition is
+    compiled out of the module's source and run on the committed table.
+    No transcription, so a selection change in the gate moves this count
+    (D9-s3-01); the threshold rules above are the module's too."""
+    path = stress.__file__
+    fn = next(
+        node for node in ast.walk(ast.parse(open(path).read()))
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_memory_probe_labels"
+    )
+    scope = {"budget_table": table}
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), path, "exec"), scope)
+    return scope["_memory_probe_labels"]()
 
 
 def main():
@@ -202,7 +194,6 @@ def main():
     scenarios = {k: v for k, v in table.items()
                  if isinstance(v, dict) and "rss_attrib_mb" in v}
     C.result("scenarios_recorded", len(scenarios), "scenarios")
-    C.result("memory_top_n", stress.MEMORY_TOP_N, "scenarios")
     C.result("memory_budget_factor", float(stress.MEMORY_BUDGET_FACTOR))
     C.result("detection_target", float(stress.DETECTION_TARGET))
     probed = memory_probe_labels(scenarios)
