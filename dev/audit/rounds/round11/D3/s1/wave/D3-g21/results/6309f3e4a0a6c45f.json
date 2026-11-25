@@ -1,0 +1,94 @@
+{
+ "key": "6309f3e4a0a6c45f",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5283 CLAMP_DROP",
+ "patch": "floor = max(float(self.model.params.min_electrical_power), 0.1) -> floor = (float(self.model.params.min_electrical_power))",
+ "function": "HeatPumpOptimizer._pin_on_power",
+ "cluster": "optimizer.py:HeatPumpOptimizer._pin_on_power@5283-5284",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2463.7,
+  "load1_start": 0.8,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/6309f3e4a0a6c45f.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/6309f3e4a0a6c45f.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py",
+  "metric": "lowest planned space power on manually pinned-ON steps with the pump's minimum power configured at 0 kW",
+  "baseline_value": "0.1000 kW",
+  "mutant_value": "0.0000 kW",
+  "baseline_name": "pinned_on_min_kw_baseline",
+  "mutant_name": "pinned_on_min_kw_mutant",
+  "inputs_tried": [
+   "min power 0 kW, 4 steps pinned ON in the dearest hours",
+   "min power 0.05 kW (direct: 0.1 -> 0.05)",
+   "min power 1.0 kW (null)"
+  ],
+  "results": {
+   "configured_min_kw": "0.0",
+   "pin_on_power_min0_baseline": "0.1 kW",
+   "pin_on_power_min0_mutant": "0.0 kW",
+   "pin_on_power_min005_baseline": "0.1 kW",
+   "pin_on_power_min005_mutant": "0.05 kW",
+   "pinned_on_min_kw_baseline": "0.1000 kW",
+   "pinned_on_min_kw_mutant": "0.0000 kW",
+   "null_delta_kw": "0.0000 kW",
+   "thread_factor": "1.000",
+   "load1": "1.71",
+   "swapins": "0"
+  },
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/out_6309f3e4a0a6c45f.txt"
+ },
+ "should_fail": "tests/manual_plan.py (traced baseline executes optimizer.py:5283; features, guard_pins, block_duty and 12 more too): no check solves a forced-ON pin with heat_pump_min_power 0 and asserts the step runs (>= 0.1 kW)",
+ "title": "No check pins a forced-ON step above 0 kW when the minimum power is 0; dropping the 0.1 kW floor is unseen",
+ "claim": "Mutant 6309f3e4a0a6c45f at custom_components/heatpump_optimizer/optimizer.py:5283 (floor = max(float(self.model.params.min_electrical_power), 0.1) -> floor = (float(self.model.params.min_electrical_power))) is not failed by the full gate (RED-AS-NULL), yet the probe's lowest planned space power on manually pinned-ON steps with the pump's minimum power configured at 0 kW moves: baseline 0.1000 kW, mutant 0.0000 kW.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "medium",
+ "stop_rule_class": "hygiene",
+ "phenomenon_property": "A step pinned ON is planned at no less than 0.1 kW whatever the configured minimum power (config_flow accepts 0..10 kW)",
+ "metric_definition": "lowest planned space power on manually pinned-ON steps with the pump's minimum power configured at 0 kW",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._pin_on_power",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py",
+ "perturbation": {
+  "change": "optimizer.py:5283 floor = max(float(self.model.params.min_electrical_power), 0.1) -> floor = (float(self.model.params.min_electrical_power)), applied in memory by the probe (method recompiled from its own source); full gate: python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6309f3e4a0a6c45f",
+  "expected_direction": "down: 0.1 -> 0.0 kW on the pinned steps (a step pinned ON is planned off)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py",
+  "value": "null_delta=0.0000 kW",
+  "note": "the probe's null arm, where the edit cannot matter; and the box's full-gate null control gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/optimizer.py",
+  "tests/manual_plan.py"
+ ],
+ "proposed_fix_scope": "tests only: a check at the probe's distinguishing input that pins the baseline value"
+}

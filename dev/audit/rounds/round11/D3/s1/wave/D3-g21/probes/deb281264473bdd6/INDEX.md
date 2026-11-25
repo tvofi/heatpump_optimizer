@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_deb281264473bdd6.py: the DHW active-step count in the 'DHW+Space optimization completed' INFO log line under a 0.1 kW fuse cap (out_deb281264473bdd6.txt = executed output; source_deb281264473bdd6.py = the template it is assembled from)

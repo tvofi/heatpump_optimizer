@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6b6eb0c1091c3c5c.py: _pin_on_power(upper < floor) direct, and the solver bounds _apply_pins_to_bounds builds plus the plan through optimize() (out_6b6eb0c1091c3c5c.txt = executed output; source_6b6eb0c1091c3c5c.py = the template it is assembled from)

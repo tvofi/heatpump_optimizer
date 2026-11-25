@@ -1,0 +1,13 @@
+RESULT nearflat_baseline=None
+RESULT nearflat_mutant=array:23,23,19,19,19,19,23,23
+RESULT moved=1 count
+RESULT null_delta=0 count
+RESULT reach_proposed_baseline=0 count
+RESULT reach_proposed_mutant=1 count
+RESULT reach_plan_maxabs_diff_kw=0.0000 kW
+RESULT reach_objective_delta=0.000000
+RESULT reach_cpu_baseline_s=1.15 s (provisional)
+RESULT reach_cpu_mutant_s=1.73 s (provisional)
+RESULT thread_factor=1.000
+RESULT load1=1.47
+RESULT swapins=0

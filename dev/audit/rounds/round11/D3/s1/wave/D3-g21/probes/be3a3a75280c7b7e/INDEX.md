@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py: what _normalise_pins returns for a pin array shorter than the horizon; the same through optimize(SolveLimits(space_pins=short)) (out_be3a3a75280c7b7e.txt = executed output; source_be3a3a75280c7b7e.py = the template it is assembled from)
