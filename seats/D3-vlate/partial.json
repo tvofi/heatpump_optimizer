@@ -14,7 +14,6 @@
   "thread_factor": "1.0"
  },
  "gates_pending": [
-  "D3-s1-68",
   "D3-s1-69",
   "D3-s1-70",
   "D3-s1-71"
@@ -210,15 +209,23 @@
    "severity": "nit",
    "value": "direct call at dt=0.25 h: delivered 0.278400 -> 2.800000 kW; through simulate_step: 0 of 287299 calls differ",
    "metric_definition": "(q_rad+q_floor) of _valve_two_zone_delivery, base vs whole-module mutant on the same arguments, over every call simulate_step makes in a plant sweep",
-   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate PENDING",
+   "method": "V1 finder harness re-run in baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence); V2 own harness under seats/D3-vlate/v2/; V3 reach/class/seam_rule; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 22b5ec8775d5bd50`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3629 s, load1 0.85, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "attacks": "reachability on the public path (0 of 287299 calls separate): the moving number exists only on a direct call with a coarse dt; severity cut to nit",
-   "reproduced": "probe_22b5ec87.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 0.278400 -> 2.800000 kW, delta 2.521600, null 0.0, reach_valve_calls 64 (single-tank 64); full gate PENDING",
+   "reproduced": "probe_22b5ec87.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 0.278400 -> 2.800000 kW, delta 2.521600, null 0.0, reach_valve_calls 64 (single-tank 64); full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 22b5ec8775d5bd50`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3629 s, load1 0.85, thread_factor 1.0; null gate: gate_rc 0, failed 0",
    "independent_value": "v2_valve_calls.py (own spy over simulate_step): 287299 calls, 0 differ, max delta 0.000000 kW, dt_hours seen 0.00198..0.5; v2_valve_dt.py direct: dt 0.25/0.1/0.05 h differ (2.52/2.10/1.41 kW), dt <= 0.02 h equal; the finder's plant substeps at dt 0.01923 h",
    "reachable": "the function is reached in real HA, but the public path's substepping keeps the tank bound from binding in every swept call, so the mutant is behaviour-equivalent there",
    "class": "I1; class_guess 'new' corrected",
    "seam_rule_enumerates": "phenomenon-wide (SURVIVED listing, 992 rows)",
    "at_head": "targeted at head: mutant applied in evidence tree e3cb5c019b at thermal_model.py:2618 (moved from 2593), then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)",
-   "full_gate": null
+   "full_gate": {
+    "verdict": "SURVIVED",
+    "gate_rc": "0",
+    "failed_scripts": "0",
+    "killed": "0",
+    "wall_s": "3629",
+    "load1": "0.85",
+    "thread_factor": "1.0"
+   }
   },
   {
    "id": "D3-s1-69",

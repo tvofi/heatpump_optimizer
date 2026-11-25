@@ -8,7 +8,7 @@ Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-68, D3-s1-69, D3-s1-70, D3-s1-71
+**Gates still pending:** D3-s1-69, D3-s1-70, D3-s1-71
 
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
@@ -20,7 +20,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 | D3-s1-65 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-66 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-67 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-68 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-68 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-69 | weaken | nit | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-70 | verify | low | pending | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-71 | weaken | nit | pending | KILLED at head; the full gate was not re-run at head (about an hour per mutant) |
@@ -134,7 +134,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **weaken**, severity nit
 - value: direct call at dt=0.25 h: delivered 0.278400 -> 2.800000 kW; through simulate_step: 0 of 287299 calls differ
 - metric: (q_rad+q_floor) of _valve_two_zone_delivery, base vs whole-module mutant on the same arguments, over every call simulate_step makes in a plant sweep
-- V1 reproduced: probe_22b5ec87.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 0.278400 -> 2.800000 kW, delta 2.521600, null 0.0, reach_valve_calls 64 (single-tank 64); full gate PENDING
+- V1 reproduced: probe_22b5ec87.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): 0.278400 -> 2.800000 kW, delta 2.521600, null 0.0, reach_valve_calls 64 (single-tank 64); full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key 22b5ec8775d5bd50`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3629 s, load1 0.85, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_valve_calls.py (own spy over simulate_step): 287299 calls, 0 differ, max delta 0.000000 kW, dt_hours seen 0.00198..0.5; v2_valve_dt.py direct: dt 0.25/0.1/0.05 h differ (2.52/2.10/1.41 kW), dt <= 0.02 h equal; the finder's plant substeps at dt 0.01923 h
 - V3 reachable: the function is reached in real HA, but the public path's substepping keeps the tank bound from binding in every swept call, so the mutant is behaviour-equivalent there
 - V3 class: I1; class_guess 'new' corrected
