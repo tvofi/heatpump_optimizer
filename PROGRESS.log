@@ -51,3 +51,4 @@
 1795571591 CKPT prepr scoped running at c06dc46c snapshot daa77c6dda15
 1795571754 CKPT body updated for c06dc46c; prepr re-run snapshot ac2e8b5f4335
 1795571758 INBOX acked through 1
+1795574166 CKPT merged 3210fcd7 (semantic #1218 count re-measured), identity fixed, head d4e4e66f; prepr re-run snapshot 0c397d49b2b6
