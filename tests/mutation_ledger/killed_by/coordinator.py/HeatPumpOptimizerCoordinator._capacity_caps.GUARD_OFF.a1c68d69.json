@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps GUARD_OFF a1c68d69",
+  "killed_by": "tests/features.py",
+  "old": "            if entry is None or int(entry[1]) < CAPACITY_MIN_SAMPLES:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
