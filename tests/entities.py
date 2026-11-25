@@ -21711,7 +21711,7 @@ def _pages_tag_run(text: str) -> "tuple[int, str]":
     script = ("set -euo pipefail\n"
               "git() { for ((i = 20000; i > 0; i--)); do printf '%040d\\trefs/tags/v%d.0.0\\n' 0 \"$i\"; done; }\n"
               f"{line}\nprintf '%s' \"$tag\"\n")
-    r = _subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=60)
+    r = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=60)
     return r.returncode, r.stdout
 
 
