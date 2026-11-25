@@ -323,7 +323,7 @@ def on_room_event(held: CutoffState, wiring: CutoffInputs, event: Any) -> None:
         "switching %s off until the next plan cycle",
         room, limit, MARGIN_K, switch,
     )
-    inp.hass.async_create_task(switch_supply(inp.hass, switch, False))
+    inp.hass.async_create_task(switch_supply(inp.hass, inp.entry, inp.config, switch, False))
 
 
 def diagnostics_view(held: CutoffState) -> dict[str, Any]:

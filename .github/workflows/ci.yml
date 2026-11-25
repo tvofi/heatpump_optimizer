@@ -7,8 +7,9 @@
 # the prelude's `workset` names it, the set gate.py also keys its sources on.
 # Every program runs the BASE's copy (restored before it runs), as every
 # grader does. tests/entities.py pins this file: the triggers, the run-name,
-# the run-id group, one `gate` job whose `if:` no event can make false, the
-# caller set and its naming rule, and no `checks:` or `statuses: write`.
+# the run-id group (a push's first attempt aside), one `gate` job whose `if:`
+# no event can make false, the caller set and its naming rule, and no
+# `checks:` or `statuses: write`.
 
 name: CI
 
@@ -65,9 +66,14 @@ permissions: {}
 
 # A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
-# let a re-run cancel a live run. Supersession is cancel-superseded's alone.
+# let a re-run cancel a pending run. Supersession is cancel-superseded's alone.
+# Except a push to main's first attempt (CI-5, owner 2026-11-21): one `CI-main`
+# group, cancelling nothing in progress, so one push run executes at a time and
+# GitHub replaces a pending one with the newest before it starts; a burst of
+# merges is graded once, at its last tip, and no started run is cancelled. A
+# re-run (attempt 2+) keeps its run-id group, so it never displaces that tip.
 concurrency:
-  group: CI-${{ github.run_id }}
+  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || format('CI-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -131,6 +137,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          # A dispatch naming a PR reads its own list (prelude.dispatch_diff, CI-2).
           : > "$RUNNER_TEMP/changed.txt"
           if [ "$EVENT" = pull_request ]; then
             python3 -I tools/pr/codeql_scope.py changed --base "$BASE_SHA" \
