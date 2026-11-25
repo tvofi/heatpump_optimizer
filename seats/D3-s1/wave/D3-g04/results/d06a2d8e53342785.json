@@ -1,0 +1,73 @@
+{
+ "key": "d06a2d8e53342785",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10433 GUARD_OFF",
+ "patch": "if kwh > 0 and mean_spot is not None: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._contract_comparison",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison@10428-10445",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3045.0,
+  "load1_start": 0.33,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 4940.8,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/d06a2d8e53342785.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_d06a2d8e53342785.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_d06a2d8e53342785.py",
+  "rc": 0,
+  "baseline_value": "monthly_avg_spot_sek_baseline=15.0",
+  "mutant_value": "monthly_avg_spot_sek_mutant=absent",
+  "results": {
+   "baseline": "{'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'grid_fee_sek': 3.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}",
+   "mutant": "{'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'grid_fee_sek': 3.0}",
+   "monthly_avg_spot_sek_baseline": "15.0",
+   "monthly_avg_spot_sek_mutant": "absent",
+   "keys_lost": "3 count",
+   "cheapest_baseline": "monthly_avg_spot",
+   "cheapest_mutant": "hourly_spot",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.01",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "10 kWh, 12 SEK spot, mean 1.5",
+   "10 kWh, 12 SEK, mean 1.0, fixed 1.4 (monthly average cheapest)",
+   "null: no spot mean"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_d06a2d8e53342785.out"
+ },
+ "should_fail": "tests/features.py: `_t6_contract` (~56964-57000) never records a spot-price mean (observe_meta_mean), so the monthly-average arm is never present; it lacks an assertion on monthly_avg_spot_sek == kwh * mean and on cheapest == 'monthly_avg_spot' when that arm wins.",
+ "finding": {
+  "title": "No check records a spot mean before the contract comparison; the monthly-average contract can vanish unseen",
+  "claim": "_contract_comparison settles the month under monthly-average spot (m\u00e5nadsspot) when kWh > 0 and a spot mean exists, publishing monthly_avg_spot_sek and load_profile_value_per_kwh and entering it in `cheapest`. With that branch disabled the three keys disappear and, where monthly average is the cheapest contract, `cheapest` names hourly_spot instead. The full gate does not notice.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "high",
+  "stop_rule_class": "bug",
+  "metric_definition": "monthly_avg_spot_sek and cheapest of _contract_comparison() on 10 kWh / 12 SEK with a spot mean of 1.5 (and 1.0 with fixed 1.4)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._contract_comparison (custom_components/heatpump_optimizer/coordinator.py:10433)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_d06a2d8e53342785.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_d06a2d8e53342785.py  ;  custom_components/heatpump_optimizer/coordinator.py:10433 full gate: GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d06a2d8e53342785",
+  "perturbation": "coordinator.py:10433 `if kwh > 0 and mean_spot is not None:` -> `if False:`; 15.0 -> absent; cheapest monthly_avg_spot -> hourly_spot",
+  "null_control": "the probe's null arm (null_delta/null_differing RESULT = 0 count) and this box's fullgate.py null gate (gates/null.json)"
+ }
+}
