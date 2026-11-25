@@ -1,0 +1,5 @@
+45602760045 fix/r11-outside-rooms-3b None 188min unattributed 
+45598357780 fix/r11-seam-learners-pr cancelled 378min unattributed 
+45595312690 fix/r11-owner-flowcap-pr cancelled 358min unattributed 
+45592977415 fix/r11-seam-cycle-reporting-pr cancelled 421min unattributed 
+stalepin 2026-11-25: STALE-PIN duplicates 0, of which this tree leaves 0 (0 runner-min) and still dispatches 0 (0); unattributed 4 (1346); job listings unread 0

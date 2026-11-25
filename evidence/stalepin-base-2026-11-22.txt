@@ -1,0 +1,22 @@
+45071126123 fix/r11-owner-flowcap-pr cancelled 138min dispatched 
+45068414091 fix/r11-outside-honest-dhw-runs-pr failure 344min dispatched 
+45066931013 fix/r11-seam-tests-pr cancelled 212min dispatched 
+45061809578 fix/r11-selftest-absorb-pr cancelled 59min dispatched 
+45061392253 fix/r11-seam-learners-pr cancelled 335min dispatched 
+45060727549 fix/r11-owner-cooling-guard-pr failure 272min dispatched 
+45060720058 fix/r11-owner-cooling-guard-pr cancelled 259min dispatched 
+45053976088 fix/r11-seam-learners-pr cancelled 544min dispatched 
+45051284705 fix/r11-seam-tests-pr failure 903min dispatched 
+45050143711 fix/r11-selftest-absorb-pr cancelled 753min dispatched 
+45044399082 fix/r11-outside-3848 failure 253min dispatched 
+45034212057 fix/r11-seam-actuation-release-pr cancelled 353min dispatched 
+45032418046 fix/audit-r11-land-D3-u1c success 246min unattributed 
+45032190341 fix/r11-seam-tests-pr failure 1430min dispatched 
+45014388379 fix/r11-outside-honest-dhw-runs-pr cancelled 812min unattributed 
+45008444973 fix/r11-outside-rooms-3b failure 772min unattributed 
+45005979443 fix/r11-outside-honest-dhw-runs-pr failure 367min dispatched 
+44993171735 fix/r11-seam-tests-pr failure 594min unattributed 
+44970786457 fix/r11-seam-ratchet-raise failure 1631min unattributed 
+44964566716 fix/audit-r11-land-D3-u1a failure 1341min unattributed 
+44964564690 fix/audit-r11-land-D3-u1c failure 1017min unattributed 
+stalepin 2026-11-22: STALE-PIN duplicates 14, of which this tree leaves 0 (0 runner-min) and still dispatches 14 (6222); unattributed 7 (6412); job listings unread 0
