@@ -189,7 +189,7 @@ gantt
 | R11-OWNER-FAULT-HOLD | CORE | 3 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-MODE-LEGS | CORE | 5 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-STEP-KICK | CORE | 6 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
-| R11-OWNER-COOLING-GUARD | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
+| R11-OWNER-COOLING-GUARD | CORE | 1 | carries-open | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-FAULT-TEXT | CORE | 4 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-EXTHEAT-OVERRIDE | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OUTSIDE-3849 | CORE | 1 | done | **#3849** | opus/opus | - | Outside issue #3849 (Bankaifan), owner high priority 2026-11-22, fixer above the cap. |  |

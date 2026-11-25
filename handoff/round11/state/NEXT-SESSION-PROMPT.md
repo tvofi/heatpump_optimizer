@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-FAULT-HOLD (stage in-progress, branch `handoff/r11-owner-fault-hold`): `git fetch origin handoff/r11-owner-fault-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-MODE-LEGS (stage in-progress, branch `handoff/r11-owner-mode-legs`): `git fetch origin handoff/r11-owner-mode-legs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-STEP-KICK (stage in-progress, branch `handoff/r11-owner-step-kick`): `git fetch origin handoff/r11-owner-step-kick && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-COOLING-GUARD (stage in-progress, branch `handoff/r11-owner-cooling-guard`): `git fetch origin handoff/r11-owner-cooling-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OWNER-COOLING-GUARD (stage carries-open, branch `handoff/r11-owner-cooling-guard`): `git fetch origin handoff/r11-owner-cooling-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-TEXT (stage in-progress, branch `handoff/r11-owner-fault-text`): `git fetch origin handoff/r11-owner-fault-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-EXTHEAT-OVERRIDE (stage in-progress, branch `handoff/r11-owner-extheat-override`): `git fetch origin handoff/r11-owner-extheat-override && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COOLING-AUTORETURN (stage in-progress, branch `handoff/r11-owner-cooling-autoreturn`): `git fetch origin handoff/r11-owner-cooling-autoreturn && git worktree add --detach $SEAT/wt FETCH_HEAD`
