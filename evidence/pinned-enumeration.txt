@@ -1,0 +1,67 @@
+== pinned_graders() at head
+budget-raise-gate / budget-raise-gate
+ci / cancel-superseded
+ci / gate
+ci / prelude
+ci / refresh
+ci / sweep-self
+codeql / Analyze (
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+pr-contract / pr-contract
+tests / briefs
+tests / claims-autofix
+tests / closures-autofix
+tests / coverage-ratchet
+tests / mutation-autofix
+tests / nightly-status
+== REQUIRED no-pr
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+== every line naming pull_request.base.sha in workflows
+.github/workflows/arch-score.yml:63:          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/budget-raise-gate.yml:68:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/budget-raise-gate.yml:96:          PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/ci.yml:114:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/ci.yml:141:          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+.github/workflows/ci.yml:175:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/ci.yml:325:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/ci.yml:357:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/ci.yml:403:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/codeql.yml:182:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/codeql.yml:202:          PINNED: ${{ github.event.pull_request.base.sha || inputs.range_base }}
+.github/workflows/dependabot-automerge.yml:69:          ref: ${{ github.event.pull_request.base.sha }}
+.github/workflows/governance.yml:145:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+.github/workflows/governance.yml:224:          MACHINERY_BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
+.github/workflows/governance.yml:256:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+.github/workflows/governance.yml:257:          SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+.github/workflows/governance.yml:1805:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+.github/workflows/governance.yml:1907:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+.github/workflows/governance.yml:1992:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+.github/workflows/pr-contract.yml:104:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
+.github/workflows/pr-contract.yml:159:          PAYLOAD_BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:674:          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+.github/workflows/tests.yml:1113:          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+.github/workflows/tests.yml:1282:          PR_BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1548:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1604:          BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1970:          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+.github/workflows/tests.yml:2182:            BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+.github/workflows/tests.yml:2503:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:2774:          PINNED: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:3033:          PINNED: ${{ github.event.pull_request.base.sha }}

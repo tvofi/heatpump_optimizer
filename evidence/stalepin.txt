@@ -1,0 +1,28 @@
+== wt 2026-11-22
+45014388379 fix/r11-outside-honest-dhw-runs-pr cancelled 812min unattributed 
+45008444973 fix/r11-outside-rooms-3b failure 772min unattributed 
+45005979443 fix/r11-outside-honest-dhw-runs-pr failure 367min dispatched 
+44993171735 fix/r11-seam-tests-pr failure 594min unattributed 
+== wt 2026-11-23
+45090151615 fix/r11-owner-extheat-override failure 13min left tests / fast (3.14), tests / mutation
+45089976684 fix/r11-seam-cycle-solve failure 292min left tests / mutation
+stalepin 2026-11-23: STALE-PIN duplicates 2, of which this tree leaves 2 (304 runner-min) and still dispatches 0 (0); unattributed 0 (0); job listings unread 0
+== wt 2026-11-25
+45598357780 fix/r11-seam-learners-pr cancelled 378min left tests / fast (3.14)
+45595312690 fix/r11-owner-flowcap-pr cancelled 358min left tests / fast (3.14)
+45592977415 fix/r11-seam-cycle-reporting-pr cancelled 421min dispatched 
+stalepin 2026-11-25: STALE-PIN duplicates 4, of which this tree leaves 3 (1038 runner-min) and still dispatches 1 (421); unattributed 0 (0); job listings unread 0
+== main 2026-11-22
+45008444973 fix/r11-outside-rooms-3b failure 772min unattributed 
+45005979443 fix/r11-outside-honest-dhw-runs-pr failure 367min dispatched 
+44993171735 fix/r11-seam-tests-pr failure 594min unattributed 
+44970786457 fix/r11-seam-ratchet-raise failure 1631min unattributed 
+== main 2026-11-23
+45090151615 fix/r11-owner-extheat-override failure 13min dispatched 
+45089976684 fix/r11-seam-cycle-solve failure 292min dispatched 
+stalepin 2026-11-23: STALE-PIN duplicates 2, of which this tree leaves 0 (0 runner-min) and still dispatches 2 (304); unattributed 0 (0); job listings unread 0
+== main 2026-11-25
+45598357780 fix/r11-seam-learners-pr cancelled 378min dispatched 
+45595312690 fix/r11-owner-flowcap-pr cancelled 358min dispatched 
+45592977415 fix/r11-seam-cycle-reporting-pr cancelled 421min dispatched 
+stalepin 2026-11-25: STALE-PIN duplicates 4, of which this tree leaves 0 (0 runner-min) and still dispatches 4 (1460); unattributed 0 (0); job listings unread 0

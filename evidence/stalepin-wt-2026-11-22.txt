@@ -14,9 +14,4 @@
 45032190341 fix/r11-seam-tests-pr failure 1430min dispatched 
 45014388379 fix/r11-outside-honest-dhw-runs-pr cancelled 812min unattributed 
 45008444973 fix/r11-outside-rooms-3b failure 772min unattributed 
-45005979443 fix/r11-outside-honest-dhw-runs-pr failure 367min left governance / env-matrix, governance / policy-docs, governance / wave-script, tests / briefs
-44993171735 fix/r11-seam-tests-pr failure 594min unattributed 
-44970786457 fix/r11-seam-ratchet-raise failure 1631min unattributed 
-44964566716 fix/audit-r11-land-D3-u1a failure 1341min unattributed 
-44964564690 fix/audit-r11-land-D3-u1c failure 1017min unattributed 
-stalepin 2026-11-22: STALE-PIN duplicates 14, of which this tree leaves 9 (2865 runner-min) and still dispatches 5 (3357); unattributed 7 (6412); job listings unread 0
+45005979443 fix/r11-outside-honest-dhw-runs-pr failure 367min dispatched 

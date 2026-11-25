@@ -1,4 +1,0 @@
-dev/audit/harnesses/ci3885_light.py
-dev/programme/delivery/3895.md
-tools/ci/sweep.py
-tools/ci/sweep_selftest.py
