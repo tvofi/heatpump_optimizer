@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from weakref import WeakKeyDictionary
 
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, admitted, load_mapping
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
@@ -612,10 +612,11 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> 
     until = _parse_until(tail.get("until"))
     if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):
         held.space_settle_until = until
-        # Unreadable boosted time reads as a start nobody saw: unknown.
+        # Boosted time outside its declaration -- unreadable, or longer than any
+        # run between two instants -- reads as a start nobody saw: unknown (D1-s2-06).
         hours = tail.get("boosted_h")
         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
-                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)
+                              and admitted("boost", {"space_settle": {"boosted_h": hours}}) else None)
     space = raw.get(CHANNEL_SPACE)
     since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
     if since is not None and CHANNEL_SPACE in held.until:
