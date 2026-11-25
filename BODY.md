@@ -6,6 +6,8 @@ Builds option D of the approved design `design/R11-OWNER-STEP-KICK` 09fecb1b (re
 
 ## Head
 
+`0eb1c59dfb04a8e617b79c6beacc13c03bc15c3e` merges the authored code head `cc1f776895fc1d33d9895ff41b4d99c78b969dab` and then merges origin/main `d3d66c4040` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `cc1f776895fc1d33d9895ff41b4d99c78b969dab` repairs fix review `blocked ef591eaa mutation-vacuous` (`_pass_record`'s `_settle(held, inp)` -> `held.served` survived). Delta for review: `git diff ef591eaa11 cc1f776895` minus main's own changes; it is two commits:
 - `f60f227143`, on `ef591eaa11`: `tests/features.py` adds T6b, and `_sk_e2e` takes `unit` and `action`. Through the production `_arbitrate`, a system-identification step and a return target on the swap pass record the floor they record with no swap; the null control is a plain flow target, which records the settled floor below it. The mutant reads `{'flow': (34.0, 59.0), 'probe': (34.0, 59.0), 'return': (34.0, 59.0)}` (swap, no swap) and fails T6b; the head passes.
 - `cc1f776895` merges origin/main `d3d66c4040`, because the PR was DIRTY on `tests/structure_budgets.json`. The ledger merge driver summed both sides' deltas, and `python3 tests/structure.py` on the merged tree prints STRUCTURE RATCHET PASSED with no metric improved and unrecorded, so no row is re-recorded (the commit message says so). No other file conflicted.
@@ -97,8 +99,8 @@ Each concluded red on this pull request's heads, by check name:
 - custom_components/heatpump_optimizer/flow_anchor.py:132 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): T1 onward (no record returned)
 - custom_components/heatpump_optimizer/flow_anchor.py:149 GUARD_OFF -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): M01 (settle window): T4, I1/I2
 - custom_components/heatpump_optimizer/flow_anchor.py:151 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): M04 (space inlet skipped): T1, T4, T5
-- custom_components/heatpump_optimizer/pump_arbiter.py:637 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): end-to-end (the flow target dropped)
-- custom_components/heatpump_optimizer/pump_arbiter.py:1326 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): M12/M13 (I4, I6): T6, and end-to-end
+- custom_components/heatpump_optimizer/pump_arbiter.py:639 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): end-to-end (the flow target dropped)
+- custom_components/heatpump_optimizer/pump_arbiter.py:1325 RETURN_DEL -- pinned by `mutation-autofix` (its lane mutates `custom_components/`); killed by the step-kick block at this head (`sites-head-verdicts`, baseline PASS, 15 of 15 KILLED): M12/M13 (I4, I6): T6, and end-to-end
 
 ## Forward-carry
 
