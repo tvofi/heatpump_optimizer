@@ -38,6 +38,10 @@ Carry 0: (FAULT-HOLD's flag-prefill-reach, adding the hold's 10 minutes to the p
 
 ## Head
 
+`0e99fbe6282af2aebf31c7bdf8591d7b94ca4aee` is one commit on the PR head `61e49d1d83ef45aa083f50a054493fa64227f615`, repairing fix review `blocked 61e49d1d test-red`. It changes only `tests/deployment_shape.py`'s #1218 selection-cost note: 180 becomes 182 of the 561 pairs in both places (the count and "all 182 among the 435"). The history clause names the two pairs that the merge bringing R11-SEAM-cycle-solve's solve_gate.py joined at 0.80: env_drift.py/manual_plan.py and golden.py/manual_plan.py. solve_gate.py is read by env_drift.py's, golden.py's and manual_plan.py's closures. The count was derived with entities.py's own `_d308_pairs` predicate over `tests/closures.json`, not copied. It is 180 at `ef876fecad` (121 production files, before solve_gate.py), 182 at the code head `f0a1881e9d` and at `61e49d1d83`, and 182 at its merge with origin/main bb6377b4da, which `61e49d1d83` already contains. Null control: at `61e49d1d83` the note lacks the marker `182 of the 561`, and after the repair every marker entities.py checks is present. `tests/deployment_shape.py`: ALL DEPLOYMENT SHAPE CHECKS PASSED. Delta for review: `git diff 61e49d1d83 0e99fbe628`.
+
+`61e49d1d83ef45aa083f50a054493fa64227f615` was this PR's previous head: its code was already in it and main merged cleanly, so the orchestrator's script set the body without a push.
+
 `f0a1881e9d41d3cd80c97b42a701a7637ebe3dbc` merges origin/main `bb6377b4dad4e398d1a28bde54d30036a5b25a82` into `d7324bbc58`. Resolution delta for review: `git diff bb6377b4da f0a1881e9d -- dev/audit/rounds/round4/D6 docs/architecture.md tests/deployment_shape.py tests/features.py`. Each side added one module (`fault_log.py` here, `solve_gate.py` on main), so the module counts become 103 and the package closure 122 files. `fault_log.py` imports `homeassistant` at module level and `solve_gate.py` does not, so 37 such importers. `tests/features.py` keeps both appended blocks, with the fault-record block's last `R.check` closed before main's section. The ledger driver resolved `tests/structure_budgets.json` and `tests/closures.json`. At the merge: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` rc 0 (C32-C35 true, re-generated), `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`, `python3 tests/structure.py` `STRUCTURE RATCHET PASSED` (no metric below its budget, so no gain recorded), `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` `ALL 691 checks PASSED`.
 
 `d7324bbc583ad81a11e6d92c5cff282eb6b54f01` is the code head of round 5. It repairs the block in `verdict/3870` at `ef876fecadb909be228a7c686bda5fb822149ae1`, the PR's head, which merges origin/main `5594a34a49404109b8e0f18bd5be18ddbb667cdf` into `d4e4e66f6b`. The head is one commit on `ef876fecad`.
@@ -224,6 +228,12 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 
 ## Red checks
 
+- At `61e49d1d83`:
+  - `tests / entities` (reproduced by the reviewer, verdict `blocked 61e49d1d test-red`): the #1218 note check, missing `182 of the 561`. Repaired at `0e99fbe628` (see `## Head`).
+  - `gate` (jobs 139191391388 and 139202829812): `FAIL run(s) [45606679346, 45611218188] at this head are still being judged; their gate decides`. The gate waits on those runs; it names no failing lane.
+  - `tests / nightly-ha (stable)` and `(2025.2.0)` (jobs 139189653789 and 139189653786): the inherited a5:pages_ok red answered below; main's scheduled Nightly fails the same checks.
+  - `tests / nightly-status` (job 139184232368): it reads main's last scheduled Nightly, not this head.
+
 - `tests / fast (3.14)` and `gate`: red at `ef876fecad` (fast job 138978772934, gate job 138995154315) on `tests/config_flow_steps.py`: `FAIL every rendered flow error is recovered on the flow that rendered it [options/entities_pump/too_many_fault_text_entities]`. Repaired at `d7324bbc58` (`## Head`): the fault-text error is now recovered on the flow that rendered it.
   - Cheaper detector: a scoped run of `config_flow_steps.py` on the tree merged with main. The census reached this branch only through the merge of main `5594a34a49` at `ef876fecad`, and no local run was made at that head.
 - Local scoped gate at `d7324bbc58` (`GATE_SCOPE=auto GOLDEN_MODE=drift`, `MODE: SCOPED`, load average 50-100): `config_flow_steps.py` ok. Five other scripts failed: `optimality.py` (a recorded claim's gap is at the bar on this host's BLAS), `card.mjs` (node heap out of memory), `entities.py` (3 of 2760), `typing_ruler.py` (the host's unpinned venv-ha interpreter) and `stress.py` (3 timing checks). The diff from the CI-graded `ef876fecad` is one line of `tests/config_flow_steps.py`, which none of those scripts reads, and CI at `ef876fecad` had none of them red, so this is host load and environment, not the change. CI is the authority.
@@ -320,4 +330,5 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 ## Friction
 
 - roster_queue.readback: unenforced: `roster_queue.py run`'s read-back printed `FAILED group R11-OWNER-FAULT-HOLD not in the roster at 981e3402e`, while `git show 981e3402e4:dev/programme/rosters/wave-r11-groups.json` holds the group and the carry exactly; the same miss printed at 7d42e7ad3 and 39ace5656. Carry: dismissed: a read-back miss after a verified push, recorded here and re-checked by hand
+
 
