@@ -1,0 +1,59 @@
+{
+ "key": "c1e66052b2d8090c",
+ "site": "optimizer.py:1577 CMP_BOUND",
+ "patch": "violated = (x < lb) | (x > ub) -> violated = (x <= lb) | (x > ub)",
+ "function": "_fd_steps",
+ "cluster": "optimizer.py:_fd_steps@1567-1582",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3335.3,
+  "load1_start": 0.42,
+  "load1_end": 0.88,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/gates/c1e66052b2d8090c.json",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c1e66052b2d8090c",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c1e66052b2d8090c.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c1e66052b2d8090c.py",
+  "baseline_value": "0.0001",
+  "mutant_value": "-0.0001",
+  "example_input": "x0=0.0,eps=0.0001,lb=0.0001,ub=0.00010000000000000002",
+  "results": [
+   "example_input=x0=0.0,eps=0.0001,lb=0.0001,ub=0.00010000000000000002",
+   "h_baseline=0.0001",
+   "h_mutant=-0.0001",
+   "crafted_inputs_tried=38449 count",
+   "crafted_inputs_moved=720 count",
+   "domain_inputs_tried=1255 count",
+   "domain_inputs_moved=0 count",
+   "random_inputs_tried=19129 count",
+   "random_inputs_moved=0 count",
+   "production_fd_calls=76 count",
+   "production_fd_calls_moved=0 count",
+   "production_gradients=76 count",
+   "production_gradients_moved=0 count",
+   "production_plan_max_abs_delta_kw=0 kW",
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ],
+  "inputs_tried": "production domain: L-BFGS-B's own eps (1e-4) with 0 <= lb <= x0 <= ub <= 100 kW; crafted_inputs_tried=38449 count; domain_inputs_tried=1255 count; random_inputs_tried=19129 count",
+  "null": [
+   "null_inputs_moved=0 count",
+   "null_plan_max_abs_delta_kw=0 kW"
+  ]
+ },
+ "step4": "moves only for x0 outside its box or a negative fallback step at |x0| ~ 1e17; 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move",
+ "should_fail": "tests/features.py::_grad_parity (features.py:6394; per-variable parity with scipy's approx_derivative over uniform, capped and DHW-pinned-headroom bounds at rng.uniform(0, 3) powers); none is owed through production: x0 + h lands exactly on lb only for a negative fallback step or an x0 below its lower bound",
+ "machine": "box D3-g27: 4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux, venv-ci CPython 3.14",
+ "non_finding": {
+  "claim": "optimizer.py:1577 CMP_BOUND c1e66052b2d8090c survives the full gate but is equivalent at every production-reachable input tried: moves only for x0 outside its box or a negative fallback step at |x0| ~ 1e17; 0 of 4685 production-domain inputs, 0 production calls, gradients or plan kW move",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_c1e66052b2d8090c.py",
+  "value": "crafted_inputs_moved=720 count; domain_inputs_moved=0 count; random_inputs_moved=0 count; production_fd_calls_moved=0 count; production_gradients_moved=0 count; null_inputs_moved=0 count"
+ }
+}
