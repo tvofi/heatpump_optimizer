@@ -38,6 +38,16 @@ Carry 0: (FAULT-HOLD's flag-prefill-reach, adding the hold's 10 minutes to the p
 
 ## Head
 
+`f0a1881e9d41d3cd80c97b42a701a7637ebe3dbc` merges origin/main `bb6377b4dad4e398d1a28bde54d30036a5b25a82` into `d7324bbc58`. Resolution delta for review: `git diff bb6377b4da f0a1881e9d -- dev/audit/rounds/round4/D6 docs/architecture.md tests/deployment_shape.py tests/features.py`. Each side added one module (`fault_log.py` here, `solve_gate.py` on main), so the module counts become 103 and the package closure 122 files. `fault_log.py` imports `homeassistant` at module level and `solve_gate.py` does not, so 37 such importers. `tests/features.py` keeps both appended blocks, with the fault-record block's last `R.check` closed before main's section. The ledger driver resolved `tests/structure_budgets.json` and `tests/closures.json`. At the merge: `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` rc 0 (C32-C35 true, re-generated), `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`, `python3 tests/structure.py` `STRUCTURE RATCHET PASSED` (no metric below its budget, so no gain recorded), `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` `ALL 691 checks PASSED`.
+
+`d7324bbc583ad81a11e6d92c5cff282eb6b54f01` is the code head of round 5. It repairs the block in `verdict/3870` at `ef876fecadb909be228a7c686bda5fb822149ae1`, the PR's head, which merges origin/main `5594a34a49404109b8e0f18bd5be18ddbb667cdf` into `d4e4e66f6b`. The head is one commit on `ef876fecad`.
+- `d7324bbc58` adds one line to `tests/config_flow_steps.py`'s `options_fault_text_list`: `await recover(flow, "entities_pump", {key: members[:4], **SAVE_CLOSE})`. It changes no production line.
+- Cause: main's `94125c37ed` census refuses a rendered flow error that no flow instance finishes. The fault-text check refused five entities and then saved four, but that flow went back to the menu and never finished. That left `options/entities_pump/too_many_fault_text_entities` unrecovered. The rooms check beside it already recovers its error the same way.
+- `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py`: at `ef876fecad`, rc 1 `1 of 690 checks FAILED` (`UNRECOVERED options/entities_pump/too_many_fault_text_entities`). At this head, rc 0 `ALL 691 checks PASSED`, `unrecovered_flow_error_triples=0`.
+- At origin/main `dc2b2bab316419ced8f919c256908275a2cc3e25`, `git merge-tree --write-tree` reports no conflict, so main is not merged (fixer.md step 6).
+
+Round 4's head and its notes follow.
+
 `d4e4e66f6b6dde3e51e920f11db70ac362a4ff50` is the code head of round 4, a repair of `tests / mutation` at `092e9bc81cc8798f008784c882711806c5e72548` (job 137647802986 of run 45161329980). It is four commits on `092e9bc81c`:
 - `ff475701b3` merges origin/main `0f63320c96cb4e1926a584c89d0dfe920d1778ab`; `git merge-tree --write-tree` reported no conflict. The merge is owed by the repair, not by a conflict: the red is main's `97026ed8cf` (`ci: record nightly kills`), which pins `_user_sensors_sections RETURN_DEL cd4695fb` on `    return fields`, a line this branch removed. CI's mutation job measures the merged tree, so only a head carrying the pin can delete it.
 - `ffa74c5a6e` deletes that pin, as round 1 deleted its two GUARD_OFF siblings (`## Structure payment` above).
@@ -62,6 +72,12 @@ Round 2's head and its notes follow.
 Prepr: at `c18501831385cb135f9d893599c42504162e1c26`, a full run with `PREPR_SKIP_CLOSURES=1` (this delta adds no file; closures unchanged) and `MUTANT_CMD` = the fault-record block's `features_block.py` call printed `rc=1`: every code step passed, and its two refusals were the body's, step 7 `figures` (a probe cited by a path not in the tree, now cited by `git show` at the verdict SHA) and `unpinned sites` (the round-1 lines at their old numbers, now listed at this head's). Its diff-mutant step printed the same 16 survivors as round 1, all in lines this round does not touch, each dispositioned below. With the code unchanged, `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` on this body then printed `PRE-PR: c18501831385cb135f9d893599c42504162e1c26 … rc=0`. No receipt is written under `PREPR_SKIP_CODE`, so this commit carries no `Prepr:` trailer.
 
 ## Mutation proof
+
+Round 5. Each mutant is one exact replacement, followed by `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py` and a restore. The tree was clean after the run, and all four mutants were KILLED:
+- M1, the cap `> FAULT_TEXT_ENTITIES_MAX` turned to `>=` (`config_flow.py`): rc 1, FAIL `five fault-text entities are refused ...; null control, four save` and `after its entities_pump error the same flow finishes`.
+- M2, the recovery without `**SAVE_CLOSE`: rc 1, FAIL `after its entities_pump error the same flow finishes` (the flow returns to the menu) and the census row `[options/entities_pump/too_many_fault_text_entities]`.
+- M3, the recovery run on a fresh options flow instead of the one that rendered the error: rc 1, FAIL the census row `[options/entities_pump/too_many_fault_text_entities]`.
+- M4, `_fault_text_errors` returning `{}`: rc 1, FAIL `five fault-text entities are refused ...`.
 
 Round 3, the local repair. The driver applies `tests/mutation_table.py`'s own generated mutant (`candidates()`) at each `fault_log.py` site listed in `tests / mutation`'s refusal at `7a666abfe9`. It runs one mutant at a time and restores the file after each. Each mutant runs against `tests/features.py`'s preamble plus its R11-OWNER-FAULT-TEXT section, from the section heading to `# 9: the prefill rows`. Driver: scratch, sha1 `e2bfe3acdba9dcb1ea229df7587b98a7f430e66a`. Section runner: scratch, sha1 `eb8de62e3bdee585b5a4039e0cd9b052895e7fcf`. `git status --short` after the drive lists only this round's two edited test files.
 - Null run: `NULL SURVIVED`, and the section printed `ALL 23 FL SECTION PASSED`.
@@ -138,6 +154,7 @@ Failing test first, at the merge base's production with this head's tests (workt
 
 ## Null control
 
+- Round 5: `tests/config_flow_steps.py` at origin/main `dc2b2bab31`, without this branch: rc 0, `ALL 684 checks PASSED`, `unrecovered_flow_error_triples=0`. The census is green on main, and this head adds 7 checks to it, all passing.
 - The failed-setup check's control is the unload path, `async_close` then the same callbacks: `(0, 0, [P3 row watched to its end], 1, 1)` for both at this head.
 - The empty-item check's control: `E5, E6` reads `E5, E6`, and a lone comma reads healthy. The 250-row load's: exactly 200 rows load whole. The back-stamped reading's: a reading 30 s after the start closes a 30 s row.
 - `OK` then `OK` makes no row. A healthy reading while healthy, and the same code while open, are not changes.
@@ -207,6 +224,10 @@ Round 1 figures, at `41b57b2daf` (merge base `8ef450936a`):
 
 ## Red checks
 
+- `tests / fast (3.14)` and `gate`: red at `ef876fecad` (fast job 138978772934, gate job 138995154315) on `tests/config_flow_steps.py`: `FAIL every rendered flow error is recovered on the flow that rendered it [options/entities_pump/too_many_fault_text_entities]`. Repaired at `d7324bbc58` (`## Head`): the fault-text error is now recovered on the flow that rendered it.
+  - Cheaper detector: a scoped run of `config_flow_steps.py` on the tree merged with main. The census reached this branch only through the merge of main `5594a34a49` at `ef876fecad`, and no local run was made at that head.
+- Local scoped gate at `d7324bbc58` (`GATE_SCOPE=auto GOLDEN_MODE=drift`, `MODE: SCOPED`, load average 50-100): `config_flow_steps.py` ok. Five other scripts failed: `optimality.py` (a recorded claim's gap is at the bar on this host's BLAS), `card.mjs` (node heap out of memory), `entities.py` (3 of 2760), `typing_ruler.py` (the host's unpinned venv-ha interpreter) and `stress.py` (3 timing checks). The diff from the CI-graded `ef876fecad` is one line of `tests/config_flow_steps.py`, which none of those scripts reads, and CI at `ef876fecad` had none of them red, so this is host load and environment, not the change. CI is the authority.
+- `python3 tools/pr/ci_predict.py` at `d7324bbc58`: one predicted red, `governance / wave-script AGREEMENT UNMERGED`, because the head did not merge into main. The merge at `f0a1881e9d` (`## Head`) repairs it.
 - `tests / mutation`: red at `092e9bc81c` (job 137647802986) with `MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory: custom_components/heatpump_optimizer/config_flow.py:_user_sensors_sections RETURN_DEL cd4695fb: disposition names no site the inventory generates (old pin '    return fields')`. Reproduced locally on the merge with main, then repaired at `49ba06341c` (head `d4e4e66f6b`). Pins: `unmeasured` at this head.
   - The stale pin is deleted (`## Head`).
   - Behind that refusal, `python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3` at `08fc04fe96` printed `1875 unpinned site(s) against 1874 at the ratchet base 0f63320c96cb4e1926a584c89d0dfe920d1778ab, 1 of them added by this diff` and `ADDED UNPINNED custom_components/heatpump_optimizer/fault_log.py:62 CONST: REGISTER_MAX = 0xFFFFFFFF`.
