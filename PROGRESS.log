@@ -5,3 +5,4 @@
 1795614938 CKPT combi red reproduced at 387c44fa and merged head, all 4 kernels: PR's own; bisecting snapshot 50b721188c54
 1795615229 HB alive
 1795615833 HB alive
+1795616014 CKPT combi red = features_block --emit-prelude artefact (unrestored _lbfgsb_restart patch); green at both heads with it removed snapshot a5b3f9d77baa
