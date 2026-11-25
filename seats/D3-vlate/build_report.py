@@ -64,7 +64,7 @@ V = [
   class_="I1; class_guess 'new' corrected",
   seam="phenomenon-wide (SURVIVED listing, 992 rows)",
   at_head=("64", "grid_fee.py:383", "guard_pins rc=0, features rc=0: not killed"),
-  attacks="consequence: equal value, label read only on a negative minimum -> nit; the finder's gate status was RED-AS-NULL, so the gate re-run decides survival"),
+  attacks="consequence: equal value, label read only on a negative minimum -> nit; the finder's gate status was RED-AS-NULL; this seat's re-run is a clean SURVIVED (gate_rc 0, 0 failed scripts), so the survival claim is stronger than the finder's"),
  dict(id="D3-s1-65", key="0c3e91a6a349409a", site="flow_lift.py:47", vote="verify", severity="low",
   value="learned flow bias 3.638040 K -> 4.689280 K (delta 1.051240 K)",
   metric_definition="FlowBias learned bias after the probe's sample sequence, FLOW_BIAS_ALPHA 0.1 vs 0.2",
@@ -134,7 +134,7 @@ V = [
   class_="I1; class_guess 'new' corrected",
   seam="phenomenon-wide (SURVIVED listing, 992 rows)",
   at_head=("71", "price_model.py:163 (moved from 252, now in _usable_day)", "guard_pins rc=0, features rc=1 '1 of 6034 FEATURE CHECKS FAILED' (null at head: features rc=0): KILLED at head"),
-  attacks="reachability: exact-boundary input only -> nit; the finder's own gate status was RED-AS-NULL, so the re-run gate decides survival; main has since pinned it"),
+  attacks="reachability: exact-boundary input only -> nit; the finder's own gate status was RED-AS-NULL; this seat's re-run is a clean SURVIVED (gate_rc 0) at the baseline; main has since pinned it (features fails at head)"),
 ]
 def at_head_text(v):
     if v["at_head"] is None:

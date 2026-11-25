@@ -8,8 +8,6 @@ Null full gate: gate_rc 0, failed_scripts 0, wall 3767 s, load1 1.0.
 
 At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.py` and `tests/features.py` only (seats/D3-vlate/athead.sh); the full gate was not re-run at head. A not-killed reading there is therefore 'not killed by those two scripts', not 'survives the full gate at head'.
 
-**Gates still pending:** D3-s1-71
-
 | id | vote | severity | full gate | at head |
 |---|---|---|---|---|
 | D3-s1-02 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
@@ -23,7 +21,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 | D3-s1-68 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-69 | weaken | nit | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
 | D3-s1-70 | verify | low | SURVIVED | not killed; the full gate was not re-run at head (about an hour per mutant) |
-| D3-s1-71 | weaken | nit | pending | KILLED at head; the full gate was not re-run at head (about an hour per mutant) |
+| D3-s1-71 | weaken | nit | SURVIVED | KILLED at head; the full gate was not re-run at head (about an hour per mutant) |
 
 ## D3-s1-02
 
@@ -87,7 +85,7 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - V3 reachable: yes via from_config; the label is read only when the value is < 0 (coordinator.py:7628), so a message label at most
 - V3 class: I1; class_guess 'new' corrected
 - V3 seam_rule: phenomenon-wide (SURVIVED listing, 992 rows)
-- attacks: consequence: equal value, label read only on a negative minimum -> nit; the finder's gate status was RED-AS-NULL, so the gate re-run decides survival
+- attacks: consequence: equal value, label read only on a negative minimum -> nit; the finder's gate status was RED-AS-NULL; this seat's re-run is a clean SURVIVED (gate_rc 0, 0 failed scripts), so the survival claim is stronger than the finder's
 - at head: targeted at head: mutant applied in evidence tree e3cb5c019b at grid_fee.py:383, then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=0: not killed; the full gate was not re-run at head (about an hour per mutant)
 
 ## D3-s1-65
@@ -173,10 +171,10 @@ At-head method: the mutant applied in the evidence tree, then `tests/guard_pins.
 - vote: **weaken**, severity nit
 - value: a day whose mean is exactly 1e-6: accepted 0 -> 1
 - metric: observe_day_quarters acceptance (0/1) of a hand-built day at mean == 1e-6
-- V1 reproduced: probe_c38d53ab.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): accepted 0 -> 1, quarter_days_delta 1, null 0, reach_real_price_days_at_boundary 0; full gate PENDING
+- V1 reproduced: probe_c38d53ab.py (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence)): accepted 0 -> 1, quarter_days_delta 1, null 0, reach_real_price_days_at_boundary 0; full gate (baseline tree 92d38ecb64 (+ e3cb5c019b's D3 evidence), `fullgate.py run --key c38d53ab787ddbfa`): SURVIVED, gate_rc 0, failed_scripts 0, killed 0, wall 3604 s, load1 0.92, thread_factor 1.0; null gate: gate_rc 0, failed 0
 - V2 independent: v2_head71.py (own): observe_day_quarters base 0 mut 1; sibling observe_day (sharing _usable_day at head) base 0 mut 1
 - V3 reachable: only with a day whose mean price is exactly 1e-6; no real price day sits on that boundary (reach 0)
 - V3 class: I1; class_guess 'new' corrected
 - V3 seam_rule: phenomenon-wide (SURVIVED listing, 992 rows)
-- attacks: reachability: exact-boundary input only -> nit; the finder's own gate status was RED-AS-NULL, so the re-run gate decides survival; main has since pinned it
+- attacks: reachability: exact-boundary input only -> nit; the finder's own gate status was RED-AS-NULL; this seat's re-run is a clean SURVIVED (gate_rc 0) at the baseline; main has since pinned it (features fails at head)
 - at head: targeted at head: mutant applied in evidence tree e3cb5c019b at price_model.py:163 (moved from 252, now in _usable_day), then tests/guard_pins.py and tests/features.py (PYTHONPATH=tests/hastub, seats/D3-vlate/athead.sh): guard_pins rc=0, features rc=1 '1 of 6034 FEATURE CHECKS FAILED' (null at head: features rc=0): KILLED at head; the full gate was not re-run at head (about an hour per mutant)
