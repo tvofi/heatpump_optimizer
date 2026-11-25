@@ -1,0 +1,3 @@
+custom_components/heatpump_optimizer/optimizer.py:4028:                    mark_room_floor(classify_space_steps(
+custom_components/heatpump_optimizer/optimizer.py:4878:        temp_min_bounds, comfort_floors, mold_floors = raised_floor(
+custom_components/heatpump_optimizer/optimizer.py:4882:            lifts = temp_min_bounds - raised_floor(low, temp_max_bounds, _padded_nonneg(

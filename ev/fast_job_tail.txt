@@ -1,0 +1,22 @@
+g --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-25T10:04:13.5001925Z Removing includeIf entries pointing to credentials config files
+2026-11-25T10:04:13.5007720Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-25T10:04:13.5030217Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-25T10:04:13.5031231Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-25T10:04:13.5031976Z includeif.gitdir:/github/workspace/.git.path
+2026-11-25T10:04:13.5032543Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-25T10:04:13.5037785Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-25T10:04:13.5058264Z /home/runner/work/_temp/git-credentials-51421298-0645-4e40-b447-cecf7ff65547.config
+2026-11-25T10:04:13.5065585Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-51421298\-0645\-4e40\-b447\-cecf7ff65547\.config
+2026-11-25T10:04:13.5097136Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-25T10:04:13.5116875Z /home/runner/work/_temp/git-credentials-51421298-0645-4e40-b447-cecf7ff65547.config
+2026-11-25T10:04:13.5125908Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-51421298\-0645\-4e40\-b447\-cecf7ff65547\.config
+2026-11-25T10:04:13.5153564Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-25T10:04:13.5172852Z /github/runner_temp/git-credentials-51421298-0645-4e40-b447-cecf7ff65547.config
+2026-11-25T10:04:13.5179308Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-51421298\-0645\-4e40\-b447\-cecf7ff65547\.config
+2026-11-25T10:04:13.5207981Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-25T10:04:13.5228744Z /github/runner_temp/git-credentials-51421298-0645-4e40-b447-cecf7ff65547.config
+2026-11-25T10:04:13.5233542Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-51421298\-0645\-4e40\-b447\-cecf7ff65547\.config
+2026-11-25T10:04:13.5262093Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-25T10:04:13.5508146Z Removing credentials config '/home/runner/work/_temp/git-credentials-51421298-0645-4e40-b447-cecf7ff65547.config'
+2026-11-25T10:04:13.5635810Z Cleaning up orphan processes
