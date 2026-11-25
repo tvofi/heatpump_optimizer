@@ -18,8 +18,11 @@ Prints, each with the rule that produced it:
                larger half's share of the script's recorded span seconds; NULL: the same split
                with every `needs` edge dropped (the unsound split).
 EXPECTED RESULT: the plan's makespan is within 10% of FLOOR and under the random null's median;
-the unsharded model reads within 20% of the logs' median TOTAL; SPLIT reads above 0.9 for both
-scripts against a null near 0.5 (the needs closure, not the splitter, keeps them whole).
+the unsharded model reads within 20% of the logs' median TOTAL (each script at its own median,
+summed along a lane, overstates a run whose scripts drew a fast host together); SPLIT reads above
+0.9 for both scripts. Its null reads near 0.5 for features.py (the needs closure, not the
+splitter, keeps it whole) and stays high for entities.py, whose one span `#558 D6 numeric schedule
+companion` holds most of its seconds.
 """
 from __future__ import annotations
 
