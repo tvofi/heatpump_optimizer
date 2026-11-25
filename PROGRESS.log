@@ -19,3 +19,4 @@
 1795574110 CKPT kill verified (fixed 6132 ok, mutant 1 FAIL); committed; pin-killed rerun to record snapshot f1eee49985bc
 1795574257 HB alive
 1795574860 HB alive
+1795575328 CKPT doc_claims red on own comment fixed; pin-killed rerun snapshot 653eff428d1c
