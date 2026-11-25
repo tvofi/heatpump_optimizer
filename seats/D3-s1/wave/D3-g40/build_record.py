@@ -32,12 +32,20 @@ def gate_fields(g):
     return out
 
 
-def fail_lines(key):
+def fail_lines(key, killers):
+    """The check lines of each killing script: its block before `>>> FAILED: <script>`, FAIL/gain/budget lines."""
     log = W / "gates" / f"{key}.log"
     if not log.exists():
         return []
-    lines = [l for l in log.read_text(errors="replace").splitlines() if re.search(r"\bFAIL\b|FAILED|Traceback|AssertionError", l)]
-    return lines[:20]
+    lines = log.read_text(errors="replace").splitlines()
+    out = []
+    for script in killers or []:
+        for i, l in enumerate(lines):
+            if l.strip() == f">>> FAILED: {script}":
+                out += [x.strip()[:300] for x in lines[max(0, i - 60):i + 1]
+                        if re.search(r"\bFAIL\b|FAILED|\bgain\b|budget|Error", x)]
+                break
+    return out[:30]
 
 
 def last_script(key):
@@ -79,7 +87,7 @@ def main(key):
     if verdict == "KILLED":
         rec["class"] = "killed"
         rec["killed_by"] = g.get("killed_by")
-        rec["failing_check_lines"] = fail_lines(key)
+        rec["failing_check_lines"] = fail_lines(key, g.get("killed_by"))
         rec["non_finding"] = {"claim": f"mutant {key} ({rec['patch']}) is killed by the full gate: {g.get('killed_by')}",
                               "command": f"python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src {row['src']} --key {key}",
                               "value": f"gate_rc {g.get('gate_rc')}, killed_by {g.get('killed_by')}"}

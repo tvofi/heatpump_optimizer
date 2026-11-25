@@ -31,26 +31,11 @@
   "python3 tests/structure.py"
  ],
  "failing_check_lines": [
-  "  FAIL a refused merge surfaces merge()'s reason, not just skip-merge-failed  [status='skip-not-under-scoped' log='']",
-  "  FAIL and a merge that succeeds carries no merge reason (null control)  [status='skip-not-under-scoped' log='']",
-  "2 of 118 closure shrink pins FAILED",
-  ">>> FAILED: python3 tests/closure.py selftest",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):",
-  "Traceback (most recent call last):"
+  "########## ratchet vs structure_budgets.json (recorded_at a39627da59ac) ##########",
+  "gain duplication_copies 7 (budget 8, -1; not yet recorded -- see below)",
+  "metric                                 budget     measured      delta",
+  "a budget and a better tree the gate is not loose, it is ABSENT, and",
+  ">>> FAILED: python3 tests/structure.py"
  ],
  "non_finding": {
   "claim": "mutant 968c552b8acd9df9 (positive = np.flatnonzero(np.any(values > 0, axis=1)) -> positive = np.flatnonzero(np.any(values >= 0, axis=1))) is killed by the full gate: ['python3 tests/structure.py']",
