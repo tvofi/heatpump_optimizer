@@ -1,0 +1,48 @@
+{
+ "key": "39a6d2e97fd44ed5",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5478 CLAMP_DROP",
+ "patch": "initial_power = np.clip(initial_power, p_min, p_max) -> initial_power = (initial_power)",
+ "function": "HeatPumpOptimizer._optimize_space_only",
+ "cluster": "optimizer.py:HeatPumpOptimizer._optimize_space_only@5478-5478",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 2487.9,
+  "load1_start": 0.94,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py",
+   "python3 tests/stress.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/stress.py": 2,
+   "python3 tests/harness_headers.py": 4
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "4 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/39a6d2e97fd44ed5.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g21/gates/39a6d2e97fd44ed5.log",
+  "provisional": "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.30GHz; the judge re-takes them)"
+ },
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/stress.py"
+ ],
+ "failing_check_lines": [
+  "  FAIL shoulder: cheaper than holding the setpoint  [4.68 vs 3.96]"
+ ],
+ "non_finding": "the suite fails on it: KILLED by python3 tests/stress.py (gate_rc 1)",
+ "note": "stress.py's two red checks are behavioural, not timing: 'shoulder: cheaper than holding the setpoint [4.68 vs 3.96]' and the production-call-count channel on summer/1z/space/valve and summer/2z/space/valve-direct-slab; the probe's carried equivalent-candidate reading (classify.json) is overturned by the gate. Probe kept: /root/audit-r11-D3-s1/dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_39a6d2e97fd44ed5.py"
+}
