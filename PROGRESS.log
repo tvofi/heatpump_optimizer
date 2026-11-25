@@ -134,3 +134,11 @@
 1795614672 CKPT D3-s1 60 file(s)
 1795614676 HB resumed after session restart: comms loop restarted (stale proxy env, stale lock removed); gated 11/16
 1795614680 HB alive
+1795614903 CKPT D3-s1 62 file(s)
+1795614903 HB gate done: 62a1f4d0c1be5960 RED-AS-NULL | gated 12/16 left 4 RED-AS-NULL=12
+1795614903 HB gate started: 845bf7a69b48b94b
+1795614931 CKPT D3-s1 63 file(s)
+1795614994 HB gate done (recorded by the box's record step): gated 12/16 left 4 RED-AS-NULL=12
+1795615066 CKPT D3-s1 63 file(s)
+1795615128 HB gate done: 62a1f4d0c1be5960 RED-AS-NULL | gated 12/16 left 4 RED-AS-NULL=12
+1795615226 HB gate started: 845bf7a69b48b94b
