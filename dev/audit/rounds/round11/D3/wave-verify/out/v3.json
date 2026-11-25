@@ -12836,5 +12836,71 @@
   "missing_fields": [],
   "title": "The two-zone buffer cap's dt floor is pinned by no check: without it a zero-length step raises ZeroDivisionError",
   "claim": "Mutant c5e678a5d1812e40 (thermal_model.py:4019 `max(dt_hours, 1e-6)` -> `(dt_hours)`) survives the full gate; under it ThermalModel._simulate_step_two_zone on a throttled plant raises ZeroDivisionError at dt_hours 0 (10 of 10 inputs) where the baseline returns a finite state, and below 1e-6 h lets the tank land on the cap. Inert at every production step size tried (0 of 60)."
+ },
+ {
+  "key": "7068e39e4608027f",
+  "box": "D3-g43",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 4699,
+  "old": "                                w * drawn, np.maximum(avail_wood, 0.0)",
+  "new": "                                w * drawn, (avail_wood)",
+  "symbol": "simulate_trajectory_batch",
+  "function": "simulate_trajectory_batch",
+  "reach": "executed",
+  "hit_by": "tests/edge.py,tests/env_drift.py,tests/features.py,tests/golden.py,tests/stress.py",
+  "prod_refs": 3,
+  "prod_ref_sample": [
+   "custom_components/heatpump_optimizer/optimizer.py:3763",
+   "custom_components/heatpump_optimizer/optimizer.py:5413",
+   "custom_components/heatpump_optimizer/thermal_model.py:4443"
+  ],
+  "divergent_stub": [],
+  "seam_rule": null,
+  "seam_kind": null,
+  "class_guess": "N-structure-blind",
+  "severity_claimed": "low",
+  "fields": {
+   "claim": true,
+   "evidence": true,
+   "harness": true,
+   "metric": true,
+   "perturbation": true
+  },
+  "missing_fields": [],
+  "title": "Batch two-tank wood draw clamp max(avail_wood, 0) is unpinned",
+  "claim": "Replacing `np.maximum(avail_wood, 0.0)` by `avail_wood` moves the batch trajectories by 0.0041 K (2 scenarios: two-tank, wood tank just below the floor temperature at zero power) and breaks parity with the scalar path, yet the full gate stays as red as the null."
+ },
+ {
+  "key": "6462c28df2f973e0",
+  "box": "D3-g43",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 4702,
+  "old": "                                drawn - wood_draw, np.maximum(avail_hp, 0.0)",
+  "new": "                                drawn - wood_draw, (avail_hp)",
+  "symbol": "simulate_trajectory_batch",
+  "function": "simulate_trajectory_batch",
+  "reach": "executed",
+  "hit_by": "tests/edge.py,tests/env_drift.py,tests/features.py,tests/golden.py,tests/stress.py",
+  "prod_refs": 3,
+  "prod_ref_sample": [
+   "custom_components/heatpump_optimizer/optimizer.py:3763",
+   "custom_components/heatpump_optimizer/optimizer.py:5413",
+   "custom_components/heatpump_optimizer/thermal_model.py:4443"
+  ],
+  "divergent_stub": [],
+  "seam_rule": null,
+  "seam_kind": null,
+  "class_guess": "N-structure-blind",
+  "severity_claimed": "low",
+  "fields": {
+   "claim": true,
+   "evidence": true,
+   "harness": true,
+   "metric": true,
+   "perturbation": true
+  },
+  "missing_fields": [],
+  "title": "Batch two-tank hp draw clamp max(avail_hp, 0) is unpinned",
+  "claim": "Replacing `np.maximum(avail_hp, 0.0)` by `avail_hp` moves the batch trajectories by 0.0166 K (4 scenarios: two-tank, buffer just below the floor temperature at zero power) and breaks parity with the scalar path, yet the full gate stays as red as the null."
  }
 ]

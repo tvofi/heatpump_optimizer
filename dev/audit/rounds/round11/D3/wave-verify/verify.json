@@ -73,6 +73,16 @@
    "votes": {
     "verify": 4
    }
+  },
+  {
+   "stage": 4,
+   "boxes": [
+    "D3-g43"
+   ],
+   "findings": 2,
+   "votes": {
+    "verify": 2
+   }
   }
  ],
  "votes": [
@@ -11752,6 +11762,64 @@
    "test_gap_mutation": "custom_components/heatpump_optimizer/tariff.py:570 `if house.size == 0:` -> `if False:` (production file)",
    "missing_fields": [],
    "stage": 3
+  },
+  {
+   "id": "D3-wave-7068e39e4608027f",
+   "key": "7068e39e4608027f",
+   "box": "D3-g43",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4699",
+   "patch": "w * drawn, np.maximum(avail_wood, 0.0) -> w * drawn, (avail_wood)",
+   "title": "Batch two-tank wood draw clamp max(avail_wood, 0) is unpinned",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 1 arm pair(s) moved, null moved 0; e.g. ('batch_vs_scalar_parity', ['0', '0.00408045'])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 25.7 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: (4699, 'w * drawn, np.maximum(avail_wood, 0.0)', '                                w * drawn, (avail_wood), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 3 script(s), new vs null [], more fail lines than null []; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 1 of 2 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: (4699, 'w * drawn, np.maximum(avail_wood, 0.0)', '                                w * drawn, (avail_wood), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 5 script(s); 3 production reference(s) to simulate_trajectory_batch outside its definition (e.g. ['custom_components/heatpump_optimizer/optimizer.py:3763', 'custom_components/heatpump_optimizer/optimizer.py:5413']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'N-structure-blind' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:4699 `w * drawn, np.maximum(avail_wood, 0.0)` -> `w * drawn, (avail_wood)` (production file)",
+   "missing_fields": [],
+   "stage": 4
+  },
+  {
+   "id": "D3-wave-6462c28df2f973e0",
+   "key": "6462c28df2f973e0",
+   "box": "D3-g43",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:4702",
+   "patch": "drawn - wood_draw, np.maximum(avail_hp, 0.0) -> drawn - wood_draw, (avail_hp)",
+   "title": "Batch two-tank hp draw clamp max(avail_hp, 0) is unpinned",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 1 arm pair(s) moved, null moved 0; e.g. ('batch_vs_scalar_parity', ['0', '0.0166438'])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 25.7 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: (4702, 'drawn - wood_draw, np.maximum(avail_hp, 0.0)', '                                drawn - wood_dra), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 3 script(s), new vs null [], more fail lines than null []; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 1 of 2 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: (4702, 'drawn - wood_draw, np.maximum(avail_hp, 0.0)', '                                drawn - wood_dra), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 5 script(s); 3 production reference(s) to simulate_trajectory_batch outside its definition (e.g. ['custom_components/heatpump_optimizer/optimizer.py:3763', 'custom_components/heatpump_optimizer/optimizer.py:5413']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'N-structure-blind' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:4702 `drawn - wood_draw, np.maximum(avail_hp, 0.0)` -> `drawn - wood_draw, (avail_hp)` (production file)",
+   "missing_fields": [],
+   "stage": 4
   }
  ]
 }
