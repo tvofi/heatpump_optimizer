@@ -13,4 +13,5 @@
 1795647974 HB alive
 1795647991 CKPT figures and 8 mutants re-run at head; equivalence run started snapshot 01170e542bcf
 1795648578 HB alive
-1795649158 DONE verdict merge 04e17d32 pushed to probe/rev-3896-271ad22c (4c7091b7)
+1795649088 HB alive
+1795649161 CKPT packet rendered; classify GREEN; merge-tree clean snapshot f4a138aa0adb
