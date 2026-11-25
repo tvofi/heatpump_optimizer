@@ -1,0 +1,10 @@
+M1-planner-ignores-flag | block_duty: ALL 158 BLOCK DUTY CHECKS PASSED | features_block: ALL 3 FEATURES BLOCK PASSED
+M2-under-way-always-true | block_duty: 1 of 158 BLOCK DUTY CHECKS FAILED | features_block: 1 of 3 FEATURES BLOCK FAILED
+M3-drop-exempts-step0 | block_duty: 1 of 158 BLOCK DUTY CHECKS FAILED | features_block: ALL 3 FEATURES BLOCK PASSED
+M4-startable-ignores-flag | block_duty: 1 of 158 BLOCK DUTY CHECKS FAILED | features_block: ALL 3 FEATURES BLOCK PASSED
+M5-under-way-ignores-mode | block_duty: 1 of 158 BLOCK DUTY CHECKS FAILED | features_block: 1 of 3 FEATURES BLOCK FAILED
+M6-combined-ignores-action | block_duty: 1 of 158 BLOCK DUTY CHECKS FAILED | features_block: ALL 3 FEATURES BLOCK PASSED
+M7-coord-no-under-way | block_duty: ALL 158 BLOCK DUTY CHECKS PASSED | features_block: 1 of 3 FEATURES BLOCK FAILED
+M8-repair-not-bound | block_duty: ALL 158 BLOCK DUTY CHECKS PASSED | features_block: ALL 3 FEATURES BLOCK PASSED
+M9-place-drop-not-passed | block_duty: ALL 158 BLOCK DUTY CHECKS PASSED | features_block: ALL 3 FEATURES BLOCK PASSED
+NULL-comment | block_duty: ALL 158 BLOCK DUTY CHECKS PASSED | features_block: ALL 3 FEATURES BLOCK PASSED
