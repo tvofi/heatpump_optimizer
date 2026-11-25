@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_22205dc8a4a6e79b.py: pins defrost_factor00 after _apply_learner_payloads restores a snapshot whose defrost derate differs from the fresh state; baseline 0.8, mutant 1.0 (the snapshot's defrost derate is ignored) (candidate)

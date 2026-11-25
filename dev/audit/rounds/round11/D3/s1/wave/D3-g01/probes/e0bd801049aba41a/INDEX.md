@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_e0bd801049aba41a.py: pins space-pump service calls with a fresh plan, across plan step lengths; baseline [('turn_on', 'switch.space')] at the production 15-min step, mutant identical (moved 0 at every production step) (equivalent-candidate)

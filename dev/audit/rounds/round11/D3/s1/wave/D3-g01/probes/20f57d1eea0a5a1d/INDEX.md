@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py: pins VVC pump command at 12:00 with a 06:00-08:30 DHW window and DHW disabled; baseline [('turn_on', 'switch.vvc')], mutant [('turn_off', 'switch.vvc')] (candidate)

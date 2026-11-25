@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# Metric: buffer-cooling samples HeatPumpOptimizerCoordinator._async_learn_buffer_cooling folds (and the learned
+#   rate's move, degC/h) from one quiet 0.2 h interval, 40.0 -> 39.8 degC, on a live coordinator.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_622996d751dca0c4.py
+# EXPECTED RESULT samples_baseline=1 count (rate +0.017208) ; samples_mutant=0 count (rate +0.0)
+# EXPECTED RESULT null_delta=0 count  (a 0.5 h interval: above both minimums, folded either way)
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g01 (4 vCPU Intel Xeon @ 2.10GHz, 16 GB, Linux).
+# Instrumented symbol: custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling
+#   (the dt_h gate at coordinator.py:5654 reads BUFFER_COOLING_MIN_SAMPLE_HOURS, coordinator.py:1622); dt_util.now
+#   stubbed to two instants dt_h apart, the store save stubbed to a no-op.
+# Perturbation: key 622996d751dca0c4, `BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15` -> `= 0.3`, in memory
+#   (mock.patch.multiple on the module global). Direction: a 0.15..0.3 h quiet interval folded -> refused.
+# Null control: a 0.5 h interval, above both minimums.

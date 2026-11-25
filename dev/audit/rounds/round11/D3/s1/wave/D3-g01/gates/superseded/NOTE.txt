@@ -1,0 +1,7 @@
+676e8bfb416ff635 first gate (2026-11-22T23:29Z..00:25Z): KILLED by python3 tests/harness_headers.py alone, 4 fails vs the
+null's 3. The extra check was "every inlined walk matches the canonical helper and no depth root remains": it named this
+box's own probe files under wave/D3-g01/probes/<key>/..., copied into the gate tree at ~23:31Z (orchestrator NOTE 2),
+whose repo_root() lacked the canonical helper's inner `from pathlib import Path` line. A seat artefact, not a kill.
+The probes were rebuilt with tools/audit/repo_root.py's text verbatim (0 differing copies under s1/) before the
+622996d751dca0c4 gate reached harness_headers.py; this key is re-gated after the run loop. Gate fafb0d2c15e72efb ended
+at 23:29Z, before any probe entered the tree, so it is unaffected.

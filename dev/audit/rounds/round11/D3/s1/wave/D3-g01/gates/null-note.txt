@@ -1,0 +1,11 @@
+box D3-g01 full-gate null control (fullgate.py null, comment-only marker in tariff.py), 2026-11-22, nproc 4 Intel Xeon @ 2.10GHz,
+load1 0.86..1.0, wall 3425.2 s (provisional). gate_rc=1, 3 scripts red, all artefacts of the stripped finder tree / branch environment:
+- python3 tests/closure.py selftest (2 of 118): "a refused merge surfaces merge()'s reason" and its null control,
+  status='skip-not-under-scoped' -- merge-tool pins, no production file.
+- python3 tests/entities.py (1 of 2723): "and is accepted when it does [the scoped path records only what the diff can reach]"
+  -- scoped-gate pin, branch-environment artefact (same single check as box D3-rem's null).
+- python3 tests/harness_headers.py (3 of 115): dev/audit/rounds/round4/D6/claims.py prints claims_true=122/claims_false=1
+  against header 123/0, and so rewrites its committed claims.json/.md -- the D6 claims register reads docs the
+  finder-wall strip removed; no production file.
+No production-facing check is red; card.mjs did not OOM, so no D3S1_NODE_HEAP re-take. fullgate.py counts KILLED only on
+a script beyond this null or more failing checks in one. Null usable; no BLOCKED.
