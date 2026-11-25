@@ -1,0 +1,56 @@
+{
+ "key": "f9c1b49fde6e1d52",
+ "site": "dhw_planner.py:807 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 807,
+ "patch": "if temp <= everyday: -> if False:",
+ "function": "DhwPlanner._dhw_legionella_ceilings",
+ "cluster": "dhw_planner.py:DhwPlanner._dhw_legionella_ceilings@740-807",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3250.0,
+  "load1_start": 0.86,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "child_cpu_s": 5492.8,
+  "provisional": true,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/gates/f9c1b49fde6e1d52.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f9c1b49fde6e1d52"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f9c1b49fde6e1d52.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f9c1b49fde6e1d52.py",
+  "baseline_value": "moved=0 count",
+  "mutant_value": "coast_steps_written_baseline=3375 count  mutant=3375 count",
+  "results": {
+   "inputs_tried": "147 count",
+   "moved": "0 count",
+   "coast_steps_written_baseline": "3375 count  mutant=3375 count",
+   "thread_factor": "1.000 ratio",
+   "load1": "3.59",
+   "swapins": "0 count"
+  },
+  "inputs_tried": "everyday 15/40/55/59 C x cooling 0.05/0.3/3.0 C/h x (n, dt) (96, 0.25)/(192, 0.25)/(24, 1.0) x cycle step 0/mid/n-2/n-1; combi store 330 L at steps 10/48/90",
+  "reading": "147 inputs (everyday limit 15/40/55/59 C, cooling 0.05/0.3/3 C/h, horizons 96x15 min, 192x15 min, 24x1 h, cycle step first/middle/last two, and a combi store) give identical outputs; the coast-down past the limit writes max(everyday, temp<everyday) = everyday, so the break only saves iterations: equivalent",
+  "thread_factor": 1.0,
+  "load1": 3.59
+ },
+ "should_fail": "none: equivalent (the break is an early exit)"
+}
