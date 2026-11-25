@@ -92,3 +92,5 @@
 1795412777 HB gate started: 41000bf52dbaa1ad
 1795567661 RESUMED from c8036539af60
 1795567661 INIT box D3-g16
+1795567719 HB alive
+1795567719 HB prepared (re-fire, resumed at gated 8/16)
