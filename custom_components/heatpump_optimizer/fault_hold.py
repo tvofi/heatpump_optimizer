@@ -126,7 +126,8 @@ def gate(entry: Any, held_state: Any, inp: Any, value: bool | None) -> bool | No
 
     An ON passes. A left OFF marks ``held_state.supply_held`` (the arbiter's
     record), so the step tick retries it each minute and it lands after the
-    clear, and the cycle's cooling message is not printed for it.
+    clear; the cooling gate's message (``supply_hold.supply_write``) is
+    never printed for it, since that gate passed the OFF.
     """
     if value is not False or not consult(entry, inp):
         return value
