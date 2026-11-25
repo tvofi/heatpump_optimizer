@@ -1,0 +1,100 @@
+{
+ "key": "9d324a1dc7a6aa82",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5674 CMP_BOUND",
+ "patch": "if observed < low or observed > high: -> if observed < low or observed >= high:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling@5654-5679",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3458.6,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/9d324a1dc7a6aa82.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9d324a1dc7a6aa82",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_9d324a1dc7a6aa82.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_9d324a1dc7a6aa82.py",
+  "baseline_value": "samples=1 rate=0.4513030054632706 saves=1 (two tie inputs)",
+  "mutant_value": "samples=0 rate=0.39587982935374616 saves=0",
+  "inputs_tried": [
+   "observed_eq_high_1h",
+   "observed_eq_high_0p5h",
+   "above_high_null",
+   "cool_null"
+  ],
+  "result_lines": [
+   "RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)",
+   "RESULT observed_eq_high_1h_baseline_samples=1 count rate=0.4513030054632706 saves=1",
+   "RESULT observed_eq_high_1h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT observed_eq_high_1h_moved=1 count",
+   "RESULT observed_eq_high_0p5h_baseline_samples=1 count rate=0.4513030054632706 saves=1",
+   "RESULT observed_eq_high_0p5h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT observed_eq_high_0p5h_moved=1 count",
+   "RESULT above_high_null_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT above_high_null_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT above_high_null_moved=0 count",
+   "RESULT cool_null_baseline_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_mutant_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_moved=0 count",
+   "RESULT inputs_moved=2 count of 4",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.06",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "check_area": "tests/features.py W5-G7 t2 buffer-cooling block (_t2_buffer, features.py:51197-51450)",
+  "executes_line": true,
+  "assertion_it_lacks": "an interval implying exactly the ceiling asserting it is folded (or a documented exclusive bound asserted)",
+  "why_it_passes": "its ceiling check uses 60 -> 25 C over 0.2 h, far above the ceiling"
+ },
+ "m4_carried": null,
+ "finding": {
+  "title": "No check pins the buffer-cooling ceiling as inclusive (coordinator.py:5674 `> high`)",
+  "claim": "With `observed > high` -> `>=`, an interval whose implied rate equals the 35 L tank's ceiling bit-for-bit (3.167038634829969 C/h) is discarded (samples 1 -> 0, rate 0.4513 -> 0.3959) and the full gate stays green beyond its null.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "metric_definition": "the coordinator's _buffer_cooling_samples (and _buffer_cooling_rate) after one real _async_learn_buffer_cooling call on a quiet interval, implied rate == ceiling bit-for-bit",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+  "perturbation": {
+   "change": "coordinator.py:5674 `observed > high` -> `observed >= high`",
+   "expected_direction": "samples 1 -> 0 at observed == high"
+  },
+  "mechanism": "boundary; the tie is constructible (the probe finds it by walking the interval in microseconds)",
+  "stop_rule_class": "hygiene",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "phenomenon_property": "every guard/branch of this function changes an observable output on some reachable input, and the suite asserts that output on that input",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list) restricted to the function's cluster; each SURVIVED key is a seam",
+  "proposed_fix_scope": "tests only: add the missing assertion to the named closure script; no production change",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_9d324a1dc7a6aa82.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_9d324a1dc7a6aa82.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9d324a1dc7a6aa82",
+  "null_control": "Probe nulls: far above the ceiling, mid-band: moved=0. Gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/null.json (gate_rc 1 on artefact checks only: closure.py selftest, entities.py, harness_headers.py; the mutant gate is red on no script beyond them)."
+ }
+}

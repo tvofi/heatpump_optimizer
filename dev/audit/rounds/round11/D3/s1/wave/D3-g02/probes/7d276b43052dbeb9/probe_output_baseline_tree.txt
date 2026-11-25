@@ -1,0 +1,32 @@
+RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)
+RESULT equal_50_1h_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_50_1h_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_50_1h_moved=0 count
+RESULT equal_24_3h_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_24_3h_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_24_3h_moved=0 count
+RESULT equal_50_0p15h_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_50_0p15h_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_50_0p15h_moved=0 count
+RESULT equal_50_vol0_baseline_samples=0 count rate=27.898834194547216 saves=0
+RESULT equal_50_vol0_mutant_samples=0 count rate=27.898834194547216 saves=0
+RESULT equal_50_vol0_moved=0 count
+RESULT equal_50_vol1e6_baseline_samples=0 count rate=0.012949491726822464 saves=0
+RESULT equal_50_vol1e6_mutant_samples=0 count rate=0.012949491726822464 saves=0
+RESULT equal_50_vol1e6_moved=0 count
+RESULT equal_inf_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_inf_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_inf_moved=0 count
+RESULT equal_nan_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_nan_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT equal_nan_moved=0 count
+RESULT warm_null_baseline_samples=0 count rate=0.39587982935374616 saves=0
+RESULT warm_null_mutant_samples=0 count rate=0.39587982935374616 saves=0
+RESULT warm_null_moved=0 count
+RESULT cool_null_baseline_samples=1 count rate=0.42245866851014696 saves=1
+RESULT cool_null_mutant_samples=1 count rate=0.42245866851014696 saves=1
+RESULT cool_null_moved=0 count
+RESULT inputs_moved=0 count of 9
+RESULT thread_factor=1.000
+RESULT load1=1.06
+RESULT swapins=0

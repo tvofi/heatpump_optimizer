@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_355c3d7dd36a1b90.py: pins house heat-loss scale and sample count after one dark 0.5 h learning interval whose indoor-outdoor delta is exactly 6.0 K (21.0 vs 15.0 C) (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

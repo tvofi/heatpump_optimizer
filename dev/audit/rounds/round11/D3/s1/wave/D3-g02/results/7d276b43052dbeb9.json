@@ -1,0 +1,89 @@
+{
+ "key": "7d276b43052dbeb9",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5658 CMP_BOUND",
+ "patch": "if buffer_temp > previous_temp: -> if buffer_temp >= previous_temp:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling@5654-5679",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3428.3,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/7d276b43052dbeb9.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7d276b43052dbeb9",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_7d276b43052dbeb9.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_7d276b43052dbeb9.py",
+  "baseline_value": "inputs_moved=0 of 9",
+  "mutant_value": "identical on all 9",
+  "inputs_tried": [
+   "equal_50_1h",
+   "equal_24_3h",
+   "equal_50_0p15h",
+   "equal_50_vol0",
+   "equal_50_vol1e6",
+   "equal_inf",
+   "equal_nan",
+   "warm_null",
+   "cool_null"
+  ],
+  "result_lines": [
+   "RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)",
+   "RESULT equal_50_1h_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_50_1h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_50_1h_moved=0 count",
+   "RESULT equal_24_3h_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_24_3h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_24_3h_moved=0 count",
+   "RESULT equal_50_0p15h_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_50_0p15h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_50_0p15h_moved=0 count",
+   "RESULT equal_50_vol0_baseline_samples=0 count rate=27.898834194547216 saves=0",
+   "RESULT equal_50_vol0_mutant_samples=0 count rate=27.898834194547216 saves=0",
+   "RESULT equal_50_vol0_moved=0 count",
+   "RESULT equal_50_vol1e6_baseline_samples=0 count rate=0.012949491726822464 saves=0",
+   "RESULT equal_50_vol1e6_mutant_samples=0 count rate=0.012949491726822464 saves=0",
+   "RESULT equal_50_vol1e6_moved=0 count",
+   "RESULT equal_inf_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_inf_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_inf_moved=0 count",
+   "RESULT equal_nan_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_nan_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT equal_nan_moved=0 count",
+   "RESULT warm_null_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT warm_null_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT warm_null_moved=0 count",
+   "RESULT cool_null_baseline_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_mutant_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_moved=0 count",
+   "RESULT inputs_moved=0 count of 9",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=1.06",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "none",
+  "assertion_it_lacks": "none possible on a reachable input: `>` and `>=` differ only on an equal pair; equal temperatures imply observed 0.0 C/h, which the volume-derived floor (positive at every volume, 0.0001 L .. 1e6 L tried) rejects; inf/nan pairs are rejected in both arms"
+ },
+ "m4_carried": null,
+ "equivalent_reason": "`>` and `>=` differ only on an equal pair; equal temperatures imply observed 0.0 C/h, which the volume-derived floor (positive at every volume, 0.0001 L .. 1e6 L tried) rejects; inf/nan pairs are rejected in both arms"
+}

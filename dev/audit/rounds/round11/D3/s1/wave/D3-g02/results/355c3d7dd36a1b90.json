@@ -1,0 +1,107 @@
+{
+ "key": "355c3d7dd36a1b90",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5782 CMP_BOUND",
+ "patch": "if delta_t < HOUSE_LOSS_MIN_DELTA: -> if delta_t <= HOUSE_LOSS_MIN_DELTA:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_house_heat_loss",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss@5782-5810",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3621.7,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/355c3d7dd36a1b90.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 355c3d7dd36a1b90",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_355c3d7dd36a1b90.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_355c3d7dd36a1b90.py",
+  "baseline_value": "samples=1, scale 1.01 (cooling/flat/two-zone) or 0.99 (warming) at indoor-outdoor exactly 6.0 K",
+  "mutant_value": "samples=0, scale 1.0",
+  "inputs_tried": [
+   "delta6_exact_cool",
+   "delta6_exact_warm",
+   "delta6_exact_flat",
+   "delta6_exact_two_zone",
+   "delta5p9_null",
+   "delta26_null"
+  ],
+  "result_lines": [
+   "RESULT delta6_exact_cool_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_cool_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_cool_moved=1 count",
+   "RESULT delta6_exact_warm_baseline_scale=0.99 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_warm_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_warm_moved=1 count",
+   "RESULT delta6_exact_flat_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_flat_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_flat_moved=1 count",
+   "RESULT delta6_exact_two_zone_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_two_zone_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta6_exact_two_zone_moved=1 count",
+   "RESULT delta5p9_null_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta5p9_null_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta5p9_null_moved=0 count",
+   "RESULT delta26_null_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta26_null_mutant_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1",
+   "RESULT delta26_null_moved=0 count",
+   "RESULT inputs_moved=4 count of 6",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.98",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "check_area": "the house heat-loss learner checks (_two_zone_learner / _fabric_lower_samples, features.py:14086-14275, and the P3 census)",
+  "executes_line": true,
+  "why_it_passes": "every house-loss interval the suite drives has indoor-outdoor 26 K (21 vs -5 C), far from the 6 K minimum",
+  "assertion_it_lacks": "an interval at exactly HOUSE_LOSS_MIN_DELTA asserting it is learned (and one just under asserting it is skipped)"
+ },
+ "m4_carried": null,
+ "finding": {
+  "title": "No check pins the 6 K minimum indoor-outdoor delta of the house heat-loss learner at its bound (coordinator.py:5782)",
+  "claim": "With `delta_t < HOUSE_LOSS_MIN_DELTA` -> `<=`, a dark 0.5 h interval at exactly 6.0 K indoor-outdoor is skipped (samples 1 -> 0, scale 1.01 -> 1.0) and the full gate stays green beyond its null.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "metric_definition": "the coordinator's _house_heat_loss_samples and _house_heat_loss_scale after one real _async_learn_house_heat_loss call at indoor-outdoor exactly 6.0 K",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss",
+  "perturbation": {
+   "change": "coordinator.py:5782 `<` -> `<=`",
+   "expected_direction": "samples 1 -> 0, scale 1.01 -> 1.0"
+  },
+  "mechanism": "boundary of a threshold; the suite's intervals all sit at 26 K",
+  "stop_rule_class": "hygiene",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "tests/features.py"
+  ],
+  "phenomenon_property": "every guard/branch of this function changes an observable output on some reachable input, and the suite asserts that output on that input",
+  "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv (the wave list) restricted to the function's cluster; each SURVIVED key is a seam",
+  "proposed_fix_scope": "tests only: add the missing assertion to the named closure script; no production change",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_355c3d7dd36a1b90.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_355c3d7dd36a1b90.py ; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 355c3d7dd36a1b90",
+  "null_control": "Probe nulls: 5.9 K (skipped by both) and 26 K (learned by both): moved=0. Gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/null.json (gate_rc 1 on artefact checks only: closure.py selftest, entities.py, harness_headers.py; the mutant gate is red on no script beyond them)."
+ }
+}

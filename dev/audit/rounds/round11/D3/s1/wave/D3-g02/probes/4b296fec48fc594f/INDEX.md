@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_4b296fec48fc594f.py: pins buffer-cooling samples/rate/saves after one interval starting exactly 4.0 K above the 20 C ambient (the only start on which `<` and `<=` differ). EQUIVALENT-MUTANT probe (in-memory mutant vs baseline; output in probe_output_baseline_tree.txt)

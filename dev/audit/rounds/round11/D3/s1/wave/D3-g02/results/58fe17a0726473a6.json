@@ -1,0 +1,85 @@
+{
+ "key": "58fe17a0726473a6",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:5663 GUARD_OFF",
+ "patch": "if start_delta < BUFFER_COOLING_MIN_DELTA: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._async_learn_buffer_cooling@5654-5679",
+ "slice": "u1b",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3302.7,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/gates/58fe17a0726473a6.json",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 58fe17a0726473a6",
+  "provisional_timing": "wall/load1 provisional: 4 vCPU Intel Xeon @ 2.10GHz, nproc 4, GATE_JOBS=1, box alone on its machine (the judge re-takes it)"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_58fe17a0726473a6.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_58fe17a0726473a6.py",
+  "baseline_value": "inputs_moved=0 of 8",
+  "mutant_value": "identical on all 8",
+  "inputs_tried": [
+   "start3p9_3h",
+   "start_ulp_below4_equal",
+   "start0_equal",
+   "start_neg",
+   "start_nan",
+   "start_minus_inf",
+   "start3p9_vol0",
+   "cool_null"
+  ],
+  "result_lines": [
+   "RESULT bounds_low=0.07917596587074922 C/h high=3.167038634829969 C/h prior=0.39587982935374616 C/h (35 L default tank)",
+   "RESULT start3p9_3h_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start3p9_3h_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start3p9_3h_moved=0 count",
+   "RESULT start_ulp_below4_equal_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_ulp_below4_equal_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_ulp_below4_equal_moved=0 count",
+   "RESULT start0_equal_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start0_equal_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start0_equal_moved=0 count",
+   "RESULT start_neg_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_neg_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_neg_moved=0 count",
+   "RESULT start_nan_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_nan_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_nan_moved=0 count",
+   "RESULT start_minus_inf_baseline_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_minus_inf_mutant_samples=0 count rate=0.39587982935374616 saves=0",
+   "RESULT start_minus_inf_moved=0 count",
+   "RESULT start3p9_vol0_baseline_samples=0 count rate=27.898834194547216 saves=0",
+   "RESULT start3p9_vol0_mutant_samples=0 count rate=27.898834194547216 saves=0",
+   "RESULT start3p9_vol0_moved=0 count",
+   "RESULT cool_null_baseline_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_mutant_samples=1 count rate=0.42245866851014696 saves=1",
+   "RESULT cool_null_moved=0 count",
+   "RESULT inputs_moved=0 count of 8",
+   "RESULT thread_factor=1.000",
+   "RESULT load1=0.98",
+   "RESULT swapins=0"
+  ],
+  "run_from": "a scratch baseline worktree at 92d38ecb (never the gate tree while a gate runs); thread_factor 1.000"
+ },
+ "should_fail": {
+  "script": "none",
+  "assertion_it_lacks": "none possible on a reachable input: subsumed: a non-warming interval has end_delta <= start_delta < 4, so the end guard rejects every interval this one would; nan/-inf starts are rejected identically; features.py records the same at 'starting within 4 K'"
+ },
+ "m4_carried": null,
+ "equivalent_reason": "subsumed: a non-warming interval has end_delta <= start_delta < 4, so the end guard rejects every interval this one would; nan/-inf starts are rejected identically; features.py records the same at 'starting within 4 K'"
+}
