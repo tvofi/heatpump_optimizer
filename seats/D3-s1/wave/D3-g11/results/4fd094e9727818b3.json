@@ -1,0 +1,100 @@
+{
+ "key": "4fd094e9727818b3",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:2907 CMP_BOUND",
+ "patch": "age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES) -> age >= timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES)",
+ "function": "_dhw_inlet_c",
+ "cluster": "coordinator.py:_dhw_inlet_c",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2698.6,
+  "load1_start": 0.72,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "cap_s": null,
+  "note": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/4fd094e9727818b3.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4fd094e9727818b3",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.10GHz); the verdict is a count",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+  "rc": 0,
+  "results": [
+   "RESULT age_at_limit_baseline=12.0",
+   "RESULT age_at_limit_mutant=None",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.002",
+   "RESULT load1=0.80",
+   "RESULT swapins=0 count"
+  ],
+  "baseline_value": "12.0",
+  "mutant_value": "None",
+  "inputs_tried": [
+   "RESULT age_at_limit_baseline=12.0",
+   "RESULT age_at_limit_mutant=None",
+   "RESULT null_moved=0 count",
+   "RESULT thread_factor=1.002",
+   "RESULT load1=0.80",
+   "RESULT swapins=0 count"
+  ]
+ },
+ "should_fail": "tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/entities.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py, tests/solar_alignment.py execute line 2907; none feeds an inlet reading aged exactly 24 h",
+ "class": "candidate",
+ "finding": {
+  "title": "No check pins _dhw_inlet_c's staleness boundary at exactly 24 h; > -> >= is unseen",
+  "claim": "A 12.0 degC DHW inlet reading exactly DHW_INLET_MAX_AGE_MINUTES (24 h) old is used on the baseline (12.0); with `>` -> `>=` it is rejected (None) and the seasonal model is used instead.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "_dhw_inlet_c's return for a 12.0 degC inlet reading aged exactly 24 h (frozen clock)",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:_dhw_inlet_c",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+  "evidence": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+   "harness_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+   "value": "None",
+   "baseline_value": "12.0",
+   "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+   "machine": "box D3-g11: Linux x86_64, nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box",
+   "tolerance": "exact",
+   "cpu_or_wall": "n/a"
+  },
+  "perturbation": {
+   "change": "mutant 4fd094e9727818b3 at custom_components/heatpump_optimizer/coordinator.py:2907: `age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES)` -> `age >= timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES)`, applied in memory by the probe",
+   "expected_direction": "to_zero",
+   "observed_value": "12.0 -> None"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+   "value": "null_moved=0 count",
+   "note": "the probe's null arm (inputs where both arms must agree); the full-gate null is PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)"
+  },
+  "gate_null_control": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py null  (dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null.json, dev/audit/rounds/round11/D3/s1/wave/D3-g11/gates/null-note.txt)",
+  "phenomenon_property": "an inlet reading is live up to and including DHW_INLET_MAX_AGE_MINUTES old",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4fd094e9727818b3",
+  "files": [
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "proposed_fix_scope": "a check in the closure script named in should_fail that drives _dhw_inlet_c on the probe's distinguishing input and asserts the baseline value",
+  "should_have_failed": "tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/entities.py, tests/features.py, tests/finite_boundary.py, tests/manual_plan.py, tests/solar_alignment.py execute line 2907; none feeds an inlet reading aged exactly 24 h"
+ }
+}
