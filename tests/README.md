@@ -166,12 +166,11 @@ because it would look like a pass, so it is said twice and never in passing.
 
 ### What the post-merge gate guarantees
 
-`CLAUDE.md` rule 1 states the asymmetry — scoped on a branch and on a light
-push, `full` on every push to `main` whose range touches production, and why
-keying on the mode line is the only safe reading.
+`CLAUDE.md` rule 1 states the asymmetry — scoped on a branch and a light push,
+`full` on every other push to `main` — and why the mode line is the safe reading.
 What that leaves for here is the second job.
 
-`closures` runs beside the gate on every push to `main` but a light one: it re-derives
+`closures` runs beside the gate on a full push to `main`: it re-derives
 every closure from real instrumented runs and fails if `tests/closures.json`
 misses anything a run actually touched (`closure.py check`). A closure that
 lists *more* than a run touched only costs time and is reported rather than
@@ -182,7 +181,7 @@ On a pull request, `closures` runs only when `closure-scope` says the diff can
 move a closure; a diff it judges `skip` — every changed file INERT — leaves the
 job **skipped**, not passed. Read that the way you read the mode line: a
 skipped `closures` means the table was **not checked on this PR at all**, and
-only the next push to `main` that is not light re-derives and checks it. "Every check
+only the next full push to `main` re-derives and checks it. "Every check
 success or skipped" is a correct merge rule, because some jobs legitimately
 never run, and it is also how a clean-looking verification can be zero
 re-derivation work.
