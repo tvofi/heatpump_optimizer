@@ -1,17 +1,44 @@
-# M7 coord flag holidays dropped
-# edits: [('custom_components/heatpump_optimizer/coordinator.py', 'windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays, days)', 'windows_in_force(ctx._thermal_params, self._optimization_result, now, (), days)')]
-# cmd: ['python3', 'tools/audit/seat/features_block.py', '--prelude', 'exec(open("~/hpo-seats/r10s6/rev-3841-local/pre/vvc.py").read())', '# --- #6 the pump schedule', '_SAFE = dict(']
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 3fe36f597e..4d49d60b54 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5979,7 +5979,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """Demand windows the optimizer plans against, today or ``days`` on (``windows_in_force``)."""
+         ctx, now = getattr(self, "_ctx", self), dt_util.now()
+         holidays = away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now)
+-        return windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays, days)
++        return windows_in_force(ctx._thermal_params, self._optimization_result, now, (), days)
+ 
+     def _dhw_in_demand_window(self) -> bool:
+         """Whether hot water is required right now."""
 
 === features block ===
-  ok   the VVC pump runs inside a demand window and rests outside
-  ok   the lead time pre-heats the loop just before a window opens
-  ok   a window shorter than the lead has no hole in its final approach
-  ok   with no schedule the loop is simply left on
-  ok   a schedule with no window today keeps the loop off (D17-s3-51)
   ok   the hot-water window in force is the day's at every reader: flag, boost, draw learner (D17-s3-51)
   ok   boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)
   ok   windows_in_force takes the holiday tier on a holiday date and the day's own windows otherwise
   ok   the draw learner takes the holiday tier from the coordinator's calendar (D17-s3-51)
+  FAIL the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)  [{'holiday': (False, True, [True]), 'ordinary': (False, False, [False])} -- Saturday 10:30 is inside the holiday windows 10:00-11:00 and outside Saturday's own 08:00-09:30]
   ok   the VVC lead and the next-window hours read tomorrow's windows across midnight (D17-s3-51)
+  ok   a provably idle warm slot is the only one that switches the space pump off
+  ok   rail: heat planned now forces the space pump on
+  ok   rail: heat planned next step forces the space pump on
+  ok   rail: heat curve driven forces the space pump on
+  ok   rail: a zone near its floor forces the space pump on
+  ok   rail: freezing outside forces the space pump on
+  ok   rail: outdoor unknown forces the space pump on
+  ok   no plan at all reads as heat-wanted, never as off
+  ok   the plan lookup reads this step and the next
+  ok   the pump is commanded on the first tick and not again without a change
+  ok   the command names the configured entity and a real on/off service
+  ok   no configured pump entities means no service call, ever
+  ok   hot water disabled leaves the loop pump ON, never stuck off
+Could not command pump switch.vvc: entity unavailable
+  ok   a failed pump command is retried next tick, not remembered as done
+  ok   the space pump is not driven from a plan _plan_is_stale refused (#1449)
+  ok   the VVC is not gated with it: its window schedule cannot go stale (#1449)
+  ok   and a fresh plan drives the space pump, so the check above is not vacuous
+  ok   the space pump reads the plan's space-heating steps, not its raw draw (D8-s1-01)
+  ok   every actuation seam the cycle reaches is gated on plan staleness, the frequency stage included since the stale plan lets it go (ADR-004; #1449)
 
-ALL 10 FEATURES BLOCK PASSED
+1 of 25 FEATURES BLOCK FAILED
+rc=1
