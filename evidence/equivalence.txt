@@ -1,0 +1,4 @@
+span check lines 6307 plain check lines 6307 identical True
+span tail: ['ALL 6170 FEATURE CHECKS PASSED']  plain tail: ['ALL 6170 FEATURE CHECKS PASSED']
+span-only lines: ['CASES: FULL tests/features.py -- no plan, 248 spans', 'heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T23:16:40.320244+00:00 is ahead of the clock; bounded to 2026-11-26 19:16:40.435621+00:00', 'heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T23:16:40.320244+00:00 is ahead of the clock; bounded to 2026-11-26 19:16:40.430701+00:00']
+plain-only lines: ['heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T23:16:32.561275+00:00 is ahead of the clock; bounded to 2026-11-26 19:16:32.676467+00:00', 'heatpump_optimizer_rc2_manual_plan_manual_plan: stored instant 2026-11-27T23:16:32.561275+00:00 is ahead of the clock; bounded to 2026-11-26 19:16:32.669538+00:00']

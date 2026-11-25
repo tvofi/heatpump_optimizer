@@ -1,0 +1,22 @@
+M2 moved_mods: tests/case_select.py:623 'moved_mods.add(u)' -> 'pass'
+  rc=1 ['CASE-SELECT SELF-TEST: 1 FAILED (27 checks)'] 1 FAIL
+    FAIL recorder: a module global moved inside M's own code (no store the AST sees) gives count needs [bump]  [({'hash': '74f42e8fa6c592b4f77c81dbd89b1a250e952b69'
+M5 table arm: tools/merge/ledger_merge.py:409 'if pathname in _TABLE_ARMS:' -> 'if False:'
+  rc=1 ['CASE-SELECT SELF-TEST: 1 FAILED (27 checks)'] 1 FAIL
+    FAIL the ledgermerge driver routes tests/case_closures.json to merge_tables  [(1, '{"version": 1,\n "recorded_at": "",\n "files": [\n  "a.py",\n  "b.py",\n<<<<<
+M1b one-hop: tests/case_select.py:582 'files |= set(self._module_imports(u).values())' -> 'pass'
+  rc=0 ['CASE-SELECT SELF-TEST: PASSED (27 checks)'] 0 FAIL
+M3 stmt in-place: tests/case_select.py:297 'elif isinstance(n.func, ast.Attribute) and n.func.attr in INPLACE and _root(n.func.value):' -> 'elif False:'
+  rc=1 ['CASE-SELECT SELF-TEST: 1 FAILED (27 checks)'] 1 FAIL
+    FAIL static: an in-place L.append binds L for a later reader (zeta needs eps)
+M4 draw sets @random: tests/case_select.py:187 'sets.add("@random")  # a draw moves the generator as a seed does (carry rng-consume)' -> 'pass'
+  rc=1 ['CASE-SELECT SELF-TEST: 1 FAILED (27 checks)'] 1 FAIL
+    FAIL static: every RNG draw binds @random, so a draw needs the previous draw and the seeder  [(set(), set())]
+M3b callee in-place: tests/case_select.py:248 'if isinstance(n.func, ast.Attribute) and n.func.attr in INPLACE:' -> 'if False:'
+  rc=0 ['CASE-SELECT SELF-TEST: PASSED (27 checks)'] 0 FAIL
+M1c own names: lines [568] -> pass (['reached.add(u)'])
+  rc=0 ['CASE-SELECT SELF-TEST: PASSED (27 checks)']
+M1 drop (c): lines [568, 578, 582] -> pass (['reached.add(u)', 'reached.add(imp[name])', 'files |= set(self._module_imports(u).values())'])
+  rc=1 ['CASE-SELECT SELF-TEST: 2 FAILED (27 checks)']
+    FAIL recorder (c): beta reads a constant of M and runs no M code, yet its files hold M  [{'hash': 'f8abf1754ca3beb935fd5b3ff10313e327934c2d', 'files': ['tests/f
+    FAIL recorder: a module global moved inside M's own code (no store the AST sees) gives count needs [bump]  [({'hash': '74f42e8fa6c592b4f77c81dbd89b1a250e952b69'

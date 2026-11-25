@@ -1,0 +1,11 @@
+  re-run the gate that owns this file before pushing
+  ok   the ledgermerge driver routes tests/case_closures.json to merge_tables
+CASE-SELECT SELF-TEST: PASSED (27 checks)
+STATS: tests/features.py: 248 spans; table 874588 bytes, 599 paths; files/span median 100.0 max 140; needs/span median 37.5 max 124; 225 spans read over half of the 108 custom_components files recorded; span seconds 1022.2
+STATS: tests/entities.py: 65 spans; table 874588 bytes, 599 paths; files/span median 88 max 560; needs/span median 10 max 42; 31 spans read over half of the 121 custom_components files recorded; span seconds 1388.3
+04cc69a4f3befbfa71620d1d017ea1c435e9b6f4
+52438e563bdf3c108a9d3ba7dd7b6a3ced43a4bc
+dict_keys(['version', 'recorded_at', 'files', 'scripts'])
+tests/entities.py 5cd6e979982aa72d693116f059e5a8aaa9f5a2b3 4f119788d75610d4ae3fd807d97bd66a4c873290
+tests/features.py 04cc69a4f3befbfa71620d1d017ea1c435e9b6f4 4ebf507f28580142d5332b9d187cefc01fdb020f
+874588 tests/case_closures.json
