@@ -1,0 +1,5 @@
+prelude rc=1
+BASE rc=1 TypeError: 'NoneType' object is not subscriptable
+note_cooling_GUARD_OFF rc=1 KILLED TypeError: 'NoneType' object is not subscriptable
+supply_write_GUARD_OFF rc=1 KILLED TypeError: 'NoneType' object is not subscriptable
+cooling_mode_RETURN_DEL rc=1 KILLED TypeError: 'NoneType' object is not subscriptable

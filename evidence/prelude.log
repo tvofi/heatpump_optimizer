@@ -1,0 +1,23 @@
+features_block: the block raised other than a NameError:
+sked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling and hot water while asked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+Pump duty: the pump's mode reads Cooling while asked for heat; leaving it alone
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+tests/features.py[block]:3065: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+Traceback (most recent call last):
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-issue-3885-programme-recovery-b4183d/d79a914f-18cf-4b0f-aaa8-09217682c233/scratchpad/rev3864/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-issue-3885-programme-recovery-b4183d/d79a914f-18cf-4b0f-aaa8-09217682c233/scratchpad/rev3864/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-issue-3885-programme-recovery-b4183d/d79a914f-18cf-4b0f-aaa8-09217682c233/scratchpad/rev3864/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 3394, in <module>
+TypeError: 'NoneType' object is not subscriptable
+
