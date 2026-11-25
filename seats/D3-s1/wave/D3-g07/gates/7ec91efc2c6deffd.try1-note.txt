@@ -6,3 +6,4 @@ This try started 2 min after a container restart and the box's cleanup of the in
 baseline, stale gate_lock lease released), so it ran on a disturbed machine. The machine named the script red, not the
 mutant: per the brief's re-take rule the key is re-gated once after the wave's last key; the re-take's verdict stands.
 Try 0 (00:47-~01:10 UTC) was cut by the container restart and left no verdict.
+Re-take (2026-11-25 11:24 UTC): verdict RED-AS-NULL, gate_rc 1, fail lines {"python3 tests/closure.py selftest": 2, "python3 tests/entities.py": 1, "python3 tests/harness_headers.py": 3} (null {"python3 tests/closure.py selftest": 2, "python3 tests/entities.py": 1, "python3 tests/harness_headers.py": 3}), wall 3958.7 s, load1 0.72..1.0 (provisional). The re-take stands; try 1 is kept as evidence only.

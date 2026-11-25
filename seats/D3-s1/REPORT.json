@@ -1,0 +1,1722 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/REPORT.md",
+ "box": "D3-g07",
+ "exposure": "Slice reports REPORT-D3-u1{a,b,c,d}, REPORT-u1a, REPORT-D3-top6 and REPORT-D3-rem and the M4 answer files under dev/audit/rounds/round11/D3/s1/ read as the brief requires; the box's own wip checkpoint (handoff-wip/finder-r11-D3-g07) restored from a stalled predecessor seat; the dispatch refs' keys.tsv read for the key->box map; no GitHub reads, no register, no J/ or verifier report.",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+   "carried": "REPORT-D3-u1b.json (box D3-u1b), verbatim"
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+   "carried": "REPORT-D3-u1b.json (box D3-u1b), verbatim"
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 16,
+   "not_reached": [
+    "16 keys assigned to box D3-g01 (021dc21415f3229e, 031dba68286ccfbf, ...)",
+    "16 keys assigned to box D3-g02 (206a570d8cc784e3, 223ac303af04edde, ...)",
+    "16 keys assigned to box D3-g03 (134126ee4914191f, 16f7665306eebdf3, ...)",
+    "16 keys assigned to box D3-g04 (10ba5036744c9a99, 201955bf671ce8aa, ...)",
+    "16 keys assigned to box D3-g05 (0acf3cb312a5b76e, 218ac218da41d87d, ...)",
+    "16 keys assigned to box D3-g06 (1a24365a55bfb2c7, 205d200980d58e9e, ...)",
+    "16 keys assigned to box D3-g08 (15456e64946920b5, 21a2563e1beb213f, ...)",
+    "16 keys assigned to box D3-g09 (002980a15ae8b9a9, 0c99189b7639f1bd, ...)",
+    "16 keys assigned to box D3-g10 (18fe89552892dc4b, 205660ee362d1a07, ...)",
+    "16 keys assigned to box D3-g11 (372a4f4fcc8de86f, 4fd094e9727818b3, ...)",
+    "16 keys assigned to box D3-g12 (0e3569fef6b39497, 1ba9abbe8e702464, ...)",
+    "16 keys assigned to box D3-g13 (111763243ac44278, 168e4035dbc9bb84, ...)",
+    "16 keys assigned to box D3-g14 (0b51e1d1975513aa, 0e3fc2bc64c2bf63, ...)",
+    "16 keys assigned to box D3-g15 (0e752f692873e876, 1d455987c970dfde, ...)",
+    "16 keys assigned to box D3-g16 (01acd6cc2431d71d, 35d61c87783ebe66, ...)",
+    "16 keys assigned to box D3-g17 (0aa6eaace756da92, 2074f3eefe8521aa, ...)",
+    "16 keys assigned to box D3-g18 (19ac62540d0d5ee8, 2580fdeb3923a03e, ...)",
+    "16 keys assigned to box D3-g19 (1b3cbaddab6e496f, 2043855ef5cf151d, ...)",
+    "16 keys assigned to box D3-g20 (0275af9776ae709e, 176e4dd6d5aec097, ...)",
+    "16 keys assigned to box D3-g21 (00298af0aa9d1903, 39a6d2e97fd44ed5, ...)",
+    "16 keys assigned to box D3-g22 (1897b1e8f0e09c02, 1d0c70b3b63230eb, ...)",
+    "16 keys assigned to box D3-g23 (0120a5a672990611, 0ecb763c4bcb0828, ...)",
+    "16 keys assigned to box D3-g24 (0270b5efaac478d2, 0f03bb94bcab1682, ...)",
+    "16 keys assigned to box D3-g25 (119b25afdd5d4988, 1d11f24436471959, ...)",
+    "16 keys assigned to box D3-g26 (0fcdd4bdabc205ea, 10de422e4e1024a7, ...)",
+    "16 keys assigned to box D3-g27 (04bfd79fdf465dbf, 0560ccd4eaedbd09, ...)",
+    "16 keys assigned to box D3-g28 (01e740ed4f78ae95, 09e80cfe3036223e, ...)",
+    "16 keys assigned to box D3-g29 (000221f3921dd956, 0ea7620ce058c489, ...)",
+    "16 keys assigned to box D3-g30 (0b10a7c76e2514d2, 12cd6ddd79fb36fc, ...)",
+    "16 keys assigned to box D3-g31 (28de20de50a9540b, 29db99dee6a5debd, ...)",
+    "16 keys assigned to box D3-g32 (0d159d7ddd1702d9, 0d5a6ef5041b90f9, ...)",
+    "16 keys assigned to box D3-g33 (0b6e291153f1d738, 20e001c48fb19330, ...)",
+    "16 keys assigned to box D3-g34 (07227ec96c3e14de, 10665a84dc064489, ...)",
+    "16 keys assigned to box D3-g35 (078e78462859ff6b, 20cde1046cbd5681, ...)",
+    "16 keys assigned to box D3-g36 (0137ee1f014fb759, 027e7746bfe5b7bb, ...)",
+    "16 keys assigned to box D3-g37 (0c0a6bcb94a3ba3a, 186b3076dcce442c, ...)",
+    "15 keys assigned to box D3-g38 (4467ecd198f47483, 56294c2224449394, ...)",
+    "15 keys assigned to box D3-g39 (246043395831f540, 2d64a114647f1551, ...)",
+    "15 keys assigned to box D3-g40 (0e94685aa803560d, 134d9411b323ef8a, ...)",
+    "15 keys assigned to box D3-g41 (1110101b6e52a494, 2765114b9329f57f, ...)",
+    "15 keys assigned to box D3-g42 (011b9e2e975b5e98, 029c040224dc4e38, ...)",
+    "15 keys assigned to box D3-g43 (1108e8140e06404e, 6462c28df2f973e0, ...)",
+    "15 keys assigned to box D3-g44 (05b5a15efaaf70de, 140cd06a7d92f278, ...)",
+    "15 keys assigned to box D3-g45 (19404e3632806509, 1a9ac2bac45ef9e0, ...)",
+    "15 keys assigned to box D3-g46 (02a5c98b8f46f724, 2288dfa73cab6c1a, ...)",
+    "15 keys assigned to box D3-g47 (09412cb43997a47f, 0aa9e2e025b11284, ...)"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "box D3-g07 gated 16 of its 16 keys with `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key <key>` (gate_wave.sh run; records dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/<key>.json, per-key dev/audit/rounds/round11/D3/s1/wave/D3-g07/results/<key>.json); null control dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json (gate_rc 1, fail lines {\"python3 tests/closure.py selftest\": 2, \"python3 tests/entities.py\": 1, \"python3 tests/harness_headers.py\": 3}). The wave list (742 keys, the 746 u1 full-net survivors less 8 gated by D3-top6/D3-rem, plus timeouts and the leak, deduplicated) is split over boxes D3-g01..D3-g47; the key->box map is each dispatch/finder-r11-D3-gNN ref's keys.tsv. Earlier D3.M3 rows carried: REPORT-D3-u1b.json's row (universe 268, examined 235), D3-top6/D3-rem full gates (REPORT-D3-rem.json)."
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+   "carried": "REPORT-D3-u1b.json (box D3-u1b), verbatim"
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+   "carried": "REPORT-D3-u1b.json (box D3-u1b), verbatim"
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "full gate 67495f7b404053fc custom_components/heatpump_optimizer/coordinator.py:7477 CMP_BOUND (while len(series) < n_steps: -> while len(series) <= n_steps:): RED-AS-NULL, equivalent-candidate: no input found that moves fields_differing (tried: weather forecast 0/1/10/48 h x solar series 0/48 h x Open-Meteo off/on = 16 cases, each on a first and a second call of one coordinator, all 10 ForecastArrays fields compared NaN-aware: 0 differ; positive arm: the outdoor list after the padding loop is 96 long on the baseline and 97 under the mutant (the mutant runs, its extra element is sliced off by [:n_steps] before any array is built, and the lists are rebuilt per call))",
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_67495f7b404053fc.py",
+   "value": "fields_differing=0 baseline, 0 mutant; gate wall 3803.3 s, load1 0.81..1.08 (provisional)"
+  },
+  {
+   "claim": "full gate 5f950692fab8eb1b custom_components/heatpump_optimizer/coordinator.py:7492 CLAMP_DROP (humidity[i] = float(np.clip(rh, 0.0, 100.0)) -> humidity[i] = float((rh))): RED-AS-NULL, equivalent-candidate: no input found that moves production_inputs_differing (tried: Open-Meteo hourly humidity 150 / 95 / -5 / NaN through the production _parse_block (max_value=100): 0 of 4 differ (out-of-range and non-finite samples are dropped before humidity_for, whose mean of in-range samples stays in [0, 100]); reach: line 7492 executes 96 times per call in the probe; positive arm: a 150 % series injected past the parser gives 100 vs 150, an input no production path builds)",
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py",
+   "value": "production_inputs_differing=0 baseline, 0 mutant; gate wall 3804.1 s, load1 0.78..1.0 (provisional)"
+  },
+  {
+   "claim": "full gate 661116d11d6faa49 custom_components/heatpump_optimizer/coordinator.py:9170 GUARD_OFF (if not entity_id: -> if False:): RED-AS-NULL, equivalent-candidate: no input found that moves inputs_differing (tried: indoor_humidity_entity unset / None / '' x bus empty / live 55 % sensor / unavailable sensor / 150 % sensor = 12 inputs, comparing the value and the count of log records at every level: 0 differ (InputReader(hass, {}) with no entity id returns ok=False and its InputHealth is local to the call); positive arm: a configured entity reads 55.0 in both)",
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_661116d11d6faa49.py",
+   "value": "inputs_differing=0 baseline, 0 mutant; gate wall 3643.5 s, load1 0.93..0.97 (provisional)"
+  },
+  {
+   "claim": "full gate 7f2768bd0a78b4bf custom_components/heatpump_optimizer/coordinator.py:5103 CLAMP_DROP (thermal_kw = params.max_electrical_power * max(cop, 1.0) -> thermal_kw = params.max_electrical_power * (cop)): RED-AS-NULL, equivalent-candidate: no input found that moves inputs_differing (tried: outdoor -60..+34 C in 1 K steps plus NaN, +inf, -inf (98 values) x cop_scale 0.5 / 1.0 / 1.5 x tank dhw / buffer = 588 inputs: 0 differ, min COP seen 1.0 (ThermalModel.compute_cop's only return is _cop_law's max(cop, 1.0); max(nan, 1.0) is nan in both arms); positive arm: compute_cop forced to 0.5 gives 123.153 vs 61.576 degC/h, so the probe sees the clamp when it acts)",
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py",
+   "value": "inputs_differing=294 baseline, 294 mutant; gate wall 3792.3 s, load1 1.18..0.92 (provisional)"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/tools/build_record.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/tools/build_report.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_67495f7b404053fc.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_661116d11d6faa49.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py"
+ ],
+ "leads": [],
+ "gated": [
+  {
+   "key": "d3cad40ffce9b765",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9402 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "e163f6fbc359cd4c",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9402 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "67495f7b404053fc",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7477 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "f0146f6f4901ec82",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7491 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "5f950692fab8eb1b",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7492 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "4410da4e8eb84cb8",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838 BOOLOP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "7ec91efc2c6deffd",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "f11665aaedbf2550",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "9b72b944ac12fa25",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8842 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "fd1cc23d380739ba",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8847 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "c20f346300d7efc1",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9292 BOOLOP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "60f673da42f9d671",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9294 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "661116d11d6faa49",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9170 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "b6ac2d53028d45a3",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5049 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "7f2768bd0a78b4bf",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5103 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "1ee0ec8960fb9a66",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5104 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "d3cad40ffce9b765",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9402 CMP_BOUND",
+   "patch": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] > SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:",
+   "function": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture@9383-9402",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3794.3,
+    "child_cpu_s": 6302.5,
+    "load1_start": 0.37,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/d3cad40ffce9b765.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d3cad40ffce9b765",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py",
+    "rc": 0,
+    "baseline_value": "2.000000",
+    "mutant_value": "1.000000",
+    "baseline_result": "scale_baseline_at_min",
+    "mutant_result": "scale_mutant_at_min",
+    "all_results": {
+     "min_samples": "30",
+     "scale_baseline_at_min": "2.000000",
+     "scale_mutant_at_min": "1.000000",
+     "scale_baseline_at_min_plus_1": "2.000000",
+     "scale_mutant_at_min_plus_1": "2.000000",
+     "null_baseline": "1.000000",
+     "null_mutant": "1.000000",
+     "thread_factor": "1.000",
+     "load1": "0.93",
+     "swapins": "0"
+    },
+    "inputs_tried": "30 sunny folds, irradiance 200..780 W/m2 in 20 W/m2 steps, residual = 1.5x modelled solar gain; null 29 folds; 31 folds (both arms move)"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (the only closure script whose traced baseline executes coordinator.py:9402) has no check that the solar-aperture scale moves off 1.0 on exactly the SOLAR_APERTURE_MIN_SAMPLES-th varying sunny fold",
+   "finding": {
+    "title": "No check pins the solar-aperture learner's first correction at exactly SOLAR_APERTURE_MIN_SAMPLES folds",
+    "claim": "Mutating coordinator.py:9402 `m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES` to `>` delays the solar-aperture scale's first correction by one fold (scale 2.0 -> 1.0 after 30 folds) and the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_solar_aperture['scale'] after exactly 30 varying sunny-step folds of _fold_solar_aperture (ratio)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_solar_aperture",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d3cad40ffce9b765  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py  (scale_baseline_at_min=2.000000, scale_mutant_at_min=1.000000)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:9402 `if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:` -> `if m[\"n\"] > SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "down",
+     "observed_value": "2.000000 -> 1.000000"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py",
+     "value": "null_baseline=1.000000, null_mutant=1.000000",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._fold_solar_aperture that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._fold_solar_aperture on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "e163f6fbc359cd4c",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9402 CMP_BOUND",
+   "patch": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] >= 1e-6:",
+   "function": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture@9383-9402",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3807.4,
+    "child_cpu_s": 6369.4,
+    "load1_start": 0.85,
+    "load1_end": 0.94,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/e163f6fbc359cd4c.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e163f6fbc359cd4c",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+    "rc": 0,
+    "baseline_value": "1.000000",
+    "mutant_value": "2.000000",
+    "baseline_result": "scale_baseline_tie",
+    "mutant_result": "scale_mutant_tie",
+    "all_results": {
+     "tie_found": "1",
+     "var_after": "1e-06",
+     "scale_baseline_tie": "1.000000",
+     "scale_mutant_tie": "2.000000",
+     "null_baseline": "2.000000",
+     "null_mutant": "2.000000",
+     "realistic_sequences_tried": "36",
+     "realistic_sequences_differing": "0",
+     "thread_factor": "1.000",
+     "load1": "0.75",
+     "swapins": "0"
+    },
+    "inputs_tried": "moment state n=100, cov=2e-6, x == mx, start variance searched over representable floats until v - a*v == 1e-6 exactly (found); null: variance one float above the tie; 36 realistic fold sequences (31/60/200 folds x irradiance ramps 150/300/600 W/m2 x 5/20 W/m2 steps x residual ratio 0.6/1.5): 0 differ"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:9402) has no check of the `var > 1e-6` guard at its exact tie; the tie is a float-equality event the probe could only reach by constructing the moment state, never by a realistic fold sequence (0 of 36 differ)",
+   "finding": {
+    "title": "No check pins the solar-aperture variance guard at its exact 1e-6 tie",
+    "claim": "Mutating coordinator.py:9402 `m[\"var\"] > 1e-6` to `>= 1e-6` moves the learned scale 1.0 -> 2.0 when the EWMA variance lands exactly on 1e-6, and the full gate stays green; no realistic fold sequence tried reaches the tie.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_solar_aperture['scale'] after one fold whose variance update lands exactly on 1e-6 (ratio)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._fold_solar_aperture",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key e163f6fbc359cd4c  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py  (scale_baseline_tie=1.000000, scale_mutant_tie=2.000000)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:9402 `if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:` -> `if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] >= 1e-6:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "up",
+     "observed_value": "1.000000 -> 2.000000"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+     "value": "null_baseline=2.000000, null_mutant=2.000000",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._fold_solar_aperture that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._fold_solar_aperture on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "f0146f6f4901ec82",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7491 GUARD_OFF",
+   "patch": "if rh is not None: -> if False:",
+   "function": "HeatPumpOptimizerCoordinator._forecast_arrays",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays@7477-7492",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3813.1,
+    "child_cpu_s": 6495.2,
+    "load1_start": 0.91,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/f0146f6f4901ec82.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f0146f6f4901ec82",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+    "rc": 0,
+    "baseline_value": "95.0",
+    "mutant_value": "85.0",
+    "baseline_result": "humidity_mean_baseline",
+    "mutant_result": "humidity_mean_mutant",
+    "all_results": {
+     "humidity_mean_baseline": "95.0",
+     "humidity_mean_mutant": "85.0",
+     "null_baseline": "85.0",
+     "null_mutant": "85.0",
+     "thread_factor": "1.000",
+     "load1": "0.80",
+     "swapins": "0"
+    },
+    "inputs_tried": "weather entity 85 % for 48 h, Open-Meteo hourly relative_humidity_2m 95 % for 72 h built by the production _parse_block, clock frozen at golden.START in UTC; null: Open-Meteo 85 %"
+   },
+   "traced_reach": [
+    "tests/entities.py",
+    "tests/solar_alignment.py"
+   ],
+   "should_fail": "tests/entities.py and tests/solar_alignment.py execute coordinator.py:7491 on the traced baseline, yet neither asserts that ForecastArrays.humidity carries Open-Meteo's humidity where the client has it",
+   "finding": {
+    "title": "No check pins Open-Meteo's humidity overlay onto the forecast horizon",
+    "claim": "Disabling coordinator.py:7491 `if rh is not None:` drops Open-Meteo's hourly humidity from the horizon (mean 95 % -> the entity's 85 %) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "mean of ForecastArrays.humidity over the 96-step horizon from _forecast_arrays (%)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._forecast_arrays",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f0146f6f4901ec82  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py  (humidity_mean_baseline=95.0, humidity_mean_mutant=85.0)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:7491 `if rh is not None:` -> `if False:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "down",
+     "observed_value": "95.0 -> 85.0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f0146f6f4901ec82.py",
+     "value": "null_baseline=85.0, null_mutant=85.0",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._forecast_arrays that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/entities.py",
+     "tests/solar_alignment.py"
+    ],
+    "proposed_fix_scope": "a check in tests/entities.py driving HeatPumpOptimizerCoordinator._forecast_arrays on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "4410da4e8eb84cb8",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838 BOOLOP",
+   "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if params.dhw_enabled or state.dhw_temperature < params.dhw_min_temp:",
+   "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3867.5,
+    "child_cpu_s": 6474.6,
+    "load1_start": 0.93,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/4410da4e8eb84cb8.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4410da4e8eb84cb8",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+    "rc": 1,
+    "baseline_value": null,
+    "mutant_value": null,
+    "baseline_result": "hold_baseline",
+    "mutant_result": "hold_mutant",
+    "all_results": {},
+    "inputs_tried": "dhw_enabled False, dhw_temperature 40 C < dhw_min_temp 45 C, room 21 C, floor 17 C; null: dhw 55 C"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:8838) has no _guard_floor_hold check with hot water disabled and a low tank reading asserting False",
+   "finding": {
+    "title": "No check pins _guard_floor_hold's hot-water arm to installs with hot water enabled",
+    "claim": "Mutating coordinator.py:8838 `params.dhw_enabled and ...` to `or` makes a disabled tank's low reading hold the peak/price guard (verdict 0 -> 1) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_guard_floor_hold() verdict, 1 hold / 0 none, for one coordinator state (bool)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._guard_floor_hold",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4410da4e8eb84cb8  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py  (hold_baseline=None, hold_mutant=None)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:8838 `if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp:` -> `if params.dhw_enabled or state.dhw_temperature < params.dhw_min_temp:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "up",
+     "observed_value": "None -> None"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_4410da4e8eb84cb8.py",
+     "value": "null_baseline=None, null_mutant=None",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._guard_floor_hold that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._guard_floor_hold on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "7ec91efc2c6deffd",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838 CMP_BOUND",
+   "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if params.dhw_enabled and state.dhw_temperature <= params.dhw_min_temp:",
+   "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3958.7,
+    "child_cpu_s": 6628.5,
+    "load1_start": 0.72,
+    "load1_end": 1.0,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/7ec91efc2c6deffd.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7ec91efc2c6deffd",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py",
+    "rc": 0,
+    "baseline_value": "0",
+    "mutant_value": "1",
+    "baseline_result": "hold_baseline",
+    "mutant_result": "hold_mutant",
+    "all_results": {
+     "hold_baseline": "0",
+     "hold_mutant": "1",
+     "null_baseline": "1",
+     "null_mutant": "1",
+     "thread_factor": "1.000",
+     "load1": "0.92",
+     "swapins": "0"
+    },
+    "inputs_tried": "dhw_enabled True, dhw_temperature == dhw_min_temp == 45.0 C (the tie); null 44.9 C"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:8838) has no _guard_floor_hold check at dhw_temperature == dhw_min_temp asserting False",
+   "finding": {
+    "title": "No check pins _guard_floor_hold's hot-water comparison at its tie",
+    "claim": "Mutating coordinator.py:8838 `dhw_temperature < dhw_min_temp` to `<=` makes a tank exactly at its minimum hold the guard (verdict 0 -> 1) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_guard_floor_hold() verdict, 1 hold / 0 none, for one coordinator state (bool)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._guard_floor_hold",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7ec91efc2c6deffd  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py  (hold_baseline=0, hold_mutant=1)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:8838 `if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp:` -> `if params.dhw_enabled and state.dhw_temperature <= params.dhw_min_temp:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "up",
+     "observed_value": "0 -> 1"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7ec91efc2c6deffd.py",
+     "value": "null_baseline=1, null_mutant=1",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._guard_floor_hold that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._guard_floor_hold on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "f11665aaedbf2550",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838 GUARD_OFF",
+   "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if False:",
+   "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3363.5,
+    "child_cpu_s": 5585.7,
+    "load1_start": 0.94,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/f11665aaedbf2550.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f11665aaedbf2550",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py",
+    "rc": 0,
+    "baseline_value": "1",
+    "mutant_value": "0",
+    "baseline_result": "hold_baseline",
+    "mutant_result": "hold_mutant",
+    "all_results": {
+     "hold_baseline": "1",
+     "hold_mutant": "0",
+     "null_baseline": "1",
+     "null_mutant": "1",
+     "thread_factor": "1.000",
+     "load1": "0.82",
+     "swapins": "0"
+    },
+    "inputs_tried": "dhw_enabled True, dhw_temperature 40 C < dhw_min_temp 45 C, room 21 C; null: room 16 C under the 17 C floor"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:8838) has no _guard_floor_hold check with hot water enabled and the tank under dhw_min_temp asserting True",
+   "finding": {
+    "title": "No check pins that a cold hot-water tank overrides the peak/price guard",
+    "claim": "Removing coordinator.py:8838's hot-water arm (`if False:`) lets the peak/price guard keep suppressing while the tank sits under dhw_min_temp (verdict 1 -> 0) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "_guard_floor_hold() verdict, 1 hold / 0 none, for one coordinator state (bool)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._guard_floor_hold",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key f11665aaedbf2550  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py  (hold_baseline=1, hold_mutant=0)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:8838 `if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp:` -> `if False:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "down",
+     "observed_value": "1 -> 0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_f11665aaedbf2550.py",
+     "value": "null_baseline=1, null_mutant=1",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._guard_floor_hold that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._guard_floor_hold on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "9b72b944ac12fa25",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8842 GUARD_OFF",
+   "patch": "if params.two_zone_enabled: -> if False:",
+   "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3654.6,
+    "child_cpu_s": 6236.0,
+    "load1_start": 0.79,
+    "load1_end": 0.85,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/9b72b944ac12fa25.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9b72b944ac12fa25",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py",
+    "rc": 0,
+    "baseline_value": "1",
+    "mutant_value": "0",
+    "baseline_result": "hold_baseline",
+    "mutant_result": "hold_mutant",
+    "all_results": {
+     "hold_baseline": "1",
+     "hold_mutant": "0",
+     "null_baseline": "1",
+     "null_mutant": "1",
+     "thread_factor": "1.000",
+     "load1": "0.81",
+     "swapins": "0"
+    },
+    "inputs_tried": "two_zone_enabled True, upper floor 16 C under the 17 C floor, room 21 C; null: room 16 C as well"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:8842) has no two-zone _guard_floor_hold check with a zone under min_temp asserting True",
+   "finding": {
+    "title": "No check pins that a breached zone floor overrides the peak/price guard",
+    "claim": "Disabling coordinator.py:8842 `if params.two_zone_enabled:` lets the guard keep suppressing while a floor zone is under min_temp (verdict 1 -> 0) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "_guard_floor_hold() verdict, 1 hold / 0 none, for one coordinator state (bool)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._guard_floor_hold",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 9b72b944ac12fa25  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py  (hold_baseline=1, hold_mutant=0)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:8842 `if params.two_zone_enabled:` -> `if False:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "down",
+     "observed_value": "1 -> 0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_9b72b944ac12fa25.py",
+     "value": "null_baseline=1, null_mutant=1",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._guard_floor_hold that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._guard_floor_hold on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "fd1cc23d380739ba",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8847 CMP_BOUND",
+   "patch": "return any(t is not None and float(t) < floor for t in temps) -> return any(t is not None and float(t) <= floor for t in temps)",
+   "function": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold@8838-8847",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3379.6,
+    "child_cpu_s": 5610.7,
+    "load1_start": 0.72,
+    "load1_end": 1.0,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/fd1cc23d380739ba.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fd1cc23d380739ba",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py",
+    "rc": 0,
+    "baseline_value": "0",
+    "mutant_value": "1",
+    "baseline_result": "hold_baseline",
+    "mutant_result": "hold_mutant",
+    "all_results": {
+     "hold_baseline": "0",
+     "hold_mutant": "1",
+     "null_baseline": "0",
+     "null_mutant": "0",
+     "thread_factor": "1.000",
+     "load1": "0.92",
+     "swapins": "0"
+    },
+    "inputs_tried": "room == min_temp == 17.0 C (the tie), hot water off; null 17.1 C"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:8847) has no _guard_floor_hold check at a temperature exactly on the floor asserting False",
+   "finding": {
+    "title": "No check pins _guard_floor_hold's comfort-floor comparison at its tie",
+    "claim": "Mutating coordinator.py:8847 `float(t) < floor` to `<=` makes a room exactly at min_temp hold the guard (verdict 0 -> 1) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_guard_floor_hold() verdict, 1 hold / 0 none, for one coordinator state (bool)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._guard_floor_hold",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key fd1cc23d380739ba  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py  (hold_baseline=0, hold_mutant=1)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:8847 `return any(t is not None and float(t) < floor for t in temps)` -> `return any(t is not None and float(t) <= floor for t in temps)` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "up",
+     "observed_value": "0 -> 1"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_fd1cc23d380739ba.py",
+     "value": "null_baseline=0, null_mutant=0",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._guard_floor_hold that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._guard_floor_hold on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "c20f346300d7efc1",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9292 BOOLOP",
+   "patch": "if when.tzinfo is None and now.tzinfo is not None: -> if when.tzinfo is None or now.tzinfo is not None:",
+   "function": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin@9292-9294",
+   "slice": "u1d",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3487.5,
+    "child_cpu_s": 5830.9,
+    "load1_start": 1.09,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/c20f346300d7efc1.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c20f346300d7efc1",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+    "rc": 0,
+    "baseline_value": "2.0",
+    "mutant_value": "0.0",
+    "baseline_result": "margin_baseline",
+    "mutant_result": "margin_mutant",
+    "all_results": {
+     "margin_baseline": "2.0",
+     "margin_mutant": "0.0",
+     "null_baseline": "2.0",
+     "null_mutant": "2.0",
+     "thread_factor": "1.000",
+     "load1": "0.81",
+     "swapins": "0"
+    },
+    "inputs_tried": "now 2026-01-15T12:00Z; events now-1 d, now-2 d and one stamped -05:00 whose instant is 1 h inside the 14-day cutoff; null: that event stamped +00:00"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:9292) has no _immersion_dhw_margin check with an aware event stamped in another offset than now's, asserting it is counted by its true instant",
+   "finding": {
+    "title": "No check pins _immersion_dhw_margin to an event's true instant across UTC offsets",
+    "claim": "Mutating coordinator.py:9292 `when.tzinfo is None and ...` to `or` re-labels an aware event with now's zone, dropping a -05:00 event 1 h inside the cutoff out of the window (margin 2.0 -> 0.0 K); the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_immersion_dhw_margin(now) for three immersion events (K)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key c20f346300d7efc1  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py  (margin_baseline=2.0, margin_mutant=0.0)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:9292 `if when.tzinfo is None and now.tzinfo is not None:` -> `if when.tzinfo is None or now.tzinfo is not None:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "down",
+     "observed_value": "2.0 -> 0.0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_c20f346300d7efc1.py",
+     "value": "null_baseline=2.0, null_mutant=2.0",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._immersion_dhw_margin that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._immersion_dhw_margin on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "60f673da42f9d671",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9294 CMP_BOUND",
+   "patch": "if when >= cutoff: -> if when > cutoff:",
+   "function": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._immersion_dhw_margin@9292-9294",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3467.8,
+    "child_cpu_s": 5736.7,
+    "load1_start": 0.72,
+    "load1_end": 1.0,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/60f673da42f9d671.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 60f673da42f9d671",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py",
+    "rc": 0,
+    "baseline_value": "2.0",
+    "mutant_value": "0.0",
+    "baseline_result": "margin_baseline",
+    "mutant_result": "margin_mutant",
+    "all_results": {
+     "margin_baseline": "2.0",
+     "margin_mutant": "0.0",
+     "null_baseline": "2.0",
+     "null_mutant": "2.0",
+     "thread_factor": "1.000",
+     "load1": "0.97",
+     "swapins": "0"
+    },
+    "inputs_tried": "now 2026-01-15T12:00Z; events now-1 d, now-2 d and one exactly at now-14 d (the tie); null: 1 s inside"
+   },
+   "traced_reach": [
+    "tests/features.py"
+   ],
+   "should_fail": "tests/features.py (traced reach of coordinator.py:9294) has no _immersion_dhw_margin check with an event exactly at the 14-day cutoff asserting it counts",
+   "finding": {
+    "title": "No check pins _immersion_dhw_margin's 14-day window at its boundary",
+    "claim": "Mutating coordinator.py:9294 `when >= cutoff` to `>` drops an event exactly 14 days old from the count (margin 2.0 -> 0.0 K) and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "low",
+    "stop_rule_class": "bug",
+    "metric_definition": "_immersion_dhw_margin(now) for three immersion events (K)",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 60f673da42f9d671  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py  (margin_baseline=2.0, margin_mutant=0.0)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:9294 `if when >= cutoff:` -> `if when > cutoff:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "down",
+     "observed_value": "2.0 -> 0.0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py",
+     "value": "null_baseline=2.0, null_mutant=2.0",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._immersion_dhw_margin that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/features.py driving HeatPumpOptimizerCoordinator._immersion_dhw_margin on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "b6ac2d53028d45a3",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5049 GUARD_OFF",
+   "patch": "if self._pump_signals.mode_observed and not self._pump_signals.space_heat: -> if False:",
+   "function": "HeatPumpOptimizerCoordinator._interval_space_power",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._interval_space_power@5049-5049",
+   "slice": "u1c",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3867.2,
+    "child_cpu_s": 6548.9,
+    "load1_start": 0.9,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/b6ac2d53028d45a3.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b6ac2d53028d45a3",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py",
+    "rc": 0,
+    "baseline_value": "-1",
+    "mutant_value": "0",
+    "baseline_result": "space_kw_baseline",
+    "mutant_result": "space_kw_mutant",
+    "all_results": {
+     "space_kw_baseline": "-1",
+     "space_kw_mutant": "0",
+     "off_baseline": "-1",
+     "off_mutant": "0",
+     "null_baseline": "2",
+     "null_mutant": "2",
+     "thread_factor": "1.000",
+     "load1": "1.07",
+     "swapins": "0"
+    },
+    "inputs_tried": "power entity configured; observed mode hot-water-only (space_heat False, dhw True), plan 0 kW space / 1.5 kW hot water, meter 1.5 kW; also mode off, meter 0 kW (None -> 0.0 as well); null: space-heat mode 2 kW / 2 kW"
+   },
+   "traced_reach": [
+    "tests/boost_drift_replay.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "should_fail": "tests/boost_drift_replay.py, tests/entities.py and tests/features.py execute coordinator.py:5049 on the traced baseline, yet none asserts _interval_space_power() is None while the observed mode heats no rooms",
+   "finding": {
+    "title": "No check pins that a mode heating no rooms yields no space-power sample",
+    "claim": "Disabling coordinator.py:5049's mode guard turns a hot-water-only interval's skipped sample (None) into a confident 0.0 kW space-heat sample for the interval learners, and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "_interval_space_power() in kW, None printed as -1, for one observed-mode interval",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._interval_space_power",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key b6ac2d53028d45a3  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py  (space_kw_baseline=-1, space_kw_mutant=0)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:5049 `if self._pump_signals.mode_observed and not self._pump_signals.space_heat:` -> `if False:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "to_zero",
+     "observed_value": "-1 -> 0"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_b6ac2d53028d45a3.py",
+     "value": "null_baseline=2, null_mutant=2",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._interval_space_power that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/boost_drift_replay.py",
+     "tests/entities.py",
+     "tests/features.py"
+    ],
+    "proposed_fix_scope": "a check in tests/boost_drift_replay.py driving HeatPumpOptimizerCoordinator._interval_space_power on the probe's input and asserting the baseline value"
+   }
+  },
+  {
+   "key": "1ee0ec8960fb9a66",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5104 GUARD_OFF",
+   "patch": "if tank == \"dhw\": -> if False:",
+   "function": "HeatPumpOptimizerCoordinator._max_pump_rise",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise@5103-5108",
+   "slice": "u1a",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 4114.5,
+    "child_cpu_s": 6908.3,
+    "load1_start": 0.94,
+    "load1_end": 1.0,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/1ee0ec8960fb9a66.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1ee0ec8960fb9a66",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py",
+    "rc": 0,
+    "baseline_value": "71.659",
+    "mutant_value": "409.483",
+    "baseline_result": "rise_dhw_baseline",
+    "mutant_result": "rise_dhw_mutant",
+    "all_results": {
+     "dhw_capacity": "0.2320",
+     "buffer_capacity": "0.0406",
+     "rise_dhw_baseline": "71.659",
+     "rise_dhw_mutant": "409.483",
+     "null_baseline": "409.483",
+     "null_mutant": "409.483",
+     "thread_factor": "1.000",
+     "load1": "0.76",
+     "swapins": "0"
+    },
+    "inputs_tried": "default parameters with a 200 L DHW tank (0.232 kWh/K) and the default buffer (0.0406 kWh/K), 5 kW electrical, outdoor 5 C, tank 'dhw'; null: tank 'buffer'"
+   },
+   "traced_reach": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ],
+   "should_fail": "eight closure scripts execute coordinator.py:5104 on the traced baseline (block_duty, boost_drift_replay, config_flow_steps, entities, features, finite_boundary, manual_plan, solar_alignment), yet none asserts _max_pump_rise('dhw') == thermal_kw / dhw_store.capacity_kwh_per_c",
+   "finding": {
+    "title": "No check pins _max_pump_rise('dhw') to the hot-water tank's own capacity",
+    "claim": "Disabling coordinator.py:5104 `if tank == \"dhw\":` computes the DHW tank's maximum pump rise from the buffer's mass (71.659 -> 409.483 degC/h), raising the external-heat threshold on the DHW tank 5.7x, and the full gate stays green.",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "I1",
+    "severity_claimed": "medium",
+    "stop_rule_class": "bug",
+    "metric_definition": "_max_pump_rise('dhw') in degC/h on default parameters with a 200 L tank",
+    "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._max_pump_rise",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1ee0ec8960fb9a66  (gate: RED-AS-NULL); PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py  (rise_dhw_baseline=71.659, rise_dhw_mutant=409.483)",
+    "perturbation": {
+     "change": "custom_components/heatpump_optimizer/coordinator.py:5104 `if tank == \"dhw\":` -> `if False:` (applied in memory by the probe; on disk by fullgate.py for the gate)",
+     "expected_direction": "up",
+     "observed_value": "71.659 -> 409.483"
+    },
+    "null_control": {
+     "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_1ee0ec8960fb9a66.py",
+     "value": "null_baseline=409.483, null_mutant=409.483",
+     "note": "the same mutant on an input where the edited condition cannot matter; gate null: dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/null.json"
+    },
+    "phenomenon_property": "every guard of HeatPumpOptimizerCoordinator._max_pump_rise that changes its returned value has a check that fails when the guard is mutated",
+    "seam_rule": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv  (the wave's full-gate survivors; this box: dev/audit/rounds/round11/D3/s1/wave/D3-g07/keys.tsv)",
+    "files": [
+     "custom_components/heatpump_optimizer/coordinator.py",
+     "tests/block_duty.py",
+     "tests/boost_drift_replay.py",
+     "tests/config_flow_steps.py",
+     "tests/entities.py",
+     "tests/features.py",
+     "tests/finite_boundary.py",
+     "tests/manual_plan.py",
+     "tests/solar_alignment.py"
+    ],
+    "proposed_fix_scope": "a check in tests/block_duty.py driving HeatPumpOptimizerCoordinator._max_pump_rise on the probe's input and asserting the baseline value"
+   }
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "67495f7b404053fc",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7477 CMP_BOUND",
+   "patch": "while len(series) < n_steps: -> while len(series) <= n_steps:",
+   "function": "HeatPumpOptimizerCoordinator._forecast_arrays",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays@7477-7492",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3803.3,
+    "child_cpu_s": 6328.5,
+    "load1_start": 0.81,
+    "load1_end": 1.08,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/67495f7b404053fc.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 67495f7b404053fc",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "equivalent-candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_67495f7b404053fc.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_67495f7b404053fc.py",
+    "rc": 0,
+    "baseline_value": "0",
+    "mutant_value": "0",
+    "baseline_result": "fields_differing",
+    "mutant_result": "fields_differing",
+    "all_results": {
+     "cases_tried": "16",
+     "fields_differing": "0",
+     "padded_len_baseline": "96",
+     "padded_len_mutant": "97",
+     "thread_factor": "1.000",
+     "load1": "1.01",
+     "swapins": "0"
+    },
+    "inputs_tried": "weather forecast 0/1/10/48 h x solar series 0/48 h x Open-Meteo off/on = 16 cases, each on a first and a second call of one coordinator, all 10 ForecastArrays fields compared NaN-aware: 0 differ; positive arm: the outdoor list after the padding loop is 96 long on the baseline and 97 under the mutant (the mutant runs, its extra element is sliced off by [:n_steps] before any array is built, and the lists are rebuilt per call)"
+   },
+   "traced_reach": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/solar_alignment.py"
+   ],
+   "should_fail": "none: no observable output of _forecast_arrays changes (every series is sliced [:n_steps]); a check could only read the internal list length"
+  },
+  {
+   "key": "5f950692fab8eb1b",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:7492 CLAMP_DROP",
+   "patch": "humidity[i] = float(np.clip(rh, 0.0, 100.0)) -> humidity[i] = float((rh))",
+   "function": "HeatPumpOptimizerCoordinator._forecast_arrays",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._forecast_arrays@7477-7492",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3804.1,
+    "child_cpu_s": 6371.7,
+    "load1_start": 0.78,
+    "load1_end": 1.0,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/5f950692fab8eb1b.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 5f950692fab8eb1b",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "equivalent-candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_5f950692fab8eb1b.py",
+    "rc": 0,
+    "baseline_value": "0",
+    "mutant_value": "0",
+    "baseline_result": "production_inputs_differing",
+    "mutant_result": "production_inputs_differing",
+    "all_results": {
+     "reach_calls": "96",
+     "parsed150_baseline": "85.0",
+     "parsed150_mutant": "85.0",
+     "parsed95_baseline": "95.0",
+     "parsed95_mutant": "95.0",
+     "parsedneg_baseline": "85.0",
+     "parsedneg_mutant": "85.0",
+     "parsednan_baseline": "85.0",
+     "parsednan_mutant": "85.0",
+     "production_inputs_differing": "0",
+     "bypass_baseline": "100.0",
+     "bypass_mutant": "150.0",
+     "thread_factor": "1.000",
+     "load1": "0.86",
+     "swapins": "0"
+    },
+    "inputs_tried": "Open-Meteo hourly humidity 150 / 95 / -5 / NaN through the production _parse_block (max_value=100): 0 of 4 differ (out-of-range and non-finite samples are dropped before humidity_for, whose mean of in-range samples stays in [0, 100]); reach: line 7492 executes 96 times per call in the probe; positive arm: a 150 % series injected past the parser gives 100 vs 150, an input no production path builds"
+   },
+   "traced_reach": [],
+   "should_fail": "none: the clamp is the identity on every value the only producer (open_meteo._parse_block, max_value=100) can deliver. No traced baseline executes coordinator.py:7492 (the closure scripts never drive an available Open-Meteo client with humidity); the probe reaches it, so the line is reachable, not dead"
+  },
+  {
+   "key": "661116d11d6faa49",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9170 GUARD_OFF",
+   "patch": "if not entity_id: -> if False:",
+   "function": "HeatPumpOptimizerCoordinator._indoor_humidity_value",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._indoor_humidity_value@9170-9170",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3643.5,
+    "child_cpu_s": 6034.0,
+    "load1_start": 0.93,
+    "load1_end": 0.97,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/661116d11d6faa49.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 661116d11d6faa49",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "equivalent-candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_661116d11d6faa49.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_661116d11d6faa49.py",
+    "rc": 0,
+    "baseline_value": "0",
+    "mutant_value": "0",
+    "baseline_result": "inputs_differing",
+    "mutant_result": "inputs_differing",
+    "all_results": {
+     "inputs_tried": "12",
+     "inputs_differing": "0",
+     "positive_baseline": "55.0",
+     "positive_mutant": "55.0",
+     "thread_factor": "1.000",
+     "load1": "0.97",
+     "swapins": "0"
+    },
+    "inputs_tried": "indoor_humidity_entity unset / None / '' x bus empty / live 55 % sensor / unavailable sensor / 150 % sensor = 12 inputs, comparing the value and the count of log records at every level: 0 differ (InputReader(hass, {}) with no entity id returns ok=False and its InputHealth is local to the call); positive arm: a configured entity reads 55.0 in both"
+   },
+   "traced_reach": [
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "should_fail": "none: with no entity id, the fall-through read returns ok=False, so the function returns None as the early exit does"
+  },
+  {
+   "key": "7f2768bd0a78b4bf",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:5103 CLAMP_DROP",
+   "patch": "thermal_kw = params.max_electrical_power * max(cop, 1.0) -> thermal_kw = params.max_electrical_power * (cop)",
+   "function": "HeatPumpOptimizerCoordinator._max_pump_rise",
+   "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise@5103-5108",
+   "slice": "u1b",
+   "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "failed_scripts": [
+     "python3 tests/closure.py selftest",
+     "python3 tests/entities.py",
+     "python3 tests/harness_headers.py"
+    ],
+    "summary": [
+     "3 TEST SCRIPT(S) FAILED"
+    ],
+    "wall_s": 3792.3,
+    "child_cpu_s": 6309.8,
+    "load1_start": 1.18,
+    "load1_end": 0.92,
+    "provisional": true,
+    "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+   },
+   "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/gates/7f2768bd0a78b4bf.json",
+   "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 7f2768bd0a78b4bf",
+   "machine": "box D3-g07: nproc 4, Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GB; wall/CPU/load provisional",
+   "class": "equivalent-candidate",
+   "red_as_null": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py",
+    "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_7f2768bd0a78b4bf.py",
+    "rc": 0,
+    "baseline_value": "294",
+    "mutant_value": "294",
+    "baseline_result": "inputs_differing",
+    "mutant_result": "inputs_differing",
+    "all_results": {
+     "inputs_tried": "588",
+     "inputs_differing": "294",
+     "min_cop_seen": "1.0",
+     "forced_baseline": "123.153",
+     "forced_mutant": "61.576",
+     "thread_factor": "1.000",
+     "load1": "0.94",
+     "swapins": "0"
+    },
+    "inputs_tried": "outdoor -60..+34 C in 1 K steps plus NaN, +inf, -inf (98 values) x cop_scale 0.5 / 1.0 / 1.5 x tank dhw / buffer = 588 inputs: 0 differ, min COP seen 1.0 (ThermalModel.compute_cop's only return is _cop_law's max(cop, 1.0); max(nan, 1.0) is nan in both arms); positive arm: compute_cop forced to 0.5 gives 123.153 vs 61.576 degC/h, so the probe sees the clamp when it acts"
+   },
+   "traced_reach": [
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
+    "tests/config_flow_steps.py",
+    "tests/entities.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/manual_plan.py",
+    "tests/solar_alignment.py"
+   ],
+   "should_fail": "none: the clamp duplicates the floor compute_cop already applies; no input reaches cop < 1"
+  }
+ ]
+}
