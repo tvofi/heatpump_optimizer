@@ -1,0 +1,8 @@
+Key 7ec91efc2c6deffd, gate try 1 (2026-11-25 01:14-02:16 UTC): verdict KILLED by python3 tests/entities.py only,
+3 of 2723 vs the null's 1. Diff of the entities.py FAIL lines against RED-AS-NULL key 4410da4e8eb84cb8's gate: the two
+extra checks are hb:positive_control's retry/null-control pair ("a 600 ms spin read as 1008.2 ms / 875.8 ms; sampler
+rc=0 names it: False"): the py-spy heartbeat sampler's wall-time positive control, which reads no production line.
+This try started 2 min after a container restart and the box's cleanup of the interrupted try 0 (tree reset to the
+baseline, stale gate_lock lease released), so it ran on a disturbed machine. The machine named the script red, not the
+mutant: per the brief's re-take rule the key is re-gated once after the wave's last key; the re-take's verdict stands.
+Try 0 (00:47-~01:10 UTC) was cut by the container restart and left no verdict.
