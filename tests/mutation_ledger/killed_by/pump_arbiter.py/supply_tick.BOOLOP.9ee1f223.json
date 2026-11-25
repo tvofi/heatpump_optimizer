@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:supply_tick BOOLOP 9ee1f223",
-  "killed_by": "tests/features.py",
-  "old": "    if held.supply is None or (held.supply[0] == step and not held.supply_held):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if held.supply is None or (held.supply[0] == step or not held.supply_held):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=21."
-}
