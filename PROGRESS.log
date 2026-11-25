@@ -13,3 +13,4 @@
 1795615686 HB alive
 1795616290 HB alive
 1795616894 HB alive
+1795617402 CKPT handoff pushed: head 71af14b6d88998d59cef37e629dfde9ff5d05622; resolution delta 91cfc89fdade..71af14b6d889 (merge da1f90c785; unload-row fix fdde1320d3..71af14b6d8); body c8699d78d4; scoped gate 1 red (entities.py #1218 note) answered at head, entities ALL 2763 PASSED; mutants 41/0 survived snapshot ffb2dc4ee6b8
