@@ -21,3 +21,4 @@ RESULT fe3e41de6bdc640a verdict=RED-AS-NULL class=candidate
 2026-11-25T04:28:19Z recorded+ckpt fe3e41de6bdc640a
 RESULT f25414a9d4e32d19 verdict=RED-AS-NULL class=equivalent-candidate
 2026-11-25T05:22:24Z recorded+ckpt f25414a9d4e32d19
+RESULT 70791cdb98f8ddd7 verdict=RED-AS-NULL class=candidate
