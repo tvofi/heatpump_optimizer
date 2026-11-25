@@ -1641,7 +1641,6 @@ jobs:
         if: >-
           steps.changed.outputs.coverage_ratchet == 'true'
           && needs.coverage.result != 'skipped'
-          && !contains(format(' {0} ', inputs.stand_down), ' coverage ')
         with:
           name: coverage-json
           path: ${{ runner.temp }}/coverage
@@ -1654,7 +1653,6 @@ jobs:
         if: >-
           steps.changed.outputs.coverage_ratchet == 'true'
           && needs.coverage.result != 'skipped'
-          && !contains(format(' {0} ', inputs.stand_down), ' coverage ')
         run: |
           python3 tests/coverage_ratchet.py \
             --coverage "$RUNNER_TEMP/coverage/coverage.json"
