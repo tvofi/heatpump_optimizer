@@ -1,0 +1,6 @@
+
+=== Stress and economics ===
+RESULT universe=54 scenarios
+RESULT probed_by_gate=54 scenarios
+RESULT never_probed=0 scenarios
+rc=0
