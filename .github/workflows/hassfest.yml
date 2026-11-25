@@ -2,9 +2,15 @@ name: Hassfest
 
 # A called workflow of ci.yml's umbrella and of marketplace.yml's weekly
 # schedule: each caller owns the triggers, the run-id concurrency group and the
-# grant (`contents: read`). It takes no inputs and no secrets.
+# grant (`contents: read`). It takes no secrets, and one input: the prelude's
+# `stand_down` (#3885), which marketplace.yml never passes, so its runs validate.
 on:
   workflow_call:
+    inputs:
+      stand_down:
+        description: "The prelude's light-run stand-downs (#3885): when it names `hassfest` (no production file changed) the steps below skip and the job reports success"
+        type: string
+        default: ""
 
 # Read-only validation: the GITHUB_TOKEN needs nothing beyond checkout.
 permissions:
@@ -13,8 +19,17 @@ permissions:
 jobs:
   hassfest:
     runs-on: ubuntu-latest
+    env:
+      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' hassfest ') }}
     steps:
+      # Unconditional: on a light run (no production file changed, prelude.light) the
+      # one step that runs, so the job says why it reports success.
+      - name: Say the light decision this run stands on
+        run: |
+          echo "hassfest: stand down on a light run (prelude.stand_down, #3885): ${{ env.STAND_DOWN }}"
+
       - name: Checkout
+        if: env.STAND_DOWN != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The pinned action below is a *composite* action whose second step is a
@@ -49,6 +64,7 @@ jobs:
       # the alternative hands control to a bare `docker run` that will fail
       # anyway, as exit 125 with no annotation and no attempt count.
       - name: Warm the hassfest image cache
+        if: env.STAND_DOWN != 'true'
         run: |
           image='ghcr.io/home-assistant/hassfest'
           delay=2
@@ -67,5 +83,6 @@ jobs:
           exit 1
 
       - name: Run Hassfest
+        if: env.STAND_DOWN != 'true'
         # Pinned by commit: this is a moving branch upstream.
         uses: home-assistant/actions/hassfest@86d4564712fa02543c808e3a693dd04f9d3f8361 # master
