@@ -1159,7 +1159,8 @@ LOCK_RACE_RE = re.compile(
 
 def _fetch_once(checkout):
     r = subprocess.run(["git", "-C", str(checkout), "fetch", "-q", "origin",
-                        "+refs/heads/*:refs/remotes/origin/*"],
+                        "+refs/heads/*:refs/remotes/origin/*",
+                        "^refs/heads/handoff-wip/*"],  # LOCAL OVERLAY 2026-11-22: origin holds handoff-wip/R11-SEAM-actuation-writes-comms and handoff-wip/r11-...; git 2.54 refuses the fetch on APFS
                        capture_output=True, text=True)
     return r.returncode, r.stdout, r.stderr
 

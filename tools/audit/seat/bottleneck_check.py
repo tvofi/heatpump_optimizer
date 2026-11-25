@@ -165,8 +165,8 @@ def judge(m: dict) -> list[str]:
     if v is None:
         out.append(_unread("wip", why))
     elif len(v) >= m["wip_cap"]:
-        out.append(_line(f"BOTTLENECK: wip {len(v)} in-progress vs cap {m['wip_cap']} -- dispatch no new "
-                         "group; move review and merge work first", len(v)))
+        out.append(_line(f"BOTTLENECK: open PRs {len(v)} vs cap {m['wip_cap']} -- open no new group; "
+                         "fixers on started groups continue", len(v)))  # WIP-OPEN-PRS overlay
 
     v, why = m["classes"]
     if v is None:
@@ -237,7 +237,28 @@ def live_metrics(checkout: Path, roster_ref: str | None, train_log: Path | None,
     end = (mt.parse_iso(until) if until else mt.flow_default_until(checkout, "origin/main", ref))
     if end is not None and end.tzinfo is None:
         end = end.replace(tzinfo=timezone.utc)
-    return mt.bottleneck_metrics(ctx, end, train_log, wip_cap)
+    m = mt.bottleneck_metrics(ctx, end, train_log, wip_cap)
+    m["wip_cap"] = OPEN_PR_CAP  # owner 2026-11-21: open new groups only while fewer than 10 PRs are open; not plan_slots
+    m["wip"] = open_prs(REPO)  # WIP-OPEN-PRS overlay: the cap is on open PRs, not groups (owner 2026-11-22)
+    return m
+
+
+REPO = "tvofi/heatpump_optimizer"
+OPEN_PR_CAP = 20
+WORD = {"wip": "open"}  # the metric key wip prints as `open PRs`
+
+
+def open_prs(repo: str, gh=None) -> tuple:
+    """(one item per open PR, '') or (None, why): every open PR counts, drafts and bots included."""
+    import subprocess
+    argv = ["pr", "list", "--repo", repo, "--state", "open", "--limit", "500", "--json", "number"]
+    try:
+        r = subprocess.run(["gh", *argv], capture_output=True, text=True) if gh is None else gh(argv)
+        if r.returncode != 0:
+            return None, f"gh exited {r.returncode}: {r.stderr.strip()[-160:]}"
+        return list(json.loads(r.stdout)), ""
+    except (OSError, ValueError) as e:
+        return None, f"open PRs unreadable: {e}"
 
 
 # ------------------------------------------------------------------ self-test
@@ -286,10 +307,10 @@ def self_test(mutate: str | None = None) -> int:
     }
     for metric, over in planted.items():
         got = fired(_fixture(**over))
-        check(f"planted: {metric} past its threshold prints exactly its line", got == [metric], got)
+        check(f"planted: {metric} past its threshold prints exactly its line", got == [WORD.get(metric, metric)], got)
         line = judge(_fixture(**over))[0] if got else ""
         check(f"planted: the {metric} line has the grammar",
-              line.startswith(f"BOTTLENECK: {metric} ") and " vs " in line and " -- " in line, line)
+              line.startswith(f"BOTTLENECK: {WORD.get(metric, metric)} ") and " vs " in line and " -- " in line, line)
     # boundaries: at the threshold is not past it (the owner's `<`, `>`)
     edges = {
         "yield": {"yield": ((6, 10), "")},
