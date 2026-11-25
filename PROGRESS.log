@@ -40,3 +40,4 @@
 1795567027 HB alive
 1795567033 CKPT read mutation log: ledger refusal cd4695fb stale pin snapshot b6768bb7ea1a
 1795567094 CKPT merged origin/main 0f63320c clean snapshot c92e9fc7bfe8
+1795567113 CKPT stale pin cd4695fb dropped; 1 added unpinned; running --pin-killed snapshot cb3ec446a96c
