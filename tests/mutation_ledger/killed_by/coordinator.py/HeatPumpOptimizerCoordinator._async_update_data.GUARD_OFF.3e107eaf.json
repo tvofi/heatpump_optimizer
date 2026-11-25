@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_update_data GUARD_OFF 3e107eaf",
+  "killed_by": "tests/structure.py",
+  "old": "            if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}
