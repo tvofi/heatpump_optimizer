@@ -13,3 +13,4 @@
 1795615868 CKPT baseline features.py 1/6183 env fail, T6b ok; 5 mutants relaunched in parallel snapshot bc786d8bd7d7
 1795616355 HB alive
 1795616959 HB alive
+1795617349 DONE returned: Fix review: merge ee8cf83d (pending-ci: gate) on probe/rev-3883-5ec46475 2c43623c
