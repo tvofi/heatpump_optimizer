@@ -121,6 +121,12 @@ class ApproachProfile:
             self.entered_s = None
         return runs, was
 
+    def expect(self, total_kw: float, *, inside: bool) -> float:
+        """Keep the draw expected of the interval in hand where it sits
+        inside the profile (``expected_kw``); ``total_kw`` back."""
+        self.expected_kw = total_kw if inside else None
+        return total_kw
+
     def age_h(self, now_s: float) -> float | None:
         """The live space run's age, hours: ``0.0`` with none live (a step
         that runs space next is an entry), ``None`` where unknown, which books
@@ -151,13 +157,9 @@ class ApproachProfile:
     def from_dict(cls, data: Any) -> "ApproachProfile":
         """A stored profile; a bad cell costs that cell, a bad key its field."""
         out = cls()
-        if not isinstance(data, dict):
+        out.config = stored_config(data)
+        if out.config is None:
             return out
-        try:
-            lo, hi = (float(v) for v in data["config"])
-        except (TypeError, ValueError, OverflowError, KeyError, IndexError):
-            return out
-        out.config = (lo, hi)
         out.entry = _stored_bins(data.get("entry"), BINS)
         out.ramp = _stored_bins(data.get("ramp"), RAMP_BINS)
         out.entered_s = _stored_time(data.get("entered_s"))
@@ -168,6 +170,16 @@ class ApproachProfile:
         if out.running and out.entered_s is None:
             out.running = None
         return out
+
+
+def stored_config(data: Any) -> tuple[float, float] | None:
+    """A stored record's configured ``(min, max)`` key, or ``None`` where
+    unreadable or not finite: the evidence it keys is dropped with it."""
+    try:
+        lo, hi = (float(v) for v in data["config"])
+    except (TypeError, ValueError, OverflowError, KeyError, IndexError):
+        return None
+    return (lo, hi) if np.isfinite(lo) and np.isfinite(hi) else None
 
 
 def _put(bins: list[Deque[float]], age_min: float, drawn_kw: float) -> None:
@@ -208,7 +220,7 @@ def _levels(bins: list[Deque[float]], floor_kw: float, tolerance: float) -> np.n
         if level <= (1.0 + tolerance) * floor_kw:
             break
         out.append(level)
-    return np.asarray(out, dtype=float)
+    return np.array(out, dtype=np.float64)
 
 
 def entry_levels(profile: ApproachProfile | None, floor_kw: float, tolerance: float) -> np.ndarray:

@@ -54,6 +54,14 @@ _TIE_BREAK = 1e-9
 #: Float slack on a level or an energy compared against the floor, kW or kWh.
 _SLACK = 1e-9
 
+class Start(NamedTuple):
+    """What a start costs :func:`commit`: its price, and the learned entry's
+    energy above the level a run out of a pause draws (:meth:`Approach.entry_kwh`)."""
+
+    cost: float
+    entry_kwh: float = 0.0
+
+
 class Approach(NamedTuple):
     """The learned approach a plan's runs draw (``approach.entry_levels``,
     ``approach.ramp_levels``): levels by ``bin_h`` bin after a space-run
@@ -190,9 +198,9 @@ def realizable(total: Any, floor: float) -> bool:
 
 
 def commit(
-    q: Any, prices: Any, floor: float, caps: Any, start_cost: float, band: int,
+    q: Any, prices: Any, floor: float, caps: Any, start_cost: float | Start, band: int,
     *, dt: float, running: bool = False, forced: Any = None,
-    lengths: tuple[int, int] = (1, 1), entry_kwh: float = 0.0,
+    lengths: tuple[int, int] = (1, 1),
 ) -> tuple[np.ndarray, bool]:
     """The on/off mask that runs the relaxed plan ``q`` cheapest, and whether
     it tracked ``q``'s energy within its band.
@@ -208,14 +216,15 @@ def commit(
     cut a run or a pause short. A balance outside the band is held at the
     edge cell and pays :data:`OUT_OF_BAND` for the energy outside: ``False``
     says the mask left the band, a best effort and never a refusal.
-    ``entry_kwh`` is the learned approach's energy above the level
-    (:meth:`Approach.entry_kwh`): a run started out of a pause also moves the
-    balance by it and pays its step's price for it, so the energy an entry
-    delivers is left out later. At zero the run action is :func:`_shift`.
+    A :class:`Start` carries the learned entry's energy above the level: a
+    run started out of a pause also moves the balance by it and pays its
+    step's price for it, so the energy an entry delivers is left out later.
+    At zero the run action is :func:`_shift`.
     """
     q = np.asarray(q, dtype=float)
     n = q.size
     min_on = lengths[0]
+    start_cost, entry_kwh = start_cost if isinstance(start_cost, Start) else Start(float(start_cost))
     f = floor_kw(floor)
     cap = np.broadcast_to(np.asarray(caps, dtype=float), (n,))
     want = np.full(n, np.nan) if forced is None else np.array(forced, dtype=float)[:n]
@@ -267,8 +276,8 @@ def candidates(
         if tracked and band > BANDS[-1]:
             break
         mask, exact = commit(
-            q, prices, floor, caps, start_cost, band, dt=dt, running=running,
-            forced=forced, lengths=lengths, entry_kwh=entry_kwh,
+            q, prices, floor, caps, Start(float(start_cost), entry_kwh), band, dt=dt, running=running,
+            forced=forced, lengths=lengths,
         )
         tracked |= exact
         if not any(np.array_equal(mask, m) for m in masks):

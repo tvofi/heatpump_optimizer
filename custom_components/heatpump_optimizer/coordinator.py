@@ -9954,7 +9954,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
             # An unplanned charge is no running space sample (#3760): the pending split's own evidence.
             space_frozen = self._learning_frozen(CONF_POWER_ENTITY, sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, pending["split"]))
-            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self), span_s=(pending["when"].timestamp(), now.timestamp()), charged=heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])))
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), ceiling_frozen=_ceiling_frozen(self), span=draw_range.Span(pending["when"].timestamp(), now.timestamp(), heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])), pending.get("mode") == "system_identification"))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -10159,9 +10159,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         trajectory = result.sensor_trajectory(ctx._thermal_params.two_zone_enabled)
         if not trajectory:
             return
-        self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
-            solve_time, dt_h, trajectory, draw_range.received_schedule(self._accuracy.draw, ctx._thermal_params, result.power_schedule, result.dhw_power_schedule, solve_time.timestamp(), dt_h),
-            result.dhw_power_schedule, result.prices,
+        space = draw_range.received_schedule(self._accuracy.draw, ctx._thermal_params, result.power_schedule, result.dhw_power_schedule, solve_time, dt_h)
+        self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise, on the draw the pump takes
+            solve_time, dt_h, trajectory, space, result.dhw_power_schedule, result.prices,
         )
         for lead in LEAD_BUCKETS:
             idx = int(round(lead / dt_h))

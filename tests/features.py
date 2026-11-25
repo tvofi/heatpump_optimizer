@@ -34336,6 +34336,7 @@ class _Split:
         self._measured_power = measured
         self._immersion_active = False
         self._pump_signals = signals
+        self._accuracy = AccuracyTracker()  # R11-OUTSIDE-START-APPROACH: the tracking gate reads its draw window
 
 
 _sp_blind = _Split(PumpSignals())
@@ -81093,7 +81094,7 @@ def _wrr_folded(command, experiment_s=None):
     """A fresh store after one running 3.0 kW space interval held at ``command``."""
     d = _dr.DrawRange()
     _dr.fold(d, 3.0, (5.0, 0.0), _dr_params(1.5, 5.5), frozen=False, distorted=False,
-             defrost=False, command=command, experiment_s=experiment_s)
+             defrost=False, command=command, span=None if experiment_s is None else _dr.Span(experiment_s, experiment_s, experiment=True))
     return d
 
 
@@ -91058,7 +91059,7 @@ def _cp_params(lo=1.0, hi=5.0):
 
 def _cp_fold(d, drawn, command, experiment_s, split=(5.0, 0.0), hi=5.0):
     _cp_dr.fold(d, drawn, split, _cp_params(hi=hi), frozen=False, distorted=False,
-                defrost=False, command=command, experiment_s=experiment_s)
+                defrost=False, command=command, span=None if experiment_s is None else _cp_dr.Span(experiment_s, experiment_s, experiment=True))
 
 
 def _cp_store(values, newest_s=_CP_NOW):
@@ -91513,7 +91514,7 @@ def _cp_pump(house, nights, late=False, noise=0.02, seed=3):
                 drawn = (3.0 if pending["command"] is _CP_CEIL else 1.5) * (1.0 + noise * rng.standard_normal())
                 _cp_dr.fold(store, drawn, (pending["power"], 0.0), _cp_params(), frozen=False,
                             distorted=False, defrost=False, command=pending["command"],
-                            experiment_s=pending["when"] if key == "system_identification" else None)
+                            span=_cp_dr.Span(pending["when"], pending["when"], experiment=True) if key == "system_identification" else None)
             pending = {"mode": mode, "power": power, "when": now.timestamp(),
                        "command": _CP_CEIL if power >= 5.0 else _CP_MID}
             prev_mode = mode
@@ -103296,7 +103297,7 @@ def _cf_fold(drawn, floor_kw=None):
     frozen = _lf.reason(_lf.Facts(), (), _LF_K.CEILING,
                         _lf.Evidence(at_running_floor=_cf_dr.at_running_floor(d, drawn))) is not None
     _cf_dr.fold(d, drawn, (6.0, 0.0), _CF_P, frozen=False, distorted=False, defrost=False,
-                command=_CF_CEIL, experiment_s=1.0e9, ceiling_frozen=frozen)
+                command=_CF_CEIL, span=_cf_dr.Span(1.0e9, 1.0e9, experiment=True), ceiling_frozen=frozen)
     return frozen, len(d.ceiling), len(d.samples) - window
 
 
@@ -103649,7 +103650,7 @@ def _sa_feed(draw, rows, t0=1.0e9, params=_SA_P):
     t = t0
     for drawn, space, dhw, *gates in rows:
         g = {"frozen": False, "distorted": False, "defrost": False, **(gates[0] if gates else {})}
-        _sa_dr.fold(draw, drawn, (space, dhw), params, span_s=(t, t + _SA_STEP_S), **g)
+        _sa_dr.fold(draw, drawn, (space, dhw), params, span=_sa_dr.Span(t, t + _SA_STEP_S), **g)
         t += _SA_STEP_S
     return t
 
@@ -103741,10 +103742,10 @@ _sa_r, _sa_rt = _sa_learned(runs_n=1)
 _sa_r2 = _sa_dr.DrawRange.from_dict(_sa_r.as_dict())
 _sa_rt = _sa_feed(_sa_r2, [(1.0, 0.53, 0.0)], _sa_rt)
 _sa_idle0 = len(_sa_r2.idle)
-_sa_dr.fold(_sa_r2, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span_s=(_sa_rt, _sa_rt + 300))
+_sa_dr.fold(_sa_r2, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span=_sa_dr.Span(_sa_rt, _sa_rt + 300))
 _sa_r3 = _sa_dr.DrawRange.from_dict(_sa_r.as_dict())
 _sa_rt3 = _sa_feed(_sa_r3, [(0.02, 0.0, 0.0)], _sa_rt - 300)
-_sa_dr.fold(_sa_r3, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span_s=(_sa_rt3, _sa_rt3 + 300))
+_sa_dr.fold(_sa_r3, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span=_sa_dr.Span(_sa_rt3, _sa_rt3 + 300))
 R.check(
     "the first pause interval after a space run folds a ramp sample and no idle reading; after a pause "
     "(null control) the same interval is an idle reading and no ramp sample",
@@ -103908,7 +103909,7 @@ _sa_cop1, _sa_cop0 = _sa_cop(_sa_c1), _sa_cop(_sa_c0)
 # the run after it is an entry, its sample inside the profile adds no window pair.
 _sa_ch = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
 _sa_cht = _sa_feed(_sa_ch, [(0.53, 0.53, 0.0)] * 2, _sa_t)
-_sa_dr.fold(_sa_ch, 1.4, (0.0, 1.0), _SA_P, frozen=False, distorted=False, defrost=False, span_s=(_sa_cht, _sa_cht + 300), charged=True)
+_sa_dr.fold(_sa_ch, 1.4, (0.0, 1.0), _SA_P, frozen=False, distorted=False, defrost=False, span=_sa_dr.Span(_sa_cht, _sa_cht + 300, True))
 _sa_chn = len(_sa_ch.samples)
 _sa_feed(_sa_ch, [(1.25, 0.53, 0.0)], _sa_cht + 300)
 R.check(

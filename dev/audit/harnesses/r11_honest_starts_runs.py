@@ -820,7 +820,7 @@ def approach() -> int:
     draw, t = draw_range.DrawRange(), 1.0e9
     rows = [(0.02, 0.0)] + ([(kw, floor) for kw in shape[:12]] + [(floor, floor)] * 12 + [(0.785, 0.0)] + [(0.02, 0.0)] * 11) * 5
     for drawn, ask in rows:
-        draw_range.fold(draw, drawn, (ask, 0.0), params, frozen=False, distorted=False, defrost=False, span_s=(t, t + 300))
+        draw_range.fold(draw, drawn, (ask, 0.0), params, frozen=False, distorted=False, defrost=False, span=draw_range.Span(t, t + 300))
         t += 300
     learned = draw_range.solve_approach(draw, params, t)
     print(f"learned after five runs: entry {learned.entry_kwh(floor):.3f} kWh over the floor, ramp {learned.ramp}")

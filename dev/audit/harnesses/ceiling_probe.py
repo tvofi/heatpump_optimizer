@@ -153,7 +153,7 @@ def store_arm() -> None:
             if pending is not None:
                 dr.fold(store, 3.0 if pending["cmd"] is ceil else 1.5, (pending["kw"], 0.0), params,
                         frozen=False, distorted=False, defrost=False, command=pending["cmd"],
-                        experiment_s=pending["when"] if pending["sid"] else None)
+                        span=dr.Span(pending["when"], pending["when"], experiment=True) if pending["sid"] else None)
             kw = 1.5 if override is None else override
             pending = {"sid": override is not None, "kw": kw, "when": now.timestamp(),
                        "cmd": ceil if kw >= 5.0 else mid}
