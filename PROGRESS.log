@@ -1,3 +1,4 @@
 1795609494 INIT r11-recut-3835
 1795609503 HB alive
 1795609545 CKPT read verdicts; fab2d371 class-open fixed in bd7e21777b; running mutation proof at coordinator.py:1121 snapshot 978240dbaf89
+1795609671 CKPT step1: all three blocks resolved at ee7df28b, 6 mutants killed under features_block; no code change snapshot 78301683ba2a
