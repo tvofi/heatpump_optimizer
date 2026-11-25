@@ -21,3 +21,4 @@
 1795583912 CKPT verdict pushed: probe/rev-3805-c38e653f 26df92652f snapshot f9f3260550c4
 1795583915 DONE Fix review: merge 7ad21f3774 (pending-ci: gate) at probe/rev-3805-c38e653f 26df92652f
 1795607788 HB alive
+1795608163 CKPT delta read: pure move to dhw_charges.py; mutants running snapshot b33379ec1c23
