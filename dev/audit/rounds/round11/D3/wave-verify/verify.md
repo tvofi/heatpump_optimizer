@@ -11,8 +11,9 @@ Not run here, by the brief: the judge, dedup and the class sweep (they wait for 
 | stage | boxes | findings | votes |
 |---|---|---|---|
 | 1 | g01, g02, g03, g04, g05, g06, g07, g08, g09, g10, g11, g12, g13, g14, g15, g16, g17, g18, g19, g20, g21, g22, g23, g24, g25, g26, g27, g28, g29, g30, g31, g32, g33, g34, g35, g37, g38, g39, g41 | 381 | {'verify': 369, 'weaken': 9, 'unresolved': 3} |
+| 2 | g36 | 14 | {'verify': 14} |
 
-Total: 381 findings; {'verify': 369, 'weaken': 9, 'unresolved': 3}.
+Total: 395 findings; {'verify': 383, 'weaken': 9, 'unresolved': 3}.
 
 ## Method
 
@@ -438,3 +439,17 @@ Carry: R11-D3-JUDGE
 | 1 | 898d741cf6142efb | D3-g41 | thermal_model.py:4463 | verify | medium | V1 2 arm pair(s) moved, null moved 0; e.g. ('cop_out0', ['np.float64(2.8874999999999997)', '[2.8875,2.8875,2.5 | faithful by construction |
 | 1 | a6cebb125b72f083 | D3-g41 | thermal_model.py:3328 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('cop_out30', ['5.25', '5.512500000000001']) | faithful by construction |
 | 1 | c5e678a5d1812e40 | D3-g41 | thermal_model.py:4019 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('dt0_buf', ['69.9999999', "'ZeroDivisionError'"]) | faithful by construction |
+| 2 | 440c0a6d5ee72d19 | D3-g36 | sysid.py:2315 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('', ['ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.125 | inconclusive by construction |
+| 2 | 809e8d14f04e1127 | D3-g36 | sysid.py:2315 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('', ['refused:not enough samples', 'refused:not enough usable inte | inconclusive by construction |
+| 2 | 0137ee1f014fb759 | D3-g36 | sysid.py:2325 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('', ['refused:slab mode too slow for the excitation window: tau_fa | inconclusive by construction |
+| 2 | 24aa39e8c4c6d26a | D3-g36 | sysid.py:2325 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('', ['ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.374 | inconclusive by construction |
+| 2 | ae8f84354933d191 | D3-g36 | sysid.py:2375 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('', ['ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.404 | inconclusive by construction |
+| 2 | 9460d3802a8903d6 | D3-g36 | sysid.py:2376 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('', ['ua=0.123915027 cap=5.010000000 tau=40.430931814 conf=0.00000 | inconclusive by construction |
+| 2 | de6bbadf1499bae9 | D3-g36 | sysid.py:2381 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('_nan', ['ua=0.150000000 cap=8.333333333 tau=55.555555556 conf=nan | inconclusive by construction |
+| 2 | 0baef4e86433b225 | D3-g36 | sysid.py:1752 | verify | medium | V1 2 arm pair(s) moved, null moved 0; e.g. ('_idle_samples', ['0', '2']) | inconclusive by construction |
+| 2 | b3c0e51c511b2618 | D3-g36 | sysid.py:1778 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('_kw', ['0.2', '0.1']) | inconclusive by construction |
+| 2 | 9dd0547496b091b0 | D3-g36 | sysid.py:1782 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('_kw', ['0', '-3']) | inconclusive by construction |
+| 2 | 8840eb67a646cd97 | D3-g36 | sysid.py:1785 | verify | medium | V1 2 arm pair(s) moved, null moved 0; e.g. ('_phase', ['aborted', 'step']) | inconclusive by construction |
+| 2 | 5104733df3085998 | D3-g36 | sysid.py:835 | verify | medium | V1 2 arm pair(s) moved, null moved 0; e.g. ('_log_ua', ['4.605170', '6.907755']) | inconclusive by construction |
+| 2 | 373207a8e12c37c5 | D3-g36 | sysid.py:842 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('_x1', ['10.000000', '20.000000']) | inconclusive by construction |
+| 2 | 291748b42a54c1f6 | D3-g36 | sysid.py:846 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('', ['ua=0.690204601 cap=16.767323953 tau=24.293265972 conf=0.9984 | inconclusive by construction |

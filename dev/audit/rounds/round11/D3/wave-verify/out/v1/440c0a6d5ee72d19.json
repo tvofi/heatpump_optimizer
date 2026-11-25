@@ -1,0 +1,1 @@
+{"rc": 0, "stdout": "RESULT baseline=ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.125000000 hw=0\nRESULT mutant=refused:not enough samples\nRESULT moved=1 count\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=18.47\nRESULT swapins=0\n", "stderr": "", "key": "440c0a6d5ee72d19", "box": "D3-g36", "wall_s": 1.8, "load1": 19.314453125}
