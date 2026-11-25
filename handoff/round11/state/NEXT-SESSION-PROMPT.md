@@ -30,7 +30,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-ARCH-fabric-learner (stage in-progress, branch `handoff/r11-arch-fabric-learner`): `git fetch origin handoff/r11-arch-fabric-learner && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-two-zone-slab (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-ROOMS-3B (stage in-progress, branch `handoff/r11-outside-rooms-3b`): `git fetch origin handoff/r11-outside-rooms-3b && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-CARD-EXTERNAL-HEAT (stage in-progress, branch `handoff/r11-owner-card-external-heat`): `git fetch origin handoff/r11-owner-card-external-heat && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OWNER-CARD-EXTERNAL-HEAT (stage carries-open, branch `handoff/r11-owner-card-external-heat`): `git fetch origin handoff/r11-owner-card-external-heat && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FLOWCAP (stage in-progress, branch `handoff/r11-owner-flowcap`): `git fetch origin handoff/r11-owner-flowcap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FROST-HOLD (stage in-progress, branch `handoff/r11-owner-frost-hold`): `git fetch origin handoff/r11-owner-frost-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-HOLD (stage in-progress, branch `handoff/r11-owner-fault-hold`): `git fetch origin handoff/r11-owner-fault-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -39,10 +39,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-COOLING-GUARD (stage in-progress, branch `handoff/r11-owner-cooling-guard`): `git fetch origin handoff/r11-owner-cooling-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-TEXT (stage in-progress, branch `handoff/r11-owner-fault-text`): `git fetch origin handoff/r11-owner-fault-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-EXTHEAT-OVERRIDE (stage in-progress, branch `handoff/r11-owner-extheat-override`): `git fetch origin handoff/r11-owner-extheat-override && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OUTSIDE-3849 (stage in-progress, branch `handoff/r11-outside-3849`): `git fetch origin handoff/r11-outside-3849 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COOLING-AUTORETURN (stage in-progress, branch `handoff/r11-owner-cooling-autoreturn`): `git fetch origin handoff/r11-owner-cooling-autoreturn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CLOSEOUT-CLEANUP, R11-LATE-P1-OPTIONS, R11-LATE-P2-REPLAY-FINITE, R11-LATE-P2-ZONE-GATE, R11-OUTSIDE-3849, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-3B, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COOLING-GUARD, R11-OWNER-EXTHEAT-OVERRIDE, R11-OWNER-FLOWCAP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-dead-state, R11-SEAM-entity-service, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-store-p2, R11-SEAM-tests, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst
+Ready next (after-edges satisfied; nothing open constrains them): R11-ARCH-cycle-surface, R11-CLOSEOUT-CLEANUP, R11-LATE-P1-OPTIONS, R11-LATE-P2-REPLAY-FINITE, R11-LATE-P2-ZONE-GATE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-3B, R11-OUTSIDE-SELF-SETTING-PUMP, R11-OWNER-COOLING-GUARD, R11-OWNER-EXTHEAT-OVERRIDE, R11-OWNER-FLOWCAP, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-dead-state, R11-SEAM-entity-service, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-store-p2, R11-SEAM-tests, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst
 
 ## Resume steps
 
