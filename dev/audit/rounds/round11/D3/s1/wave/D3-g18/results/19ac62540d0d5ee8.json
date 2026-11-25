@@ -1,0 +1,61 @@
+{
+ "key": "19ac62540d0d5ee8",
+ "site": "flow_lift.py:232 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/flow_lift.py",
+ "line": 232,
+ "patch": "if not np.isfinite(bias) or samples < 0: -> if not np.isfinite(bias) or samples <= 0:",
+ "function": "FlowCurveBias.from_dict",
+ "cluster": "flow_lift.py:FlowCurveBias.from_dict@232-232",
+ "slice": "u1a",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "m4_carried": "19ac62540d0d5ee8 (u1a, m4_u1a_part7.json): equivalent; a stored zero-sample state returns a fresh learner, which the following comment says is the same inert state.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2877.6,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/19ac62540d0d5ee8.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/19ac62540d0d5ee8.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 19ac62540d0d5ee8",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_19ac62540d0d5ee8.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_19ac62540d0d5ee8.py",
+  "baseline_value": "differing_inputs=0 of 14; zero_sample_restores_inert_baseline=1",
+  "mutant_value": "differing_inputs=0 of 14; zero_sample_restores_inert_mutant=1; positive control (line 237's guard also dropped) differs on 3",
+  "inputs_tried": "samples in {-1, 0, 1, 7} x bias in {0.0, 4.5, -20.0}, plus bias nan, samples '0' (string), samples 0.0 (float)",
+  "reach": "The samples == 0 case the edit adds already returns cls() two lines later (line 237-238), so both arms restore the same inert learner; the positive control shows the probe can see a difference when one exists.",
+  "result_lines": [
+   "RESULT inputs_tried=14 count",
+   "RESULT differing_inputs=0 count",
+   "RESULT zero_sample_restores_inert_baseline=1 count",
+   "RESULT zero_sample_restores_inert_mutant=1 count",
+   "RESULT positive_control_differing=3 count",
+   "RESULT thread_factor=1.000 ratio",
+   "RESULT load1=1.71",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none: the mutant is equivalent."
+}

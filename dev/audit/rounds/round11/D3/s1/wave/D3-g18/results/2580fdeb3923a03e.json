@@ -1,0 +1,49 @@
+{
+ "key": "2580fdeb3923a03e",
+ "site": "dhw_planner.py:1613 RETURN_DEL",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1613,
+ "patch": "return best -> pass",
+ "function": "DhwPlanner._plan_dhw_min_cost",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_min_cost@1510-1627",
+ "slice": "u1a",
+ "full_net": "SURVIVED",
+ "reach_column": "not-hit-unproven",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2902.1,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/2580fdeb3923a03e.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/2580fdeb3923a03e.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 2580fdeb3923a03e",
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_2580fdeb3923a03e.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_2580fdeb3923a03e.py",
+  "baseline_value": "real-solver failures (infeasible, unbounded, iteration limit): x=None -> plan None (greedy fallback); golden_dhw_lp_failures=0",
+  "mutant_value": "the same three failures: plan None (differing_real_failures=0); a stubbed failure carrying a vector: the vector is published (differing_failure_with_vector=1)",
+  "inputs_tried": "a solvable 12-step program (branch not reached, reached_ok_solve=0); three genuinely failing scipy 1.18.1 programs (status 2, 3, 1); a stub failure with x kept (status 4 shape); three golden DHW scenarios (winter_single_dhw, winter_two_zone_dhw, summer_dhw_only) for reach",
+  "reach": "Line 1613 is not reached by any traced baseline, by the three golden DHW scenarios (0 solver failures) or by 147 captured production calls (40 golden DHW scenarios + 60 randomized variants, 0 failures); the installed scipy returns x=None on every failure status reproduced, so `pass` falls into `if solution is None: return best` (1616). Only a solver failure that still carries a vector separates the arms; none was found. Unreachable in practice: an unreachable line, not a test gap."
+ },
+ "should_fail": "none through production with the installed scipy: no closure script's traced baseline executes dhw_planner.py:1613; a check would need linprog to fail with a vector (e.g. tests/features.py patching dhw_planner.linprog to return success=False with x set and asserting _plan_dhw_min_cost returns None)."
+}

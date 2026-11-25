@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+# Metric: over 1500 seeded direct calls of DhwPlanner._repair_dhw_floor inside the production envelope
+#   (p_dhw_max >= 0.1, min_run_power <= p_dhw_max), the count whose repaired DHW plan differs under the mutant; the
+#   summed residual floor shortfall (K-steps of simulated tank temperature below the requirement, over the steps the
+#   repair is asked to hold) in each arm; and the same count over every repair call three golden DHW scenarios make.
+# Command: PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py
+# EXPECTED RESULT calls=1500 count
+# EXPECTED RESULT differing_plans=35 count
+# EXPECTED RESULT shortfall_ksteps_baseline=57165.329 K  (mostly seeded requirements no ceiling-legal plan can meet)
+# EXPECTED RESULT shortfall_ksteps_mutant=58050.843 K
+# EXPECTED RESULT calls_mutant_more_shortfall=30 count
+# EXPECTED RESULT golden_calls=5 count
+# EXPECTED RESULT golden_differing=0 count
+# Baseline: 92d38ecb640bd462f2e19c0814d0f0b7df1ee692. Machine: box D3-g18 (4 vCPU Intel Xeon @ 2.10GHz, Linux).
+# Instrumented symbol: heatpump_optimizer.dhw_planner:DhwPlanner._repair_dhw_floor, line 1893
+#   `if np.array_equal(plan, before):` (a top-up the capacity clamp removed again marks the breach unreachable),
+#   reached from DhwPlanner._build_dhw_requirements via place_startable (dhw_planner.py:1301).
+# Perturbation: mutant 936bcb2da6441e86, the guard -> `if False:`, applied in memory (the method is recompiled from
+#   its own source for the mutant arm). Direction: a breach no ceiling-legal top-up closes is retried instead of
+#   skipped, so the 48-round budget runs out on it and later breaches go unrepaired (shortfall up), or a different
+#   step is topped up.
+# Null control: the golden DHW scenarios' own repair calls, where every top-up survives the clamp.
+import os
+for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    os.environ.setdefault(_v, "1")
+import sys
+from pathlib import Path
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
+sys.path.insert(0, str(ROOT / "tests"))
+sys.path.insert(0, str(ROOT / "custom_components"))
+import inspect  # noqa: E402
+import logging  # noqa: E402
+import textwrap  # noqa: E402
+from dataclasses import replace  # noqa: E402
+from unittest import mock  # noqa: E402
+
+import numpy as np  # noqa: E402
+
+logging.disable(logging.CRITICAL)
+from heatpump_optimizer import dhw_planner  # noqa: E402
+from heatpump_optimizer.dhw_planner import DhwPlanner, _DhwPlanContext  # noqa: E402
+from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+
+SRC = textwrap.dedent(inspect.getsource(DhwPlanner._repair_dhw_floor))
+
+
+def mutant(old, new):
+    """_repair_dhw_floor recompiled from its own source with one line edited (in memory)."""
+    assert SRC.count(old) == 1, "anchor line moved"
+    ns = dict(dhw_planner.__dict__)
+    exec(compile(SRC.replace(old, new, 1), dhw_planner.__file__, "exec"), ns)
+    return ns["_repair_dhw_floor"]
+
+
+def case(rng, prod=True):
+    """One seeded direct call of the floor repair: tank, horizon, prices, ceiling, requirement, draws and an
+    initial plan. prod=True keeps the envelope _build_dhw_requirements guarantees (dhw_planner.py:1138-1141):
+    p_dhw_max >= 0.1 and min_run_power <= p_dhw_max."""
+    vol = float(rng.choice([80.0, 150.0, 200.0, 300.0]))
+    params = ThermalParameters(dhw_enabled=True, dhw_tank_volume=vol, dhw_cooling_rate=float(rng.choice([0.05, 0.1, 0.3, 1.0, 3.0])))  # config range 0.05..3.0 (config_flow.py:1800)
+    opt = HeatPumpOptimizer(ThermalModel(params), OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    pl = DhwPlanner(opt.model, opt.config, opt._pv_surplus, opt._price_known)
+    n = int(rng.integers(4, 16))
+    dt = float(rng.choice([0.25, 0.5, 1.0]))
+    if prod:
+        pmax = float(rng.choice([0.1, 0.3, 1.0, 2.0, 3.0, 4.8]))
+        mrp = min(pmax, float(rng.choice([0.15, 0.3, 0.6, 1.2, 2.4])))
+    else:
+        pmax = float(rng.choice([0.3, 1.0, 2.0]))
+        mrp = float(rng.choice([2.5, 4.0]))
+    prices = rng.uniform(0, 5, n)
+    ctx = _DhwPlanContext(
+        prices=prices, import_prices=prices, outdoor_temps=rng.uniform(-15, 15, n), humidity=None, n_steps=n, dt=dt,
+        store=replace(params.dhw_store, capacity_kwh_per_c=vol * 0.00116), p_dhw_max=pmax, min_run_power=mrp,
+        max_lead_steps=24, tank_exo_kw=None)
+    ceil = float(rng.choice([50.0, 55.0, 60.0, 65.0]))
+    req = np.full(n, float(rng.uniform(35, ceil + 3)))
+    if rng.random() < 0.5:
+        req[: int(rng.integers(0, n))] = 0.0
+    mt = np.full(n, ceil)
+    if rng.random() < 0.3:
+        mt[: n // 2] = ceil + 10
+    plan = np.where(rng.random(n) < 0.4, rng.uniform(0, pmax, n), 0.0)
+    draws = rng.uniform(0, 3, n) * (rng.random(n) < 0.5)
+    it = float(rng.uniform(30, ceil + 2))
+    fo = (rng.random(n) < 0.2) if rng.random() < 0.3 else None
+    sb = np.full(n, float(it - rng.uniform(-5, 10))) if rng.random() < 0.3 else None
+    kw = dict(plan=plan, initial_temp=it, draw_rates=draws, requirement=req, max_temp=mt, forced_off=fo, start_below=sb)
+    return pl, ctx, kw
+
+
+def golden_repair_calls(names=("winter_single_dhw", "winter_two_zone_dhw", "summer_dhw_only")):
+    """The (planner, ctx, kwargs) of every _repair_dhw_floor call three golden DHW scenarios make."""
+    import copy
+    import golden
+    calls = []
+    real = DhwPlanner._repair_dhw_floor
+
+    def spy(self, ctx, **kw):
+        calls.append((self, copy.deepcopy(ctx), copy.deepcopy(kw)))
+        return real(self, ctx, **kw)
+
+    with mock.patch.object(DhwPlanner, "_repair_dhw_floor", spy):
+        for name in names:
+            golden.capture(name, golden.SCENARIOS[name])
+    return calls
+MUT = mutant("if np.array_equal(plan, before):", "if False:")
+
+
+def shortfall(pl, ctx, kw, plan):
+    req = np.minimum(np.asarray(kw["requirement"], float), np.asarray(kw["max_temp"], float))
+    temps = pl._ctx_temps(ctx, kw["initial_temp"], kw["draw_rates"], plan)
+    return float(np.clip(req - temps[1 : plan.size + 1], 0.0, None).sum())
+
+
+rng = np.random.default_rng(1)
+calls = diff = more = 0
+sb = sm = 0.0
+for _ in range(1500):
+    pl, ctx, kw = case(rng)
+    b = DhwPlanner._repair_dhw_floor(pl, ctx, **kw)
+    m = MUT(pl, ctx, **kw)
+    calls += 1
+    fb, fm = shortfall(pl, ctx, kw, b), shortfall(pl, ctx, kw, m)
+    sb += fb
+    sm += fm
+    if not np.array_equal(b, m):
+        diff += 1
+        more += fm > fb + 1e-9
+gcalls = golden_repair_calls()
+gdiff = sum(1 for pl, ctx, kw in gcalls if not np.array_equal(DhwPlanner._repair_dhw_floor(pl, ctx, **kw), MUT(pl, ctx, **kw)))
+print(f"RESULT calls={calls} count")
+print(f"RESULT differing_plans={diff} count")
+print(f"RESULT shortfall_ksteps_baseline={sb:.3f} K")
+print(f"RESULT shortfall_ksteps_mutant={sm:.3f} K")
+print(f"RESULT calls_mutant_more_shortfall={more} count")
+print(f"RESULT golden_calls={len(gcalls)} count")
+print(f"RESULT golden_differing={gdiff} count")
+
+import resource as _resource  # noqa: E402
+import time as _time  # noqa: E402
+
+print(f"RESULT thread_factor={_time.process_time() / max(_time.thread_time(), 1e-9):.3f} ratio")
+print(f"RESULT load1={os.getloadavg()[0]:.2f}")
+print(f"RESULT swapins={_resource.getrusage(_resource.RUSAGE_SELF).ru_nswap} count")

@@ -1,0 +1,77 @@
+{
+ "key": "64576dd552491452",
+ "site": "dhw_planner.py:1627 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1627,
+ "patch": "if np.allclose(refined, cop, rtol=0.02): -> if False:",
+ "function": "DhwPlanner._plan_dhw_min_cost",
+ "cluster": "dhw_planner.py:DhwPlanner._plan_dhw_min_cost@1510-1627",
+ "slice": "u1b",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2771.4,
+  "load1_start": 0.86,
+  "load1_end": 0.93,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/64576dd552491452.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/64576dd552491452.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 64576dd552491452",
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_64576dd552491452.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_64576dd552491452.py",
+  "baseline_value": "plan returned after the first pass when it is already COP-consistent (17 of 600 seeded calls)",
+  "mutant_value": "a second program solved at the refined COP: 16 of those 17 plans differ, max per-step delta 1.740 kW; null (first pass not converged) 0 differing; golden_first_pass_converged=0",
+  "inputs_tried": "600 seeded direct calls (tank 80-300 L, cooling 0.1-1.0 C/h, 4-23 steps, dt 0.25/1 h, flat / one-decimal / continuous prices, outdoor -15..20 C, requirement 40-58 C, start -8..+3 K around it, random draws, cap 1.5-4 kW); 3 golden DHW scenarios; 147 captured production calls (0 first-pass convergences there)",
+  "reach": "The guard decides only when the first LP pass is already COP-consistent; that never happened in 147 captured production calls nor in the 3 golden scenarios, and happened in 17/600 seeded direct calls (flat or one-decimal prices: a degenerate LP whose tie-break the refined COP moves)."
+ },
+ "should_fail": "tests/features.py's _plan_dhw_min_cost checks (features.py ~63150, ~63611, ~63732, ~63784) execute line 1627 on the traced baseline but none poses a first pass that is already COP-consistent (start at the requirement level on tied prices) and asserts the first-pass plan is returned (or that one program is solved).",
+ "title": "No check makes the DHW cost LP's first pass COP-consistent; dropping its early exit moves the plan unseen",
+ "claim": "Mutant 64576dd552491452 at dhw_planner.py:1627 (if np.allclose(refined, cop, rtol=0.02): -> if False:) survives the full gate (RED-AS-NULL); its probe moves: a second program solved at the refined COP: 16 of those 17 plans differ, max per-step delta 1.740 kW; null (first pass not converged) 0 differing; golden_first_pass_converged=0.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "low",
+ "stop_rule_class": "bug",
+ "metric_definition": "count of 600 seeded direct _plan_dhw_min_cost calls whose returned DHW plan differs (and the max per-step kW delta) with the line-1627 early exit disabled, among calls whose first LP pass is already within rtol 0.02 of its COP",
+ "phenomenon_property": "When the first LP pass is already COP-consistent, _plan_dhw_min_cost returns that pass's plan unchanged",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_64576dd552491452.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_64576dd552491452.py",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_min_cost",
+ "perturbation": {
+  "change": "mutant 64576dd552491452: if np.allclose(refined, cop, rtol=0.02): -> if False: at custom_components/heatpump_optimizer/dhw_planner.py:1627, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 64576dd552491452",
+  "expected_direction": "up (differing plans 0 -> 16; max per-step delta 0 -> 1.740 kW)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_64576dd552491452.py",
+  "value": "calls whose first pass did not converge: null_differing=0 (both arms solve the same two programs)",
+  "full_gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/dhw_planner.py"
+ ],
+ "proposed_fix_scope": "tests only: a check in the named script that fails under the mutant"
+}
