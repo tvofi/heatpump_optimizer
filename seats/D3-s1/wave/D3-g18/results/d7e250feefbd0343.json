@@ -1,0 +1,62 @@
+{
+ "key": "d7e250feefbd0343",
+ "site": "dhw_planner.py:1871 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1871,
+ "patch": "runnable = min(min_run_power, p_dhw_max) -> runnable = (min_run_power)",
+ "function": "DhwPlanner._repair_dhw_floor",
+ "cluster": "dhw_planner.py:DhwPlanner._repair_dhw_floor@1800-1893",
+ "slice": "u1d",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "m4_carried": "d7e250feefbd0343 (u1d): when min_run_power > p_dhw_max the repair places a block above p_dhw_max; should fail: a floor-repair check with min_run_power > p_dhw_max asserting every repaired step <= p_dhw_max.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3247.6,
+  "load1_start": 0.38,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/d7e250feefbd0343.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/d7e250feefbd0343.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key d7e250feefbd0343",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_d7e250feefbd0343.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_d7e250feefbd0343.py",
+  "baseline_value": "calls_in_envelope=1500, differing_in_envelope=0; golden_min_run_above_cap=0",
+  "mutant_value": "differing_in_envelope=0 of 1500; outside the envelope (min_run_power > p_dhw_max) 122 of 600 differ, max_over_cap_kw_mutant=0.000000 kW",
+  "inputs_tried": "1500 seeded direct calls inside the production envelope (p_dhw_max >= 0.1, min_run_power <= p_dhw_max); 600 seeded calls outside it (min_run_power > p_dhw_max); every repair call of the golden DHW scenarios",
+  "reach": "min_run_power <= p_dhw_max is guaranteed by _build_dhw_requirements (dhw_planner.py:1141, min_run_power = min(p_dhw_run, ...) with p_dhw_max = p_dhw_run at 1226), so the clamp is the identity on every production input; only out-of-envelope calls move, and even there line 1879 still clips every published step to p_dhw_max (0.000 kW over cap), refuting the carried M4 claim that the repair publishes above the cap. Equivalent at the production seam.",
+  "result_lines": [
+   "RESULT calls_in_envelope=1500 count",
+   "RESULT differing_in_envelope=0 count",
+   "RESULT calls_outside_envelope=600 count",
+   "RESULT differing_outside_envelope=122 count",
+   "RESULT max_over_cap_kw_mutant=0.000000 kW",
+   "RESULT golden_min_run_above_cap=0 count",
+   "RESULT thread_factor=1.001 ratio",
+   "RESULT load1=1.52",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "equivalent-candidate",
+ "should_fail": "none at the production seam: no configuration reaches min_run_power > p_dhw_max."
+}
