@@ -1,2 +1,3 @@
 1795612960 INIT r11-merge-frost-hold
 1795612970 HB alive
+1795612978 CKPT merge-tree: real conflicts coordinator.py, tests/features.py; budgets auto by ledger driver snapshot 95308dffe91e
