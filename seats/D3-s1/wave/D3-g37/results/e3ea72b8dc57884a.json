@@ -1,0 +1,82 @@
+{
+ "key": "e3ea72b8dc57884a",
+ "site": "custom_components/heatpump_optimizer/sysid.py:139 CLAMP_DROP",
+ "patch": "peak = max(abs(after_step - baseline), abs(after_relax - baseline)) -> peak = (abs(after_step - baseline))",
+ "function": "_predict_step_excursion",
+ "cluster": "sysid.py:_predict_step_excursion@129-139",
+ "slice": "u1d",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3874.8,
+  "child_cpu_s": 6428.8,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/e3ea72b8dc57884a.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/e3ea72b8dc57884a.log",
+ "provisional": true,
+ "machine": "box D3-g37: nproc 4, Intel Xeon @ 2.10GHz, 16 GB; walls and load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_e3ea72b8dc57884a.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_e3ea72b8dc57884a.py",
+  "results": {
+   "unit_relax_dominates_q3p6_baseline": "(0.6673482684515015, 0.6673482684515015)",
+   "unit_relax_dominates_q3p6_mutant": "(0.019605280423839133, 0.6673482684515015)",
+   "unit_relax_dominates_q3p6_moved": "1 count",
+   "unit_relax_dominates_q0_baseline": "(1.3454639382338769, 1.3454639382338769)",
+   "unit_relax_dominates_q0_mutant": "(0.6861848148343448, 1.3454639382338769)",
+   "unit_relax_dominates_q0_moved": "1 count",
+   "null_step_dominates_q9_baseline": "(1.3411908262303633, 0.42229510654324187)",
+   "null_step_dominates_q9_mutant": "(1.3411908262303633, 0.42229510654324187)",
+   "null_step_dominates_q9_moved": "0 count",
+   "unit_moved": "2 count",
+   "null_moved": "0 count",
+   "reach_runs": "168 count",
+   "reach_calls": "40 count",
+   "reach_calls_separating": "0 count",
+   "reach_outcomes_differ": "0 count",
+   "thread_factor": "1.000",
+   "load1": "2.18",
+   "swapins": "0"
+  },
+  "answer": "Unit: where the relax endpoint is farther from the baseline the peak drops (q 3.6 kW: 0.667 -> 0.0196 K; q 0: 1.345 -> 0.686 K); the features.py:29790 input does not move. Production: the function's only consumer is the debug log at sysid.py:1627-1633, called with the sized step, where the step endpoint dominates: 40 calls over the sweep, 0 separating, 0 log lines or outcomes differ",
+  "harness": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py (in-memory mutant), dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py (production sweep)",
+  "baseline_value": {
+   "unit_relax_dominates_q3p6_baseline": "(0.6673482684515015, 0.6673482684515015)",
+   "unit_relax_dominates_q0_baseline": "(1.3454639382338769, 1.3454639382338769)",
+   "null_step_dominates_q9_baseline": "(1.3411908262303633, 0.42229510654324187)"
+  },
+  "mutant_value": {
+   "unit_relax_dominates_q3p6_mutant": "(0.019605280423839133, 0.6673482684515015)",
+   "unit_relax_dominates_q0_mutant": "(0.6861848148343448, 1.3454639382338769)",
+   "null_step_dominates_q9_mutant": "(1.3411908262303633, 0.42229510654324187)"
+  },
+  "inputs_tried": [
+   "null_step_dominates_q9",
+   "unit_relax_dominates_q0",
+   "unit_relax_dominates_q3p6",
+   "production sweep: 168 count runs (_drive.sweep / slab sweep)"
+  ]
+ },
+ "should_fail": "tests/features.py:29790 (`_peak, _final = _predict_step_excursion(21.0, 2.0, 0.20, 8.0, 0.3, 9.0, 2.0, 2.0)`) executes line 139 on a step-dominated input; the assertion it lacks is a relax-dominated case (e.g. q at hold + 0.1 kW) pinning peak == |after_relax - baseline|; no production behaviour depends on it"
+}
