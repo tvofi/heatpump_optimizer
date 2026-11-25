@@ -965,13 +965,12 @@ def _map_inputs(
     for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`).
 
     ``settle``: the served record, whose swap anchors a flow target's floor on
-    the space loop's water (:mod:`.flow_anchor`), never above today's floor,
-    and never under an experiment, whose fit owns its level map."""
+    the space loop's water (:mod:`.flow_anchor`), never above today's floor (:func:`_settle`)."""
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
     live = _flow_inlet_c(inp)
-    anchor = live if settle is None or _experiment_kw(inp) is not None or _return_unit(inp.config) else settle.anchor_c(
+    anchor = live if settle is None else settle.anchor_c(
         live, _flow_inlet_c(inp, flow_anchor.SPACE_SIDE_KEYS), now, FEEDBACK_START_HOLD, timedelta(minutes=LEASE_MINUTES))
     floor_c = min(_or_hold(modulation_floor_flow_c(
         c, _gate_c(inp), start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
@@ -1274,11 +1273,10 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    held = state_for(coord) if _flow_unit(inp.config) else None
-    space = _space_target(
-        inp, result, now, duty, boosted=_boosted(coord, inp, now), settle=None if held is None else held.served)
-    if held is not None:
-        space = _feedback(held, inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
+    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now),  # indoor: maybe no coordinator
+                          settle=_settle(state_for(coord) if _flow_unit(inp.config) else None, inp))
+    if _flow_unit(inp.config):
+        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
         return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
@@ -1316,6 +1314,18 @@ def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: Feedb
     return ORIGIN_FEEDBACK_START if held_start else ORIGIN_FEEDBACK
 
 
+def _note_served(held: ArbiterState, inp: ArbiterInputs, served: str | None, now: datetime) -> None:
+    """Hand :func:`flow_anchor.note` this commanding pass: its duty, its inlet and its metered power."""
+    held.served = flow_anchor.note(
+        held.served, served, now, FEEDBACK_START_HOLD, _flow_inlet_c(inp), finite_float(inp.measured_power_kw), _ran_kw(inp))
+
+
+def _settle(held: ArbiterState | None, inp: ArbiterInputs) -> flow_anchor.Served | None:
+    """The served record a heating floor settles on: none with no record (an indoor set-point), on a
+    return target (I4) or while an experiment commands the level (I6), whose fit owns its level map."""
+    return None if held is None or _return_unit(inp.config) or _experiment_kw(inp) is not None else held.served
+
+
 def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
     """Record this Control pass on ``held`` and hand it to the window ``inp.draw``."""
     held.last_pass = _pass_record(held, inp, duty, boosted, now)
@@ -1328,7 +1338,7 @@ def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boost
     command = _flow_command(inp, held)
     if command is None:
         return None
-    m = _map_inputs(inp, now, boosted, held.served)
+    m = _map_inputs(inp, now, boosted, _settle(held, inp))
     return draw_range.PassRecord(
         now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
         m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
@@ -1890,8 +1900,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     served = _served(coord, inp, duty, now)
-    held.served = flow_anchor.note(
-        held.served, served, now, FEEDBACK_START_HOLD, _flow_inlet_c(inp), finite_float(inp.measured_power_kw), _ran_kw(inp))
+    _note_served(held, inp, served, now)
     await _command(coord, inp, desired(coord, inp, served, now), now)
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, served, boosted, now)

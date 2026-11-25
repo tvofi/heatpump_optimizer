@@ -100825,15 +100825,25 @@ R.check(
     f"buffer={_sk_write(_sk_inp(tank=31.0), _sk_none)} hold={_sk_write(_sk_inp(), _sk_none)} "
     f"old={_sk_write(_sk_inp(tank=31.0), _sk_old)}",
 )
-# T6: a return target and an experiment step stand aside (I4, I6).
+# T6: a return target and an experiment step stand aside (I4, I6), at the gate every
+# caller reads the record through (_settle); null control: a plain flow target keeps it.
 _sk_probe = {"mode": "system_identification", "power": 3.5}
+
+
+def _sk_gated(inp, rec=_sk_swap):
+    return _sk_write(inp, _sk_pa._settle(_sk_pa.ArbiterState(served=rec), inp))
+
+
 R.check(
     "STEP-KICK T6: a return target and a system-identification step write the same with "
-    "and without the swap",
-    _sk_write(_sk_inp(unit="return"), _sk_swap) == _sk_write(_sk_inp(unit="return"))
-    and _sk_write(_sk_inp(action=_sk_probe), _sk_swap) == _sk_write(_sk_inp(action=_sk_probe)) == 55.0,
-    f"return={_sk_write(_sk_inp(unit='return'), _sk_swap)}/{_sk_write(_sk_inp(unit='return'))} "
-    f"probe={_sk_write(_sk_inp(action=_sk_probe), _sk_swap)}",
+    "and without the swap; null control: the record passes the gate on a plain flow target, "
+    "and no arbiter state (an indoor set-point) is no record",
+    _sk_gated(_sk_inp(unit="return")) == _sk_write(_sk_inp(unit="return"))
+    and _sk_gated(_sk_inp(action=_sk_probe)) == _sk_write(_sk_inp(action=_sk_probe)) == 55.0
+    and _sk_pa._settle(_sk_pa.ArbiterState(served=_sk_swap), _sk_inp()) is _sk_swap
+    and _sk_pa._settle(None, _sk_inp()) is None,
+    f"return={_sk_gated(_sk_inp(unit='return'))}/{_sk_write(_sk_inp(unit='return'))} "
+    f"probe={_sk_gated(_sk_inp(action=_sk_probe))}",
 )
 # T7: the band top and a boost still write the ceiling (I5).
 R.check(
