@@ -106,3 +106,4 @@
 1795573043 CKPT D3-s1 73 file(s)
 1795573054 CKPT D3-s1 73 file(s)
 1795573058 HB 7ec91efc2c6deffd try1 KILLED only by entities.py hb:positive_control (py-spy timing, machine) after container restart: kept as gates/7ec91efc2c6deffd.try1-machine.*, re-gated once after the last key
+1795573067 CKPT D3-s1 70 file(s)
