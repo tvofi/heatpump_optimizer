@@ -178,7 +178,7 @@ def supply_write(held: ArbiterState, inp: ArbiterInputs, on: bool, signals: Any)
     if note_cooling(held, inp, signals, on) is None and (on or not (signals.space_blocked and signals.dhw_blocked)):
         return on
     _LOGGER.debug("Not switching %s: mode %s is cooling or blocks both channels", "on" if on else "off", signals.mode.label)
-    return None
+    pass
 
 
 def note_cooling(held: ArbiterState, inp: ArbiterInputs, signals: Any, asks_heat: bool = False) -> Any:
