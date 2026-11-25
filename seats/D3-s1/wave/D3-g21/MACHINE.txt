@@ -10,3 +10,17 @@ Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 load1: 0.92
 python3: /opt/hpo/venv-ci/bin/python3 ($HOME/venv-ci symlinked to it)
+
+re-fire (seat resumed from handoff-wip d9d4e225, 8/16 gated on the first machine)
+taken: 2026-11-25T00:52:34Z
+nproc: 4
+cpu:  Intel(R) Xeon(R) Processor @ 2.30GHz
+free -m:
+               total        used        free      shared  buff/cache   available
+Mem:           16087         764       14038          12        1556       15322
+Swap:              0           0           0
+df -h $HOME:
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1: 0.15
+python3: /opt/hpo/venv-ci/bin/python3 ($HOME/venv-ci symlinked to /opt/hpo/venv-ci)

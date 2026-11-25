@@ -22,7 +22,7 @@ res = dict(re.findall(r"^RESULT\s+([A-Za-z0-9_]+)=(.*)$", out, re.M))
 gate = {k: g.get(k) for k in ("verdict", "killed_by", "gate_rc", "wall_s", "load1_start", "load1_end", "failed_scripts", "fail_lines", "more_fails_than_null", "summary", "command")}
 gate["record"] = f"{REL}/gates/{key}.json"
 gate["log"] = f"{REL}/gates/{key}.log"
-gate["provisional"] = "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ 2.10GHz; the judge re-takes them)"
+gate["provisional"] = "wall and load are provisional (box D3-g21: nproc 4, Intel Xeon @ " + __import__("os").environ.get("GATE_GHZ", "2.10") + "GHz; the judge re-takes them)"
 rec = {"key": key, "site": f"{file}:{line} {kind}", "patch": f"{mut['old'].strip()} -> {mut['new'].strip()}",
        "function": function, "cluster": cluster, "slice": slc, "m4_source": m4src, "gate": gate}
 v = g.get("verdict")
