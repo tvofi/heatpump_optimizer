@@ -15,3 +15,4 @@ RESULT 856aa341a89a6ab0 verdict=RED-AS-NULL class=candidate
 2026-11-25T01:48:02Z recorded+ckpt 856aa341a89a6ab0
 RESULT 7303435ec1ab7701 verdict=RED-AS-NULL class=equivalent-candidate
 2026-11-25T02:42:09Z recorded+ckpt 7303435ec1ab7701
+RESULT 5ce83ed87c36b9a5 verdict=RED-AS-NULL class=candidate
