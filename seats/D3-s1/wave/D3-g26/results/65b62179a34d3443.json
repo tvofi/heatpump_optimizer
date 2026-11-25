@@ -1,0 +1,59 @@
+{
+ "key": "65b62179a34d3443",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2823 GUARD_OFF",
+ "patch": "if values.size == 0: -> if False:",
+ "function": "OptimizationConfig.baseline_load_array",
+ "cluster": "optimizer.py:OptimizationConfig.baseline_load_array@2823-2825",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3434.7,
+  "load1_start": 0.85,
+  "load1_end": 0.98,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "cap_s": null
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/gates/65b62179a34d3443.json",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 65b62179a34d3443 (GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=<baseline> GATE_JOBS=1 ./tests/run.sh), driven by gate_wave.sh run",
+ "provisional": "wall and load1 are provisional (nproc 4, Intel Xeon @ 2.30GHz); the verdict is a count",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_65b62179a34d3443.py",
+  "helper": "dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/g26_common.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_65b62179a34d3443.py",
+  "baseline_value": "0 (the metric is a baseline-vs-mutant delta)",
+  "mutant_value": "1 count  ['empty:values->IndexError']",
+  "metric": "cells_moved",
+  "unit": "grid cells whose outcome differs",
+  "all_results": {
+   "grid_cells": "13 count",
+   "cells_moved": "1 count  ['empty:values->IndexError']",
+   "null_cells_moved": "0 count",
+   "reach_solves": "4 count",
+   "reach_pairs": "[(96, 96)]",
+   "reach_distinguishing_calls": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.12",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "13-cell grid: None, [], [] at n=0, list/ndarray of size n-1, n, n+1 at n=96 and n=0: 1 cell moves (empty profile at n=96: zeros -> IndexError)",
+   "reach: 4 real coordinator refresh cycles (house power entity absent/present x manual plan off/on): pairs [(96, 96)], 0 distinguishing calls (coordinator._baseline_house_load always returns n_steps values)"
+  ]
+ },
+ "should_fail": {
+  "script": "tests/config_flow_steps.py, tests/entities.py, tests/env_drift.py, tests/features.py execute line 2823",
+  "assertion": "none through production: only an empty stored profile at n_steps > 0 separates the arms, and the only producer (coordinator._baseline_house_load) never builds one"
+ },
+ "non_finding": {
+  "claim": "mutant 65b62179a34d3443 at custom_components/heatpump_optimizer/optimizer.py:2823 (if values.size == 0: -> if False:) survives the full gate but is equivalent through production: none through production: only an empty stored profile at n_steps > 0 separates the arms, and the only producer (coordinator._baseline_house_load) never builds one",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_65b62179a34d3443.py",
+  "value": "cells_moved: baseline 0 (the metric is a baseline-vs-mutant delta), mutant 1 count  ['empty:values->IndexError']; 13-cell grid: None, [], [] at n=0, list/ndarray of size n-1, n, n+1 at n=96 and n=0: 1 cell moves (empty profile at n=96: zeros -> IndexError); reach: 4 real coordinator refresh cycles (house power entity absent/present x manual plan off/on): pairs [(96, 96)], 0 distinguishing calls (coordinator._baseline_house_load always returns n_steps values)"
+ }
+}
