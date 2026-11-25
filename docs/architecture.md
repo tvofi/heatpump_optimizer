@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 102 modules, of which 37 import the
+knows nothing about Home Assistant: 103 modules, of which 37 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -279,6 +279,7 @@ custom_components/heatpump_optimizer/
 │                         #   copy for that bundle and the repository's export
 ├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included
 ├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
+├── solve_gate.py         # When a solve runs: the one in-flight guard, the trailing refresh, the background budget, the user slot, the run-now path
 │
 ├── www/                  # The dashboard card, one self-contained file
 ├── brand/                # Icon and logo
@@ -294,7 +295,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-37 of the 102 modules import `homeassistant` at module level: `__init__`,
+37 of the 103 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
@@ -303,7 +304,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 64 modules are deliberately free of it, so each can be driven
+The other 65 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
