@@ -1,0 +1,77 @@
+{
+ "key": "a5c9796d35117839",
+ "site": "custom_components/heatpump_optimizer/price_model.py:342 CMP_BOUND",
+ "patch": "if self.days[idx] < SHAPE_CONFIDENCE_DAYS: -> if self.days[idx] <= SHAPE_CONFIDENCE_DAYS:",
+ "function": "PriceShapeModel.expected_daily_min",
+ "cluster": "price_model.py:PriceShapeModel.expected_daily_min@337-342",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3137.3,
+  "load1_start": 0.78,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "cap_s": null,
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/a5c9796d35117839.json",
+  "provisional_timing": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py",
+  "baseline": {
+   "edm_5_days_exactly_confident": "0.233151"
+  },
+  "mutant": {
+   "edm_5_days_exactly_confident": "None"
+  },
+  "moved": {
+   "edm_inputs_moved": "1 count"
+  },
+  "null_delta": "0 count",
+  "inputs_tried": "5_days_exactly_confident,4_days,6_days",
+  "all_results": {
+   "edm_5_days_exactly_confident_baseline": "0.233151",
+   "edm_5_days_exactly_confident_mutant": "None",
+   "null_edm_4_days_baseline": "None",
+   "null_edm_4_days_mutant": "None",
+   "null_edm_6_days_baseline": "0.233151",
+   "null_edm_6_days_mutant": "0.233151",
+   "edm_inputs_moved": "1 count",
+   "null_delta": "0 count",
+   "inputs_tried": "5_days_exactly_confident,4_days,6_days",
+   "thread_factor": "1.000",
+   "load1": "0.81",
+   "swapins": "0"
+  }
+ },
+ "step4_answer": "After exactly SHAPE_CONFIDENCE_DAYS = 5 folded weekdays the baseline answers expected_daily_min([0], 0.8) = 0.233151 and the mutant None (one more day of 'defer to the deadline' for the #47 legionella gate); the gate's checks use 0, 3, 10 and 30 days, never the boundary.",
+ "should_fail": "tests/features.py #47 block (~20012-20044, traced executing line 342): 'a partially trained prior still defers' uses days=3 and the trained arms 10 and 30; it lacks expected_daily_min([0], 1.0) is not None at days[0] == SHAPE_CONFIDENCE_DAYS exactly.",
+ "finding": {
+  "title": "price_model.py:342 expected_daily_min's confidence boundary < -> <= survives the full gate",
+  "claim": "After exactly SHAPE_CONFIDENCE_DAYS = 5 folded weekdays the baseline answers expected_daily_min([0], 0.8) = 0.233151 and the mutant None (one more day of 'defer to the deadline' for the #47 legionella gate); the gate's checks use 0, 3, 10 and 30 days, never the boundary.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "PriceShapeModel.expected_daily_min([weekday], 0.8) after n weekdays folded through PriceShapeLearner.fold; printed per input for the baseline and the mutant arm.",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py  &&  python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key a5c9796d35117839",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.price_model (PriceShapeModel.expected_daily_min), custom_components/heatpump_optimizer/price_model.py:342",
+  "perturbation": "the one-line mutant a5c9796d35117839: `if self.days[idx] < SHAPE_CONFIDENCE_DAYS:` -> `if self.days[idx] <= SHAPE_CONFIDENCE_DAYS:`; direction edm_5_days_exactly_confident: 0.233151 -> None",
+  "null_control": "the probe's null_* inputs (null_delta=0 count) and the box's full-gate null (dev/audit/rounds/round11/D3/s1/wave/D3-g30/gates/null.json); gate verdict RED-AS-NULL"
+ }
+}
