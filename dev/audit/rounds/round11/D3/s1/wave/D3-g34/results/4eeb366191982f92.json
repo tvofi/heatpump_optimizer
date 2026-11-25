@@ -1,0 +1,85 @@
+{
+ "key": "4eeb366191982f92",
+ "site": "sysid.py:2032 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 2032,
+ "patch": "if len(d2_all) >= 3: -> if len(d2_all) > 3:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3321.2,
+  "child_cpu_s": 5511.2,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/4eeb366191982f92.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/4eeb366191982f92.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4eeb366191982f92",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_4eeb3661.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_4eeb3661.py",
+  "first_case": "3triples_noise0.02",
+  "baseline_value": "[completed ua=0.1931445891215017 C=4.5987039940244845 conf=0.3039170461625474]",
+  "mutant_value": "[completed ua=0.1931817916300817 C=4.598419055037595 conf=0.30391700686422346]",
+  "cases_differing": "2 count (of 2)",
+  "null_differing": "0 count (of 2)",
+  "inputs_tried": [
+   "3triples_noise0.02 (differs=1)",
+   "3triples_clean (differs=1)",
+   "4triples_noise0.02 (differs=0)",
+   "plant (differs=0)"
+  ],
+  "thread_factor": "1.000 ratio",
+  "load1": "0.91",
+  "run_in": "a clean detached worktree of the baseline ($HOME/probe-tree), never the gate tree"
+ },
+ "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks an identify() case with exactly three in-phase second differences asserting sigma2 is estimated (the EIV correction applied)",
+ "finding": {
+  "title": "No check pins identify()'s three-triple minimum for the sensor-noise estimate",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "claim": "Mutant 4eeb366191982f92 at sysid.py:2032 (CMP_BOUND) survives the full gate (RED-AS-NULL), yet identify() moves on 3triples_noise0.02: baseline [completed ua=0.1931445891215017 C=4.5987039940244845 conf=0.3039170461625474], mutant [completed ua=0.1931817916300817 C=4.598419055037595 conf=0.30391700686422346] (2 count (of 2) separating inputs, null 0 count (of 2)).",
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks an identify() case with exactly three in-phase second differences asserting sigma2 is estimated (the EIV correction applied). Reach: identify() is harness-only at the baseline (sysid.py:1826-1835, :2306-2313): production arms with a declared plant and finishes through identify_slab, so the consequence is a wrong or unpinned result on the harness path tests/features.py and the D2/D7 harnesses drive, not a published production value.",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "count of probe inputs on which SystemIdentification.identify's SysIdResult repr differs between baseline and mutant",
+  "phenomenon_property": "sigma2 is estimated from three or more in-phase second differences, three included",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_4eeb3661.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_4eeb3661.py",
+  "evidence_value": "2 count (of 2)",
+  "perturbation": {
+   "change": "sysid.py:2032 `if len(d2_all) >= 3:` -> `if len(d2_all) > 3:` in memory (probe) and on disk under the full gate (PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 4eeb366191982f92)",
+   "expected_direction": "up",
+   "observed_value": "2 count (of 2)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_4eeb3661.py",
+   "value": "null_differing=0 count (of 2)",
+   "note": "null cases where the edited line cannot change the result; the gate's own null is dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/null.json"
+  },
+  "proposed_fix_scope": "tests only: a tests/features.py identify() check at the separating input above that pins the baseline result",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ]
+ },
+ "class": "candidate"
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_87c3101b.py (+ _sysid_lib.py): pins identify()'s SysIdResult differs (repr) when the fitted UA/C lands on 1e-6 exactly (the <= / < tie); counted per input as 1 when the baseline and mutant SysIdResult reprs differ

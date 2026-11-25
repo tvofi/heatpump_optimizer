@@ -1,0 +1,52 @@
+{
+ "key": "6b6a8493668dde1c",
+ "site": "sysid.py:2068 CMP_BOUND",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 2068,
+ "patch": "if sigma2 > 0.0: -> if sigma2 >= 0.0:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3887.2,
+  "child_cpu_s": 6545.6,
+  "load1_start": 0.95,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/6b6a8493668dde1c.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/6b6a8493668dde1c.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 6b6a8493668dde1c",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_6b6a8493.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_6b6a8493.py",
+  "first_case": "no_triples_relabelled_plant",
+  "baseline_value": "[refused:sensor drift collapsed into heat-loss]",
+  "mutant_value": "[refused:sensor drift collapsed into heat-loss]",
+  "cases_differing": "0 count (of 5)",
+  "null_differing": "0 count (of 0)",
+  "inputs_tried": [
+   "no_triples_relabelled_plant (differs=0)",
+   "no_triples_exact_series (differs=0)",
+   "two_triples (differs=0)",
+   "no_triples_flat_delta (differs=0)",
+   "plant (differs=0)"
+  ],
+  "thread_factor": "1.000 ratio",
+  "load1": "0.73",
+  "run_in": "a clean detached worktree of the baseline ($HOME/probe-tree), never the gate tree"
+ },
+ "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks none: subtracting an exact zero is inert",
+ "equivalence": "at sigma2 == 0 the mutant subtracts 0.0 from gram[0, 0] and 0.0 * sum(1/dt) (finite, dt > 1e-3 h) from rhs[0], which leaves both bit-identical",
+ "class": "equivalent-candidate"
+}

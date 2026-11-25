@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_50daaa57.py (+ _sysid_lib.py): pins identify()'s SysIdResult differs (repr) when two same-phase samples are exactly 1e-6 h (3600 us) apart; counted per input as 1 when the baseline and mutant SysIdResult reprs differ

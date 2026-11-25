@@ -1,0 +1,45 @@
+{
+ "key": "20f72103eda78713",
+ "site": "sysid.py:2018 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 2018,
+ "patch": "if h_prev <= 1e-6: -> if False:",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3288.7,
+  "child_cpu_s": 5453.0,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/20f72103eda78713.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/20f72103eda78713.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 20f72103eda78713",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_20f72103.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_20f72103.py",
+  "first_case": null,
+  "baseline_value": null,
+  "mutant_value": null,
+  "cases_differing": null,
+  "null_differing": null,
+  "inputs_tried": [],
+  "thread_factor": null,
+  "load1": null
+ },
+ "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks an identify() case with two same-phase samples at one timestamp (h_prev = 0) asserting they do not enter the second-difference noise estimate",
+ "equivalence": "no input tried separates the arms",
+ "class": "equivalent-candidate"
+}

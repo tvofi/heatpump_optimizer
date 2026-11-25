@@ -1,0 +1,83 @@
+{
+ "key": "84372c0eb1502d14",
+ "site": "sysid.py:2010 CLAMP_DROP",
+ "file": "custom_components/heatpump_optimizer/sysid.py",
+ "line": 2010,
+ "patch": "k_hat = max(float(pass1[0]), 0.0) -> k_hat = (float(pass1[0]))",
+ "function": "SystemIdentification.identify",
+ "cluster": "sysid.py:SystemIdentification.identify@1913-2246",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "more_fails_than_null": [],
+  "wall_s": 3304.9,
+  "child_cpu_s": 5456.7,
+  "load1_start": 0.79,
+  "load1_end": 0.92,
+  "cap_s": null,
+  "provisional": true
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/84372c0eb1502d14.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/84372c0eb1502d14.log",
+ "gate_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 84372c0eb1502d14",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_84372c0e.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_84372c0e.py",
+  "first_case": "seed53_noise0.1",
+  "baseline_value": "[completed ua=0.0711885946897037 C=5.2908388164657465 conf=0.7509833795353332]",
+  "mutant_value": "[completed ua=0.07119096309555645 C=5.290664908635567 conf=0.7509833763113594]",
+  "cases_differing": "1 count (of 1)",
+  "null_differing": "0 count (of 2)",
+  "inputs_tried": [
+   "seed53_noise0.1 (differs=1)",
+   "plant_clean (differs=0)",
+   "plant_noisy (differs=0)"
+  ],
+  "thread_factor": "1.000 ratio",
+  "load1": "0.91"
+ },
+ "should_fail": "tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks an identify() case whose first unregularised pass gives a negative UA/C slope (a noisy, drifting window) and asserts the curvature-corrected noise estimate uses k_hat = 0",
+ "finding": {
+  "title": "No check pins identify()'s k_hat >= 0 clamp in the curvature correction",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "claim": "Mutant 84372c0eb1502d14 at sysid.py:2010 (CLAMP_DROP) survives the full gate (RED-AS-NULL), yet identify() moves on seed53_noise0.1: baseline [completed ua=0.0711885946897037 C=5.2908388164657465 conf=0.7509833795353332], mutant [completed ua=0.07119096309555645 C=5.290664908635567 conf=0.7509833763113594] (1 count (of 1) separating inputs, null 0 count (of 2)).",
+  "mechanism": "Check that should have failed (D3.M4): tests/features.py, the identify() checks at :7848-7890 ('a fit with no samples fails cleanly', 'a fit outside the plausible (tau, UA) box is refused') and :29353-29440, the closure script whose traced baseline executes the line (tests/closures.json lists tests/features.py among sysid.py's readers); it lacks an identify() case whose first unregularised pass gives a negative UA/C slope (a noisy, drifting window) and asserts the curvature-corrected noise estimate uses k_hat = 0. Reach: identify() is harness-only at the baseline (sysid.py:1826-1835, :2306-2313): production arms with a declared plant and finishes through identify_slab, so the consequence is a wrong or unpinned result on the harness path tests/features.py and the D2/D7 harnesses drive, not a published production value.",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "hygiene",
+  "metric_definition": "count of probe inputs on which SystemIdentification.identify's SysIdResult repr differs between baseline and mutant",
+  "phenomenon_property": "the EIV curvature correction never uses a negative first-pass slope",
+  "seam_rule": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_84372c0e.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_84372c0e.py",
+  "evidence_value": "1 count (of 1)",
+  "perturbation": {
+   "change": "sysid.py:2010 `k_hat = max(float(pass1[0]), 0.0)` -> `k_hat = (float(pass1[0]))` in memory (probe) and on disk under the full gate (PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 84372c0eb1502d14)",
+   "expected_direction": "up",
+   "observed_value": "1 count (of 1)"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_84372c0e.py",
+   "value": "null_differing=0 count (of 2)",
+   "note": "null cases where the edited line cannot change the result; the gate's own null is dev/audit/rounds/round11/D3/s1/wave/D3-g34/gates/null.json"
+  },
+  "proposed_fix_scope": "tests only: a tests/features.py identify() check at the separating input above that pins the baseline result",
+  "files": [
+   "custom_components/heatpump_optimizer/sysid.py",
+   "tests/features.py"
+  ]
+ },
+ "class": "candidate"
+}

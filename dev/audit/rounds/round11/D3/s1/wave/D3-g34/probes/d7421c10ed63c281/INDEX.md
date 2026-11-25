@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_d7421c10.py (+ _sysid_lib.py): pins identify()'s SysIdResult differs (repr) when the 4-column solve is singular and the 2-column fallback has full rank 2; counted per input as 1 when the baseline and mutant SysIdResult reprs differ
