@@ -1,0 +1,9 @@
+RESULT step=15.0_baseline=kwh 3.0 lines 0
+RESULT step=15.0_mutant=kwh 3.0 lines 0
+RESULT step=1.0_baseline=kwh 0.2 lines 0
+RESULT step=1.0_mutant=kwh 0.2 lines 0
+RESULT step=0.5_baseline=kwh 0.2 lines 0
+RESULT step=0.5_mutant=kwh 0.1 lines 0
+RESULT step=0.0_baseline=kwh 0.2 lines 0
+RESULT step=0.0_mutant=kwh 0 lines 0
+RESULT steps_moved=2 count of 4
