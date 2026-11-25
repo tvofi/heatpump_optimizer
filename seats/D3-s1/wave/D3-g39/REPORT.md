@@ -30,7 +30,7 @@ Step 4: should have failed tests/entities.py, tests/features.py (their traced ba
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_559484953b5cdd5d.py`: cases moved 1, null cases moved 0. Inputs (baseline / mutant): boundary_k_s: 0.0 / 1200000000.0; just_above_k_s: 600000000.0 / 600000000.0; ordinary: 2.4 / 2.4; zero_k_s: 0.0 / 0.0.
 
-Candidate (low, class_guess I1): slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate stays green. boundary_k_s: baseline 0.0, mutant 1200000000.0; null cases moved 0.
+Candidate (low, class_guess I1): slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL). boundary_k_s: baseline 0.0, mutant 1200000000.0; null cases moved 0.
 
 ### cb38833c854f6257 — sysid.py:610 CMP_BOUND — RED-AS-NULL — candidate
 
@@ -40,7 +40,7 @@ Step 4: should have failed tests/entities.py, tests/features.py (their traced ba
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_cb38833c854f6257.py`: cases moved 1, null cases moved 0. Inputs (baseline / mutant): boundary_c_r: 0.0 / 1.999999999e-09; just_above_c_r: 3.999999996e-09 / 3.999999996e-09; ordinary: 2.4 / 2.4; zero_c_r: 0.0 / 0.0.
 
-Candidate (low, class_guess I1): slab_mode_tau_fast's c_r > 1e-9 guard is unpinned at its bound: c_r == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate stays green. boundary_c_r: baseline 0.0, mutant 1.999999999e-09; null cases moved 0.
+Candidate (low, class_guess I1): slab_mode_tau_fast's c_r > 1e-9 guard is unpinned at its bound: c_r == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL). boundary_c_r: baseline 0.0, mutant 1.999999999e-09; null cases moved 0.
 
 ### fa6fdd76e6fa619d — sysid.py:610 CMP_BOUND — RED-AS-NULL — candidate
 
@@ -50,7 +50,7 @@ Step 4: should have failed tests/entities.py, tests/features.py (their traced ba
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_fa6fdd76e6fa619d.py`: cases moved 1, null cases moved 0. Inputs (baseline / mutant): boundary_c_s: 0.0 / 1.999999999e-09; just_above_c_s: 3.999999996e-09 / 3.999999996e-09; ordinary: 2.4 / 2.4; zero_c_s: 0.0 / 0.0.
 
-Candidate (low, class_guess I1): slab_mode_tau_fast's c_s > 1e-9 guard is unpinned at its bound: c_s == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate stays green. boundary_c_s: baseline 0.0, mutant 1.999999999e-09; null cases moved 0.
+Candidate (low, class_guess I1): slab_mode_tau_fast's c_s > 1e-9 guard is unpinned at its bound: c_s == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL). boundary_c_s: baseline 0.0, mutant 1.999999999e-09; null cases moved 0.
 
 ### 246043395831f540 — tariff.py:128 CMP_BOUND — RED-AS-NULL — candidate
 
@@ -60,7 +60,7 @@ Step 4: should have failed tests/config_flow_steps.py, tests/entities.py, tests/
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_246043395831f540.py`: cases moved 1, null cases moved 0. Inputs (baseline / mutant): disabled0: 0.0 / 0.0; peaks0: 0.0 / raises ZeroDivisionError; peaks3: 16.666666666666668 / 16.666666666666668; peaksneg1: 0.0 / 0.0.
 
-Candidate (low, class_guess I1): CapacityTariff.marginal_price_per_kw's peaks_averaged <= 0 guard is unpinned at 0: an enabled tariff with peaks_averaged 0 raises ZeroDivisionError and the full gate stays green. peaks0: baseline 0.0, mutant raises ZeroDivisionError; null cases moved 0.
+Candidate (low, class_guess I1): CapacityTariff.marginal_price_per_kw's peaks_averaged <= 0 guard is unpinned at 0: an enabled tariff with peaks_averaged 0 raises ZeroDivisionError and the full gate fails nothing beyond its null (RED-AS-NULL). peaks0: baseline 0.0, mutant raises ZeroDivisionError; null cases moved 0.
 
 ### de935c38786265e7 — tariff.py:437 GUARD_OFF — RED-AS-NULL — candidate
 
@@ -70,7 +70,7 @@ Step 4: should have failed tests/features.py, tests/finite_boundary.py (their tr
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_de935c38786265e7.py`: cases moved 4, null cases moved 0. Inputs (baseline / mutant): f05_peaks: (1.0, 1.0) / (1.0, 1.0); f1_state: ('2026-01-10T07:00:00|60', 2.0, 1, 1.0) / ('2026-01-10T07:00:00|60', 2.0, 1, 1.0); inf_peaks: (2.0, 1.0) / (1.0,); inf_state: ('2026-01-10T07:00:00|60', 2.0, 1, 1.0) / ('', 0.0, 0, 1.0); nan_peaks: (2.0, 1.0) / (1.0,); nan_state: ('2026-01-10T07:00:00|60', 2.0, 1, 1.0) / ('', 0.0, 0, 1.0).
 
-Candidate (medium, class_guess I1): PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate stays green. nan_peaks: baseline (2.0, 1.0), mutant (1.0,); null cases moved 0.
+Candidate (medium, class_guess I1): PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate fails nothing beyond its null (RED-AS-NULL). nan_peaks: baseline (2.0, 1.0), mutant (1.0,); null cases moved 0.
 
 ### 4ad3dc13bfdb70a8 — tariff.py:465 CMP_BOUND — RED-AS-NULL — candidate
 
@@ -80,7 +80,7 @@ Step 4: should have failed tests/features.py, tests/finite_boundary.py (their tr
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_4ad3dc13bfdb70a8.py`: cases moved 1, null cases moved 0. Inputs (baseline / mutant): f05_state: ('2026-01-10T07:00:00|60', 2.0, 1, 0.5) / ('2026-01-10T07:00:00|60', 2.0, 1, 0.5); f0_peaks: (1.0,) / (1.0,); f0_state: ('2026-01-10T07:00:00|60', 2.0, 1, 0.0) / ('', 0.0, 0, 1.0); f1_state: ('2026-01-10T07:00:00|60', 2.0, 1, 1.0) / ('2026-01-10T07:00:00|60', 2.0, 1, 1.0); fneg_state: ('', 0.0, 0, 1.0) / ('', 0.0, 0, 1.0).
 
-Candidate (low, class_guess I1): PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate stays green. f0_state: baseline ('2026-01-10T07:00:00|60', 2.0, 1, 0.0), mutant ('', 0.0, 0, 1.0); null cases moved 0.
+Candidate (low, class_guess I1): PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate fails nothing beyond its null (RED-AS-NULL). f0_state: baseline ('2026-01-10T07:00:00|60', 2.0, 1, 0.0), mutant ('', 0.0, 0, 1.0); null cases moved 0.
 
 ### 7fcaf91cced5ce41 — tariff.py:235 GUARD_OFF — RED-AS-NULL — candidate
 
@@ -90,7 +90,7 @@ Step 4: should have failed tests/config_flow_steps.py, tests/entities.py, tests/
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_7fcaf91cced5ce41.py`: cases moved 3, null cases moved 0. Inputs (baseline / mutant): inf_peaks: ((2.0,), 1) / (('inf',), 1); nan_peaks: ((2.0,), 1) / (('nan',), 1); neg_peaks: ((2.0,), 1) / ((0.5,), 1); ok_peaks: ((1.5,), 1) / ((1.5,), 1).
 
-Candidate (medium, class_guess I1): PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate stays green. nan_peaks: baseline ((2.0,), 1), mutant (('nan',), 1); null cases moved 0.
+Candidate (medium, class_guess I1): PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate fails nothing beyond its null (RED-AS-NULL). nan_peaks: baseline ((2.0,), 1), mutant (('nan',), 1); null cases moved 0.
 
 ### 81557beca8f0a974 — tariff.py:279 CMP_BOUND — RED-AS-NULL — equivalent-candidate
 
@@ -120,7 +120,7 @@ Step 4: should have failed tests/entities.py, tests/features.py, tests/finite_bo
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_37b3c9a03326d207.py`: cases moved 2, null cases moved 0. Inputs (baseline / mutant): distinct_days: [(3.0, '2026-01-04'), (2.0, '2026-01-05')] / [(3.0, '2026-01-04'), (2.0, '2026-01-05')]; two_undated: [(3.0, ''), (2.0, '')] / [(3.0, '')]; undated_plus_dated: [(3.0, ''), (2.0, ''), (1.0, '2026-01-05')] / [(3.0, ''), (1.0, '2026-01-05')].
 
-Candidate (low, class_guess I1): _one_per_day's undated-entry branch is unpinned: with it off two undated peaks collapse into one '' day and the lower is dropped, and the full gate stays green. two_undated: baseline [(3.0, ''), (2.0, '')], mutant [(3.0, '')]; null cases moved 0.
+Candidate (low, class_guess I1): _one_per_day's undated-entry branch is unpinned: with it off two undated peaks collapse into one '' day and the lower is dropped, and the full gate fails nothing beyond its null (RED-AS-NULL). two_undated: baseline [(3.0, ''), (2.0, '')], mutant [(3.0, '')]; null cases moved 0.
 
 ### 7f9297e43c9449d8 — tariff.py:491 CMP_BOUND — RED-AS-NULL — equivalent-candidate
 
@@ -150,7 +150,7 @@ Step 4: should have failed tests/features.py, tests/stress.py (their traced base
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_6536ff6b094f971d.py`: cases moved 2, null cases moved 0. Inputs (baseline / mutant): empty_k0: 0.0 / 0.0; empty_k3: 0.0 / 0.0; k0: 0.0 / 2.9654859789671595; k2: 4.9654872077726875 / 4.9654872077726875; kneg: 0.0 / 2.9654859789671595.
 
-Candidate (low, class_guess I1): _smooth_topk_sum's k <= 0 guard is unpinned: with it off k = 0 returns the smooth top-1 (2.97) instead of 0.0, and the full gate stays green. k0: baseline 0.0, mutant 2.9654859789671595; null cases moved 0.
+Candidate (low, class_guess I1): _smooth_topk_sum's k <= 0 guard is unpinned: with it off k = 0 returns the smooth top-1 (2.97) instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL). k0: baseline 0.0, mutant 2.9654859789671595; null cases moved 0.
 
 ### 2d64a114647f1551 — tariff.py:747 CMP_BOUND — RED-AS-NULL — candidate
 
@@ -160,7 +160,7 @@ Step 4: should have failed tests/features.py, tests/stress.py (their traced base
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_2d64a114647f1551.py`: cases moved 3, null cases moved 0. Inputs (baseline / mutant): all_zero: 0.0 / 0.0; positive: 1.9933063882612345 / 1.9933063882612345; zero_and_neg_k2: 0.0 / -6.665187755269336e-13; zero_and_negative: 0.0 / -2.6269532288089563e-26; zero_and_tiny_neg: 0.0 / -4.875026045493982e-11.
 
-Candidate (low, class_guess I1): _smooth_topk_sum's np.any(x > 0) guard is unpinned at zero: a series of zeros and negatives returns a small negative sum (-4.9e-11) instead of 0.0, and the full gate stays green. zero_and_tiny_neg: baseline 0.0, mutant -4.875026045493982e-11; null cases moved 0.
+Candidate (low, class_guess I1): _smooth_topk_sum's np.any(x > 0) guard is unpinned at zero: a series of zeros and negatives returns a small negative sum (-4.9e-11) instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL). zero_and_tiny_neg: baseline 0.0, mutant -4.875026045493982e-11; null cases moved 0.
 
 ### 5371ee2b5e897750 — tariff.py:747 GUARD_OFF — RED-AS-NULL — candidate
 
@@ -170,5 +170,5 @@ Step 4: should have failed tests/features.py, tests/stress.py (their traced base
 
 Probe `PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_5371ee2b5e897750.py`: cases moved 2, null cases moved 0. Inputs (baseline / mutant): all_negative: 0.0 / -1.0; all_zero: 0.0 / 0.0; nan_only: 0.0 / nan; positive: 1.9933063882612345 / 1.9933063882612345.
 
-Candidate (low, class_guess I1): _smooth_topk_sum's no-positive-entry guard is unpinned: with it off an all-negative series returns -1.0 and a nan-only series nan instead of 0.0, and the full gate stays green. all_negative: baseline 0.0, mutant -1.0; null cases moved 0.
+Candidate (low, class_guess I1): _smooth_topk_sum's no-positive-entry guard is unpinned: with it off an all-negative series returns -1.0 and a nan-only series nan instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL). all_negative: baseline 0.0, mutant -1.0; null cases moved 0.
 

@@ -81,7 +81,7 @@
   "assertion": "no check calls _smooth_topk_sum on a non-positive series containing 0.0 and asserts exactly 0.0"
  },
  "finding": {
-  "title": "_smooth_topk_sum's np.any(x > 0) guard is unpinned at zero: a series of zeros and negatives returns a small negative sum (-4.9e-11) instead of 0.0, and the full gate stays green",
+  "title": "_smooth_topk_sum's np.any(x > 0) guard is unpinned at zero: a series of zeros and negatives returns a small negative sum (-4.9e-11) instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

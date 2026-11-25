@@ -81,7 +81,7 @@
   "assertion": "no check restores a PeakTracker whose window_factor is 0.0 and asserts the window is kept (key, sum, samples, factor 0.0) with no warning"
  },
  "finding": {
-  "title": "PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate stays green",
+  "title": "PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

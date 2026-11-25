@@ -78,7 +78,7 @@
   "assertion": "no check builds an enabled CapacityTariff with peaks_averaged 0 and asserts marginal_price_per_kw == 0.0"
  },
  "finding": {
-  "title": "CapacityTariff.marginal_price_per_kw's peaks_averaged <= 0 guard is unpinned at 0: an enabled tariff with peaks_averaged 0 raises ZeroDivisionError and the full gate stays green",
+  "title": "CapacityTariff.marginal_price_per_kw's peaks_averaged <= 0 guard is unpinned at 0: an enabled tariff with peaks_averaged 0 raises ZeroDivisionError and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

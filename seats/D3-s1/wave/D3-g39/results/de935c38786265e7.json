@@ -85,7 +85,7 @@
   "assertion": "no check restores a PeakTracker from a payload with window_factor 'nan' or 'inf' and a non-empty window and asserts the factor is 1.0 with the window kept (or the closed peak)"
  },
  "finding": {
-  "title": "PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate stays green",
+  "title": "PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

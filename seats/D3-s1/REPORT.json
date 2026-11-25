@@ -513,7 +513,7 @@
     "assertion": "no check calls slab_mode_tau_fast with k_s exactly 1e-9 and asserts 0.0 (the unset-plant answer)"
    },
    "finding": {
-    "title": "slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate stays green",
+    "title": "slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -611,7 +611,7 @@
     "assertion": "no check calls slab_mode_tau_fast with c_r exactly 1e-9 and asserts 0.0"
    },
    "finding": {
-    "title": "slab_mode_tau_fast's c_r > 1e-9 guard is unpinned at its bound: c_r == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate stays green",
+    "title": "slab_mode_tau_fast's c_r > 1e-9 guard is unpinned at its bound: c_r == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -709,7 +709,7 @@
     "assertion": "no check calls slab_mode_tau_fast with c_s exactly 1e-9 and asserts 0.0"
    },
    "finding": {
-    "title": "slab_mode_tau_fast's c_s > 1e-9 guard is unpinned at its bound: c_s == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate stays green",
+    "title": "slab_mode_tau_fast's c_s > 1e-9 guard is unpinned at its bound: c_s == 1e-9 returns 2.0e-9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -808,7 +808,7 @@
     "assertion": "no check builds an enabled CapacityTariff with peaks_averaged 0 and asserts marginal_price_per_kw == 0.0"
    },
    "finding": {
-    "title": "CapacityTariff.marginal_price_per_kw's peaks_averaged <= 0 guard is unpinned at 0: an enabled tariff with peaks_averaged 0 raises ZeroDivisionError and the full gate stays green",
+    "title": "CapacityTariff.marginal_price_per_kw's peaks_averaged <= 0 guard is unpinned at 0: an enabled tariff with peaks_averaged 0 raises ZeroDivisionError and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -914,7 +914,7 @@
     "assertion": "no check restores a PeakTracker from a payload with window_factor 'nan' or 'inf' and a non-empty window and asserts the factor is 1.0 with the window kept (or the closed peak)"
    },
    "finding": {
-    "title": "PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate stays green",
+    "title": "PeakTracker.from_dict's non-finite window_factor reset is unpinned: with it off a restored 'nan'/'inf' factor discards the open window and its 2 kW peak, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -1016,7 +1016,7 @@
     "assertion": "no check restores a PeakTracker whose window_factor is 0.0 and asserts the window is kept (key, sum, samples, factor 0.0) with no warning"
    },
    "finding": {
-    "title": "PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate stays green",
+    "title": "PeakTracker.from_dict's 0.0 <= window_factor bound is unpinned at 0.0: a legitimately persisted factor-0 (masked-month) window is restarted empty with a warning, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -1116,7 +1116,7 @@
     "assertion": "no check folds a nan, inf or negative house_power_kw into PeakTracker.observe and asserts the closed window's peak is unchanged"
    },
    "finding": {
-    "title": "PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate stays green",
+    "title": "PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -1211,7 +1211,7 @@
     "assertion": "no check passes _one_per_day (or a distinct-days PeakTracker restored from a payload without peak_days) two undated peaks and asserts both are kept"
    },
    "finding": {
-    "title": "_one_per_day's undated-entry branch is unpinned: with it off two undated peaks collapse into one '' day and the lower is dropped, and the full gate stays green",
+    "title": "_one_per_day's undated-entry branch is unpinned: with it off two undated peaks collapse into one '' day and the lower is dropped, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -1313,7 +1313,7 @@
     "assertion": "no check calls _smooth_topk_sum (or _plateau_aware_topk_sum / the smooth capacity charge) with k <= 0 and asserts 0.0"
    },
    "finding": {
-    "title": "_smooth_topk_sum's k <= 0 guard is unpinned: with it off k = 0 returns the smooth top-1 (2.97) instead of 0.0, and the full gate stays green",
+    "title": "_smooth_topk_sum's k <= 0 guard is unpinned: with it off k = 0 returns the smooth top-1 (2.97) instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -1415,7 +1415,7 @@
     "assertion": "no check calls _smooth_topk_sum on a non-positive series containing 0.0 and asserts exactly 0.0"
    },
    "finding": {
-    "title": "_smooth_topk_sum's np.any(x > 0) guard is unpinned at zero: a series of zeros and negatives returns a small negative sum (-4.9e-11) instead of 0.0, and the full gate stays green",
+    "title": "_smooth_topk_sum's np.any(x > 0) guard is unpinned at zero: a series of zeros and negatives returns a small negative sum (-4.9e-11) instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",
@@ -1513,7 +1513,7 @@
     "assertion": "no check calls _smooth_topk_sum on an all-negative or nan-only series and asserts 0.0"
    },
    "finding": {
-    "title": "_smooth_topk_sum's no-positive-entry guard is unpinned: with it off an all-negative series returns -1.0 and a nan-only series nan instead of 0.0, and the full gate stays green",
+    "title": "_smooth_topk_sum's no-positive-entry guard is unpinned: with it off an all-negative series returns -1.0 and a nan-only series nan instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL)",
     "step": "D3.M3",
     "scope": "D3-s1",
     "class_guess": "I1",

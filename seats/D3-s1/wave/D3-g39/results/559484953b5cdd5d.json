@@ -77,7 +77,7 @@
   "assertion": "no check calls slab_mode_tau_fast with k_s exactly 1e-9 and asserts 0.0 (the unset-plant answer)"
  },
  "finding": {
-  "title": "slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate stays green",
+  "title": "slab_mode_tau_fast's k_s > 1e-9 guard is unpinned at its bound: k_s == 1e-9 returns 1.2e9 h instead of 0.0 and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

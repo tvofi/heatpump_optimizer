@@ -81,7 +81,7 @@
   "assertion": "no check calls _smooth_topk_sum (or _plateau_aware_topk_sum / the smooth capacity charge) with k <= 0 and asserts 0.0"
  },
  "finding": {
-  "title": "_smooth_topk_sum's k <= 0 guard is unpinned: with it off k = 0 returns the smooth top-1 (2.97) instead of 0.0, and the full gate stays green",
+  "title": "_smooth_topk_sum's k <= 0 guard is unpinned: with it off k = 0 returns the smooth top-1 (2.97) instead of 0.0, and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

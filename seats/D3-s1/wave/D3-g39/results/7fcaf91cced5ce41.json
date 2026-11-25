@@ -79,7 +79,7 @@
   "assertion": "no check folds a nan, inf or negative house_power_kw into PeakTracker.observe and asserts the closed window's peak is unchanged"
  },
  "finding": {
-  "title": "PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate stays green",
+  "title": "PeakTracker.observe's non-finite/negative sample guard is unpinned: with it off a nan sample makes the month's peak nan and a negative one lowers it 2.0 -> 0.5 kW, and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",

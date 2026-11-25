@@ -74,7 +74,7 @@
   "assertion": "no check passes _one_per_day (or a distinct-days PeakTracker restored from a payload without peak_days) two undated peaks and asserts both are kept"
  },
  "finding": {
-  "title": "_one_per_day's undated-entry branch is unpinned: with it off two undated peaks collapse into one '' day and the lower is dropped, and the full gate stays green",
+  "title": "_one_per_day's undated-entry branch is unpinned: with it off two undated peaks collapse into one '' day and the lower is dropped, and the full gate fails nothing beyond its null (RED-AS-NULL)",
   "step": "D3.M3",
   "scope": "D3-s1",
   "class_guess": "I1",
