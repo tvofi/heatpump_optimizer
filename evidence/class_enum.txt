@@ -1,0 +1,21 @@
+d3d66c40408e76351ffc528686353cadf815a05c E1 35 E2 57 E3 15
+3be37247e69c7fe0ae2ee12c28340b8cd60e1bda E1 35 E2 57 E3 15
+7748bdc269efb9758d85b4ee81130a4f60534948 E1 43 E2 57 E3 14
+== E1 d3d66c40 vs 3be37247 (line numbers stripped)
+== E2 d3d66c40 vs 3be37247 (line numbers stripped)
+== E3 d3d66c40 vs 3be37247 (line numbers stripped)
+== E3 at head
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:1285:        float(pending.get("dhw_power") or 0.0),
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:3166:            "dhw_heating_active": current_action.get("dhw_heating_active", False),
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:3809:            heating_active=lambda: bool(planned().get("dhw_heating_active", False)),
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:4991:        space = float(action.get("power", 0.0))
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:4992:        dhw = float(action.get("dhw_power", 0.0))
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:5629:        heating = planned_draw_runs(float(self._current_action.get("power", 0.0)))
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:8867:            house_now = float(self._current_action.get("power", 0.0)) + float(
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:8868:                self._current_action.get("dhw_power", 0.0)
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:9991:                    predicted_power_kw=pending.get("power"),
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:9999:                        (pending.get("power") or 0.0) * elapsed * price
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:10050:            "space_power": float(self._current_action.get("power", 0.0)),
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:10051:            "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:10594:                    self._current_action.get("power") or 0.0
+7748bdc269efb9758d85b4ee81130a4f60534948:custom_components/heatpump_optimizer/coordinator.py:11014:            plan_power_kw=float(self._current_action.get("power", 0.0)),
