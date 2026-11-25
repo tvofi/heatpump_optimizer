@@ -1,0 +1,9 @@
+nproc: 4
+cpu: Intel(R) Xeon(R) Processor @ 2.10GHz
+               total        used        free      shared  buff/cache   available
+Mem:           16087         809       14037          12        1512       15278
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1: 0.76
+2026-11-25T00:53:20Z
