@@ -6,3 +6,4 @@
 1795584205 CKPT packet read, worktree at head snapshot 5a3aeaf64427
 1795584441 CKPT self-test and reviewer mutants run at head snapshot 4ae4bc82d380
 1795584479 CKPT figures re-derived snapshot 45cf9311754d
+1795584514 DONE Fix review: merge 2ac9d40761 returned on probe/rev-3868-cf0ff600 (c349e7d1e0)
