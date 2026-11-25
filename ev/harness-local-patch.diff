@@ -1,0 +1,13 @@
+diff --git a/dev/audit/harnesses/ci3885_light.py b/dev/audit/harnesses/ci3885_light.py
+index 1643a4660d..5e837f9d1e 100644
+--- a/dev/audit/harnesses/ci3885_light.py
++++ b/dev/audit/harnesses/ci3885_light.py
+@@ -298,7 +298,7 @@ def dup(day: str) -> int:
+ 
+ 
+ def _log(job_id: int) -> str:
+-    r = subprocess.run(["gh", "api", "--allow-escape-sequences", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
++    r = subprocess.run(["gh", "api", f"repos/{{owner}}/{{repo}}/actions/jobs/{job_id}/logs"],
+                        capture_output=True, text=True)
+     return r.stdout
+ 

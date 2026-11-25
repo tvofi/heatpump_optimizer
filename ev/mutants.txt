@@ -1,0 +1,50 @@
+A pinned exemption off: rc=1 KILLED | sweep self-test: 123 checks, 5 failed
+     FAIL stale pin, #3895: tests / briefs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / policy-docs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / env-matrix red (its grader restored from the stale pin) still takes one dispatch
+B fail-open on unreadable: rc=1 KILLED | sweep self-test: 123 checks, 1 failed
+     FAIL #3895: unreadable workflows pin nothing and fail closed: code_red reads no red beside a red fast (3.14), so the dispatch stands (null: the tree's workflows read it)
+C PIN_MARK test dropped: rc=1 KILLED | sweep self-test: 123 checks, 1 failed
+     FAIL #3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED naming the event's base sha (null: one naming github.sha alone)
+D no split at expression: rc=1 KILLED | sweep self-test: 123 checks, 3 failed
+     FAIL stale pin, #3895: codeql / Analyze (python) red (its grader restored from the stale pin) still takes one dispatch
+     FAIL #3895: pinned_graders reads the tree's workflows: briefs, policy-docs, env-matrix, wave-script and codeql's analyses are pinned, fast (3.14) and mutation are not
+     FAIL #3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED naming the event's base sha (null: one naming github.sha alone)
+E key instead of name: rc=1 KILLED | sweep self-test: 123 checks, 3 failed
+     FAIL stale pin, #3895: codeql / Analyze (python) red (its grader restored from the stale pin) still takes one dispatch
+     FAIL #3895: pinned_graders reads the tree's workflows: briefs, policy-docs, env-matrix, wave-script and codeql's analyses are pinned, fast (3.14) and mutation are not
+     FAIL #3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED naming the event's base sha (null: one naming github.sha alone)
+F name-is-None guard off: rc=0 SURVIVED | sweep self-test: 123 checks, 0 failed
+G any indented key is a job: rc=1 KILLED | sweep self-test: 123 checks, 6 failed
+     FAIL stale pin, #3895: tests / briefs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / policy-docs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / wave-script red (its grader restored from the stale pin) still takes one dispatch
+H pinned_graders returns None: rc=1 KILLED | sweep self-test: 123 checks, 5 failed
+     FAIL stale pin, #3885: a code unit red at the head is no stale verdict: nothing dispatched or re-run, the red named
+     FAIL #3895: pinned_graders reads the tree's workflows: briefs, policy-docs, env-matrix, wave-script and codeql's analyses are pinned, fast (3.14) and mutation are not
+     FAIL #3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED naming the event's base sha (null: one naming github.sha alone)
+I pinned_graders returns (): rc=1 KILLED | sweep self-test: 123 checks, 7 failed
+     FAIL stale pin, #3895: tests / briefs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / policy-docs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / env-matrix red (its grader restored from the stale pin) still takes one dispatch
+M6 status ignored: rc=1 KILLED | sweep self-test: 123 checks, 1 failed
+     FAIL stale pin, #3885: a code unit red beside a newer attempt still running is left, nothing dispatched
+M7 key order swapped: rc=1 KILLED | sweep self-test: 123 checks, 1 failed
+     FAIL stale pin, #3885 null: the newest-started job decides, not the highest run id (a lower run's re-run green after a higher run's red): one dispatch
+M2 conclusion !=success: rc=1 KILLED | sweep self-test: 123 checks, 1 failed
+     FAIL stale pin, #3885 null: the newest-started job decides, not the highest run id (a lower run's re-run green after a higher run's red): one dispatch
+M3 first wins: rc=1 KILLED | sweep self-test: 123 checks, 1 failed
+     FAIL stale pin, #3885 null: a code unit red then green in a later run at the head still takes one dispatch
+M5 code_red empty: rc=1 KILLED | sweep self-test: 123 checks, 3 failed
+     FAIL stale pin, #3885: a code unit red at the head is no stale verdict: nothing dispatched or re-run, the red named
+     FAIL #3895: unreadable workflows pin nothing and fail closed: code_red reads no red beside a red fast (3.14), so the dispatch stands (null: the tree's workflows read it)
+     FAIL stale pin, #3885: a code unit red beside a newer attempt still running is left, nothing dispatched
+J PIN_MARK wrong: rc=1 KILLED | sweep self-test: 123 checks, 3 failed
+     FAIL stale pin, #3895: codeql / Analyze (python) red (its grader restored from the stale pin) still takes one dispatch
+     FAIL #3895: pinned_graders reads the tree's workflows: briefs, policy-docs, env-matrix, wave-script and codeql's analyses are pinned, fast (3.14) and mutation are not
+     FAIL #3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED naming the event's base sha (null: one naming github.sha alone)
+K in_jobs never set: rc=1 KILLED | sweep self-test: 123 checks, 7 failed
+     FAIL stale pin, #3895: tests / briefs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / policy-docs red (its grader restored from the stale pin) still takes one dispatch
+     FAIL stale pin, #3895: governance / env-matrix red (its grader restored from the stale pin) still takes one dispatch
+unmutated: 0 sweep self-test: 123 checks, 0 failed
