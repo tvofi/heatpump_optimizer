@@ -23,6 +23,8 @@ Departures from the approved design, each measured:
 
 ## Head
 
+`e813b123840a8d1f4609756e837332cc11149749` adds three commits to the PR head `ee1abf61b5` (`ci: pin killed mutants`), repairing its `tests / mutation` red. Each is test or ledger only, with no production line changed. `8e00fd0fde` adds the `inputs.py:744` GUARD_OFF pin and one `tests/features.py` check, `27d878ee7d` splits that check's comment under `tests/doc_claims.py`'s 40-word ratchet, and `e813b12384` adds the `pump_arbiter.py:1103` CMP_BOUND pin. Measured against `origin/main` `5594a34a49` at 2026-11-25T04:28Z, `git merge-tree --write-tree origin/main HEAD` merges cleanly, with the `tests/closures.json` ledger driver resolving that file. `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+
 `a6dd172693260908df97777553b7e6001c828f95` merges the PR head `7fb673f398` (`ci: pin killed mutants`, mutation-autofix's 14 pins at `19eafc0fb1`) into `b4a84ed9f1`. Three of those pins were add/add conflicts with the same anchors that #3812 put on main: `_silent_target` GUARD_OFF 32150d03, `_silent_target` RETURN_DEL 1d15c126 and `inside_silent` RETURN_DEL 21e6a29d. `killed_by` holds one driver, so the two sides cannot be unioned in one file. Main's file is kept for each, byte-identical to `origin/main`'s, so this diff carries none of the three. Each of the other 11 pins anchors a line that `grep -cxF` finds exactly once at this head. `python3 tests/mutation_table.py --normalize` leaves `git diff` empty, and `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. The merge changes no production line, so the block and mutant figures below, taken at `b4a84ed9f1`, hold here.
 
 `b4a84ed9f1feb804cf85190bab2fc00add9f4f2d` adds one commit to the merge `010e0088d5`, the structure payment that #3812's merge left owed (Figures). The commit does two things:
@@ -160,23 +162,26 @@ Option mutants, in `flow_limit.py` / `pump_arbiter.py`, re-taken at `6d54e9bd1d`
     - The FLOWCAP, boost and feedback blocks pass in full.
     - M6-M11, the mutants on `pump_arbiter.py`, give the figures above.
 
+- M12, `pump_arbiter._feedback_bounds`'s upper filter `v >= lowest` flipped to `v > lowest` (the CMP_BOUND site at line 1103, a survivor at `ee1abf61b5`). The new check is `R11-OWNER-FLOWCAP: a return-limit cut or an upper-limit sensor exactly on the lowest heating write bounds the loop there; ...`. Command: `PYTHONPATH=tests/hastub python3 tests/features.py`, run on the head tree and on a worktree carrying only the mutant. The head printed `ALL 6132 FEATURE CHECKS PASSED`. The mutant printed `1 of 6132 FEATURE CHECKS FAILED`, that check reading `lowest 20.1, cut {0.0: 32.0, 0.1: 32.0}, sensor {0.0: (20.1, 32.0), 0.1: (None, 32.0)}`: both on-boundary arms lost the bound to the 32 degC ceiling. Null control: each arm's limit one 0.1 K step under the lowest heating write reads 32.0 on both trees. `--pin-killed` then recorded `tests/features.py` from `rc=0 failed=0` to `rc=1 failed=2` and printed `PIN KILLED: 1 pinned, 0 left unpinned`.
+
 ## Unpinned sites
 
 - custom_components/heatpump_optimizer/flow_limit.py:32 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/flow_limit.py:32 CMP_BOUND*2: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/flow_limit.py:52 BOOLOP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/flow_limit.py:54 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/inputs.py:744 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/inputs.py:744 GUARD_OFF: pinned at `8e00fd0fde` by `python3 tests/mutation_table.py --pin-killed --base origin/main` (killed by `tests/features.py`)
 - custom_components/heatpump_optimizer/inputs.py:745 CLAMP_DROP: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:623 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/pump_arbiter.py:978 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1103 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:1103 CMP_BOUND: a survivor at `ee1abf61b5`; killed by the new `tests/features.py` check (Mutation proof, M12) and pinned at `e813b12384` by `--pin-killed`
 - custom_components/heatpump_optimizer/pump_arbiter.py:1111 RETURN_DEL: pinned by mutation-autofix
 
 ## Red checks
 
 - `tests / fast (3.14)` at f36611dd2354: red on this PR's own two checks, `tests/doc_claims.py`'s comment ratchet (one new sentence over 40 words in `tests/features.py`) and `tests/harness_headers.py` (the D6 claims harness header at 98 modules after `flow_limit.py` made 99). Both are repaired at `566727d1db`, figures above. Cheaper detector: both scripts are in this diff's `scope.run` and run locally (`doc_claims.py` in seconds, `harness_headers.py` in minutes), and `prepr.sh` runs the scoped set; the previous head was handed off without a local prepr run (state b, the process existed and was not followed). Standing cost of the detector: zero new, it exists; no countermeasure is built.
 - `tests / mutation` at f36611dd2354: red by construction on the site(s) under `## Unpinned sites`, all logged ADDED UNPINNED; mutation-autofix pins killed sites after the push. At `19eafc0fb1` that list also carried `pump_arbiter.py:936 GUARD_OFF`, described as "pinned by mutation-autofix". That claim was false: the site was a survivor, and autofix pins only killed mutants. The site is deleted at `6d54e9bd1d`, and the `pump_arbiter.py` sites after it moved up two lines; each moved line was compared with its old content. At `b4a84ed9f1`, each site was mapped to its line by content, comparing `git show 8c2c57a37f:<file>` with the head. The `_silent_target` and `quiet_windows.inside_silent` lines are main's since #3812, pinned by main's ledger entries, and are no longer this diff's: each has one exact match in `git show origin/main:<file>`. At `a6dd172693`, mutation-autofix's pins from the PR head (`7fb673f398`) cover 11 more sites, which are no longer listed: `flow_limit.py` 32 RETURN_DEL, 52 CMP_BOUND, 52 GUARD_OFF and 56 RETURN_DEL; `inputs.py` 576 RETURN_DEL, 584 RETURN_DEL, 742 GUARD_OFF and 743 CLAMP_DROP; `pump_arbiter.py` 614 GUARD_OFF, 999 CLAMP_DROP and 1103 BOOLOP. Prepr step 6d at that head lists 10 sites, and this section lists those 10.
+- `tests / mutation` at `ee1abf61b5` (job 137514844623, run 45121011460): `MUTATION TABLE REFUSED -- 1899 unpinned site(s) against 1897 at the ratchet base 97026ed8cf, 2 of them added by this diff`, namely `inputs.py:744 GUARD_OFF` and `pump_arbiter.py:1103 CMP_BOUND`. `python3 tests/mutation_table.py --pin-killed --base origin/main` on that head printed `PIN KILLED: 1 pinned, 1 left unpinned (1 survived ...)`. The pinned site was `inputs.py:744`, and the survivor `pump_arbiter.py:1103`, which is killed by M12. The same command at `e813b12384` printed `PIN KILLED: 1 pinned, 0 left unpinned`: pinned. Cheaper detector: `prepr.sh` step 6d predicts the unpinned sites locally, and `--pin-killed` runs locally in about an hour on this diff (one `tests/features.py` baseline is about 1000 s). It existed and was not run before the PR head moved, so this is state b. No countermeasure is built.
 
 ## Forward-carry
 
