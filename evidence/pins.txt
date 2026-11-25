@@ -1,0 +1,9 @@
+custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF 387891d0 | tests/features.py
+custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF 45582598 | tests/features.py
+custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF 8bbbc8d1 | tests/features.py
+custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF b8fb4bbc | tests/features.py
+custom_components/heatpump_optimizer/coordinator.py:_await_optimize GUARD_OFF 32e16df1 | tests/features.py
+custom_components/heatpump_optimizer/solve_gate.py:mode_superseded BOOLOP e8c41bd1 | tests/entities.py
+custom_components/heatpump_optimizer/solve_gate.py:mode_superseded RETURN_DEL e8c41bd1 | tests/features.py
+custom_components/heatpump_optimizer/solve_gate.py:worker_stopping BOOLOP 9ef45ec5 | tests/features.py
+custom_components/heatpump_optimizer/solve_gate.py:worker_stopping RETURN_DEL 9ef45ec5 | tests/features.py

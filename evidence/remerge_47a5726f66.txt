@@ -1,0 +1,5 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (300 entries)
+  closures.tests/entities.py: merged as a set (598 entries)
+  recorded.tests/harness_headers.py.seconds: took the larger of 135.7 and 159.7
+  re-run the gate that owns this file before pushing

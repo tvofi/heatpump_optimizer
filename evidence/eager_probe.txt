@@ -1,0 +1,9 @@
+Task was destroyed but it is pending!
+task: <Task pending name='Task-2' coro=<job() running at /tmp/tmp.7rT778oRte/ev/eager_probe.py:2>>
+/tmp/tmp.7rT778oRte/ev/eager_probe.py:6: RuntimeWarning: coroutine 'job' was never awaited
+  r = await asyncio.Task(job(), eager_start=True, **kw)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+3.13.18 no loop -> AttributeError: 'NoneType' object has no attribute 'is_running'
+3.13.18 loop passed -> ok 1
+3.14.7 no loop -> ok 1
+3.14.7 loop passed -> ok 1

@@ -1,0 +1,96 @@
+54c54
+< index 4dbd33b29a..b3f4eb25ed 100644
+---
+> index 2b4d71b8ce..5799d18e0e 100644
+57c57
+< @@ -263,7 +263,7 @@ from . import issues, setpoint_check
+---
+> @@ -264,7 +264,7 @@ from . import issues, setpoint_check
+66c66
+< @@ -1946,6 +1946,7 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
+---
+> @@ -1949,6 +1949,7 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
+74c74
+< @@ -2038,6 +2039,21 @@ def _read_reply(stdout: Any) -> Any:
+---
+> @@ -2041,6 +2042,21 @@ def _read_reply(stdout: Any) -> Any:
+96c96
+< @@ -2072,14 +2088,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
+---
+> @@ -2075,14 +2091,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
+112c112
+< @@ -2092,11 +2101,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
+---
+> @@ -2095,11 +2104,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
+125c125
+< @@ -2248,8 +2253,9 @@ def _clear_worker_fallback(hass: HomeAssistant, entry_id: Any = None) -> None:
+---
+> @@ -2251,8 +2256,9 @@ def _clear_worker_fallback(hass: HomeAssistant, entry_id: Any = None) -> None:
+137c137
+< @@ -2317,6 +2323,8 @@ async def _await_optimize(
+---
+> @@ -2320,6 +2326,8 @@ async def _await_optimize(
+146c146
+< @@ -2697,11 +2705,6 @@ class CoordinatorDiagnostics:
+---
+> @@ -2700,11 +2708,6 @@ class CoordinatorDiagnostics:
+158c158
+< @@ -3474,7 +3477,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -3487,7 +3490,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+167c167
+< @@ -3583,15 +3586,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -3596,15 +3599,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+189c189
+< @@ -3717,11 +3720,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -3726,11 +3729,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+201c201
+< @@ -6044,7 +6042,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -6037,7 +6035,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+210c210
+< @@ -6118,6 +6116,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -6111,6 +6109,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+225c225
+< @@ -6321,14 +6327,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -6314,14 +6320,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+242c242
+< @@ -6401,7 +6404,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -6394,7 +6397,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+251c251
+< @@ -6419,8 +6422,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -6412,8 +6415,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+261c261
+< @@ -6473,20 +6475,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -6466,20 +6468,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+289c289
+< @@ -8957,16 +8956,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -8952,16 +8951,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+308c308
+< @@ -10643,7 +10639,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -10638,7 +10634,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+319c319
+< @@ -10651,10 +10649,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -10646,10 +10644,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+332c332
+< @@ -10662,7 +10658,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -10657,7 +10653,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+342c342
+< @@ -11146,7 +11143,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -11135,7 +11132,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+352c352
+< @@ -11160,99 +11158,101 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+---
+> @@ -11149,99 +11147,101 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
