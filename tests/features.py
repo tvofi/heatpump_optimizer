@@ -70753,6 +70753,33 @@ R.check(
     f"{_sw_win}",
 )
 
+# dhw_planner._dhw_next_window_hours: an empty horizon reads no day, and a
+# repeated hour is no midnight wrap. At 10:30 neither day's 06:00 window is open:
+# with no wrap tomorrow is entry 0's ordinary day (06:00, 19.5 h away); a step
+# read as a wrap would take entry 2's holiday-flagged day (10:00, 23.5 h away).
+from heatpump_optimizer.dhw_planner import _dhw_next_window_hours as _sw_next_window  # noqa: E402
+
+_sw_next_empty = _sw_try(lambda: _sw_next_window(
+    np.array([]), None, _sw_normal, _sw_wparams, None,
+))
+_sw_next_repeat = _sw_try(lambda: _sw_next_window(
+    np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
+    np.array([False, False, True]),
+))
+_sw_next_wrap = _sw_try(lambda: _sw_next_window(
+    np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
+    np.array([False, False, False, True]),
+))
+R.check(
+    "the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow "
+    "as the ordinary day, not the holiday-flagged step after it (null control: a real "
+    "midnight wrap does read that step's holiday windows)",
+    _sw_next_empty == (None, None)
+    and _sw_next_repeat == (19.5, None)
+    and _sw_next_wrap == (10.5, None),
+    f"{_sw_next_empty} {_sw_next_repeat} {_sw_next_wrap}",
+)
+
 # HeatPumpOptimizer._compute_baseline_power: comfort targets and external
 # heat shorter than the weather.
 _sw_opt = _SwOpt(_SwModel(_SwParams()), _SwCfg(target_temp=21.0))
@@ -92447,6 +92474,16 @@ R.check(
     and _cp_on_lines == [f"System identification armed ({_cp_on.kind}); it will start at the next mild, cheap night hour"]
     and _cp_off_lines == [],
     f"{_cp_on_armed} {_cp_on.kind} {_cp_on_lines} {_cp_off_lines}",
+)
+R.check(
+    "arm_refusal answers a press on an armed experiment with 'already armed or running', "
+    "not the result's reason (null control: the switch off answers ARM_REFUSED_DISABLED)",
+    _cp_on.active is True
+    and _cp_sid.arm_refusal(_cp_on, _CP_T0, _CpOnCfg(_CP_PROBE_CFG), None, 482, _cp_dr.DrawRange())
+    == "an experiment is already armed or running"
+    and _cp_sid.arm_refusal(_cp_off, _CP_T0, _CpOffCfg(), None, 482, _cp_dr.DrawRange())
+    == _cp_sid.ARM_REFUSED_DISABLED,
+    f"{_cp_on.active} {_cp_on.result.reason!r}",
 )
 
 
