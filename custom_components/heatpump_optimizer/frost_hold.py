@@ -93,9 +93,9 @@ def gate(held: ArbiterState, inputs: Callable[[], ArbiterInputs], value: bool | 
 
     ``True`` ends a hold and passes; ``None`` (nothing to write, or a write
     ``supply_hold`` held back) passes unchanged. ``False`` under an active
-    latch is held: ``None`` leaves a running switch alone, and ``True``
-    switches one that reads off back on. ``inputs`` is the coordinator's
-    ``arbiter_inputs`` builder, called only for an OFF.
+    latch is held: ``None`` leaves a running switch alone, logged as the
+    hold, and ``True`` switches one that reads off back on. ``inputs`` is
+    the coordinator's ``arbiter_inputs`` builder, called only for an OFF.
     """
     if value is None:
         return None
@@ -107,7 +107,12 @@ def gate(held: ArbiterState, inputs: Callable[[], ArbiterInputs], value: bool | 
     if not held.frost_holding:
         return False
     _note_run(held, inp, now)
-    return True if getattr(supply_switch(inp), "state", None) == "off" else None
+    switch = supply_switch(inp)
+    if getattr(switch, "state", None) == "off":
+        return True
+    if switch is not None:
+        _LOGGER.debug("Not switching %s off: frost hold", EntryConfig.from_mapping(inp.config).heat_pump_switch_entity)
+    return None
 
 
 def take_off(held: ArbiterState, inp: ArbiterInputs, now: datetime | None = None) -> bool:
@@ -154,18 +159,6 @@ def _freeze(held: ArbiterState, inputs: Callable[[], ArbiterInputs], now: dateti
         _note_run(held, inputs(), now)
     until = held.frost_ran_until
     return FREEZE_FROST if until is not None and now < until else None
-
-
-def log_skip(held: ArbiterState, entity: str, mode_label: str) -> None:
-    """Say why the supply gate wrote nothing to ``entity``: a hold, or the pump's mode."""
-    if held.frost_holding:
-        _LOGGER.debug("Not switching %s off: frost hold", entity)
-        return
-    _LOGGER.debug(
-        "Not switching %s off: mode %s is cooling or blocks both channels, so "
-        "an empty plan is this integration's doing rather than a decision to "
-        "stop the pump", entity, mode_label,
-    )
 
 
 def diagnostics_view(held: ArbiterState, inp: ArbiterInputs) -> dict[str, Any]:
