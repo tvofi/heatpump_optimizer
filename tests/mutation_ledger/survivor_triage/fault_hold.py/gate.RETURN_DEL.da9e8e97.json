@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_hold.py:gate RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL) in `gate`: the mutated line is the function's last statement, `return None`; replaced by `pass` the function falls off its end and returns None all the same. The held-OFF arm above it is pinned by tests/features.py, \"the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears\".",
+  "verdict": "equivalent"
+}
