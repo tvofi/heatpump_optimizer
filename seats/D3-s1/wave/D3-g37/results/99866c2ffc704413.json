@@ -1,0 +1,95 @@
+{
+ "key": "99866c2ffc704413",
+ "site": "custom_components/heatpump_optimizer/sysid.py:852 CMP_BOUND",
+ "patch": "if not accepted or float(np.max(np.abs(delta))) < 1e-10: -> if not accepted or float(np.max(np.abs(delta))) <= 1e-10:",
+ "function": "_lm_solve",
+ "cluster": "sysid.py:_lm_solve@835-852",
+ "slice": "u1c",
+ "fullnet": "SURVIVED",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3234.5,
+  "child_cpu_s": 5344.8,
+  "load1_start": 0.99,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh"
+ },
+ "gate_record": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/99866c2ffc704413.json",
+ "gate_log": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/gates/99866c2ffc704413.log",
+ "provisional": true,
+ "machine": "box D3-g37: nproc 4, Intel Xeon @ 2.10GHz, 16 GB; walls and load provisional",
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_99866c2ffc704413.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/probe_99866c2ffc704413.py",
+  "results": {
+   "unit_plateau_baseline": "(array([1.]), 1.0)",
+   "unit_plateau_mutant": "(array([1.]), 1.0)",
+   "unit_plateau_moved": "0 count",
+   "unit_rosenbrock_baseline": "(array([1., 1.]), 1.836566794967668e-30)",
+   "unit_rosenbrock_mutant": "(array([1., 1.]), 1.836566794967668e-30)",
+   "unit_rosenbrock_moved": "0 count",
+   "unit_bound_baseline": "(array([1.00000000e+01, 1.33143747e-08]), 100.0)",
+   "unit_bound_mutant": "(array([1.00000000e+01, 1.33143747e-08]), 100.0)",
+   "unit_bound_moved": "0 count",
+   "unit_rankdef_baseline": "(array([0.6, 0.4]), 0.0)",
+   "unit_rankdef_mutant": "(array([0.6, 0.4]), 0.0)",
+   "unit_rankdef_moved": "0 count",
+   "unit_random_moved": "0 count (over 200 random nonlinear least-squares problems)",
+   "unit_moved": "0 count",
+   "null_linear_baseline": "(array([ 3., -1.]), 4.388038785291878e-30)",
+   "null_linear_mutant": "(array([ 3., -1.]), 4.388038785291878e-30)",
+   "null_linear_moved": "0 count",
+   "null_moved": "0 count",
+   "reach_runs": "168 count",
+   "reach_calls": "714 count",
+   "reach_calls_separating": "0 count",
+   "reach_outcomes_differ": "0 count",
+   "thread_factor": "1.000",
+   "load1": "1.90",
+   "swapins": "0"
+  },
+  "answer": "Stopping when max|delta| equals 1e-10 exactly. Unit: 0 of 200 random problems and 0 of the 5 shaped inputs move; production: 0 of 714 calls separate, 0 of 168 outcomes differ. An exact 1e-10 step is never produced",
+  "harness": "dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_mut.py (in-memory mutant), dev/audit/rounds/round11/D3/s1/wave/D3-g37/probes/_drive.py (production sweep)",
+  "baseline_value": {
+   "unit_plateau_baseline": "(array([1.]), 1.0)",
+   "unit_rosenbrock_baseline": "(array([1., 1.]), 1.836566794967668e-30)",
+   "unit_bound_baseline": "(array([1.00000000e+01, 1.33143747e-08]), 100.0)",
+   "unit_rankdef_baseline": "(array([0.6, 0.4]), 0.0)",
+   "null_linear_baseline": "(array([ 3., -1.]), 4.388038785291878e-30)"
+  },
+  "mutant_value": {
+   "unit_plateau_mutant": "(array([1.]), 1.0)",
+   "unit_rosenbrock_mutant": "(array([1., 1.]), 1.836566794967668e-30)",
+   "unit_bound_mutant": "(array([1.00000000e+01, 1.33143747e-08]), 100.0)",
+   "unit_rankdef_mutant": "(array([0.6, 0.4]), 0.0)",
+   "null_linear_mutant": "(array([ 3., -1.]), 4.388038785291878e-30)"
+  },
+  "inputs_tried": [
+   "null_linear",
+   "unit_bound",
+   "unit_plateau",
+   "unit_rankdef",
+   "unit_rosenbrock",
+   "production sweep: 168 count runs (_drive.sweep / slab sweep)"
+  ]
+ },
+ "should_fail": "none: no input found that makes max|delta| exactly 1e-10"
+}
