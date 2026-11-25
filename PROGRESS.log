@@ -40,3 +40,4 @@
 1795591882 CKPT 2536f36b3e pushed: scoped-gate reds repaired (typing, block_duty, doc_claims, harness headers); final verification runs in flight snapshot b2366580e61f
 1795592005 HB alive
 1795592608 HB alive
+1795593091 CKPT merged origin/main (module-count conflict) at 2441046c73, repairs pushed; re-verifying snapshot a84856f5ee8d
