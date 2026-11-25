@@ -90548,8 +90548,8 @@ R.check(
     str(_ml_t6b),
 )
 # T6c: idle steps continue the leg the pump is in. The pump in hot water, two idle steps, then a
-# DHW-first both step with a 6-min hot-water leg at M = 10: the leg joins the pump's, of unknown
-# length, so it is not lengthened; null control, the pump in heating lengthens it.
+# DHW-first both step with a 6-min hot-water leg at M = 10. The leg joins the pump's, of unknown
+# length, so it is not lengthened. Null control: the pump in heating lengthens it.
 _ml_t6c = (_ml_legs([0.0, 0.0, 1.5], [0.0, 0.0, 1.0], dhw=10, before=_ds_legs.DHW),
            _ml_legs([0.0, 0.0, 1.5], [0.0, 0.0, 1.0], dhw=10, before=_ds_legs.SPACE))
 R.check(
