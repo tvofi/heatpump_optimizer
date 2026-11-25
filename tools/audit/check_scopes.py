@@ -42,7 +42,8 @@ the open groups of the roster (roster_lib's reader, or --roster-ref) whose `gate
 true; rc 1, with an `UNMARKED <card|group>` line, while an accepted card or open group carries no
 boolean. Run when the finders finish, it is the architect's input. --self-test drives a complete record (passes) and one perturbation per rule.
 --tokens FILE (with --round; default $HPO_STATE_DIR/scorecard/tokens.tsv, token_ledger.py's) refuses
-an evaluator or reviewer named as a `seat` of a row in round N-1's window; no ledger prints unread.
+an evaluator or reviewer named as a `seat` of a row in round N-1's window; no ledger, a seat class
+with no row in the window or a seat row with no key prints unread.
 The record also needs: an approving review at a commit in --ref's history whose EVALUATION.json
 graded the same objects, a ruling on every decided card, an accepted card's commit after that review
 and changing the card's file, reads that are numbers with a tracked enumerator, NO-READs that name
@@ -1361,8 +1362,11 @@ def ledger_round_self_test():
             subprocess.run(["git", "-C", d, "tag", f"v{n}.0.0"], env=env)  # a failure leaves no window: the arms below fail
         led = Path(d) / "tokens.tsv"
 
-        def run(rows, tree=frozenset({rec}), tokens=str(led)):
-            led.write_text("t\tseat_class\tseat\n" + "".join(f"{t}\tlocal\t{s}\n" for t, s in rows))
+        whole = [("2026-01-01T12:00:00Z", "-", "orchestrator"), ("2026-01-01T12:00:00Z", "cloud-x", "cloud")]
+
+        def run(rows, tree=frozenset({rec}), tokens=str(led), classes=whole):
+            led.write_text("t\tseat_class\tseat\n" + "".join(f"{t}\t{c}\t{s}\n" for t, s, c in
+                                                                [(*r, "local") for r in rows] + list(classes)))
             with contextlib.redirect_stdout(io.StringIO()) as out:
                 got = round_ledger_gaps(argparse.Namespace(round=11, tokens=tokens, repo=d), lambda p: json.dumps(ev), tree)
             return got, out.getvalue()
@@ -1376,6 +1380,14 @@ def ledger_round_self_test():
              ("2026-01-02T00:00:00Z", "fixer-r11-x")]) == ([], "")
         arms["--round null: a round with no record in the tree reads no ledger"] = run(
             [("2026-01-01T00:00:00Z", "r11-evaluator")], tree=frozenset()) == ([], "")
+        no_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")], classes=whole[:1])
+        arms["--round: a seat class with no row in the window prints unread (review/3898: a silent pass)"] = (
+            no_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in no_cloud[1])
+        unkeyed = run([("2026-01-02T00:00:00Z", "-"), ("2026-01-02T00:00:00Z", "r11-evaluator")])
+        arms["--round: an unkeyed seat row prints unread, and a keyed seat found is still refused"] = (
+            "LEDGER unread: 1 seat row(s) with no seat key" in unkeyed[1] and len(unkeyed[0]) == 1)
+        arms["--round null: every class keyed in the window, an orchestrator's `-` included, prints no unread"] = (
+            run([("2026-01-02T00:00:00Z", "fixer-r11-x")]) == ([], ""))
         gone = run([("2026-01-01T00:00:00Z", "r11-evaluator")], tokens=str(Path(d) / "none.tsv"))
         arms["--round: an absent ledger prints unread, no gap"] = gone[0] == [] and "LEDGER unread: no token ledger" in gone[1]
     return arms
@@ -1401,7 +1413,22 @@ def round_ledger_gaps(a, show, tree):
         print(f"   LEDGER unread: {'no token ledger (--tokens)' if rows is None else f'no tag v{a.round - 2}.0.0 opens round {a.round - 1}'}; "
               "an evaluator or reviewer seat of the graded round is not checked")
         return []
+    why = ledger_unread(rows, win[0], win[1], rm.SEAT_CLASSES)
+    if why:  # a seat found is still refused; its absence is not read
+        print(f"   LEDGER unread: {why}; an evaluator or reviewer seat of the graded round is not checked whole")
     return ledger_gaps(path, json.loads(show(path)), rows, win[0], win[1])
+
+
+def ledger_unread(rows, a, b, classes):
+    """Why the window's rows cannot show a seat absent, or "": a seat class (round_metrics.SEAT_CLASSES)
+    with no row, or a non-orchestrator row whose `seat` is `-` (an unkeyed local spawn, whose brief
+    no rule keys). Absence read off such a ledger would be a partial, which 0018 forbids."""
+    at = lambda t: datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp()
+    win = [r for r in rows if r.get("t") and a <= at(r["t"]) < b]
+    missing = [c for c in classes if c not in {r.get("seat_class") for r in win}]
+    unkeyed = sum(r.get("seat_class") != "orchestrator" and r.get("seat", "-") in ("-", "") for r in win)
+    return "; ".join(([f"seat classes with no row in the window: {', '.join(missing)}"] if missing else [])
+                     + ([f"{unkeyed} seat row(s) with no seat key"] if unkeyed else []))
 
 
 if __name__ == "__main__":

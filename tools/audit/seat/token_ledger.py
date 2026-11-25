@@ -14,9 +14,14 @@ controlled variable.
 
 THE KEY. Every dispatch writes one line `Seat key: group=G role=R dimension=D
 model=M seat=S` (`header`; `-` for a field that does not apply) into the seat's
-first message, at a line's start or after a space: `cloud_dispatch.py` ends the
-first line of every prompt with it. `collect` reads it from the first user
-message of each transcript.
+first message, at a line's start or after a space. `collect` reads it from the
+first user message of each transcript, and from no later one. The paths that
+write it: every cloud seat is fired with a `cloud_dispatch.render` event, and
+`render` ends that event's first line with the key, the stub `publish_seat`
+fires included. Residue, by category: a local seat spawned by a host session's
+Agent tool, whose first message the spawning session writes and no rule keys;
+its row is `seat=-`, and check_scopes --round prints its refusal unread while
+the graded window holds one (`ledger_unread`).
 
 THE SOURCE. A Claude project directory holds `<session>.jsonl` (the session's
 own transcript) and `<session>/subagents/agent-<id>.jsonl` (each spawned seat's);
@@ -262,6 +267,23 @@ def self_test() -> int:
         check("summary keeps each field apart per seat class and role",
               "local\tfixer\tinput_tokens=1\toutput_tokens=10\tcache_creation_input_tokens=100"
               "\tcache_read_input_tokens=1000\ttokens=1111" in summary(rows))
+        # review/3898 M4, M5: a real transcript's later user lines (each tool_result) never rekey
+        # it, and a day's `t` is its last stamp whatever order the lines were written in
+        proj2 = Path(tmp) / "proj2"
+        proj2.mkdir()
+        tool_result = json.dumps({"type": "user", "timestamp": "2026-11-01T02:00:01Z", "message": {
+            "role": "user", "content": [{"type": "tool_result", "tool_use_id": "x", "content": "done"}]}}) + "\n"
+        (proj2 / "s2.jsonl").write_text(
+            _line("user", "", "", "2026-11-01T01:00:00Z", text=key)
+            + _line("assistant", "m5", "r5", "2026-11-01T02:00:00Z", u) + tool_result
+            + _line("user", "", "", "2026-11-01T02:00:02Z", text="Seat key: role=reviewer seat=other")
+            + _line("assistant", "m6", "r6", "2026-11-01T01:30:00Z", u))
+        collect([proj2], Path(tmp) / "two.tsv")
+        two = read_ledger(Path(tmp) / "two.tsv")
+        check("a keyed transcript stays keyed by its first user message through later user lines (a tool_result, "
+              "another key): one local fixer row",
+              [(r["seat_class"], r["role"], r["seat"]) for r in two] == [("local", "fixer", "fixer-g-1")])
+        check("a day's `t` is its latest stamp, not its last-written one", two[0]["t"] == "2026-11-01T02:00:00Z")
         # the reader this ledger feeds: round_metrics.token_line, unchanged
         spec = importlib.util.spec_from_file_location("round_metrics", HERE / "round_metrics.py")
         rm = importlib.util.module_from_spec(spec)
