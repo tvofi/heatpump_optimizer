@@ -1,1 +1,0 @@
-  MODE: SCOPED -- 27 script(s) run, 6 scoped out.
