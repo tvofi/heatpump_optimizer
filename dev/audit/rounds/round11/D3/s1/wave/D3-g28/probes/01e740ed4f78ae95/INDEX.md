@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_01e740ed4f78ae95.py: pins what _price_ranked_start delivers at dt = 0 (energy 1 kWh, p_max 2 kW): a schedule or a raise (mutant `if energy_kwh <= 0 or p_max <= 0 or dt <= 0:` -> `if energy_kwh <= 0 or p_max <= 0 or dt < 0:`, optimizer.py:2126); output out_01e740ed4f78ae95.txt

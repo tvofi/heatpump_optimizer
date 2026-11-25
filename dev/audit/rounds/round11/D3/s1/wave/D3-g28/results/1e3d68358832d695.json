@@ -1,0 +1,84 @@
+{
+ "key": "1e3d68358832d695",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:1957 GUARD_OFF",
+ "patch": "if solve_index: -> if False:",
+ "function": "_multi_start_minimize",
+ "cluster": "optimizer.py:_multi_start_minimize@1948-1996",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3038.6,
+  "load1_start": 1.09,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 4
+  },
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/gates/1e3d68358832d695.json",
+  "command": "python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 1e3d68358832d695",
+  "provisional": "wall and load1 provisional (box D3-g28, nproc 4, Intel Xeon @ 2.10GHz)"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+  "results": {
+   "yields_baseline": "5 calls",
+   "yields_mutant": "3 calls",
+   "x_max_abs_diff": "0",
+   "null_one_start_yields_delta": "0 calls",
+   "golden_yields_baseline": "8 calls",
+   "golden_yields_mutant": "5 calls",
+   "golden_plan_max_abs_diff": "0 kW",
+   "thread_factor": "1.010",
+   "load1": "1.31",
+   "swapins": "0"
+  },
+  "inputs_tried": "a 4-dim quadratic with 3 starts; 1 start (null); golden winter_typical solve",
+  "direction": "down: between-start yields 2 -> 0 per multi-start (8 -> 5 in one golden solve); plan unchanged",
+  "metric": "calls of time.sleep(0.002), the GIL yield between consecutive L-BFGS-B starts, during one multi-start (direct: 3 starts) and during one golden winter_typical HeatPumpOptimizer.optimize"
+ },
+ "should_fail": {
+  "script": "tests/features.py",
+  "assertion": "_d901_gil_yield_inside_run pins the in-objective _gil_yield only; it lacks an assertion that a k-start multi-start calls time.sleep(0.002) k-1 times between starts",
+  "why": "the slice's step-4 answer (m4_source) lists it among the closure scripts whose traced baseline executes the line"
+ },
+ "finding": {
+  "title": "Between-start GIL yield (optimizer.py:1957) can be deleted with the full gate green",
+  "claim": "Disabling the `if solve_index: _time_mod.sleep(0.002)` yield in _multi_start_minimize removes every between-start GIL yield (2 of 5 sleep(0.002) calls in a 3-start multi-start; 8 -> 5 in one golden winter_typical solve) with the plan bit-identical, and GATE_SCOPE=full GOLDEN_MODE=drift stays green.",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "I1",
+  "severity_claimed": "low",
+  "stop_rule_class": "bug",
+  "metric_definition": "calls of time.sleep(0.002), the GIL yield between consecutive L-BFGS-B starts, during one multi-start (direct: 3 starts) and during one golden winter_typical HeatPumpOptimizer.optimize",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+  "instrumented_symbol": "heatpump_optimizer.optimizer:_multi_start_minimize",
+  "perturbation": {
+   "change": "custom_components/heatpump_optimizer/optimizer.py:1957 `if solve_index:` -> `if False:`",
+   "expected_direction": "down",
+   "observed_value": "golden_yields 8 -> 5"
+  },
+  "null_control": {
+   "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_1e3d68358832d695.py",
+   "value": "null_one_start_yields_delta=0 calls",
+   "note": "the null_* inputs, where the mutated line cannot matter, do not move; the gate's null is gates/null.json"
+  },
+  "files": [
+   "custom_components/heatpump_optimizer/optimizer.py"
+  ]
+ }
+}

@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py: pins the savings percentage _savings_percentage returns for savings 0.005 on a baseline cost of exactly 0.01 (mutant `if baseline_cost <= 0.01:` -> `if baseline_cost < 0.01:`, optimizer.py:2144); output out_8206a42b98c8dd86.txt

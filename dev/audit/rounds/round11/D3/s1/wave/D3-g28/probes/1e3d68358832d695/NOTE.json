@@ -1,0 +1,8 @@
+{
+ "key": "1e3d68358832d695",
+ "class_provisional": "candidate",
+ "probe_direction": "down: between-start yields 2 -> 0 per multi-start (8 -> 5 in one golden solve); plan unchanged",
+ "inputs": "a 4-dim quadratic with 3 starts; 1 start (null); golden winter_typical solve",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}

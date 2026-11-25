@@ -1,0 +1,7 @@
+RESULT inputs_tried=5144
+RESULT inputs_reaching_remaining_exactly_zero=4875
+RESULT max_abs_diff=0
+RESULT signbit_only_diffs=0
+RESULT thread_factor=1.000
+RESULT load1=1.31
+RESULT swapins=0

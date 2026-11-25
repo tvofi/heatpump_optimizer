@@ -1,0 +1,1 @@
+- probes/_tools: the probe generator (prelude + bodies/<key>.py + headers.py -> probe_<key>.py via assemble.py) and meta.py, the per-key class/should-fail notes

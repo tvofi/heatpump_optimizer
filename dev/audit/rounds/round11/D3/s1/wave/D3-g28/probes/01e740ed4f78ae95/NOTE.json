@@ -1,0 +1,8 @@
+{
+ "key": "01e740ed4f78ae95",
+ "class_provisional": "candidate",
+ "probe_direction": "zero schedule -> ZeroDivisionError",
+ "inputs": "dt 0 on a 4-step day; null: dt 0.25",
+ "equivalence_argument": null,
+ "note": "provisional until the key's full gate is recorded"
+}
