@@ -1,4 +1,4 @@
-/root/wt/tools/audit/seat/corpus_mirror.py:252: UserWarning: Overlapped entries: 'a' (possible zip bomb)
+/tmp/tmp.46lGrhCg7K/wt/tools/audit/seat/corpus_mirror.py:252: UserWarning: Overlapped entries: 'a' (possible zip bomb)
   with zf.open(info) as src:
 ok   scan null: with no limit answer one pass reads every page once and completes
 ok   budget: rate_limit is read before the first call, and the gap is kept between calls
@@ -47,6 +47,7 @@ ok   graphql pace: the rateLimit read for pacing is not stored with the items
 ok   graphql pace null: a query of cost 1 waits only the gap
 ok   graphql floor: a query the last cost would take under the floor sleeps until resetAt (under an hour), and the scan completes
 ok   graphql floor: a reset an hour or more away pauses at the cursor instead of sleeping, and the run after it completes
+ok   partition keep: a pass resumed under the same partition keeps the file of every batch answered before the pause, so each batch holds its file
 ok   graphql secondary: a secondary limit naming a 60 s Retry-After is waited out and the query retried once, and the scan completes
 ok   graphql secondary: a second secondary answer after the one retry pauses at the cursor
 ok   graphql secondary: a Retry-After past the cap, or a spent primary bucket, pauses at once without sleeping
@@ -86,6 +87,8 @@ ok   mutant killed: secondary only (by 'past the cap, or a spent primary')
 ok   mutant killed: query read with -i (by 'a query read with its headers')
 ok   mutant killed: partition (by 'no unit of this pass')
 ok   mutant killed: partition files (by 'an item file of another GRAPHQL_BATCH is removed')
+ok   mutant killed: partition keeps current (by 'keeps the file of every batch answered before the pause')
+ok   mutant killed: first cost is a max (by 'keeps the last cost answered and the largest')
 ok   mutant killed: formula rounds (by 'rounds the hundreds')
 ok   mutant killed: largest cost kept (by 'keeps the last cost answered and the largest')
 ok   mutant killed: 2xx only (by 'a non-2xx status is no answer')
@@ -136,3 +139,4 @@ ok   mutant killed: site prefix (by 'stays on the site's own prefix')
 ok   mutant killed: owner-only files (by 'the files are owner-only')
 ok   mutant killed: new pass (by 're-reads every list')
 corpus_mirror self-test: ok (with mutants)
+rc=0
