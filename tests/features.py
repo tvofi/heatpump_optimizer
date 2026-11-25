@@ -67608,7 +67608,7 @@ _pa_run(_pa_rs2, 2)
 R.check(
     "a write the pump ignored before a restart is retried after it, not read as a manual change",
     _pa_rs2.set_modes == []
-    and not [i for i in getattr(_pa_rs2.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL],
+    and not [i for i in getattr(_pa_rs2.hass, "issues", []) if i[1] == _pa.arbiter_record.ISSUE_MANUAL],
     f"{_pa_rs2.set_modes=}",
 )
 _pa_rm = _PaCoord(_PA_TUYA)
@@ -68002,7 +68002,7 @@ R.check(
     f"{_pa.state_for(_pa_sd).written=} {_pa.state_for(_pa_sd_again).written=}",
 )
 _pa_stored = _PaCoord(_PA_TUYA)
-_p8_issues.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.ISSUE_MANUAL)
+_p8_issues.create_issue(_pa_stored.hass, "heatpump_optimizer", _pa.arbiter_record.ISSUE_MANUAL)
 _pa_aio.run(_pa._store(_pa_stored).async_save({
     "manual": "select.pump_mode: Heating (set by the optimizer: DHW)",
     "written": {},
@@ -68012,7 +68012,7 @@ _pa_aio.run(_pa.release(_pa_stored))
 R.check(
     "a v6.6.12 stand-down on record clears its repair on load, and unloading writes nothing",
     _pa_stored.writes() == []
-    and not [i for i in getattr(_pa_stored.hass, "issues", []) if i[1] == _pa.ISSUE_MANUAL],
+    and not [i for i in getattr(_pa_stored.hass, "issues", []) if i[1] == _pa.arbiter_record.ISSUE_MANUAL],
     f"{_pa_stored.writes()} {getattr(_pa_stored.hass, 'issues', [])}",
 )
 _pa_sw = _PaCoord(_PA_TUYA)

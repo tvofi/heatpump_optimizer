@@ -8832,7 +8832,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         reason = "peak_guard" if self._peak_guard.suppressing else "peak_guard_release"
         await pump_arbiter.step_transition(
-            pump_arbiter.state_for(self), functools.partial(self.async_publish_current_action, reason), reason)
+            pump_arbiter.state_for(self), functools.partial(self.async_publish_current_action, reason=reason), reason)
         self.async_update_listeners()
 
     def _fuse_kw(self) -> float | None:
