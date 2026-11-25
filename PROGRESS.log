@@ -7,3 +7,4 @@
 1795384584 CKPT M8 survives entities 2761/2761 + debug_collect 164/164: blocking mutation-vacuous snapshot 86f29a5143ea
 1795384653 HB alive
 1795616084 HB alive
+1795616178 CKPT delta read; merges equal auto-merge; running features/structure snapshot 591ab4c2be4f
