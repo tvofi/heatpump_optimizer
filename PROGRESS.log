@@ -6,3 +6,4 @@
 1795586045 CKPT evidence assembled; awaiting tests/closures CI via scout snapshot b0d8660a1d1f
 1795586343 HB alive
 1795586712 CKPT verdict pushed probe/rev-3889-b413e8ae a366396e snapshot 45236efe943f
+1795586716 DONE blocked a7a9c098 introduced-red: tests / briefs (carry-3885 control cites absent ci3885_light.py); verdict at probe/rev-3889-b413e8ae a366396e
