@@ -14,14 +14,6 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timedelta, timezone
 
-import case_sample  # noqa: E402
-
-# #3885: on a pull request, a seeded sample of this script's sections
-# (tests/case_sample.py); everywhere else every section, and one CASE-SAMPLE
-# line says which.
-if case_sample.engage(__file__, "features"):
-    raise SystemExit  # unreachable: engage() exits with the sampled run's status
-
 from harness import FakeHass, FakeState, Results, UTC, SHIPPED_CATALOGUES, TRANSLATED_LANGS, minutes_ago, with_config
 from profiles import solve_inputs  # noqa: E402
 

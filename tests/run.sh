@@ -477,9 +477,6 @@ for f in tests/*.py tests/*.mjs; do
     # recording needs `gh`, verifying needs the floor's own Home Assistant,
     # which the nightly-ha job runs it in. tests/entities.py imports it.
     ha_floor.py) continue ;;
-    # The case sampler (#3885): imported by features.py and entities.py,
-    # which run it; entities.py runs its self-test.
-    case_sample.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
@@ -800,7 +797,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py|case_sample.py) continue ;;
+    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py) continue ;;
   esac
   # The arch part owes the pair and nothing else; `fast` owes the rest, the
   # pair as its two named skips.
