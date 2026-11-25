@@ -1,1 +1,2 @@
 1795573393 INIT r11-outside-honest-dhw-closure
+1795573484 DONE BLOCKED, nothing pushed: tests/cycle_lane.py does not exist at 0c625fae (added on main by 6b6d90d71c, after the handoff's merge-base 0f63320c), so --single cannot run there. The branch needs origin/main merged first (3210fcd7 has the file), then --single tests/cycle_lane.py; re-dispatch on a head that contains main.
