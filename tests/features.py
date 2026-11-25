@@ -64890,11 +64890,13 @@ from heatpump_optimizer import off_restore as _pa_orr  # noqa: E402
 
 
 def _pa_unload(coord):
-    """The unload's two halves, as ``async_unload_entry`` runs them: the restore, which
-    writes the baseline row back (ADR-004), then the arbiter's release, which writes nothing."""
+    """The unload as ``async_unload_entry`` runs it: the restore, which writes the baseline
+    row back (ADR-004), the arbiter's release (``async_shutdown``), which writes nothing,
+    then the restore once more behind the released latch."""
     coord.entry.runtime_data = coord
     _pa_aio.run(_pa_orr.async_restore(coord.hass, coord.entry, coord._config, "unload"))
     _pa_aio.run(_pa.release(coord))
+    _pa_aio.run(_pa_orr.async_restore(coord.hass, coord.entry, coord._config, "unload"))
 
 
 def _pa_enter_off(coord):
@@ -88941,14 +88943,14 @@ class _ShLog(logging.Handler):
         self.seen.append(record.getMessage())
 
 
-_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh_log, _sh_level = _ShLog(), _sh._LOGGER.level
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "a held OFF is not logged as the cooling or blocked-mode skip",
@@ -88972,13 +88974,13 @@ async def _sh_blocked_write():
 
 
 _sh_log.seen.clear()
-_sh_coord_mod._LOGGER.addHandler(_sh_log)
-_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+_sh._LOGGER.addHandler(_sh_log)
+_sh._LOGGER.setLevel(logging.DEBUG)
 try:
     _sh_bcalls = _asyncio.run(_sh_blocked_write())
 finally:
-    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
-    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+    _sh._LOGGER.removeHandler(_sh_log)
+    _sh._LOGGER.setLevel(_sh_level)
 _sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
 R.check(
     "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
@@ -89119,6 +89121,241 @@ except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
     _sh_ns = repr(_sh_err)
 R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
         _sh_ns == ([], False), f"{_sh_ns}")
+
+# Cooling is the user's season (``pump_arbiter.cooling_mode``). While the
+# pump's mode reads Cooling or Cooling + DHW, the cycle's supply gate writes
+# the power switch in neither direction, a live space boost included. It
+# raises ``ISSUE_COOLING`` once per episode, cleared when the mode leaves
+# cooling. Driven as the cycle drives it: ``cycle_supply`` with the
+# coordinator's own boost record, then ``_write_supply``.
+from heatpump_optimizer import pump_arbiter as _cg_pa  # noqa: E402
+from heatpump_optimizer import boost as _cg_boost  # noqa: E402
+from heatpump_optimizer import early_cutoff as _cg_ec  # noqa: E402
+from heatpump_optimizer import issues as _cg_issues  # noqa: E402
+from homeassistant.util import dt as _cg_dt  # noqa: E402
+
+_CG_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+
+
+def _cg_coord(mode_state, *, switch="off", power=0.0):
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_CG_T0 - timedelta(hours=1)),
+        "select.hp_mode": FakeState(mode_state, last_updated=_CG_T0 - timedelta(hours=1)),
+    })
+    coord = Coord(hass, FakeEntry(data={
+        **_LC_DATA, "heat_pump_switch_entity": "switch.hp",
+        "heat_pump_mode_entity": "select.hp_mode", "pump_duty_mode": "observe",
+    }))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_CG_T0 + timedelta(minutes=15 * i) for i in range(4)],
+        power_schedule=[power] * 4, dhw_power_schedule=[0.0] * 4, optimal_setpoints=[21.0] * 4)
+    return hass, coord
+
+
+async def _cg_cycle(coord, *, boosted=True, minute=0):
+    """One cycle's supply write; the switch calls and the ON the plan or boost asked."""
+    now = _CG_T0 + timedelta(minutes=minute)
+    if boosted:
+        _cg_boost.held_for(coord).until[_cg_boost.CHANNEL_SPACE] = _CG_T0 + timedelta(hours=1)
+    _cg_dt.freeze(now)
+    try:
+        on = _cg_pa.cycle_supply(coord.arbiter_inputs(), _cg_boost.held_for(coord), False, now)
+        await coord._write_supply(on)
+    finally:
+        _cg_dt.freeze(None)
+    return on, [c for c in coord.hass.services.calls if c[0] == "switch"]
+
+
+def _cg_boost_run(mode_state, **kw):
+    hass, coord = _cg_coord(mode_state, **kw)
+    return _asyncio.run(_cg_cycle(coord))
+
+
+for _cg_name, _cg_mode, _cg_want_calls in (
+    ("a space boost with the mode reading Cooling writes no switch-on", "Cooling", 0),
+    ("a space boost with the mode reading Cooling + DHW writes no switch-on", "Cooling + DHW", 0),
+    ("null control: the same boost with the mode reading Heating switches the pump on", "Heating", 1),
+    ("null control: the same boost with the mode reading Heating + DHW switches the pump on", "Heating + DHW", 1),
+):
+    _cg_on, _cg_calls = _cg_boost_run(_cg_mode)
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_on is True and len(_cg_calls) == _cg_want_calls
+            and all(c[1] == "turn_on" for c in _cg_calls), f"{_cg_on} {_cg_calls}")
+
+
+# A plan ON (no boost) is held off the switch the same way, and an OFF
+# (a pump the user left running in Cooling) is not written either.
+def _cg_plan_run(mode_state, power, switch):
+    hass, coord = _cg_coord(mode_state, switch=switch, power=power)
+    return _asyncio.run(_cg_cycle(coord, boosted=False))
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a plan ON with the mode reading Cooling writes nothing", ("Cooling", 1.5, "off"), (True, [])),
+    ("a plan OFF with the pump running in Cooling writes nothing", ("Cooling", 0.0, "on"), (False, [])),
+    ("null control: a plan OFF with the pump running in Heating switches it off", ("Heating", 0.0, "on"), (False, [("switch", "turn_off")])),
+):
+    _cg_got = _cg_plan_run(*_cg_args)
+    _cg_got = (_cg_got[0], [c[:2] for c in _cg_got[1]])
+    R.check(f"cooling hands-off: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
+
+# The cycle's reading carries the last good mode across a dropout: with the
+# select unavailable and the cycle's signals reading Cooling, a boost still
+# writes no switch-on (``cooling_mode``'s second arm).
+async def _cg_dropout(cooling):
+    hass, coord = _cg_coord("unavailable")
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    return await _cg_cycle(coord)
+
+
+for _cg_name, _cg_cool, _cg_n in (
+    ("the cycle's last good Cooling holds a boost's switch-on through a dropout", True, 0),
+    ("null control: the cycle's last good Heating lets it through", False, 1),
+):
+    _cg_on, _cg_calls = _asyncio.run(_cg_dropout(_cg_cool))
+    R.check(f"cooling hands-off: {_cg_name}", len(_cg_calls) == _cg_n, f"{_cg_on} {_cg_calls}")
+
+
+async def _cg_read(coord, minute):
+    _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+    try:
+        await coord._update_current_state()
+    finally:
+        _cg_dt.freeze(None)
+
+
+# The repair: raised once for the episode however many writes ask for heat,
+# cleared when the mode leaves cooling, and raised again in the next episode.
+async def _cg_episode():
+    hass, coord = _cg_coord("Cooling")
+    made = []
+    real = _cg_issues.create_issue
+    _cg_issues.create_issue = lambda h, d, i, **k: (made.append(i), real(h, d, i, **k))[1]
+    try:
+        seen = []
+        for minute in (0, 1):
+            await _cg_cycle(coord, minute=minute)
+        seen.append(([i[1] for i in getattr(hass, "issues", [])], list(made)))
+        coord._mode = "off"  # the clear does not wait for a supply write
+        await _cg_read(coord, 3)  # the cycle's own signal read, no heat asked
+        seen.append([i[1] for i in getattr(hass, "issues", [])])
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0))
+        await _cg_read(coord, 4)
+        seen.append([i[1] for i in getattr(hass, "issues", [])])
+        coord._mode = "auto"
+        hass.states.set("select.hp_mode", FakeState("Cooling + DHW", last_updated=_CG_T0))
+        await _cg_cycle(coord, minute=2)
+        seen.append((([i[1] for i in getattr(hass, "issues", [])]), len(made)))
+        return seen
+    finally:
+        _cg_issues.create_issue = real
+
+
+try:
+    _cg_ep = _asyncio.run(_cg_episode())
+except Exception as _cg_err:  # noqa: BLE001 -- each check reports what raised
+    _cg_ep = [repr(_cg_err)] * 4
+_CG_ID = "pump_mode_cooling"
+R.check("cooling repair: raised once for two boosted writes in one Cooling episode",
+        _cg_ep[0] == ([_CG_ID], [_CG_ID]), f"{_cg_ep[0]}")
+R.check("cooling repair: a cycle that asks for no heat keeps it while the mode reads Cooling",
+        _cg_ep[1] == [_CG_ID], f"{_cg_ep[1]}")
+R.check("cooling repair: cleared when the mode leaves cooling", _cg_ep[2] == [], f"{_cg_ep[2]}")
+R.check("cooling repair: raised again in the next episode (Cooling + DHW)",
+        _cg_ep[3] == ([_CG_ID], 2), f"{_cg_ep[3]}")
+
+
+# Null control for the repair: a heating mode asked for heat raises nothing.
+async def _cg_no_episode():
+    hass, coord = _cg_coord("Heating")
+    await _cg_cycle(coord)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+R.check("cooling repair: null control: a boost in Heating raises no cooling repair",
+        _CG_ID not in _asyncio.run(_cg_no_episode()), "")
+
+
+# Nor does a write that asks for no heat: a plan OFF in Cooling.
+async def _cg_off_in_cooling():
+    hass, coord = _cg_coord("Cooling", switch="on")
+    await _cg_cycle(coord, boosted=False)
+    return [i[1] for i in getattr(hass, "issues", [])]
+
+
+_cg_off_issues = _asyncio.run(_cg_off_in_cooling())
+R.check("cooling repair: a plan OFF in Cooling asks for no heat and raises no cooling repair",
+        _CG_ID not in _cg_off_issues, f"{_cg_off_issues}")
+
+
+# The early cut-off writes the same switch (OFF) through ``switch_supply``:
+# a cooling mode exempts its step, as the gate leaves the switch alone.
+def _cg_cutoff(mode_state):
+    hass, coord = _cg_coord(mode_state, switch="on", power=1.5)
+    coord._current_action = {"heat_pump_on": True}
+    return _cg_ec._exempt(coord.arbiter_inputs(), _cg_boost.held_for(coord), _CG_T0)
+
+
+for _cg_mode, _cg_want in (("Cooling", "cooling"), ("Cooling + DHW", "cooling"), ("Heating", None)):
+    _cg_got = _cg_cutoff(_cg_mode)
+    R.check(f"early cut-off: a space step with the mode reading {_cg_mode} -> {_cg_want}",
+            _cg_got == _cg_want, f"{_cg_got}")
+
+
+# The live select, where it reads a known mode, outranks the cycle's reading:
+# a select reading Heating over a stale Cooling reading lets a boost through.
+async def _cg_stale(live, cooling):
+    hass, coord = _cg_coord(live)
+    cap = importlib.import_module(_cg_pa.__package__ + ".pump_mode").MODES["cool" if cooling else "heat"]
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "mode": cap})
+    _on, calls = await _cg_cycle(coord)
+    return [c[1] for c in calls], [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_args, _cg_want in (
+    ("a select reading Heating over a stale Cooling reading switches a boost on", ("Heating", True), ["turn_on"]),
+    ("null control: select Heating, reading Heating switches it on", ("Heating", False), ["turn_on"]),
+    ("null control: select Cooling over a stale Heating reading writes nothing", ("Cooling", False), []),
+):
+    _cg_calls, _cg_iss = _asyncio.run(_cg_stale(*_cg_args))
+    R.check(f"cooling hands-off: {_cg_name}",
+            _cg_calls == _cg_want and (_CG_ID in _cg_iss) is (not _cg_want), f"{_cg_calls} {_cg_iss}")
+
+
+# The refusal's release: a plan ON the cycle could not write in Cooling lands
+# at the step tick once the select leaves cooling, not at the next cycle.
+async def _cg_release(leave):
+    hass, coord = _cg_coord("Cooling", power=1.5)
+    held = _cg_pa.state_for(coord)
+    held.supply_unsub = lambda: None  # the tick is driven by hand below
+    on, _calls = await _cg_cycle(coord, boosted=False)
+    _cg_pa.note_supply(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply), on, _CG_T0)
+    if leave:
+        hass.states.set("select.hp_mode", FakeState("Heating", last_updated=_CG_T0 + timedelta(minutes=1)))
+    seen = []
+    for minute in (2, 15):
+        _cg_dt.freeze(_CG_T0 + timedelta(minutes=minute))
+        try:
+            await _cg_pa.supply_tick(held, _cg_pa.SupplyWiring(coord.arbiter_inputs, _cg_boost.held_for(coord), coord._write_supply))
+        finally:
+            _cg_dt.freeze(None)
+        seen.append([c[1] for c in hass.services.calls if c[0] == "switch"])
+    return seen, [i[1] for i in getattr(hass, "issues", [])]
+
+
+for _cg_name, _cg_leave, _cg_want in (
+    ("the select set to Heating: the refused ON lands at the next tick and the notice clears", True, ([["turn_on"], ["turn_on"]], [])),
+    ("null control: the select still Cooling: no tick writes the switch", False, ([[], []], [_CG_ID])),
+):
+    try:
+        _cg_got = _asyncio.run(_cg_release(_cg_leave))
+    except Exception as _cg_err:  # noqa: BLE001 -- the check reports what raised
+        _cg_got = repr(_cg_err)
+    R.check(f"cooling release: {_cg_name}", _cg_got == _cg_want, f"{_cg_got}")
+
 
 
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
@@ -89548,6 +89785,33 @@ def _fh_handback(fault, how):
 _fh_unl, _fh_unl_null = _fh_handback(True, "unload"), _fh_handback(False, "unload")
 R.check("unload under the hold writes no baseline row, and drops the latch", _fh_unl == ([], False), f"{_fh_unl}")
 R.check("null control: unload with no fault writes the baseline row", bool(_fh_unl_null[0]), f"{_fh_unl_null}")
+
+
+def _fh_reunload(consult):
+    """Row writes of an unload restore after an unload under the hold, the alarm since cleared;
+    the entry consulted again first (set up afresh) when ``consult``."""
+    c = _fh_coord(state="off")
+    _pa_run(c, 0)
+    _fh_fault(c, "on", -30)
+    _pa_run(c, 1)
+    _sa_dt.freeze(_PA_T0 + timedelta(minutes=2))
+    try:
+        _pa_unload(c)
+        _fh_fault(c, "off", 1)
+        if consult:
+            _fh.holding(c.entry, c.hass, c._config, off=False)
+        c.hass.services.calls.clear()
+        _pa_aio.run(_pa_orr.async_restore(c.hass, c.entry, c._config, "unload"))
+        return _fh_row_writes(c)
+    finally:
+        _sa_dt.freeze(None)
+
+
+_fh_reu, _fh_reu_null = _fh_reunload(True), _fh_reunload(False)
+R.check("the unload's held mark lasts only until the entry's next consult: the next unload writes the owed row",
+        bool(_fh_reu), f"{_fh_reu}")
+R.check("null control: with no consult between them the mark holds and the row stays owed",
+        _fh_reu_null == [], f"{_fh_reu_null}")
 _fh_off, _fh_off_null = _fh_handback(True, "off"), _fh_handback(False, "off")
 R.check("Off ends the hold: entering Off under it writes the baseline row at the mode change, and Off's pass clears the latch",
         bool(_fh_off[0]) and _fh_off[0] == _fh_off_null[0] and _fh_off[1] is False, f"{_fh_off} vs {_fh_off_null}")

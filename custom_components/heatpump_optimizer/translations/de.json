@@ -1927,6 +1927,10 @@
       "title": "Die Wärmepumpe meldet eine Störung; der Plan ist ausgesetzt",
       "description": "{entity} meldet seit {since} eine Störung. Bis sie vorbei ist, ändert der Optimierer Betriebsart und Sollwerte der Pumpe nicht und schaltet sie nicht aus; diese Meldung verschwindet dann von selbst. Lesen Sie den Störungscode am Display oder in der App der Pumpe. Um die Pumpe von Hand zu schalten, schalten Sie zuerst Optimierer aktiv aus, sonst schaltet der Optimierer sie innerhalb einer Minute wieder ein."
     },
+    "pump_mode_cooling": {
+      "title": "Der Modus der Wärmepumpe zeigt Kühlen, während der Plan Wärme anfordert",
+      "description": "Der Betriebsmodus der Wärmepumpe zeigt „{mode}“, und der Plan oder ein Boost fordert Wärme von der Pumpe an. Kühlen bleibt dir überlassen: Solange der Modus Kühlen zeigt, schaltet der Optimierer die Pumpe weder ein noch aus und ändert weder ihren Modus noch ihre Sollwerte, sodass die Pumpe das Haus nicht heizt. Soll sie heizen, stelle an der Pumpe oder in ihrer App einen Heizmodus ein; ein Stromausfall, eine Neuverbindung oder ein Zurücksetzen nach einer Störung kann die Pumpe im Kühlmodus lassen. Dieser Hinweis verschwindet, sobald der Modus nicht mehr Kühlen zeigt."
+    },
     "pump_write_ignored": {
       "title": "Die Wärmepumpe behält eine vom Optimierer geschriebene Einstellung nicht bei",
       "description": "Der Optimierer hat einen Wert in die Wärmepumpe geschrieben und ein weiteres Mal geschrieben, doch die Pumpe zeigt weiterhin etwas anderes an: {detail}. Solange „Optimizer active“ eingeschaltet ist, ist der Optimierer der einzige Schreiber der Pumpe: Er sendet den Wert alle fünf Minuten erneut, und dieser Hinweis verschwindet, sobald die Pumpe ihn hält. Um die Pumpe von Hand zu ändern, schalte zuerst „Optimizer active“ aus. Hat niemand etwas geändert, prüfe, ob die Entität der Pumpe den Wert akzeptiert (Bereich, Cloud-Verbindung, lokaler Schlüssel, Schreibrechte)."

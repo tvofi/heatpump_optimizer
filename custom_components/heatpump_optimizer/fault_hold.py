@@ -29,7 +29,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
-from weakref import WeakKeyDictionary
+from weakref import WeakKeyDictionary, WeakSet
 
 from homeassistant.util import dt as dt_util
 
@@ -58,6 +58,9 @@ class FaultLatch:
 
 
 _STATES: WeakKeyDictionary[Any, FaultLatch] = WeakKeyDictionary()
+#: Entries whose unload dropped a holding latch: the unload's restore runs
+#: again after :func:`release`, and its baseline row is still owed.
+_RELEASED_HOLDING: WeakSet[Any] = WeakSet()
 
 
 def _latch(entry: Any) -> FaultLatch:
@@ -75,6 +78,7 @@ def holding(entry: Any, hass: Any, config: Any, *, off: bool, released: bool = F
     latch = _latch(entry)
     if released:
         return False
+    _RELEASED_HOLDING.discard(entry)  # set up again: the latch reads afresh
     cfg = EntryConfig.from_mapping(config)
     if off or not cfg.fault_hold or not cfg.heat_pump_fault_entity:
         latch.since = None
@@ -126,7 +130,8 @@ def gate(entry: Any, held_state: Any, inp: Any, value: bool | None) -> bool | No
 
     An ON passes. A left OFF marks ``held_state.supply_held`` (the arbiter's
     record), so the step tick retries it each minute and it lands after the
-    clear, and the cycle's cooling message is not printed for it.
+    clear; the cooling gate's message (``supply_hold.supply_write``) is
+    never printed for it, since that gate passed the OFF.
     """
     if value is not False or not consult(entry, inp):
         return value
@@ -136,12 +141,22 @@ def gate(entry: Any, held_state: Any, inp: Any, value: bool | None) -> bool | No
 
 
 def release(hass: Any, entry: Any) -> bool:
-    """Unload: whether the entry was holding; drop its latch and, if last, the repair."""
+    """Unload: whether the entry was holding; drop its latch and, if last, the repair.
+
+    A holding latch is remembered (:func:`unload_holds`) until the entry's
+    next consult, so the unload's second restore leaves the row owed too.
+    """
     latch = _STATES.pop(entry, None)
     was = latch is not None and latch.holding
     if was:
+        _RELEASED_HOLDING.add(entry)
         _clear(hass)
     return was
+
+
+def unload_holds(entry: Any) -> bool:
+    """Whether an unload's restore leaves the baseline row owed: the latch holds, or held at release."""
+    return held(entry) or entry in _RELEASED_HOLDING
 
 
 def diagnostics_view(entry: Any) -> dict[str, Any]:
