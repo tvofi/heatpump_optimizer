@@ -1282,7 +1282,7 @@ class MeasuredCop:
     @staticmethod
     def judge_floor(
         asked_kw: float, drawn_kw: float | None, params: Any, draw: DrawRange | None = None,
-        experiment: bool = False,
+        experiment: bool = False, approach: bool = False,
     ) -> str | None:
         """The first judgement every interval meets, or None.
 
@@ -1290,7 +1290,9 @@ class MeasuredCop:
         ceiling probe; the action that governed it was the
         system-identification override, the action ``asked_kw`` is read from):
         an experiment's ask is not the plan's, so drawn over asked is no
-        efficiency reading. Where heat is metered the COP is heat over the
+        efficiency reading; so for an interval inside a run's learned
+        ``approach`` (``draw_range.expected_draw``), where the pump draws above
+        its ask by its own wind-down. Where heat is metered the COP is heat over the
         draw, and the reason is the scale's. It is one scalar on a law of lift
         alone, learned where the plan runs the compressor. An experiment
         drives it to its band ends, where an inverter's efficiency departs from
@@ -1300,7 +1302,7 @@ class MeasuredCop:
         ``drawn_kw`` ``None``: no per-cycle draw (a heat counter's install),
         judged on the experiment alone, so its span fails the cycle's gate.
         """
-        if experiment:
+        if experiment or approach:
             return COP_REFUSED_OFF_ASK
         if drawn_kw is not None and min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
             return COP_REFUSED_DUTY_FLOOR

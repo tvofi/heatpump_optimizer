@@ -5065,7 +5065,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # fabricates a confident 0 kW sample. Same gate, same reasoning as
         # the COP fold: a large total gap is tracking, not measurement, so
         # the interval carries no usable split (v4.0.5 review).
-        commanded_total = commanded_space + dhw_share
+        commanded_total = draw_range.inside_approach(self._accuracy.draw) or commanded_space + dhw_share  # inside a run's learned approach, the expected draw
         if (
             abs(float(self._measured_power) - commanded_total)
             / max(commanded_total, 0.5)
@@ -5346,7 +5346,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
         if (owed := self._measured_cop.owed_scale(lambda: ctx._config.cop_scale, dt_util.now(), not experiment)) is not None:
             self._apply_cop_scale(owed)
-        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw, experiment):
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw, experiment, draw_range.inside_approach(draw) is not None):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -6320,6 +6320,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             state=state,
             start_time=solve_now,
             compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
+            approach=draw_range.solve_approach(self._accuracy.draw, params, solve_now.timestamp()),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -9949,11 +9950,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The meter read now closes the interval ``pending`` governed, so the
         # draw pairs with that interval's ask and set-point, not the next one's
         # (#2262), within the window the accuracy pairing below trusts; a
-        # prediction recording no split, or a dwell that saw hot water, is none.
-        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
+        # prediction recording no split is none, and a dwell that saw hot water moves only the approach's run clock.
+        if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0):
             # An unplanned charge is no running space sample (#3760): the pending split's own evidence.
             space_frozen = self._learning_frozen(CONF_POWER_ENTITY, sample=learning_freeze.Sample.SPACE_HEAT, evidence=_space_evidence(self, pending["split"]))
-            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self))
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=space_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None, ceiling_frozen=_ceiling_frozen(self), span_s=(pending["when"].timestamp(), now.timestamp()), charged=heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])))
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -10039,11 +10040,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         self._pending_prediction = {
             "when": now,
-            # The meter sees the whole heat pump, so the prediction it is
-            # compared against has to be the whole plan. Recording space
-            # heating alone made every hot-water charge look like the unit
-            # under-delivering, which fed straight into the defrost derate.
-            "power": self._commanded_power(),
+            # The meter sees the whole heat pump, so the prediction it is compared against is the whole
+            # plan (space alone read every charge as a defrost loss), a run's learned approach included.
+            "power": draw_range.expect(self._accuracy.draw, self._commanded_split(), ctx._thermal_params, now.timestamp(), interval_h),
             "split": self._commanded_split(),
             "flow_command": pump_arbiter.flow_command(self),
             "mode": self._current_action.get("mode"),  # routes draw_range.fold
@@ -10161,7 +10160,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not trajectory:
             return
         self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
-            solve_time, dt_h, trajectory, result.power_schedule,
+            solve_time, dt_h, trajectory, draw_range.received_schedule(self._accuracy.draw, ctx._thermal_params, result.power_schedule, result.dhw_power_schedule, solve_time.timestamp(), dt_h),
             result.dhw_power_schedule, result.prices,
         )
         for lead in LEAD_BUCKETS:
@@ -11257,6 +11256,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             start_time=solve_at,
             held_start=held_start,
             compressor_running=duty_switch.record_for(self).solved_running,
+            approach=draw_range.solve_approach(self._accuracy.draw, scratch_params, solve_at.timestamp()),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,

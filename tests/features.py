@@ -103629,4 +103629,206 @@ R.check(
     str(_oc_rows),
 )
 
+
+R.section("R11-OUTSIDE-START-APPROACH: a run's first steps draw what the pump draws (Bankaifan, comment 6944433306 on #3670)")
+# Series D's shape (Bankaifan's): from off, 1.25 kW falling 12.6 W/min to the
+# 0.53 kW floor; series H's: 0.785 kW for the first interval after the gate.
+# Figures are one install's; the checks pin the mechanism, not the install.
+from types import SimpleNamespace as _sa_NS  # noqa: E402
+import dataclasses as _sa_dc  # noqa: E402
+from heatpump_optimizer import approach as _sa_ap, draw_range as _sa_dr, runs as _sa_runs  # noqa: E402
+from heatpump_optimizer import optimizer as _sa_om  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_OFF_ASK as _SA_OFF_ASK, MeasuredCop as _SaCop  # noqa: E402
+
+_SA_P = _sa_NS(min_electrical_power=0.53, max_electrical_power=3.0)
+_SA_STEP_S = 300.0
+
+
+def _sa_feed(draw, rows, t0=1.0e9):
+    """Fold (drawn, space ask, hot water ask, gates) rows, 5 min each; the time after."""
+    t = t0
+    for drawn, space, dhw, *gates in rows:
+        g = {"frozen": False, "distorted": False, "defrost": False, **(gates[0] if gates else {})}
+        _sa_dr.fold(draw, drawn, (space, dhw), _SA_P, span_s=(t, t + _SA_STEP_S), **g)
+        t += _SA_STEP_S
+    return t
+
+
+def _sa_run(n_floor=12, ramp=0.785):
+    """One series-D run from off, then a pause opening with series H's wind-down."""
+    return ([(1.25 - 0.0126 * 5 * i, 0.53, 0.0) for i in range(12)] + [(0.53, 0.53, 0.0)] * n_floor
+            + [(ramp, 0.0, 0.0)] + [(0.02, 0.0, 0.0)] * 11)
+
+
+def _sa_learned(runs_n=5, **kw):
+    d = _sa_dr.DrawRange()
+    t = _sa_feed(d, [(0.02, 0.0, 0.0)])
+    for _ in range(runs_n):
+        t = _sa_feed(d, _sa_run(**kw), t)
+    return d, t
+
+
+_sa_d, _sa_t = _sa_learned()
+_sa_a = _sa_dr.solve_approach(_sa_d, _SA_P, _sa_t)
+_sa_none, _ = _sa_learned(runs_n=0)
+_sa_two, _sa_t2 = _sa_learned(runs_n=2)
+# 3. The learner at both ends: zero evidence and a bin under its count read
+# none; five runs reproduce series D's excess within one bin's width
+# (5/60 h at 0.72 kW over the floor, 0.06 kWh; spike s1 read 0.377 kWh).
+R.check(
+    "approach learner: zero evidence and two runs (bins under MIN_COUNT) read no approach; five series-D "
+    "runs read an entry whose energy over the floor is series D's within one bin, and series H's ramp",
+    _sa_dr.solve_approach(_sa_none, _SA_P, 1e9) is None and _sa_dr.solve_approach(_sa_two, _SA_P, _sa_t2) is None
+    and _sa_a is not None and abs(_sa_a.entry_kwh(0.53) - 0.377) < 5 / 60 * 0.72
+    and _sa_a.ramp.size == 1 and abs(_sa_a.ramp[0] - 0.785) < 1e-9 and _sa_a.age_h == 0.0,
+    f"entry {None if _sa_a is None else _sa_a.entry} kwh {None if _sa_a is None else _sa_a.entry_kwh(0.53)}",
+)
+
+
+def _sa_gated(**gates):
+    d, t = _sa_learned(runs_n=0)
+    for _ in range(5):
+        t = _sa_feed(d, [(r[0], r[1], r[2], gates) for r in _sa_run()], t)
+    return _sa_dr.solve_approach(d, _SA_P, t)
+
+
+_sa_high, _ = _sa_learned(runs_n=0)
+_sa_th = 1.0e9
+for _ in range(5):
+    _sa_th = _sa_feed(_sa_high, [(r[0], 1.5 if r[1] else 0.0, 0.0) for r in _sa_run(ramp=0.02)], _sa_th)
+R.check(
+    "approach learner folds nothing from a frozen, a distorted or a defrost interval, nor an entry asked above "
+    "the floor (a higher ask draws more by asking more)",
+    all(_sa_gated(**{k: True}) is None for k in ("frozen", "distorted", "defrost"))
+    and _sa_dr.solve_approach(_sa_high, _SA_P, _sa_th) is None,
+    str([_sa_gated(**{k: True}) for k in ("frozen", "distorted", "defrost")]),
+)
+_sa_stored = _sa_d.as_dict()
+_sa_stored["approach"]["entry"][0][0] = "x"
+_sa_back = _sa_dr.DrawRange.from_dict(_sa_stored)
+_sa_moved = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_moved.approach.observe(0.02, (0.0, 0.0), 0.53, _sa_t, _sa_t + 300, sample=True, standby_kw=0.25,
+                           tolerance=0.15, config=(0.5, 3.0))
+R.check(
+    "a stored approach round-trips, a bad cell costs only that cell, and a changed configured range drops it",
+    _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach.as_dict() == _sa_d.approach.as_dict()
+    and len(_sa_back.approach.entry[0]) == len(_sa_d.approach.entry[0]) - 1
+    and len(_sa_back.approach.entry[1]) == len(_sa_d.approach.entry[1])
+    and all(len(b) == 0 for b in _sa_moved.approach.entry),
+    str(_sa_back.approach.entry[0]),
+)
+# A restart (a gap longer than an interval) leaves the run's age unknown: no
+# entry is read across it, and the age reads None (books no entry at step 0).
+_sa_gap = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_gap_t = _sa_feed(_sa_gap, [(1.25, 0.53, 0.0)], _sa_t + 3600)
+R.check(
+    "after a gap the live run's age is unknown and no entry sample is folded across it",
+    _sa_gap.approach.age_h(_sa_gap_t) is None
+    and [len(b) for b in _sa_gap.approach.entry] == [len(b) for b in _sa_d.approach.entry],
+    str(_sa_gap.approach.age_h(_sa_gap_t)),
+)
+
+# 4. The ramp-down: the first pause interval after a space run is a ramp sample and
+# no idle reading (design note s3); with no run before it, it is the idle store's.
+_SA_GATE = _sa_NS(written_c=20.0, gate_c=20.0, ceiling_c=45.0)
+_sa_r, _sa_rt = _sa_learned(runs_n=1)
+_sa_r2 = _sa_dr.DrawRange.from_dict(_sa_r.as_dict())
+_sa_rt = _sa_feed(_sa_r2, [(1.0, 0.53, 0.0)], _sa_rt)
+_sa_idle0 = len(_sa_r2.idle)
+_sa_dr.fold(_sa_r2, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span_s=(_sa_rt, _sa_rt + 300))
+_sa_r3 = _sa_dr.DrawRange.from_dict(_sa_r.as_dict())
+_sa_rt3 = _sa_feed(_sa_r3, [(0.02, 0.0, 0.0)], _sa_rt - 300)
+_sa_dr.fold(_sa_r3, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span_s=(_sa_rt3, _sa_rt3 + 300))
+R.check(
+    "the first pause interval after a space run folds a ramp sample and no idle reading; after a pause "
+    "(null control) the same interval is an idle reading and no ramp sample",
+    len(_sa_r2.idle) == _sa_idle0 and len(_sa_r2.approach.ramp[0]) == len(_sa_r.approach.ramp[0]) + 1
+    and len(_sa_r3.idle) == len(_sa_r.idle) + 1 and len(_sa_r3.approach.ramp[0]) == len(_sa_r.approach.ramp[0]),
+    f"idle {_sa_idle0}->{len(_sa_r2.idle)}, null idle {len(_sa_r.idle)}->{len(_sa_r3.idle)}",
+)
+
+# The received draw: a 15-minute run at the floor from off takes the mean of
+# the profile's first three bins; a live run of unknown age books no entry; a
+# charge before a space run leaves it an entry (2: the space edge, not the start).
+_sa_plan = np.array([0.0, 0.53, 0.0, 0.0])
+_sa_got = _sa_runs.received(_sa_plan, 0.0, _sa_a, dt=0.25, p_max=3.0)
+_sa_unknown = _sa_runs.received(_sa_plan[1:], 0.0, _sa_a._replace(age_h=None), dt=0.25, p_max=3.0)
+_sa_charge = _sa_runs.received(np.array([0.0, 0.53, 0.53]), np.array([1.0, 0.0, 0.0]), _sa_a, dt=0.25, p_max=3.0)
+R.check(
+    "runs.received: a 15-minute run from off takes the mean of the first three bins, the pause after it the "
+    "ramp's share; unknown age books nothing; no approach is the shipped array itself",
+    abs(_sa_got[1] - float(np.mean(_sa_a.entry[:3]))) < 1e-9 and abs(_sa_got[2] - _sa_a.ramp[0] / 3) < 1e-9
+    and _sa_got[0] == 0.0 and np.array_equal(_sa_unknown, _sa_plan[1:])
+    and _sa_runs.received(_sa_plan, 0.0, None, dt=0.25, p_max=3.0) is _sa_plan
+    and _sa_runs.received(_sa_plan, 0.0, _sa_a, dt=0.25, p_max=0.8)[1] == 0.8,
+    f"{_sa_got} unknown {_sa_unknown}",
+)
+R.check(
+    "a charge before a space run leaves the run an entry while the combined draw starts once",
+    abs(_sa_charge[1] - float(np.mean(_sa_a.entry[:3]))) < 1e-9
+    and _sa_runs.edge_count(np.array([1.0, 0.53, 0.53])) == 1,
+    str(_sa_charge),
+)
+_sa_rows = np.stack([_sa_plan, np.array([0.53, 0.53, 0.0, 0.53])])
+_sa_b = _sa_runs.received(_sa_rows, 0.0, _sa_a._replace(age_h=0.5), dt=0.25, p_max=3.0)
+R.check(
+    "runs.received of a batch is the one-row answer per row, bit for bit, the live age continued at step 0",
+    all(np.array_equal(_sa_b[i], _sa_runs.received(_sa_rows[i], 0.0, _sa_a._replace(age_h=0.5), dt=0.25, p_max=3.0)) for i in range(2))
+    and abs(_sa_b[1][0] - float(np.mean(_sa_a.entry[6:9]))) < 1e-9,
+    str(_sa_b),
+)
+
+# 1. The objective: _shipped_and_received hands the true objective the received
+# draw, and a descent and an install with no approach the shipped one.
+_sa_opt = _sa_om.HeatPumpOptimizer(
+    _sa_om.ThermalModel(_sa_dc.replace(_sa_om.ThermalParameters(), min_electrical_power=0.53, max_electrical_power=3.0)),
+    _sa_dc.replace(_sa_om.OptimizationConfig(), clamp_planned_levels=True))
+_sa_opt._approach = _sa_a
+_sa_sr = _sa_om._shipped_and_received(_sa_opt, _sa_plan, None, None)
+_sa_sd = _sa_om._shipped_and_received(_sa_opt, _sa_plan, None, None, "relaxed")
+_sa_opt._approach = None
+_sa_s0 = _sa_om._shipped_and_received(_sa_opt, _sa_plan, None, None)
+R.check(
+    "the true objective's received draw is runs.received of the shipped plan; a descent and no approach "
+    "receive the shipped array itself",
+    np.array_equal(_sa_sr[2], _sa_got) and _sa_sr[0] is _sa_plan and _sa_sd[2] is _sa_plan and _sa_s0[2] is _sa_plan,
+    f"{_sa_sr[2]}",
+)
+
+# 5. The generator: with no approach the masks are the base's; with one, a
+# run out of a pause books the entry's energy, so the committed plan runs
+# fewer floor steps for the same relaxed energy.
+_sa_q, _sa_pr = np.full(12, 0.3), np.linspace(0.1, 0.3, 12)
+_sa_m0 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25)
+_sa_m00 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25, entry_kwh=0.0)
+_sa_m1 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25, entry_kwh=_sa_a.entry_kwh(0.53))
+R.check(
+    "runs.commit: no entry energy leaves the masks equal; the learned entry's energy leaves later floor steps out",
+    all(np.array_equal(a, b) for a, b in zip(_sa_m0, _sa_m00)) and len(_sa_m0) == len(_sa_m00)
+    and int(_sa_m1[0].sum()) < int(_sa_m0[0].sum()),
+    f"{[int(m.sum()) for m in _sa_m0]} vs {[int(m.sum()) for m in _sa_m1]}",
+)
+
+# 7. The axis: the expected draw at an entry is the received total, which the
+# accuracy sample pairs with the meter; the COP judge refuses the interval; an
+# entry sample inside the profile adds no pair to the window. Null: no profile.
+_sa_e = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_exp = _sa_dr.expect(_sa_e, (0.53, 0.0), _SA_P, _sa_t, 0.25)
+_sa_in = _sa_dr.inside_approach(_sa_e)
+_sa_n = _sa_dr.DrawRange.from_dict(_sa_none.as_dict())
+_sa_exp0 = _sa_dr.expect(_sa_n, (0.53, 0.0), _SA_P, 1e9, 0.25)
+_sa_pairs = len(_sa_e.samples)
+_sa_feed(_sa_e, [(1.25, 0.53, 0.0)], _sa_t)
+R.check(
+    "the expected draw of an entry step is the received total and flags the step inside the approach; the "
+    "COP judge refuses it as off its ask; its sample adds no window pair. Null: no profile expects the "
+    "shipped total, flags nothing, and the judge reads the floor as before",
+    abs(_sa_exp - float(np.mean(_sa_a.entry[:3]))) < 1e-9 and _sa_in == _sa_exp
+    and _SaCop.judge_floor(_sa_exp, 1.2, _sa_NS(flow_lift_power_floor_kw=0.2, min_electrical_power=0.53, max_electrical_power=3.0), None, False, True) == _SA_OFF_ASK
+    and _SaCop.judge_floor(_sa_exp, 1.2, _sa_NS(flow_lift_power_floor_kw=0.2, min_electrical_power=0.53, max_electrical_power=3.0), None, False, False) is None
+    and len(_sa_e.samples) == _sa_pairs
+    and _sa_exp0 == 0.53 and _sa_dr.inside_approach(_sa_n) is None,
+    f"expected {_sa_exp} null {_sa_exp0} pairs {_sa_pairs}->{len(_sa_e.samples)}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
