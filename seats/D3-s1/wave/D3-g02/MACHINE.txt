@@ -6,3 +6,13 @@ model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
 Filesystem      Size  Used Avail Use% Mounted on
 /dev/vda        252G   12G   58G  18% /
 load1: 0.79
+
+## re-fire machine 2026-11-25T00:47:13Z (seat resumed from wip 041a3863; null and 6 gates were taken on the machine above)
+nproc 4
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+               total        used        free      shared  buff/cache   available
+Mem:           16087         754       14055          12        1550       15333
+Swap:              0           0           0
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+load1 0.28
