@@ -1,0 +1,91 @@
+{
+ "key": "936bcb2da6441e86",
+ "site": "dhw_planner.py:1893 GUARD_OFF",
+ "file": "custom_components/heatpump_optimizer/dhw_planner.py",
+ "line": 1893,
+ "patch": "if np.array_equal(plan, before): -> if False:",
+ "function": "DhwPlanner._repair_dhw_floor",
+ "cluster": "dhw_planner.py:DhwPlanner._repair_dhw_floor@1800-1893",
+ "slice": "u1c",
+ "full_net": "SURVIVED",
+ "reach_column": "executed",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "m4_carried": "936bcb2da6441e86 (u1c): should_have_failed tests/block_duty.py, doc_claims.py, entities.py, env_drift.py, features.py, manual_plan.py, optimality.py, plan_view.py, validate.py; full net SURVIVED.",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2957.6,
+  "load1_start": 0.97,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "fail_lines": {
+   "python3 tests/closure.py selftest": 2,
+   "python3 tests/entities.py": 1,
+   "python3 tests/harness_headers.py": 3
+  },
+  "more_fails_than_null": [],
+  "summary": [
+   "3 TEST SCRIPT(S) FAILED"
+  ],
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/936bcb2da6441e86.json",
+  "log": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/936bcb2da6441e86.log",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 936bcb2da6441e86",
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py",
+  "baseline_value": "differing_plans=0 (self); shortfall_ksteps_baseline=57165.329 K over 1500 seeded calls; golden_calls=5",
+  "mutant_value": "differing_plans=35 of 1500; shortfall_ksteps_mutant=58050.843 K (+885.5 K-steps); calls_mutant_more_shortfall=30; golden_differing=0 of 5",
+  "inputs_tried": "1500 seeded direct calls inside the production envelope (p_dhw_max >= 0.1, min_run_power <= p_dhw_max); the 5 repair calls three golden DHW scenarios make",
+  "reach": "executed by 9 closure scripts (state/reach.tsv). The guard marks a breach whose top-up the capacity clamp removed again as unreachable; without it the 48-round budget is spent retrying that breach and later breaches go unrepaired: 35 of 1500 plans differ, 30 with more residual floor shortfall. The golden scenarios never hit an unreachable breach (0 of 5 differ).",
+  "result_lines": [
+   "RESULT calls=1500 count",
+   "RESULT differing_plans=35 count",
+   "RESULT shortfall_ksteps_baseline=57165.329 K",
+   "RESULT shortfall_ksteps_mutant=58050.843 K",
+   "RESULT calls_mutant_more_shortfall=30 count",
+   "RESULT golden_calls=5 count",
+   "RESULT golden_differing=0 count",
+   "RESULT thread_factor=1.001 ratio",
+   "RESULT load1=1.71",
+   "RESULT swapins=0 count"
+  ],
+  "run": "re-fire 2026-11-25, clean probe worktree at the baseline (never the gate tree), nice 19"
+ },
+ "class": "candidate",
+ "should_fail": "tests/block_duty.py's floor-repair checks (block_duty.py:1003-1037, the place_startable / bounded-rounds pins) and tests/features.py's _repair_dhw_floor checks (features.py:41112-41131, 63300) execute line 1893 on the traced baseline (state/reach.tsv), but none poses a breach that no ceiling-legal top-up can close followed by a later closable breach and asserts the later one is repaired (or that the unreachable breach is not retried).",
+ "title": "No check poses an unreachable DHW floor breach before a closable one; dropping the repair's skip leaves the later breach unrepaired unseen",
+ "claim": "Mutant 936bcb2da6441e86 at dhw_planner.py:1893 (if np.array_equal(plan, before): -> if False:) survives the full gate (RED-AS-NULL); its probe moves: differing_plans=35 of 1500; shortfall_ksteps_mutant=58050.843 K (+885.5 K-steps); calls_mutant_more_shortfall=30; golden_differing=0 of 5.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "I1",
+ "severity_claimed": "medium",
+ "stop_rule_class": "bug",
+ "metric_definition": "count of 1500 seeded direct DhwPlanner._repair_dhw_floor calls (production envelope) whose repaired DHW plan differs with the line-1893 skip disabled, and the summed residual floor shortfall in K-steps per arm",
+ "phenomenon_property": "A floor breach whose top-up the capacity clamp removes again is marked unreachable and skipped, so the repair budget goes to the remaining breaches",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py",
+ "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._repair_dhw_floor",
+ "perturbation": {
+  "change": "mutant 936bcb2da6441e86: if np.array_equal(plan, before): -> if False: at custom_components/heatpump_optimizer/dhw_planner.py:1893, applied in memory by the probe; full gate: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 936bcb2da6441e86",
+  "expected_direction": "up (differing plans 0 -> 35; shortfall 57165.329 -> 58050.843 K-steps; 30 calls with more shortfall)"
+ },
+ "null_control": {
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py",
+  "value": "golden DHW scenarios' own repair calls: golden_differing=0 of 5 (every top-up survives the clamp)",
+  "full_gate_null": "dev/audit/rounds/round11/D3/s1/wave/D3-g18/gates/null.json"
+ },
+ "files": [
+  "custom_components/heatpump_optimizer/dhw_planner.py"
+ ],
+ "proposed_fix_scope": "tests only: a check in the named script that fails under the mutant"
+}
