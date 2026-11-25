@@ -37,7 +37,7 @@ cov.append({
     "enumerator": "awk -F'\\t' '$6==\"gate\"' dev/audit/rounds/round11/D3/s1/SURVIVORS.tsv",
     "universe": 742, "examined": len(res),
     "not_reached": [f"assigned to box {b} (its keys.tsv; the full gate of each key is that box's)" for b in boxes] + [f"TIMEOUT: {r['key']}" for r in tos],
-    "redispatched": [],
+    "redispatched": [x for r in u1b["coverage"] if r["step"] == "D3.M3" for x in r["redispatched"]],
     "evidence": (f"gate_wave.sh run (fullgate.py run --src complete --key <key>, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh) over {RW}/keys.tsv; "
                  f"records {RW}/gates/<key>.json and .log; null control {RW}/gates/null.json; results {RW}/results/<key>.json"),
 })

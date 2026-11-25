@@ -204,7 +204,16 @@
     "assigned to box D3-g46 (its keys.tsv; the full gate of each key is that box's)",
     "assigned to box D3-g47 (its keys.tsv; the full gate of each key is that box's)"
    ],
-   "redispatched": [],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
    "evidence": "gate_wave.sh run (fullgate.py run --src complete --key <key>, GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh) over dev/audit/rounds/round11/D3/s1/wave/D3-g43/keys.tsv; records dev/audit/rounds/round11/D3/s1/wave/D3-g43/gates/<key>.json and .log; null control dev/audit/rounds/round11/D3/s1/wave/D3-g43/gates/null.json; results dev/audit/rounds/round11/D3/s1/wave/D3-g43/results/<key>.json"
   }
  ],
