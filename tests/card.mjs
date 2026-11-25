@@ -12301,6 +12301,70 @@ check("without an indoor reading the corner now label is absent",
   const noPlan = build({ [SOLAR_ID]: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)[SOLAR_ID] });
   check("UI-3 pill: no plan sensor at all draws no pill", pillOf(noPlan) === null);
 
+  // R11-OWNER-CARD-EXTERNAL-HEAT: the heating pill names what heats, and
+  // external heat outranks it. Each case's null is a neighbouring case: the
+  // other kind inactive, neither active (idle), the sensor off, the switch on.
+  const heatOf = (space, dhw) => withPlan(withPlan(idle(), "space", { attributes: { active_now: space } }),
+    "dhw", { attributes: { active_now: dhw } });
+  for (const [s, d, want] of [[true, false, "Heating space"], [false, true, "Heating DHW"],
+    [true, true, "Heating space+DHW"], [false, false, "Idle"]]) {
+    const p = pillOf(build(heatOf(s, d)));
+    check(`OWNER-EXTHEAT pill: space ${s ? "on" : "off"}, DHW ${d ? "on" : "off"} reads '${want}'`,
+      !!p && p.text === want && p.key === (s || d ? "heating" : "idle") && p.tone === (s || d ? "ok" : "idle"),
+      JSON.stringify(p));
+  }
+  const EXT_ID = "binary_sensor.heat_pump_optimizer_external_heat_source";
+  const withExt = (states, state, attributes = {}) => ({ ...states, [EXT_ID]: { state, attributes } });
+  const pExt = pillOf(build(withExt(heatOf(true, false), "on", { suppressing_electric_dhw: true })));
+  check("OWNER-EXTHEAT pill: the external heat sensor on reads 'External heat detected', ahead of heating",
+    !!pExt && pExt.key === "external_heat" && pExt.text === "External heat detected", JSON.stringify(pExt));
+  const extTitle = (dumpOf(build(withExt(idle(), "on"))).match(/data-status="external_heat" title="([^"]*)"/) || [])[1];
+  check("OWNER-EXTHEAT pill: its title says planned heating is held back",
+    /Planned heating is held back/.test(extTitle || ""), String(extTitle));
+  const pExtOff = pillOf(build(withExt(heatOf(false, true), "off")));
+  check("OWNER-EXTHEAT pill: the sensor off leaves the pill on heating",
+    !!pExtOff && pExtOff.key === "heating" && pExtOff.text === "Heating DHW", JSON.stringify(pExtOff));
+  const pExtOffIdle = pillOf(build(withExt(idle(), "off")));
+  check("OWNER-EXTHEAT pill: the sensor off leaves the pill on idle",
+    !!pExtOffIdle && pExtOffIdle.key === "idle", JSON.stringify(pExtOffIdle));
+  const pIgnored = pillOf(build(withExt(heatOf(true, false), "on", { block_ignored: true })));
+  check("OWNER-EXTHEAT pill: the sensor on with block_ignored true falls through to the heating the plan earns",
+    !!pIgnored && pIgnored.key === "heating" && pIgnored.text === "Heating space", JSON.stringify(pIgnored));
+  const pNotIgnored = pillOf(build(withExt(heatOf(true, false), "on", { block_ignored: false })));
+  check("OWNER-EXTHEAT pill: block_ignored false still reads external heat",
+    !!pNotIgnored && pNotIgnored.key === "external_heat", JSON.stringify(pNotIgnored));
+  // withPlan writes in place, so staleStates now carries the manual override
+  // set above; the stale case is rebuilt from idle().
+  const pExtStale = pillOf(build(withExt({ ...heatOf(true, false),
+    [LAST_ID]: { state: iso(FROZEN - 4 * 3600e3), attributes: {} } }, "on")));
+  check("OWNER-EXTHEAT pill: a stale plan outranks external heat",
+    !!pExtStale && pExtStale.key === "stale", JSON.stringify(pExtStale));
+  // The sensor is read off the plan sensor's own device prefix, the way the
+  // input problem sensor is: another device's sensor does not light this pill.
+  const pForeign = pillOf(build({ ...heatOf(false, false),
+    "binary_sensor.other_house_external_heat_source": { state: "on", attributes: {} } }));
+  check("OWNER-EXTHEAT pill: an external heat sensor of another device prefix is not read",
+    !!pForeign && pForeign.key === "idle", JSON.stringify(pForeign));
+  const flipCard = build(heatOf(true, false));
+  const flipBefore = pillOf(flipCard);
+  flipCard.hass = { states: withExt(flipCard._hass.states, "on") };
+  const flipAfter = pillOf(flipCard);
+  check("OWNER-EXTHEAT pill: the sensor turning on redraws the pill with nothing else changing",
+    !!flipBefore && flipBefore.key === "heating" && !!flipAfter && flipAfter.key === "external_heat",
+    `${JSON.stringify(flipBefore)} -> ${JSON.stringify(flipAfter)}`);
+  const pillKeys = ["status.external_heat", "status.external_heat_title", "status.heating_space",
+    "status.heating_dhw", "status.heating_both"];
+  const enText = pillKeys.map((k) => vm.runInContext(`L(${JSON.stringify(k)})`, ctx));
+  for (const lang of ["sv", "de"]) {
+    let got;
+    try {
+      vm.runInContext(`setLanguage(${JSON.stringify(lang)})`, ctx);
+      got = pillKeys.map((k) => vm.runInContext(`L(${JSON.stringify(k)})`, ctx));
+    } finally { vm.runInContext('setLanguage("en")', ctx); }
+    check(`OWNER-EXTHEAT pill: ${lang} carries its own text for each new pill string`,
+      got.every((t, i) => t && t !== pillKeys[i] && t !== enText[i]), got.join(" | "));
+  }
+
   // The pill follows the clock as well as the sensors: the same states, past
   // the limit, must redraw with nothing in hass changing.
   const clockCard = build(freshStates);
