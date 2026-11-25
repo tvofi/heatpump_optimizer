@@ -87,3 +87,4 @@
 1795611506 HB alive
 1795611806 CKPT 9ede3537: deployment_shape note 182->184 (merge-caused entities red); entities/features green; prepr running snapshot 21056cf14a31
 1795614805 CKPT handoff already at 6f48176b (same fix, pushed 10:58Z); adopting it; prepr running at 6f48176b snapshot b0c097192554
+1795617902 CKPT fed97c77: origin/main 0e1eba2b merged into 6f48176b (plain merge conflicted); quick checks green; prepr running snapshot 9fdd8357570e
