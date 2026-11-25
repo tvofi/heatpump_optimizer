@@ -38,7 +38,9 @@ Recorded at this head on Darwin with `tests/derive_closures.sh --cases --single 
 
 ## Head
 
-`8e9f5a5b9af9abf8f2f5a37227c8bd1c95442201`, with `origin/main` `d3d66c4040` merged in. The table's `blob` for each script equals `git hash-object` of that script at this head (`04cc69a4` features.py, `5cd6e979` entities.py).
+`58c73880ee6e2f9520f1129717e750e32fa5df5d`. It is `3797b416d9` (the delivery row on `8e9f5a5b9a`, which merged `origin/main` `d3d66c4040`) plus one commit that repairs the two reds below: four comment sentences split, and one path added to two committed closures.
+
+The table's `blob` for each script equals `git hash-object` of that script at `8e9f5a5b9a` (`04cc69a4` features.py, `5cd6e979` entities.py). At `58c73880ee` entities.py hashes to `52438e56` after a comment-only edit, so its entry is stale until re-recorded. Nothing selects over the table in P1.
 
 ## Mutation proof
 
@@ -65,7 +67,10 @@ Not run locally: a full `prepr.sh`. Linux recording (`--cases` without `--single
 
 ## Red checks
 
-None known at the handoff. The only local red is the entities.py timing check named above, which also fails on a plain run on this host.
+- `tests / fast (3.14)` was red at `3797b416d9`. `tests/doc_claims.py`'s comment ratchet refused `tests/entities.py` (long units 406 -> 407) and the total (2299 -> 2302). One new sentence in entities.py and three in the new `tests/case_select.py` ran over 40 words. It is fixed at `58c73880ee`: each sentence is split, and `python3 tests/comment_ratchet.py --base origin/main` prints `long_units_head=2299` and `comment_ratchet: OK`.
+- `tests / closures` was red at `3797b416d9` with `UNDER-SCOPED`: `tests/doc_claims.py` and `tests/entities.py` each read `tests/case_select.py`, which their committed closures did not list. The closures-autofix job (139296622081) failed. It is fixed at `58c73880ee`: that path is added to both closures in `tests/closures.json`, the one path the job named for each script.
+
+The only local red is the entities.py timing check named above, which also fails on a plain run on this host.
 
 ## Forward-carry
 
