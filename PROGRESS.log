@@ -31,3 +31,4 @@
 1795619167 CKPT packet rendered; delta is tests/deployment_shape.py only snapshot 9b3b609384b7
 1795619213 CKPT pair count re-derived 184/561 at head+main; entities.py running snapshot 82a71e892b2c
 1795619247 CKPT body figures re-derived; waiting entities.py + CI snapshot 019658ad4a8a
+1795619762 HB alive
