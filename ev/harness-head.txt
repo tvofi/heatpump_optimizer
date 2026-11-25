@@ -1,0 +1,5 @@
+empty (null control): read ((0.0, 0.0), (0.0, 0.0)) mask (True, True) leg rule ('dhw', None)
+  switch term split 0.0000 whole 0.0000 split excess 0.0000 (start price 1.0)
+issue 3849 (stopped 3, kept 0, n = 2, unlatched): read ((0.2857142857142857, 0.0), (0.0, 0.0)) mask (True, True) leg rule ('dhw', None)
+  switch term split 0.5714 whole 0.2857 split excess 0.2857 (start price 1.0)
+rc=0
