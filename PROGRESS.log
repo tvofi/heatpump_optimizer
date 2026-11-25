@@ -7,3 +7,4 @@
 1795331763 HB alive
 1795331781 DONE verdict pushed: blocked class-open, probe/rev-3841-b62336c7 at 8545718c
 1795605481 HB alive
+1795605610 CKPT setup done; packet rendered (scope full: no published verdict at 6cdee8b0b5); classify poll started snapshot 6e1269191d5d
