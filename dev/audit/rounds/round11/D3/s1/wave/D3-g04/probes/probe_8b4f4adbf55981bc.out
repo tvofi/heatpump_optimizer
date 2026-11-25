@@ -1,0 +1,12 @@
+RESULT init_type=list
+RESULT input []: baseline=None mutant=None
+RESULT input [{}]: baseline=None mutant=None
+RESULT input [{'humidity': None}]: baseline=None mutant=None
+RESULT input [{'humidity': 80}]: baseline=80.0 mutant=80.0
+RESULT input [{'datetime': '2026-11-25T04:01:34.854783+00:00', 'humidity': 55}, {'datetime': '2027-11-25T04:01:34.854783+00:00', 'humidity': 90}]: baseline=55.0 mutant=55.0
+RESULT input None: baseline=None mutant=raises TypeError
+RESULT differing_reachable=0 count
+RESULT differing_unreachable=1 count
+RESULT thread_factor=1.000
+RESULT load1=0.85
+RESULT swapins=0

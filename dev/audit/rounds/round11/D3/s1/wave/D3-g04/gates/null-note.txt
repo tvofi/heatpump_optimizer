@@ -1,0 +1,7 @@
+box D3-g04 full-gate null control (fullgate.py null via gate_wave.sh null), 2026-11-22 21:38-22:42Z, nproc 4 Intel Xeon Processor @ 2.10GHz, 16 GB, load1 0.69..0.92, wall 3845.1 s, child CPU 6361.4 s (provisional).
+gate_rc=1, 3 scripts red, all artefact checks; none reads a production cell file:
+- tests/closure.py selftest (2 lines): "a refused merge surfaces merge()'s reason, not just skip-merge-failed" and "and a merge that succeeds carries no merge reason (null control)" [status='skip-not-under-scoped']: branch/merge-tool pins in a detached worktree.
+- tests/entities.py (1 line): "and is accepted when it does [the scoped path records only what the diff can reach]": scoped-gate pin, branch-environment artefact (identical to box D3-rem's null).
+- tests/harness_headers.py (3 lines): round4/D6/claims.py RESULT claims_true/claims_false vs its header (122/1 printed vs 123/0) and "the executed harnesses leave their committed output byte-identical" (claims.json/claims.md rewritten): an earlier round's register harness re-run on the finder-stripped tree.
+The a3:/a4: FAIL lines in entities.py's section are its positive controls (printed under ok-checks), not red checks; fail_lines counts entities.py at 1.
+Not re-taken: red on artefact checks only and no machine-caused script (no card.mjs heap failure). fullgate.py counts KILLED only on a script beyond these or more FAIL lines in one of them.

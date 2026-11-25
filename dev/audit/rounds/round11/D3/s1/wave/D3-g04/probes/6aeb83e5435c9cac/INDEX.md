@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.py: Metric: The published grid_fee_sek key of _contract_comparison() on a month whose ledger carries a 3.00 SEK grid-fee line (10 kWh, 12 SEK spot, mean spot 1.5).

@@ -1,0 +1,50 @@
+{
+ "key": "9789e0e7faa1b53a",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10445 CMP_BOUND",
+ "patch": "if kwh > 0 and len(costs) > 1: -> if kwh >= 0 and len(costs) > 1:",
+ "function": "HeatPumpOptimizerCoordinator._contract_comparison",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison@10428-10445",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2881.0,
+  "load1_start": 1.01,
+  "load1_end": 0.85,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 4756.1,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/9789e0e7faa1b53a.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_9789e0e7faa1b53a.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_9789e0e7faa1b53a.py",
+  "rc": 0,
+  "baseline_value": "differing_inputs=0 count",
+  "mutant_value": "null_delta=0 count",
+  "results": {
+   "differing_inputs": "0 count",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.85",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "kwh 0 with spot 0/5/-3 SEK, mean 1.0/0.5/None, fixed 1.0/2.0/0.7, fee 0/3",
+   "kwh -1",
+   "kwh nan",
+   "kwh 1e-12"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_9789e0e7faa1b53a.out"
+ },
+ "should_fail": "none: at kwh == 0 both other contracts are gated on kwh > 0, so costs holds hourly_spot alone and len(costs) > 1 is false on both arms."
+}

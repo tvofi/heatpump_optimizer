@@ -1,0 +1,69 @@
+{
+ "key": "faf822994582adfc",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4463 CLAMP_DROP",
+ "patch": "usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0) -> usable_kwh = c_dhw * (t - params.dhw_min_temp)",
+ "function": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep@4463-4471",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2881.3,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 4813.4,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/faf822994582adfc.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.py",
+  "rc": 0,
+  "baseline_value": "recommended_baseline=48",
+  "mutant_value": "recommended_mutant=56",
+  "results": {
+   "recommended_baseline": "48",
+   "recommended_mutant": "56",
+   "meets_flipped": "4 count",
+   "differing_cells": "2 of 8",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.87",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "dhw_min_temperature None/48/50/55 x learned zero-kWh windows on/off (8 cells; 2 differ)",
+   "null: profile-fallback heaviest 4.97 kWh"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.out"
+ },
+ "should_fail": "tests/features.py: the _dhw_setpoint_sweep block (~20133-20230) drives the default minimum (45 C, below every candidate) and a learned 8 kWh draw, never a minimum above the 48 C candidate with a zero-kWh heaviest window; it lacks an assertion on meets_heaviest_window for a candidate below dhw_min_temp.",
+ "finding": {
+  "title": "No check sets the DHW minimum above the lowest sweep candidate; dropping the usable-energy clamp moves the advice unseen",
+  "claim": "_dhw_setpoint_sweep clamps a candidate's usable band at zero (max(t - dhw_min_temp, 0)). With the clamp dropped, a candidate below dhw_min_temperature gets negative usable energy; when every demand window has learned a zero-kWh heaviest draw (twenty empty occurrences), those candidates stop meeting it and the recommendation moves 48 -> 56 at a 55 C minimum. The full gate does not notice. (The baseline itself recommends 48 C below a 55 C minimum in that state: a lead.)",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "stop_rule_class": "bug",
+  "metric_definition": "dhw_advisor recommended_setpoint at dhw_min_temperature 55, dhw_setpoint 60, every window's learned draw reservoir twenty 0.0 kWh occurrences",
+  "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep (custom_components/heatpump_optimizer/coordinator.py:4463)",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.py  ;  custom_components/heatpump_optimizer/coordinator.py:4463 full gate: GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1 ./tests/run.sh via dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key faf822994582adfc",
+  "perturbation": "coordinator.py:4463 `max(t - params.dhw_min_temp, 0.0)` -> `(t - params.dhw_min_temp)`; recommendation 48 -> 56, 4 meets flags True -> False",
+  "null_control": "the probe's null arm (null_delta/null_differing RESULT = 0 count) and this box's fullgate.py null gate (gates/null.json)"
+ }
+}

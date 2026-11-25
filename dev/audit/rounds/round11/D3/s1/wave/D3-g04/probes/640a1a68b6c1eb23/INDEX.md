@@ -1,0 +1,1 @@
+- dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_640a1a68b6c1eb23.py: Metric: _entity_state(entity_id)'s outcome for an unset entity (None, the EntryConfig default of away_presence_entity, and '') under two states registries: the suite's FakeStates (dict.get) and a re

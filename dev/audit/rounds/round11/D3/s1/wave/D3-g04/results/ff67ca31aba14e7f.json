@@ -1,0 +1,55 @@
+{
+ "key": "ff67ca31aba14e7f",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:4391 GUARD_OFF",
+ "patch": "if 40.0 - inlet < 1.0: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._dhw_mixed_water",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._dhw_mixed_water@4391-4396",
+ "slice": "u1d",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2674.0,
+  "load1_start": 0.89,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 4451.3,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/ff67ca31aba14e7f.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_ff67ca31aba14e7f.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_ff67ca31aba14e7f.py",
+  "rc": 0,
+  "baseline_value": "litres_baseline=absent at inlet 39.5",
+  "mutant_value": "litres_mutant=6200.0 at inlet 39.5; at 40.0: raises ZeroDivisionError",
+  "results": {
+   "litres_baseline": "absent at inlet 39.5",
+   "litres_mutant": "6200.0 at inlet 39.5; at 40.0: raises ZeroDivisionError",
+   "live_inlet_accepted": "{30.0: 30.0, 35.0: 35.0, 35.5: None, 39.0: None}",
+   "inlet_max_reachable": "35.0 C",
+   "inlets_scanned": "81",
+   "differing_reachable": "0 count",
+   "null_delta": "0 count",
+   "thread_factor": "1.000",
+   "load1": "0.92",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "inlet 39.5 (separates: {} -> 6200 L)",
+   "inlet 40.0 (mutant ZeroDivisionError)",
+   "inlets -5.0..35.0 step 0.5 (81 values)",
+   "null: inlet 10"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_ff67ca31aba14e7f.out"
+ },
+ "should_fail": "none reachable: as for c555c1a38da31dde, the resolved inlet never exceeds 35 C, so the guard is never taken in production."
+}

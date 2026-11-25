@@ -1,0 +1,53 @@
+{
+ "key": "8b4f4adbf55981bc",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9931 GUARD_OFF",
+ "patch": "if not self._weather_forecast: -> if False:",
+ "function": "HeatPumpOptimizerCoordinator._current_humidity",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._current_humidity@9931-9931",
+ "slice": "u1c",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2908.0,
+  "load1_start": 0.72,
+  "load1_end": 0.94,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 4813.1,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/8b4f4adbf55981bc.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_8b4f4adbf55981bc.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_8b4f4adbf55981bc.py",
+  "rc": 0,
+  "baseline_value": "differing_reachable=0 count",
+  "mutant_value": "differing_unreachable=1 count",
+  "results": {
+   "init_type": "list",
+   "differing_reachable": "0 count",
+   "differing_unreachable": "1 count",
+   "thread_factor": "1.000",
+   "load1": "0.85",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "[]",
+   "[{}]",
+   "[{'humidity': None}]",
+   "[{'humidity': 80}]",
+   "timestamped two-entry list",
+   "None (unreachable: raises TypeError under the mutant)"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_8b4f4adbf55981bc.out"
+ },
+ "should_fail": "none reachable: _weather_forecast is a list from __init__ (coordinator.py:3725) and only ever assigned a non-empty list (7076) or a fabricated one (7111); on [] the loop runs zero times and returns None on both arms."
+}

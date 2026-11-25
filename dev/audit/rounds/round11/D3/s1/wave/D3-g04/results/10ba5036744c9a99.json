@@ -1,0 +1,51 @@
+{
+ "key": "10ba5036744c9a99",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9155 CLAMP_DROP",
+ "patch": "dt_h = max(ctx._opt_config.time_step_minutes, 1.0) / 60.0 -> dt_h = (ctx._opt_config.time_step_minutes) / 60.0",
+ "function": "HeatPumpOptimizerCoordinator._confidence_margins",
+ "cluster": "coordinator.py:HeatPumpOptimizerCoordinator._confidence_margins@9153-9166",
+ "slice": "u1a",
+ "m4_source": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3124.4,
+  "load1_start": 0.99,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "child_cpu_s": 5160.5,
+  "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+  "record": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/gates/10ba5036744c9a99.json",
+  "provisional": true,
+  "machine": "nproc 4, Intel Xeon Processor @ 2.10GHz, 16 GB"
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_10ba5036744c9a99.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_10ba5036744c9a99.py",
+  "rc": 0,
+  "baseline_value": "max_abs_delta_production=0.0 C",
+  "mutant_value": "max_abs_delta_subminute=0.15 C",
+  "results": {
+   "production_step_minutes": "15.0",
+   "max_abs_delta_production": "0.0 C",
+   "max_abs_delta_subminute": "0.15 C",
+   "null_max_abs_delta": "0.0 C",
+   "thread_factor": "1.000",
+   "load1": "0.88",
+   "swapins": "0"
+  },
+  "inputs_tried": [
+   "time_step_minutes 15.0 (the only production value)",
+   "5, 15, 60 (null)",
+   "0.0, 0.25, 0.5, 0.999 fed directly (separates by 0.15 C at <1 min)"
+  ],
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_10ba5036744c9a99.out"
+ },
+ "should_fail": "none reachable: OptimizationConfig.time_step_minutes is never assigned outside its 15.0 default (optimizer.py:2667), so max(step, 1.0) is the identity on every production input."
+}
