@@ -1,0 +1,24 @@
+e next DHW window on an empty horizon is None, and a repeated hour reads tomorrow as the ordinary day, not the holiday-flagged step after it (null control: a real midnight wrap does read that step's holiday windows)  [(None, "IndexError('index 0 is out of bounds for axis 0 with size 0')") (19.5, None) (10.5, None)]
+  ok   the baseline thermostat holds the configured target past short comfort targets and burns no free heat past a short external-heat series
+  ok   the DHW safety release reads a short tank trajectory as cold past its end
+  ok   a plan slot counts shared energy and reasons only where the shorter series reach
+  ok   the published schedule reads short displace and on/off series inside them and falls back past them
+  ok   the plan forecast carries a reason inside a short reasons list and None past it, on both circuits
+  ok   the capacity envelope prices a step past short humidity at the ambient
+  ok   every humidity-aware call in optimizer.py, dhw_planner.py, thermal_model.py and coordinator.py passes a humidity, and every function taking one reads it (the seam rule, #1520)
+  ok   and every allow-list entry still names a live call (none is stale)
+  ok   and the rule finds every pre-fix shape -- no humidity, an alias, an explicit None by keyword or position, a dropped pass-through, an unread parameter -- and passes the positional and forwarded ones
+  ok   R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback
+  ok   R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired
+  ok   R9-F2.1 P7 (spring): a clock 30 min before a 15-min plan is beyond one step, so the action idles
+  ok   R9-F2.1 P7 (null): a clock 30 min before a 15-min plan is beyond one step, so the action idles
+  ok   R9-F2.1 P7 (autumn): the step covering now is the one whose instant precedes it, not the one whose wall clock does
+  ok   R9-F2.1 P7 (null): the step covering now is the one whose instant precedes it, not the one whose wall clock does
+  ok   R9-F2.1 P3: an on/off pump at full power publishes 'boost' at 1.0, and off publishes 0.0 -- never outside [0, 1]
+  ok   R9-F2.1 P3 (null arm): a modulating pump's fraction inside its band is unchanged
+  ok   R9-F2.1 P3: a modulating pump's published fraction is clipped to [0, 1] outside its band
+  ok   R9-F2.1 P3: every site that normalises planned power puts an on/off pump's full-power step at the top of its range and off at the bottom
+  ok   R9-F2.1 P3: one zone-kelvin under min_temp is priced at the single-zone room's linear floor price (scalar)
+  ok   R9-F2.1 P3: one zone-kelvin under min_temp is priced at the single-zone room's linear floor price (batch)
+  ok   R9-F2.1 P3 (null arm): the quadratic undershoot stays averaged over the zones -- half the single-zone curvature
+  ok   R9-F2.1 P3 (null arm): one zone over max_temp still costs half the single-zone overshoot -- only the floor's linear price changed

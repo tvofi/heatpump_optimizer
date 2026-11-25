@@ -1,0 +1,1 @@
+  FAIL the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow as the ordinary day, not the holiday-flagged step after it (null control: a real midnight wrap does read that step's holiday windows)  [(None, "IndexError('index 0 is out of bounds for axis 0 with size 0')") (19.5, None) (10.5, None)]
