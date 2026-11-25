@@ -56,14 +56,14 @@
   "class_guess": "new",
   "severity_claimed": "low",
   "stop_rule_class": "hygiene",
-  "claim": "Mutant b1a8d3056bf42597 at dhw_planner.py:1527 (CLAMP_DROP: demand = np.clip(np.asarray(space_demand, dtype=float), 0.0, None) -> demand = (np.asarray(space_demand, dtype=float))) survives the full gate (RED-AS-NULL), yet the probe's number moves: baseline None=None, mutant differing_pmax_nonpos=120/120.",
+  "claim": "Mutant b1a8d3056bf42597 at dhw_planner.py:1527 (CLAMP_DROP: demand = np.clip(np.asarray(space_demand, dtype=float), 0.0, None) -> demand = (np.asarray(space_demand, dtype=float))) survives the full gate (RED-AS-NULL), yet the probe's number moves: baseline differing_pmax_pos=0/120, mutant differing_pmax_nonpos=120/120.",
   "mechanism": "Reach: p_total_max <= 0 only (DhwPlanner.optimize passes the configured p_max); with p_total_max > 0, 0/120 inputs separate. Check that should have failed (D3.M4): tests/features.py check 'the DHW cost program plans under space-heating contention' (features.py:63744), the suite's only _plan_dhw_min_cost call with space_demand/p_total_max: it feeds demand >= 0 with p_total_max 5, never a negative space demand.",
   "metric_definition": "scenarios (of 120) whose plan differs -- see the probe header's Metric line",
   "instrumented_symbol": "custom_components.heatpump_optimizer.dhw_planner:DhwPlanner._plan_dhw_min_cost",
   "perturbation": {
    "change": "the one-line mutant at dhw_planner.py:1527 applied in memory by the probe; full gate: fullgate.py run --key b1a8d3056bf42597",
    "expected_direction": "up",
-   "observed_value": "None=None -> differing_pmax_nonpos=120/120"
+   "observed_value": "differing_pmax_pos=0/120 -> differing_pmax_nonpos=120/120"
   },
   "null_control": {
    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_b1a8d3056bf42597.py",

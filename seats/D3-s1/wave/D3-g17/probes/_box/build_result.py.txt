@@ -2,7 +2,7 @@
 import json, os, re, sys
 H = os.path.expanduser("~")
 TR = f"{H}/audit-r11-D3-s1"; S1 = f"{TR}/dev/audit/rounds/round11/D3/s1"; W = f"{S1}/wave/D3-g17"
-PT = f"{H}/probe-tree/dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes"
+PT = f"{W}/probes"
 REL = "dev/audit/rounds/round11/D3/s1/wave/D3-g17"
 BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 MACHINE = "box D3-g17: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, 16 GB, venv-ci CPython, alone on the box"
@@ -45,7 +45,7 @@ META = {
  "b1a8d3056bf42597": dict(cls="candidate", reach="p_total_max <= 0 only (DhwPlanner.optimize passes the configured p_max); with p_total_max > 0, 0/120 inputs separate",
    should=LP_CHECK + ": it feeds demand >= 0 with p_total_max 5, never a negative space demand",
    metric="differing_pmax_nonpos", title="No check feeds the DHW LP a negative space demand; dropping its clip is unseen",
-   b=None, m="differing_pmax_nonpos", nullk="null_differing", direction="up", unit="scenarios (of 120) whose plan differs",
+   b="differing_pmax_pos", m="differing_pmax_nonpos", nullk="null_differing", direction="up", unit="scenarios (of 120) whose plan differs",
    prop="a negative space demand is read as zero by the DHW cost program's contention model"),
  "8db7b149f5f9eda5": dict(cls="equivalent-candidate", reach="executed",
    should="none: a negative headroom forces a constant displacement at E=0; the marginal DHW price, hence the plan, is unchanged",
