@@ -1,3 +1,4 @@
 1795616855 INIT r11-rev-3879
 1795616863 INIT r11-rev-3879
 1795616875 HB alive
+1795616950 CKPT delta read; prod own-diff identical; merge-tree clean snapshot 5bda3a6f321b
