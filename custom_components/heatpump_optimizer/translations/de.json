@@ -1921,6 +1921,10 @@
       "title": "Die Entität für den Sollwert der Raumheizung meldet nichts",
       "description": "Die Entität, die du als Sollwert der Raumheizung gewählt hast ({entity}), fehlt oder ist nicht lesbar, daher lässt sich nichts über das aktuelle Ziel der Pumpe sagen. Der Sollwert der Raumheizung wird nie empfohlen; dieser Hinweis meldet nur, dass die Entität nicht gelesen werden kann. Prüfe, ob sie noch existiert und verfügbar ist, oder leere das Feld. Dieser Hinweis verschwindet, sobald die Entität eine Temperatur meldet."
     },
+    "pump_mode_cooling": {
+      "title": "Der Modus der Wärmepumpe zeigt Kühlen, während der Plan Wärme anfordert",
+      "description": "Der Betriebsmodus der Wärmepumpe zeigt „{mode}“, und der Plan oder ein Boost fordert Wärme von der Pumpe an. Kühlen bleibt dir überlassen: Solange der Modus Kühlen zeigt, schaltet der Optimierer die Pumpe weder ein noch aus und ändert weder ihren Modus noch ihre Sollwerte, sodass die Pumpe das Haus nicht heizt. Soll sie heizen, stelle an der Pumpe oder in ihrer App einen Heizmodus ein; ein Stromausfall, eine Neuverbindung oder ein Zurücksetzen nach einer Störung kann die Pumpe im Kühlmodus lassen. Dieser Hinweis verschwindet, sobald der Modus nicht mehr Kühlen zeigt."
+    },
     "pump_write_ignored": {
       "title": "Die Wärmepumpe behält eine vom Optimierer geschriebene Einstellung nicht bei",
       "description": "Der Optimierer hat einen Wert in die Wärmepumpe geschrieben und ein weiteres Mal geschrieben, doch die Pumpe zeigt weiterhin etwas anderes an: {detail}. Solange „Optimizer active“ eingeschaltet ist, ist der Optimierer der einzige Schreiber der Pumpe: Er sendet den Wert alle fünf Minuten erneut, und dieser Hinweis verschwindet, sobald die Pumpe ihn hält. Um die Pumpe von Hand zu ändern, schalte zuerst „Optimizer active“ aus. Hat niemand etwas geändert, prüfe, ob die Entität der Pumpe den Wert akzeptiert (Bereich, Cloud-Verbindung, lokaler Schlüssel, Schreibrechte)."
