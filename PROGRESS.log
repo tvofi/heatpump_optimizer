@@ -17,3 +17,4 @@
 1795623754 HB alive
 1795624071 CKPT fixed finite_boundary + D6 counts; waiting on features/entities recordings snapshot 68290efefc00
 1795624358 HB alive
+1795624728 CKPT closures recorded; entities green but the note (fixed); full features running snapshot 90205db625c4
