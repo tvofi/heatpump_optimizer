@@ -526,6 +526,7 @@ def plan_beat(ctx: Ctx) -> None:
         said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
         word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
         lines.append(f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}")
+    sha = ""
     if rc == 0:
         page = read(Path(mirror) / "PLAN.html")
         sha = hashlib.sha256(page.encode()).hexdigest() if page else ""
@@ -534,11 +535,21 @@ def plan_beat(ctx: Ctx) -> None:
         # owner ruling (tvofi 2026-11-06): every sweep updates the plan artifact; a changed page owes a republish
         if moved:
             lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / 'PLAN.html'} re-rendered; republish owed")
-    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):  # the state ref moved: publish its page
+    # Pages publishes the state ref's PLAN.html and nothing else of it (plan_public.py), so a state push
+    # dispatches only a page not yet published: an rc-1 push carries the honest UNAVAILABLE page and is
+    # always published; an rc-0 push only when its page differs from the last one dispatched. #3885
+    # closeout audit U2: 162 of 171 dispatches in the 48 h to 2026-11-25T10:20Z re-published a page
+    # already served (201.2 of 211.9 runner-minutes). A refused dispatch records nothing, so the next
+    # sweep dispatches the same page again.
+    carried = re.search(r"^(pushed|already current)", out, re.M)  # the state ref holds this page
+    unpublished = rc == 0 and sha and sha != ctx.memory("plan-published.json", "")
+    if (rc == 1 and re.search(r"^pushed ", out, re.M)) or (unpublished and carried):
         drc, _, derr = ctx.run(["gh", "workflow", "run", "pages.yml", "--repo", repo, "--ref", "main"],
                                ctx.repo, ctx.env)
         if drc != 0:
             lines.append(f"plan-beat: PAGES NOT DISPATCHED rc={drc}: {(derr.strip().splitlines() or [''])[-1]}")
+        elif rc == 0:
+            ctx.remember("plan-published.json", sha, "")
     write_job(ctx, "plan-beat", lines)
 
 

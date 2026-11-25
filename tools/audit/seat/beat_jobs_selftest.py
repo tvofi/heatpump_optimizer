@@ -503,20 +503,16 @@ def cases(bj) -> dict[str, bool]:
     bj.plan_beat(c)
     res["plan-beat: the overlay's ref listing and in-flight PRs reach replan (liveness by evidence)"] = (
         arg(f.calls[0], "--live-refs") == "/x/refs.txt" and arg(f.calls[0], "--in-flight") == "/x/prs.json")
+    # #3885 (closeout audit U2): Pages publishes only the state ref's PLAN.html, so a state push
+    # that mirrored no page has nothing to publish and dispatches nothing (162 of 171 dispatches in
+    # the 48 h to 2026-11-25T10:20Z re-published a page already served).
     c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", "")})
     bj.plan_beat(c)
-    gh = [x for x in f.calls if x[0] == "gh"]
-    res["plan-beat: a state push that landed dispatches the Pages deploy on main, once"] = (
-        not files(c) and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"]
-        and arg(gh[0], "--ref") == "main" and arg(gh[0], "--repo") == "o/r")
+    res["plan-beat null: a state push that mirrored no page dispatches nothing"] = (
+        not files(c) and not any(x[0] == "gh" for x in f.calls))
     c, f = fresh(answers={"state_docs.py": (0, "already current: handoff/audit-r10-plan at abc carries it\n", "")})
     bj.plan_beat(c)
     res["plan-beat null: an already-current state ref dispatches nothing"] = not any(x[0] == "gh" for x in f.calls)
-    c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", ""),
-                          "gh": (1, "", "HTTP 403: Resource not accessible\n")})
-    bj.plan_beat(c)
-    res["plan-beat: a refused Pages dispatch reaches the digest"] = digest(c).startswith(
-        "plan-beat: PAGES NOT DISPATCHED rc=1")
 
     # outside-intake
     c, f = fresh(answers={"outside_intake.py": (0, "", "")})
@@ -775,7 +771,20 @@ def cases(bj) -> dict[str, bool]:
     bj.plan_beat(c)
     gh = [x for x in f.calls if x[0] == "gh"]
     res["plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"] = (
-        digest(c).startswith("plan-beat: PLAN MOVED") and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"])
+        digest(c).startswith("plan-beat: PLAN MOVED") and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"]
+        and arg(gh[0], "--ref") == "main" and arg(gh[0], "--repo") == "o/r")
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: the same page pushed again is not re-published (#3885 U2)"] = len(gh) == 1
+    refused = {"v": (1, "", "HTTP 403: Resource not accessible\n")}
+    c, f = fresh(answers={"state_docs.py": page_rc(0, "pushed handoff/audit-r10-plan at abc\n", "", "<p>r</p>"),
+                          "gh": lambda argv: refused["v"]})
+    bj.plan_beat(c)
+    res["plan-beat: a refused Pages dispatch reaches the digest"] = "plan-beat: PAGES NOT DISPATCHED rc=1" in digest(c)
+    refused["v"] = (0, "", "")
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: a page whose dispatch was refused is dispatched again at the next sweep"] = len(gh) == 2
     c, f = fresh(answers={"state_docs.py": page_rc(1, "", "state_docs: PLAN.html UNAVAILABLE: stale plan\n", "<p>x</p>")})
     bj.plan_beat(c)
     res["plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"] = (
@@ -1351,6 +1360,14 @@ def cases(bj) -> dict[str, bool]:
 
 #: (old, new, the case that must fail). Each old string appears once in beat_jobs.py.
 MUTANTS = {
+    # #3885 U2: the Pages dispatch is for a page not yet published, and a refused one is retried
+    "pages_every_push": ('or (unpublished and carried):', 'or (rc == 0 and carried is not None):',
+                         "plan-beat: the same page pushed again is not re-published (#3885 U2)"),
+    "pages_published_on_refusal": ("        elif rc == 0:\n            ctx.remember(\"plan-published.json\", sha, \"\")\n",
+                                   "        if rc == 0:\n            ctx.remember(\"plan-published.json\", sha, \"\")\n",
+                                   "plan-beat: a page whose dispatch was refused is dispatched again at the next sweep"),
+    "pages_without_page": ('unpublished = rc == 0 and sha and sha !=', 'unpublished = rc == 0 and sha !=',
+                           "plan-beat null: a state push that mirrored no page dispatches nothing"),
     "family_drops_owed": (r'r"^(?:OWED\b|', r'r"^(?:OWEDX\b|', "tick-digest: one OWED line gives exactly that line, and a stamp"),
     "no_age_norm": ('return AGE.sub("<age>", STAMP.sub("<t>", line.rstrip()))', 'return STAMP.sub("<t>", line.rstrip())',
                     "tick-digest: an age-only change is no new line"),
