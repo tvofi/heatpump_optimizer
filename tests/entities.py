@@ -27184,6 +27184,26 @@ R.check(
                   "tibber_reauth_started", "cop_samples")
     }),
 )
+# The mode is handed to the view by the coordinator (ADR-005), so a
+# coordinator that stopped handing it would report None behind a present key.
+# A real coordinator is told two modes through ``async_set_mode`` in turn: the
+# second is the null control, so a constant or stale value fails one of them.
+_diag_coord = _diag_entry.runtime_data
+_diag_modes = {}
+for _m in (const.MODE_BOOST, const.MODE_COMFORT):
+    asyncio.run(_diag_coord.async_set_mode(_m, refresh=False))
+    _diag_modes[_m] = (
+        _diag_coord.diagnostics_state().mode,
+        asyncio.run(_diag_mod.async_get_config_entry_diagnostics(
+            _diag_hass, _diag_entry))["coordinator"]["mode"],
+    )
+asyncio.run(_diag_coord.async_set_mode(const.MODE_AUTO, refresh=False))
+R.check(
+    "the diagnostics view and the download report the mode a real coordinator was "
+    "set to, for each of two modes",
+    all(got == (m, m) for m, got in _diag_modes.items()),
+    repr(_diag_modes),
+)
 
 # The view's tolerance, both ends: a coordinator that cannot produce the
 # view reports None fields and no learner keys, and a learner whose
@@ -32821,6 +32841,39 @@ R.check(
     _CS.candidates([{**_CC_UMB_RUNS[0], "head_sha": _CC_NEW_SHA}], live_sha=_CC_NEW_SHA,
                    branch="b", run_id=13) == [],
     "a same-SHA twin must survive",
+)
+# #3885: a superseded MAIN push run is cancelled from main-cancel.yml, never from
+# ci.yml, whose workflow-level `CI-main` group holds the newer push's run pending
+# until the older one ends. The job reads the push's prelude `scope` and hands it
+# to `cancel_superseded.py main --scope`, which cancels only for `full`, within
+# the three-run bound and while GitHub grants runners (its self-test).
+def _mc_shape(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    job = (doc.get("jobs") or {}).get("main-cancel") or {}
+    run = " ".join(str(s.get("run") or "") for s in job.get("steps") or [])
+    return (list(on) == ["push"] and (on["push"] or {}).get("branches") == ["main"]
+            and "concurrency" not in doc and "concurrency" not in job
+            and (job.get("permissions") or {}).get("actions") == "write"
+            and "python3 -I tools/ci/prelude.py" in run
+            and "cancel_superseded.py main --repo" in run and '--scope "${scope:-unknown}"' in run
+            and '--head-sha "$HEAD_SHA"' in run)
+
+
+_MC_PATH = Path(".github/workflows/main-cancel.yml")
+_MC_TEXT = _MC_PATH.read_text() if _MC_PATH.exists() else ""
+_MC_DOC = _RC_DOCS.get("main-cancel.yml") or {}
+R.check(
+    "#3885: main-cancel.yml cancels superseded main runs on a push to main only, outside any "
+    "concurrency group, passing the push's prelude scope and head",
+    _mc_shape(_MC_DOC) and "main-cancel" not in (_RC_DOCS["ci.yml"].get("jobs") or {}),
+    f"on={list(_MC_DOC.get('on', _MC_DOC.get(True)) or [])} jobs={sorted(_MC_DOC.get('jobs') or {})}",
+)
+R.check(
+    "and a main-cancel.yml in a concurrency group, on pull_request, or not passing the scope is refused (null control)",
+    not _mc_shape({**_MC_DOC, "concurrency": {"group": "CI-main"}})
+    and not _mc_shape({**_MC_DOC, "on": {"push": {"branches": ["main"]}, "pull_request": None}})
+    and not _mc_shape(_yaml.safe_load(_MC_TEXT.replace('--scope "${scope:-unknown}"', "")) or {}),
+    "the predicate over three shapes the workflow must not take",
 )
 # pr-contract.yml is a callee since U6: it lists `workflow_call` alone and no
 # `concurrency`, so no event can start it and no group can cancel its run. The
