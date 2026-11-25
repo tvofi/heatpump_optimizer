@@ -3,3 +3,4 @@
 1795620895 CKPT packet read, CI poller started snapshot e147e25a2998
 1795621268 CKPT self-tests green; mutants run; keyless cloud-stub finding demonstrated snapshot ab2359bd962b
 1795621431 HB alive
+1795621795 DONE verdict pushed: blocked b15a9f2c class-open (seat key absent from publish_seat stub); probe/rev-3898-aec2337b at 1cb77f08
