@@ -1,0 +1,32 @@
+
+=== Stress and economics ===
+# baseline=7dd68dd  perturb=none  # re-recorded 2026-09-14 at ad7bcdf, post-#989
+# procs_at_start=0 load1=0.41
+RESULT scenarios_recorded=54 scenarios
+RESULT memory_budget_factor=1.5
+RESULT detection_target=2
+RESULT scenarios_memory_probed=54 scenarios
+RESULT scenarios_never_memory_probed=0 scenarios
+RESULT min_attrib_rss_multiple_required_to_fail=1.5
+RESULT max_attrib_rss_multiple_required_to_fail=1.5
+RESULT scenarios_where_2x_attrib_rss_fails=54 scenarios
+RESULT min_traced_multiple_required_to_fail=1.5
+RESULT max_traced_multiple_required_to_fail=1.5
+RESULT scenarios_where_2x_traced_fails=54 scenarios
+RESULT attrib_leader_label=typical_slab/winter
+RESULT empty_probe_baseline_rss_mb_PROVISIONAL=98.6 MiB
+RESULT clean_probe_rss_mb_PROVISIONAL=98.6 MiB
+RESULT clean_attrib_rss_mb_PROVISIONAL=0 MiB
+RESULT inject2x_probe_rss_mb_PROVISIONAL=187.2 MiB
+RESULT inject2x_attrib_rss_mb_PROVISIONAL=88.6 MiB
+RESULT inject2x_attrib_over_clean=nan
+RESULT attrib_fail_threshold_mb=20.55 MiB
+RESULT clean_attrib_rule_fires=False
+RESULT inject2x_attrib_rule_fires=True
+RESULT traced_fail_threshold_mb=5.145 MiB
+RESULT clean_traced_rule_fires=False
+RESULT inject2x_traced_rule_fires=True
+RESULT thread_factor=0.999993
+RESULT load1=0.534668
+RESULT swapins=-1
+RESULT concurrent_gate_procs=0
