@@ -1144,6 +1144,17 @@ SINGLE_ZONE_HOUSE_FIELDS: tuple[str, ...] = (
 )
 
 
+#: The fields only a two-zone model reads: their presence is what makes an
+#: "auto" config two-zone (``two_zone_from_config``), and on one zone nothing
+#: reads them, so a write of one there changes nothing (R11-LATE-P2-ZONE-GATE).
+TWO_ZONE_FIELDS: tuple[str, ...] = (
+    const.CONF_UPPER_FLOOR_THERMAL_MASS,
+    const.CONF_LOWER_FLOOR_THERMAL_MASS,
+    const.CONF_INTER_ZONE_TRANSFER,
+    const.CONF_RADIATOR_POWER_FRACTION,
+)
+
+
 def two_zone_from_config(config: Mapping[str, Any]) -> bool:
     """Whether the model runs two zones: the one answer every reader takes.
 
@@ -1163,15 +1174,7 @@ def two_zone_from_config(config: Mapping[str, Any]) -> bool:
         return True
     if two_zone_mode == const.TWO_ZONE_MODE_OFF:
         return False
-    return any(
-        key in config
-        for key in (
-            const.CONF_UPPER_FLOOR_THERMAL_MASS,
-            const.CONF_LOWER_FLOOR_THERMAL_MASS,
-            const.CONF_INTER_ZONE_TRANSFER,
-            const.CONF_RADIATOR_POWER_FRACTION,
-        )
-    )
+    return any(key in config for key in TWO_ZONE_FIELDS)
 
 
 def dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:

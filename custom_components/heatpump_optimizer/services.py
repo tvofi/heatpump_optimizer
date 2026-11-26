@@ -104,6 +104,7 @@ from .dhw_schedule import (
 from .manual_plan import ManualPlanError, build_override
 from .thermal_model import (
     SINGLE_ZONE_HOUSE_FIELDS,
+    TWO_ZONE_FIELDS,
     ThermalParameters,
     two_zone_from_config,
 )
@@ -648,6 +649,33 @@ async def handle_set_mode(hass: HomeAssistant, call: ServiceCall) -> None:
     for _entry_id, coord in _loaded_coordinators(hass):
         await coord.async_set_mode(mode)
 
+def _refuse_zone_fields_on_one_zone(hass: HomeAssistant, params: Mapping[str, Any]) -> None:
+    """Refuse a floor's mass, the inter-zone transfer or the radiator share
+    for a one-zone model (R11-LATE-P2-ZONE-GATE), the mirror of the rule below.
+
+    Only a two-zone model reads them (``TWO_ZONE_FIELDS``). Judged on the
+    config the call leaves: under "auto" these keys are the presence that
+    turns the model two-zone, so there the call is the switch and is taken;
+    only an install whose mode keeps it one zone would acknowledge a write
+    that changes nothing.
+    """
+    asked = {k: v for k, v in params.items() if k in TWO_ZONE_FIELDS and v is not None}
+    if not asked:
+        return
+    for _entry_id, coord in _loaded_coordinators(hass):
+        if not two_zone_from_config({**coord.effective_config, **asked}):
+            field = next(iter(asked))
+            raise ServiceValidationError(
+                f"{field} applies to a two-zone model only; this install runs "
+                "one zone. Set house_thermal_mass and "
+                "house_heat_loss_coefficient on this action, or turn on the "
+                "options' Two-zone model page.",
+                translation_domain=DOMAIN,
+                translation_key="set_thermal_params_zone_field_one_zone",
+                translation_placeholders={"field": field},
+            )
+
+
 def _refuse_house_fields_on_two_zones(hass: HomeAssistant, params: Mapping[str, Any]) -> None:
     """Refuse a whole-house mass or loss for a two-zone model (D17-s3-02).
 
@@ -765,6 +793,7 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
                 )
 
     _refuse_house_fields_on_two_zones(hass, params)
+    _refuse_zone_fields_on_one_zone(hass, params)
 
     _LOGGER.info("Updating thermal parameters: %s", params)
     for _entry_id, coord in targets:

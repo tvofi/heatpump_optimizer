@@ -43938,7 +43938,7 @@ _res_s3 = _OR283(
 # test that supplies the value it is meant to check pins nothing (tests/README).
 _views_s3 = _coord284._build_plan_views(_res_s3)
 _solved_s3: dict = {}
-_s3_solved(_solved_s3, _res_s3, {"dhw_heating_active": True}, _views_s3)
+_s3_solved(_solved_s3, _res_s3, {"dhw_heating_active": True}, _views_s3, False)
 _unsolved_s3: dict = {}
 _s3_unsolved_fn(_unsolved_s3)
 
@@ -71254,7 +71254,7 @@ def _sw_coord(**config):
 def _sw_payload():
     views = _sw_coord(dhw_tank_volume=180.0)._build_plan_views(_sw_res)
     data: dict = {}
-    _sw_apply_payload(data, _sw_res, {}, views)
+    _sw_apply_payload(data, _sw_res, {}, views, False)
     return views, data
 
 
@@ -93958,9 +93958,9 @@ R.check(
 # The payload carries the action's why_now, and nothing when it has none.
 _wn_views = {"space_plan": {}, "dhw_plan": {}}
 _wn_with: dict = {}
-_wn_apply(_wn_with, _wn_res, _wn_act, _wn_views)
+_wn_apply(_wn_with, _wn_res, _wn_act, _wn_views, False)
 _wn_without: dict = {}
-_wn_apply(_wn_without, _wn_res, {k: v for k, v in _wn_act.items() if k != "why_now"}, _wn_views)
+_wn_apply(_wn_without, _wn_res, {k: v for k, v in _wn_act.items() if k != "why_now"}, _wn_views, False)
 R.check(
     "R10-WHY-NOW-WIDGET: _apply_result_payload copies why_now, and leaves the key absent without one",
     _wn_with.get("why_now") == _wn_why and "why_now" not in _wn_without,

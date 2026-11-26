@@ -3133,13 +3133,20 @@ def _apply_result_payload(
     result: OptimizationResult,
     current_action: CurrentAction,
     plan_views: PlanViews,
+    two_zone: bool,
 ) -> None:
     """The solved half of the entity payload, merged into ``data``.
 
     Split out of ``_build_data_dict`` so the assembler stays a facade over
     the subsystem views; every key here is read off ``result`` or off one
-    of the two coordinator values passed in.
+    of the coordinator values passed in. ``two_zone`` is the model's
+    ``two_zone_enabled``: a row carries floor temperatures only when the
+    plan has floors (``zone_trajectories``, R11-LATE-P2-ZONE-GATE).
     """
+    n_steps = len(result.timestamps)
+    zones = result.zone_trajectories(two_zone)
+    upper_temps = zones[0][1:] if zones is not None else [None] * n_steps
+    lower_temps = zones[1][1:] if zones is not None else [None] * n_steps
     # DHW schedule data
     dhw_schedule: list[DhwScheduleStep] = []
     if result.dhw_power_schedule:
@@ -3201,16 +3208,8 @@ def _apply_result_payload(
                     result.optimal_setpoints,
                     result.prices,
                     result.room_temp_trajectory[1:],
-                    (
-                        result.upper_temp_trajectory[1:]
-                        if result.upper_temp_trajectory
-                        else result.room_temp_trajectory[1:]
-                    ),
-                    (
-                        result.lower_temp_trajectory[1:]
-                        if result.lower_temp_trajectory
-                        else result.room_temp_trajectory[1:]
-                    ),
+                    upper_temps,
+                    lower_temps,
                     (
                         result.solar_gain_trajectory
                         if result.solar_gain_trajectory
@@ -8188,7 +8187,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         if result:
             _apply_result_payload(
-                data, result, self._current_action, self._build_plan_views(result)
+                data, result, self._current_action, self._build_plan_views(result),
+                ctx._thermal_params.two_zone_enabled,
             )
         else:
             _apply_unsolved_payload(data)
