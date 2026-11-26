@@ -241,11 +241,12 @@ def clean_value(node: object, dropped: list[str]) -> object:
                 continue
             if _is_coordinate(key) and isinstance(value, (int, float, str)) \
                     and not isinstance(value, bool):
-                try:
+                if numeric(value):
                     out[key] = round(float(value), MAX_COORDINATE_DECIMALS)
-                except ValueError:
-                    dropped.append(str(value))
-                    out[key] = None
+                    continue
+                if isinstance(value, str):
+                    dropped.append(value)
+                out[key] = None
                 continue
             out[key] = clean_value(value, dropped)
         return out
@@ -264,9 +265,10 @@ def clean_value(node: object, dropped: list[str]) -> object:
 
 
 def _number(value: object) -> object:
+    """A real number ``numeric`` admits: NaN and an infinity are cut."""
     if value is None:
         return None
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, (int, float)) and numeric(value):
         return value
     return _DROP
 
