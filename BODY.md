@@ -40,6 +40,8 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
+`3b863a1a6795aadefc3b727751407fa0f62c1ed5` merges origin/main `e91329c2c27c4ce4013b262a8a62986574c02336` (#3863, `dhw_start.py`) into `1d348a4f10`. Conflicts in the count lines only (`docs/architecture.md`, D6 `claims.py`/`claims.md`, `tests/deployment_shape.py`), each the union of both history clauses, and every count re-derived on the merged tree, never carried: `ls custom_components/heatpump_optimizer/*.py | wc -l` 106; `claims.py` rc=0 with `arch_modules_on_disk=106`, `arch_map_listed=106`, `arch_map_missing=0`, `ha_module_level_importers=37` (main's 36 plus `fault_hold`; `dhw_start.py` imports none), `config_ranges_compared=104`, and all 12 RESULT header lines matching its run; `claims.md`/`claims.json` are that run's output. `git ls-files custom_components/heatpump_optimizer/ | wc -l` 125. #1218 note by `tests/entities.py`'s `_d308_pairs` predicate on the merged `tests/closures.json`: 192 of 561 pairs at >= 0.80 (origin/main alone 190), 435 comparable, 17 at exactly 1.00 sharing 125 (106 `.py`; 124 on main) / 115 / 106 / 29 / 123 files. The HA-free sentence reads 68 (106 less 37 less `inputs`), main's text, unchanged. Resolution delta: `git diff 1d348a4f10 3b863a1a67`.
+
 `1d348a4f10f41090eec6098cf1a3cb462db0551b` answers review `064db266`'s block at `d92bb3a785` (which merges origin/main `dbdc71fa` into `8538142710`, itself bringing in `923fd45df8`). Delta for review: `git diff d92bb3a785 1d348a4f10`, two files, no production code:
 
 - `dev/audit/rounds/round4/D6/claims.py:81`: `RESULT config_ranges_compared` restored to 104. `923fd45df8`'s resolution wrote 105, which neither parent carried and the tree does not measure; only the three `arch_*`/`ha_*` lines move with `fault_hold.py`.
@@ -115,7 +117,7 @@ Round 2: the two-pass unload check fails at `da1f90c785` (above), so the head se
 
 ## Figures
 
-At `1d348a4f10` (`PYTHONPATH=tests/hastub`, origin/main `dbdc71faea`):
+At `3b863a1a67` (`PYTHONPATH=tests/hastub`, origin/main `e91329c2c2`), the D6 and #1218 figures are in `## Head`; at `1d348a4f10` (origin/main `dbdc71faea`):
 
 - `python3 dev/audit/rounds/round4/D6/claims.py`: rc=0, changes no tracked file (claims.json/claims.md byte-identical). Each of the 12 numeric `RESULT` header lines compared with the run's own `RESULT` line by key: `MATCH` for all 12 (`config_ranges_compared=104`, `config_defaults_compared=97`, `arch_modules_on_disk=105`, `arch_map_listed=105`, `arch_map_missing=0`, `ha_module_level_importers=37`, claims 125/125/123/0/0/2). Null control: the same comparison on `d92bb3a785`'s header reads `config_ranges_compared=105` against the run's 104, a `MISMATCH`.
 - #1218 note: `_d308_pairs` over `tests/closures.json` at this head: 190 of 561 pairs at >= 0.80, 17 at exactly 1.00; at origin/main `dbdc71fa`: 184 of 561, 17 at 1.00 (triple sharing 123). Null control: the note's former 100/98 and 88/80 match neither ref.
