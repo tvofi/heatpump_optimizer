@@ -1,2 +1,0 @@
-RESULT ast-equal-modulo-docstrings: True
-null-control (margin 0.02->0.03): RESULT ast-equal-modulo-docstrings: False
