@@ -700,6 +700,8 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
+    # Both keys always: ci.yml declares them as prelude outputs; empty is one unsharded job.
+    out.update({"fast_shards": "", "fast_plan": ""})
     if fast is not None:
         out.update(fast(changed if scoped == "pull_request" else None,
                         ctx.get("base_sha") or ctx.get("before") or ctx["head"]))
@@ -975,6 +977,9 @@ def self_test() -> int:
     out, _ = outputs(ctx("push", before="B"), None, g(live), fast=fast)
     check("P2: a pull request's plan reads its diff at its base; a full push reads all at `before`",
           seen, [(["README.md"], "BASE"), (None, "B")])
+    check("P2: with no planner both outputs are still printed, empty (one unsharded job)",
+          {k: outputs(ctx("push"), None, g(live))[0].get(k) for k in ("fast_shards", "fast_plan")},
+          {"fast_shards": "", "fast_plan": ""})
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.

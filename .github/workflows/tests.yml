@@ -215,7 +215,9 @@ jobs:
     # (an empty `fast_shards`, e.g. a base whose prelude predates the planner) the one job keeps
     # its old name and runs everything. `gate` owes every shard the prelude named
     # (gate.fast_names): a shard missing, skipped or red is a red gate, never a smaller suite.
-    name: ${{ matrix.shard && format('fast ({0}, {1})', matrix.python-version, matrix.shard) || format('fast ({0})', matrix.python-version) }}
+    # The literal `fast (` ... `)` keeps the name from rendering any other job's (a name that is
+    # one expression matches every context: entities.py's forgery and producer readers).
+    name: fast (${{ matrix.python-version }}${{ matrix.shard && format(', {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     # The only job that runs the production suite. It was matrixed over both
     # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
