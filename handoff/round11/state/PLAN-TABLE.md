@@ -125,7 +125,7 @@ gantt
 | R11-OUTSIDE-APPLY-PLAN-CEILING | IN | 1 | done | **#3636** | opus/opus | - | Issue 3636 (outside report): Apply this plan in the dashboard card fails whenever the published plan has a slot starting more than 20 hours from now. |  |
 | R11-HOTFIX-TICK-SEAT-WINDOW | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-OUTSIDE-DEARER-WORDING | DOCS | 1 | absorbed | #3643 | opus/opus | - | Outside issue 3643, size S, text only. |  |
-| R11-PREPR-STEP-TIMING | IN | 1 | in-progress | - | opus/opus | - | Two remeasured countermeasures from dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md, both in tools/pr/prepr.sh, carried below verbatim: the per-step elapsed field (... |  |
+| R11-PREPR-STEP-TIMING | IN | 1 | carries-open | - | opus/opus | - | Two remeasured countermeasures from dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md, both in tools/pr/prepr.sh, carried below verbatim: the per-step elapsed field (... |  |
 | R11-SERVICE-SCHEMA | CORE | 1 | done | - | opus/opus | - | Service schema and service text disagreements carried below verbatim. |  |
 | R11-PRODUCT-TEXT-PINS | CORE | 1 | not-started | - | opus/opus | - | Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below ver... |  |
 | R11-ADVISOR-MEASURES | CORE | 1 | done | - | opus/opus | - | Advisor design items that the steady-start work left unmeasured, carried below verbatim: the hot-water, weight and floor asks measured for sign on a tanked f... |  |
@@ -183,7 +183,7 @@ gantt
 | R11-ARCH-fabric-learner | CORE | 2 | in-progress | #3795 | opus/opus | - | Refactor group with no finding (ADR-007); designer.md is dispatched for its shape. |  |
 | R11-READS-RESIDUE | IN | 1 | done | - | opus/opus | - | Round 11. |  |
 | R11-SEAM-two-zone-slab | CORE | 1 | done | **#3713** | opus/opus | - | Issue 3713: the two-zone valve-fed slab model omits the series term between the valve and the slab (R11-VALVE-REFERENCE carry 3, item 2c38f69d; that group's... |  |
-| R11-SEAM-wallclock-dst | CORE | 1 | not-started | **#3786** | opus/opus | - | Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real h... |  |
+| R11-SEAM-wallclock-dst | CORE | 1 | in-progress | **#3786** | opus/opus | - | Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real h... |  |
 | R11-HOTFIX-CODEQL-PERMS | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
 | R11-OUTSIDE-ROOMS-3B | IN | 1 | carries-open | #3616 | fable/fable | - | Owner item from #3616 (outside reporter), placed by the orchestrator under mandate 6893738184: the room lift made visible. |  |
 | R11-OWNER-CARD-EXTERNAL-HEAT | CORE | 1 | carries-open | - | opus/opus | - | Owner item (tvofi, 2026-11-21), folded into round 11: the card's header status pill, which reads "Heating now" or "Idle", says "External heat detected" or si... |  |
@@ -206,11 +206,11 @@ gantt
 | R11-OUTSIDE-CI-3885 | IN | 1 | done | #3885 | opus/opus | - | Outside issue #3885 (GitHub Actions product team): reduce the runner-minutes ci.yml spends. |  |
 | R11-CARRY-D0-CONTINUATION | CORE | 1 | deferred | #3881 | opus/opus | - | Issue #3881, found by pull request 3879 (R11-SEAM-two-zone-slab): the half-price continuation in optimizer.py's multi-start can ship a two-zone storage plan... |  |
 | R11-SEAM-cycle-reporting-p2 | CORE | 2 | not-started | - | opus/opus | - | R11-SEAM-cycle-reporting, part 2 of 2 (the cycle seam). |  |
-| R11-D3-PINS-actuation | CORE | 3 | not-started | #3755 | opus/opus | - | Tests-only pins for the actuation seam: 23 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-... |  |
-| R11-D3-PINS-fabric | CORE | 3 | not-started | #3755 | opus/opus | - | Tests-only pins for the learners seam: 47 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-j... |  |
-| R11-D3-PINS-inputs | CORE | 2 | not-started | #3755 | opus/opus | - | Tests-only pins for the input boundary seam: 23 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/... |  |
-| R11-D3-PINS-money | CORE | 1 | not-started | #3755 | opus/opus | - | Tests-only pins for the money seam: 40 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-judg... |  |
-| R11-D3-PINS-plant | CORE | 1 | not-started | #3755 | opus/opus | - | Tests-only pins for the plant model seam: 46 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wav... |  |
+| R11-D3-PINS-actuation | CORE | 3 | not-started | #3755, #3915 | opus/opus | - | Tests-only pins for the actuation seam: 23 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-... |  |
+| R11-D3-PINS-fabric | CORE | 3 | not-started | #3755, #3916 | opus/opus | - | Tests-only pins for the learners seam: 47 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-j... |  |
+| R11-D3-PINS-inputs | CORE | 2 | not-started | #3755, #3917 | opus/opus | - | Tests-only pins for the input boundary seam: 23 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/... |  |
+| R11-D3-PINS-money | CORE | 1 | not-started | #3755, #3918 | opus/opus | - | Tests-only pins for the money seam: 40 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-judg... |  |
+| R11-D3-PINS-plant | CORE | 1 | not-started | #3755, #3919 | opus/opus | - | Tests-only pins for the plant model seam: 46 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wav... |  |
 | R11-D3-PINS-solver | CORE | 3 | not-started | #3755 | opus/opus | - | Tests-only pins for the solver seam: 131 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-ju... |  |
 | R11-D3-PINS-sysid | CORE | 2 | not-started | #3755 | opus/opus | - | Tests-only pins for the learners seam: 62 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-j... |  |
 
