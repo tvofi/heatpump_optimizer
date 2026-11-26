@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window GUARD_OFF f92e3c65",
-  "killed_by": "tests/features.py",
-  "old": "        if best is None or delta < best:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

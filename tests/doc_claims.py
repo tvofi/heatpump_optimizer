@@ -136,14 +136,15 @@ def entity_id_prefix_literals() -> dict[str, str]:
     Returns ``{module_name: prefix_token}`` for every module that assigns
     ``entity_id = f"<domain>.<prefix>_{translation_key}"``, or the entity
     base's one rule (``object_id = f"<prefix>_{self._attr_translation_key}"``,
-    R9-EG-B2) that every platform now pins through. A prefix that followed
+    R9-EG-B2) that every platform now pins through, with the declared
+    family's ``{lead}`` between them (D8-s2-02). A prefix that followed
     the entry name would be written as an expression (``{slug(entry title)}``)
     or omit the assignment; the shipped form is a hard-coded literal, which
     is the fact #1393's prose contradicts.
     """
     pattern = re.compile(
         r'(?:entity_id|object_id)\s*=\s*f"(?:[a-z_]+\.)?([a-z0-9_]+)_'
-        r'\{(?:self\._attr_)?translation_key\}"'
+        r'(?:\{lead\})?\{(?:self\._attr_)?translation_key\}"'
     )
     found: dict[str, str] = {}
     for path in sorted(PKG.glob("*.py")):
