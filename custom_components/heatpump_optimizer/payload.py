@@ -584,6 +584,7 @@ class ExternalHeat(TypedDict, total=False):
     displacement: float
     free_heat_kw: float
     wood_energy_kwh: float
+    block_ignored: bool
 
 
 class SysIdResultView(TypedDict, total=False):
