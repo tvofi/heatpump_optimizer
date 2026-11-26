@@ -1,0 +1,28 @@
+{
+ "key": "92c063e90dafcc35",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2903 CMP_BOUND",
+ "patch": "if hp_temp > flow_set: -> if hp_temp >= flow_set:",
+ "function": "wood_share",
+ "cluster": "thermal_model.py:wood_share@2903-2906",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3890.4,
+  "load1_start": 0.95,
+  "load1_end": 1.0
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_92c063e90dafcc35.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_92c063e90dafcc35.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 2)",
+   "RESULT inputs_differing=0 count (of 25)"
+  ],
+  "inputs_tried": "wood {20,30,40,43,44.5,44.999} x floor {0,15,20,35} at hp==flow_set==45, plus 60/60"
+ },
+ "should_fail": "none: equivalent by continuity",
+ "note": "hp_temp>flow_set -> >= is unobservable: region 3 is continuous with region 2's 0.0 at hp_temp == flow_set (round-4 D2-03 design), 25 inputs, 0 differ"
+}
