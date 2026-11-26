@@ -26,7 +26,7 @@ R11-CI-CASE-SELECT P2 as the owner directed on 2026-11-25 ("Do the sharding", th
   - A missing, skipped or red shard is red. The unsharded job does not stand in for planned shards. A shard list that is not exactly `1/N..N/N` is red.
   - `status()` reads the shards in place of the one job.
   - `gate` is still the only required check, and it still aggregates through `needs: [prelude, pr-contract]`.
-- **`governance.yml` instrument-self-tests** gains `ci-shards`, which runs `tools/ci/shards.py --self-test`. It has no `tools/ci/selftest_closures.json` entry yet: the table reads stale, so pull requests run every step, and the next main push measures the step and `selftest-absorb` commits its entry (`selftest_scope.py` THE BOT'S HALF). `tests/closures.json` records the three new harnesses as `harness_headers.py` inert reads (`ci_predict.py --apply-inert`).
+- **`governance.yml` instrument-self-tests** gains `ci-shards`, which runs `tools/ci/shards.py --self-test`. Its `tools/ci/selftest_closures.json` entry is measured on Linux by `selftest_scope.py record --step ci-shards` in a plain scratch clone (4c267409). `selftest_scope.py grows` over the old and new tables reports `0 read(s) of the old table the new one drops`. `tests/closures.json` records the three new harnesses as `harness_headers.py` inert reads (`ci_predict.py --apply-inert`).
 - **Readers of the fast job name (#3902 review, class-open).** The rule: every file under `tools/`, `tests/` and `.github/` whose text names the job (`fast (3.14`) is a reader. `shards.READERS` routes each of the 45 such files to one disposition, and `shards.py --self-test` greps the tree and refuses a file missing from it or listed there and no longer naming the job (it caught this PR's own new `sweep.py` comment). The name is read through one owner, `shards.FAST`, `is_fast` and `owed_fast`; `gate.FAST` and `prelude.UNITS` take it from there.
   - Fixed (`sharded`, 8 files):
     - `prelude.owed_needs`: the fast lane owes every `tests / fast (3.14, K/N)` of the one count the run lists, else the unsharded name. `judging()` and `requeued()` read it, and so do their callers `gate.busy`, `prelude.wait_sources` and `sweep.py`. A completed sharded run was read as not judging before the fix.
@@ -51,7 +51,7 @@ Code-owned paths: `.github/workflows/ci.yml` and `tests.yml`. The owner's approv
 
 ## Head
 
-`5f068649ae921257a4725846fd0fc4d0ec0b75be`: the reviewed head `f03b95f36ebcb0cc4481ca138c953a96f951f269` plus two commits, the fast-job readers and run.sh routing (fc14b732) and the readers harness's inert read (5f068649). Review delta: `git diff f03b95f3 5f068649`, 10 files. Everything else below was measured at `a486d863340304d6f6a37d2deaa28380fa0cd70f`, the code head before the delta. The readers figures were measured at this head on 2026-11-26.
+`4c267409f8badb005ac49e5de3142d6d464cf40f`: the ci-shards step's measured `tools/ci/selftest_closures.json` entry, on `5f068649ae921257a4725846fd0fc4d0ec0b75be`. Review delta from 791d83e7 (5f068649 merged): `git diff 5f068649 4c267409`, that one file. 5f068649 itself is the reviewed head `f03b95f36ebcb0cc4481ca138c953a96f951f269` plus two commits, the fast-job readers and run.sh routing (fc14b732) and the readers harness's inert read (5f068649), `git diff f03b95f3 5f068649`, 10 files. Everything else below was measured at `a486d863340304d6f6a37d2deaa28380fa0cd70f`, the code head before the delta. The readers figures were measured at this head on 2026-11-26.
 
 ## Mutation proof
 
@@ -108,7 +108,7 @@ Prices are CI medians over the closing wall-clock tables of the 14 FULL `tests /
 - Architecture score: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL` (no scored production file changed)
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 443 checks PASSED`; `pairnote_check.py --repo . --ref HEAD`: `PAIRNOTE OK HEAD: 184 of 561 pairs, 122 files`.
 
-Prepr at 5f068649: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` exits 0. `ci_predict.py --base origin/main` then predicts no closures, fast, governance or instrument red. `structure.py`: `STRUCTURE RATCHET PASSED`. `comment_ratchet.py --base origin/main`: `comment_ratchet: OK`. `harness_headers.inline_scan()` exits 0.
+Prepr at 4c267409: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` exits 0, and `selftest_scope.py static` exits 0. `ci_predict.py --base origin/main` then predicts no closures, fast, governance or instrument red. `structure.py`: `STRUCTURE RATCHET PASSED`. `comment_ratchet.py --base origin/main`: `comment_ratchet: OK`. `harness_headers.inline_scan()` exits 0.
 
 Gate scope: `closure.py select` reads `MODE: FULL` for this diff (`tests/run.sh`, `tests/closure.py`, `tools/ci/`, `tests.yml` and `ci.yml` are gate files). The randomized run above runs every script once, across its three shards, so it is the local full gate. CI runs the rest.
 
@@ -119,6 +119,7 @@ Both reds are inherited from #3896's own history, at its delivery-row commit `37
 - `tests / fast (3.14)` was red at `3797b416d9`: `tests/doc_claims.py`'s comment ratchet refused four sentences of over 40 words in `tests/entities.py` and `tests/case_select.py`. #3896 fixed it at `58c73880ee`, which this branch is built on. Cheaper detector: `python3 tests/comment_ratchet.py --base origin/main`, which runs in seconds and which `prepr.sh` already runs. No new detector is owed here.
 - `tests / closures` was red at `3797b416d9` with `UNDER-SCOPED`: `tests/doc_claims.py` and `tests/entities.py` read `tests/case_select.py`, which their committed closures did not list. #3896 fixed it at `58c73880ee` by adding that path to both closures. Cheaper detector: `tools/ci/ci_predict.py`, which the body push and `prepr.sh` already run. No new detector is owed here.
 - At this PR's merge head `6c222ef249`, the only failure is `tests / nightly-status`, which is not required.
+- `governance / instrument-self-tests` would be red at `791d83e7` (the #3902 review there). Its selftest-scope step runs `python3 -I tools/ci/selftest_scope.py static`, which exits 1 at 5f068649 with `STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing ['ci-shards'], extra []` and `129 gated step(s), 1 problem(s)`. Fixed at 4c267409 by the step's Linux `record`: `static` now reads `129 gated step(s), 0 problem(s)`, rc 0. Cheaper detector: `selftest_scope.py static` runs in under a second, and `ci_predict.py`'s `selftest-scope` arm did not refuse a new gated step with no entry. I predicted the step would read stale and run every step until main absorbed it. `static` refuses that instead, so the entry is owed before the merge. I did not run `static` before the handoff, and running it is the countermeasure.
 
 ## Forward-carry
 
