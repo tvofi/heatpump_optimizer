@@ -53,6 +53,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
+import shards  # noqa: E402  (the fast lane's job names: FAST, owed_fast)
 
 CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
 BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
@@ -146,7 +147,7 @@ LIGHT_SKIP_LEGS = ("python",)
 LIGHT_PUSH_LANES = ("closures", "env-matrix")
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
-    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
+    "tests": (shards.FAST, "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
               "closure-scope"),
     "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
     "governance": ("policy-docs", "wave-script", "env-matrix"),
@@ -263,12 +264,16 @@ def run_jobs(get, repo: str, run_id, starts=None) -> dict:
 
 def owed_needs(run: dict) -> list[str]:
     """The unit job names a run's own title owes (judging's workset rule), `tests /
-    closure-scope` aside when the title names no PR; [] for an unreadable title."""
+    closure-scope` aside when the title names no PR; [] for an unreadable title. The fast
+    lane owes the shards its listing names, each `tests / fast (3.14, K/N)` of their one N
+    (shards.owed_fast), else the one unsharded job (#3902 review)."""
     t = parse_title(run.get("title") or "")
     if t is None:
         return []
-    return [f"{u} / {n}" for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
-            if not (u == "tests" and n == "closure-scope" and not t[1])]
+    listed = list(run.get("jobs") or {})
+    return [k for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
+            if not (u == "tests" and n == "closure-scope" and not t[1])
+            for k in (shards.owed_fast(listed) if (u, n) == ("tests", shards.FAST) else [f"{u} / {n}"])]
 
 
 #: A previous attempt's conclusion that still stands while its re-queued need runs again (R4):
@@ -724,7 +729,6 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
         return 2
     ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
     try:
-        import shards                              # tools/ci/shards.py (R11-CI-CASE-SELECT P2)
         out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get, fast=shards.outputs)
     except ghapi.RateLimited as e:
         print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
@@ -1248,6 +1252,28 @@ def self_test() -> int:
     check("#3885: the step-gated lanes are light lanes", set(STEP_GATED) <= set(LIGHT_LANES), True)
     check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
           sorted(set(LIGHT_GATE.values())), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
+
+    # #3902 review: a sharded run lists `tests / fast (3.14, K/N)` jobs in place of the one fast
+    # job; judging(), owed_needs() and requeued() owe exactly those shards.
+    def shard_run(fast, unfinished=(), attempt=1):
+        jobs = {"prelude": ("completed", "success"), "gate": ("completed", "success")}
+        for u in sorted(workset("code", "7") & set(UNITS)):
+            for nm in UNITS[u]:
+                for f in (fast if (u, nm) == ("tests", shards.FAST) else [nm]):
+                    jobs[f"{u} / {f}"] = ("in_progress", None) if f in unfinished else ("completed", "success")
+        return {"id": 1, "title": title("code", "7", "main", "abc"), "attempt": attempt, "jobs": jobs,
+                "run_started_at": "2026-11-25T10:00:00Z", "starts": {"prelude": "2026-11-25T09:00:00Z"}}
+    three = [f"fast (3.14, {k}/3)" for k in (1, 2, 3)]
+    check("#3902: a completed unsharded run is judging (null control)", judging(shard_run([shards.FAST])), True)
+    check("#3902: a completed sharded run is judging", judging(shard_run(three)), True)
+    check("#3902: a sharded run missing one shard from its listing is not judging",
+          judging(shard_run(three[:2])), False)
+    check("#3902: a sharded run with one shard unfinished is not judging",
+          judging(shard_run(three, unfinished=(three[1],))), False)
+    check("#3902: owed_needs owes every shard of the listed count, not the unsharded name",
+          [k for k in owed_needs(shard_run(three)) if "fast" in k], [f"tests / {f}" for f in three])
+    check("#3902: a re-run's re-queued shard is requeued",
+          requeued(shard_run(three, unfinished=(three[2],), attempt=2)), [f"tests / {three[2]}"])
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
