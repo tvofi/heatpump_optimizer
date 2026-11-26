@@ -1,4 +1,0 @@
-  FAIL _bootstrap drops the package directory so datetime is stdlib  [here=/root/mut/m4_desired/custom_components/heatpump_optimizer path0='/tmp/g511-pxi0z_1v']
-  FAIL through the arbiter, a mode write opens no episode without demand on the target duty, when the plan leaves that duty inside the stop window, on a return under the heated margin over the command's water set-point (unit return or flow), or, on an indoor set-point whatever the return reads and with no return sensor, on a replaced mode record younger than the least source leg  [{'the room at it
-  FAIL R11-OWNER-STEP-KICK: a flow install's swap writes the settled set-point, below the 55 degC ceiling, whatever hot return it reads (the gate cells' precondition), so the 56.9 degC return the ceiling masked now reads heated and books the stop; a return install's write is the ceiling's and books none  [flow command 35.0 (1, 0, 0, 1, [])]
-3 of 6159 FEATURE CHECKS FAILED

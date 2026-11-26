@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index b64b0d8a8d..970838db55 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -1339,7 +1339,7 @@ def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boost
+     command = _flow_command(inp, held)
+     if command is None:
+         return None
+-    m = _map_inputs(inp, now, boosted, _settle(held, inp))
++    m = _map_inputs(inp, now, boosted, held.served)
+     return draw_range.PassRecord(
+         now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
+         m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
