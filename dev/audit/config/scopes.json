@@ -425,7 +425,7 @@
    "s7": [
     {
      "files": [
-      "tests/f*"
+      "tests/features.py"
      ],
      "steps": [
       "M1",
@@ -439,6 +439,7 @@
     {
      "files": [
       "tests/{a,b,c,d,g}*",
+      "tests/{finite_boundary,frontend}.py",
       "tools/policy/**"
      ],
      "steps": [
