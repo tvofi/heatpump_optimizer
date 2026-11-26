@@ -55,3 +55,4 @@
 1795699082 HB alive
 1795699273 CKPT delta reviewed: unions confirmed, no SysIdConfig.enabled reader, no budget rise; running claims/structure/deployment_shape snapshot 0f3dcc023d19
 1795699342 CKPT verdict pushed: merge 60076fe6 at probe/rev-3835-e3ce36c5 3ca3bb1a snapshot 792826552819
+1795699346 DONE Fix review: merge 60076fe6ed636474d399c570111222d05c547d9a (probe 3ca3bb1a)
