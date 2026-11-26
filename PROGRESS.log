@@ -18,3 +18,4 @@
 1795612049 CKPT delta verified; waiting CI snapshot 1cac38b4ae5e
 1795612345 DONE Fix review: merge 2c1ab822 (pending-ci: gate; head moved to 106578f8, review_carry CARRY); verdict at probe/rev-3870-eef32938 7e6473f3
 1795662663 HB alive
+1795662749 CKPT prod lines identical 2c1ab822 vs 1a0d1351; checking deployment_shape note snapshot 3300d5858989
