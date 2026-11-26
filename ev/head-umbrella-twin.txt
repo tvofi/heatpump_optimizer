@@ -1,0 +1,21 @@
+# head 2e3a13f00ce601de2880f395487893f9a892c427
+  ok   no required context can be re-reported as skipped by a body edit
+  ok   and #1484's guard reads as skipping under that event (null control)
+  ok   a superseded long-job pull-request run is cancelled; pr-contract same-SHA twins are not
+  ok   and a group keyed on the ref, cancelling everything, is refused (null control)
+  ok   ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, on a non-bot same-repo pull_request run only
+  ok   and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)
+  ok   #3885: main-cancel.yml cancels superseded main runs on a push to main only, outside any concurrency group, passing the push's prelude scope and head
+  ok   and a main-cancel.yml in a concurrency group, on pull_request, or not passing the scope is refused (null control)
+  ok   pr-contract is a workflow_call callee with no event and no concurrency group of its own
+  ok   and a pr-contract.yml that lists pull_request, or declares a concurrency group, is refused (null control)
+  ok   and the cancelling block, a serialised one, or an unrouted `edited` file is refused (null control)
+  ok   no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)
+  ok   and a leading `always()` is refused, `!cancelled()` is not (null control)
+
+skipped-statements 406
+PLANT_MISSED []
+  ok   the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt (CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), every unit called by its stem exactly when the prelude's workset names it, and a `gate` no event can skip, judging on the prelude's outputs (U0c)
+
+skipped-statements 379
+PLANT_MISSED []

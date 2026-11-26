@@ -1,0 +1,18 @@
+# mutant m1 at 2e3a13f00ce601de2880f395487893f9a892c427
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index df395b1f9a..9bb0864f5e 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -79,8 +79,8 @@ permissions: {}
+ # runs when the new push is graded in full, never past three main runs with no
+ # concluded verdict.
+ concurrency:
+-  group: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}', github.event.pull_request.number) || format('CI-{0}', github.run_id) }}
+-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' }}
++  group: ${{ format('CI-{0}', github.run_id) }}
++  cancel-in-progress: false
+ 
+ jobs:
+   prelude:
+  FAIL the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt (CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), every unit called by its stem exactly when the prelude's workset names it, and a `gate` no event can skip, judging on the prelude's outputs (U0c)  [defects=["concurrency group under pull_request/synchronize attempt 1 sender hpo-author[bot] renders 'CI-99', want 'CI-pr-7'", 'concurrency under pull_request/synchronize attempt 1 sender hpo
+PLANT_MISSED ['PR re-runs in the PR group', 'bot-sent pushes in the PR group', 'no PR group', 'push runs serialised in one main group (CI-5)', 'the PR group cancelling nothing', 'the PR group on every pull_request action', "the PR group's cancel on every pull_request action"]

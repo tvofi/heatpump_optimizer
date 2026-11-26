@@ -1,0 +1,7 @@
+# PYTHONPATH=tests/hastub python3 tests/entities.py at 2e3a13f00ce601de2880f395487893f9a892c427, HPO_CI_METRICS unset; tail:
+
+ALL 2779 ENTITY CHECKS PASSED
+rc=0
+# nested FAIL lines (planted-mutant self-test output): 54
+  ok   the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt (CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (n
+  ok   a measured script's late-writing descendant is waited for, not recorded as nodata
