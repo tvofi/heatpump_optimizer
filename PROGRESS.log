@@ -1,2 +1,3 @@
 1795735587 INIT r11-late-p2-zone-gate
 1795735600 HB alive
+1795735775 CKPT baseline probe: 6 of 10 FAIL incl 4 zone seams
