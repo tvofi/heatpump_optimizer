@@ -15,11 +15,16 @@
   Refusal: none; an unreadable answer cancels nothing and exits 0.
 - `cancel_superseded.py main` (`python3 -I tools/pr/cancel_superseded.py main --repo OWNER/REPO --workflow ci.yml [--dry-run]`) --
   the one sanctioned path for cancelling superseded `push` runs on main, by hand
-  (P658); `sweep` and `run` never touch one. Per `--workflow`: cancels each active
+  (P658) or from a push (#3885); `sweep` and `run` never touch one. Per `--workflow`: cancels each active
   main push run but the newest, oldest first, unless that would leave more than
   three consecutive main runs of the workflow with no concluded one (completed
   `success`, `failure` or `timed_out`). Leave a kept run to conclude.
   Prints `CANCEL-MAIN: <workflow>: kept <id>: <why>` per refusal and one
   `CANCEL-MAIN: <workflow>: cancelled n, kept m` line. API cost: one listing per
-  workflow + one POST per cancel. An unreadable answer cancels nothing. Exit
+  workflow + one jobs listing and one POST per cancel. An unreadable answer cancels
+  nothing; so does a run to cancel with a job queued `pause_queued_min` minutes
+  (`ci_pause.queued_minutes`: GitHub is not granting runners). Fired by
+  `.github/workflows/main-cancel.yml` on every push to main (#3885) with
+  `--head-sha` and `--scope` (that push's `prelude.py` scope): only `full` cancels,
+  and only once the push's own run is listed as the newest. Exit
   measure: `scorecard.py` line `C`. Mutants: `dev/audit/harnesses/r11_main_cancel_mutants.py`.

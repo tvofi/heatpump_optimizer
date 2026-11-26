@@ -6068,6 +6068,99 @@ R.check(
     not (set(_mon_req) & set(_sat_req)),
     f"mon {_mon_req} vs sat {_sat_req}",
 )
+# D17-s3-51, the planner's reader: `DhwPlan.next_window_in_hours`
+# (published as dhw_next_window_in_hours) is read in the day's windows,
+# today's and the next day's, exactly as `windows_in_force` answers for a
+# clock. It read the flat every-day union, so a Saturday 07:00 read 0.0
+# (inside the weekday window) where the weekend window opens in 1.0 h.
+# The census drives every weekday at hours before, inside, between and
+# after the windows, plus a holiday and a per-day override, and compares
+# each cell with the owner's answer. It asserts its own precondition: the
+# grid holds cells where the flat set disagrees with the day's.
+import dataclasses as _nw_dc
+import datetime as _nw_dt
+from heatpump_optimizer.dhw_schedule import (
+    hours_until_next_window as _nw_hunw, windows_in_force as _nw_wif,
+    parse_windows as _nw_parse,
+)
+
+_NW_SPEC = "weekdays 06:00-08:30, weekend 08:00-09:30"
+
+
+def _nw_cell(params, t0, holidays=frozenset()):
+    _o = _PvOpt(ThermalModel(params), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _n = 96
+    _ts = [t0 + _nw_dt.timedelta(hours=i * 0.25) for i in range(_n)]
+    _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
+        _dhw_horizon(
+            prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0), n=_n, dt=0.25,
+            step_hours=np.array([t.hour + t.minute / 60.0 for t in _ts]),
+            step_weekdays=np.array(
+                [(t0 + _nw_dt.timedelta(hours=(i - 1) * 0.25)).weekday()
+                 for i in range(_n + 1)]),
+            holiday_flags=(np.array(
+                [False] + [t.date() in holidays for t in _ts])
+                if holidays else None),
+        ),
+        p_max=4.0,
+    )
+    _h = t0.hour + t0.minute / 60.0
+    _owner = _nw_hunw(_h, _nw_wif(params, None, t0, holidays),
+                      _nw_wif(params, None, t0, holidays, days=1))
+    _flat = _nw_hunw(_h, list(params.dhw_demand_windows))
+    return _plan.next_window_in_hours, _owner, _flat
+
+
+_nw_cfg = _grad_house(two_zone=False, dhw=True)
+_nw_cfg["dhw_windows"] = _NW_SPEC
+_nw_p = ThermalParameters.from_config(_nw_cfg)
+_nw_grid = {}
+for _nw_day in range(12, 19):  # Mon 2026-01-12 .. Sun 2026-01-18
+    for _nw_h in (0.0, 5.0, 7.0, 8.75, 9.0, 12.0, 23.5):
+        _nw_t = _WDT(2026, 1, _nw_day) + _nw_dt.timedelta(hours=_nw_h)
+        _nw_grid[("weekly", _nw_t.isoformat())] = _nw_cell(_nw_p, _nw_t)
+# A holiday Wednesday reads the holiday set; a Thursday override reads its own.
+_nw_hp = _nw_dc.replace(_nw_p, dhw_holiday_windows=_nw_parse("10:00-11:00"))
+for _nw_h in (7.0, 23.5):
+    _nw_t = _WDT(2026, 1, 13) + _nw_dt.timedelta(hours=_nw_h)
+    _nw_grid[("holiday", _nw_t.isoformat())] = _nw_cell(
+        _nw_hp, _nw_t, frozenset({_nw_dt.date(2026, 1, 14)}))
+    _nw_t = _WDT(2026, 1, 14) + _nw_dt.timedelta(hours=_nw_h)
+    _nw_grid[("holiday", _nw_t.isoformat())] = _nw_cell(
+        _nw_hp, _nw_t, frozenset({_nw_dt.date(2026, 1, 14)}))
+_nw_op = _nw_dc.replace(
+    _nw_p, dhw_day_windows=[None, None, None, _nw_parse("13:00-14:00"),
+                            None, None, None])
+for _nw_h in (7.0, 23.5):
+    for _nw_day in (14, 15):
+        _nw_t = _WDT(2026, 1, _nw_day) + _nw_dt.timedelta(hours=_nw_h)
+        _nw_grid[("override", _nw_t.isoformat())] = _nw_cell(_nw_op, _nw_t)
+# A horizon from midnight never wraps, so the next day is the weekday after;
+# a Saturday with no window reads Sunday's.
+_nw_ec = dict(_nw_cfg, dhw_windows="weekdays 06:00-08:30, Su 09:00-10:00")
+_nw_grid[("no-wrap", "2026-01-17T00:00:00")] = _nw_cell(
+    ThermalParameters.from_config(_nw_ec), _WDT(2026, 1, 17))
+_nw_wrong ={k: v for k, v in _nw_grid.items()
+             if v[0] is None or v[1] is None or abs(v[0] - v[1]) > 1e-9}
+_nw_separating = [k for k, v in _nw_grid.items()
+                  if v[2] is None or v[1] is None or abs(v[2] - v[1]) > 1e-9]
+R.check(
+    "the census grid holds cells where the flat every-day set and the day's "
+    "windows disagree on the next window (its own precondition)",
+    len(_nw_separating) >= 10 and any(k[0] == "holiday" for k in _nw_separating)
+    and any(k[0] == "override" for k in _nw_separating)
+    and _nw_grid[("no-wrap", "2026-01-17T00:00:00")][1] == 33.0,
+    f"{len(_nw_separating)} separating of {len(_nw_grid)}: {_nw_separating[:6]}",
+)
+R.check(
+    "the planner's published next window reads the day's windows, today's and "
+    "the next day's, in every census cell (D17-s3-51, windows_in_force's answer)",
+    not _nw_wrong,
+    f"{len(_nw_wrong)} of {len(_nw_grid)} wrong (planner, owner, flat): "
+    f"{list(_nw_wrong.items())[:4]}",
+)
 # The flat spec is byte-identical to before: the weekly path is entirely
 # gated on dhw_weekly_windows, which is None here. (The drift gate holds
 # this across every captured scenario; this is the local statement.)
@@ -11221,10 +11314,10 @@ _u_up = _m_dp.effective_heat_loss_coefficient(
 _u_lo = _m_dp.effective_heat_loss_coefficient(
     _p_dp.lower_floor_heat_loss_learned, 0.0, 0.0
 )
-_fs_c = _mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-5.0,
-    heat_loss_coefficient=_u_up + _u_lo, emitter_ua=_ua_tot,
-)
+# The plant's own curve (R11-SEAM-two-zone-slab: the slab in series, the gains),
+# read from production rather than re-derived here.
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _vdc_c  # noqa: E402
+_fs_c = _vdc_c(_m_dp, _st_c, -5.0, 0.0, 0.0)[0][1]
 _tmix_c = min(50.0, _fs_c)
 _q_del = _mv.emitter_delivery(
     mix_temp=_tmix_c, zone_temp=21.0, ua=_ua_rad
@@ -11252,6 +11345,9 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     _Horizon,
     _price_ranked_start,
 )
+
+
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _valve_draw_circuits_s  # noqa: E402
 
 
 def _storage_plan(price_profile, two_zone=True):
@@ -11296,6 +11392,7 @@ def _storage_plan(price_profile, two_zone=True):
     pw = np.asarray(r.power_schedule)
     _, _, _, _, buf, _, _ = m.simulate_trajectory(
         st, pw, _WS(outdoor, zeros, zeros, zeros), dt_hours=0.25)
+    _storage_plan.curve = _valve_draw_circuits_s(m, st, -10.0, 0.0, 0.0)[0][1]
     night = float(pw[hours < 5].sum() * 0.25)
     peaks = float(
         pw[((hours >= 7) & (hours < 10)) | ((hours >= 16) & (hours < 20))].sum()
@@ -11305,16 +11402,20 @@ def _storage_plan(price_profile, two_zone=True):
 
 
 _night_s, _peak_s, _buf_s = _storage_plan("spread")
+_curve_s = _storage_plan.curve
 _night_f, _peak_f, _buf_f = _storage_plan("flat")
 R.check(
     "with a price spread the optimizer charges through the cheap night",
     _night_s > 22.0,
     f"bought {_night_s:.1f} kWh of a possible 30 in the 00-05 trough",
 )
+# Above the curve it feeds, the tank holds heat the emitters do not take yet:
+# a margin over the 25 C start encoded the curve in force when it was written
+# (R11-SEAM-two-zone-slab's curve sits higher and drains the tank lower).
 R.check(
-    "and deliberately lifts the tank to do it",
-    float(_buf_s.max()) > 25.0 + 8.0,
-    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start",
+    "and deliberately lifts the tank to do it, above the curve it feeds",
+    float(_buf_s.max()) > max(25.0, _curve_s) + 1.0,
+    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start, curve {_curve_s:.2f} C",
 )
 R.check(
     "and coasts both price peaks on stored heat",
@@ -13613,10 +13714,7 @@ _ff = _write_coord(
 )
 _ff._current_state.outdoor_temperature = -5.0
 _asyncio.run(_ff._command_valve_target())
-_expected_flow = _mv.flow_setpoint(
-    target_temp=23.5, outdoor_temp=-5.0,
-    heat_loss_coefficient=0.20, emitter_ua=10.0 / 15.0,
-)
+_expected_flow = _ff._thermal_model.flow_target_for_indoor(23.5, -5.0)
 R.check(
     "'flow' commands the flow curve's temperature, not the raw indoor target",
     bool(_ff.hass.services.calls)
@@ -16412,18 +16510,9 @@ _w2t_ua_tot = (
 )
 _w2t_ua_rad = _w2t_p_c.radiator_power_fraction * _w2t_ua_tot
 _w2t_ua_floor = (1.0 - _w2t_p_c.radiator_power_fraction) * _w2t_ua_tot
-_w2t_fs = _w2t_mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-15.0,
-    heat_loss_coefficient=(
-        _w2t_m_c.effective_heat_loss_coefficient(
-            _w2t_p_c.upper_floor_heat_loss
-        )
-        + _w2t_m_c.effective_heat_loss_coefficient(
-            _w2t_p_c.lower_floor_heat_loss_learned
-        )
-    ),
-    emitter_ua=_w2t_ua_tot,
-)
+# The plant's own curve, read from production (R11-SEAM-two-zone-slab).
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _w2t_vdc  # noqa: E402
+_w2t_fs = _w2t_vdc(_w2t_m_c, _w2t_s0, -15.0, 0.0, 0.0)[0][1]
 _w2t_tmix = min(
     max(_w2t_s0.wood_tank_temperature, _w2t_s0.buffer_tank_temperature),
     _w2t_fs,
@@ -20437,8 +20526,149 @@ R.check(
     "exact minutes the pre-heat exists for",
 )
 R.check(
-    "with no windows the loop is simply left on",
-    _ps.vvc_should_run(3.0, [], 20)[0],
+    "with no schedule the loop is simply left on",
+    _ps.vvc_should_run(3.0, None, 20)[0],
+)
+R.check(
+    "a schedule with no window today keeps the loop off (D17-s3-51)",
+    not _ps.vvc_should_run(3.0, [], 20)[0] and not _ps.vvc_should_run(7.0, [], 20)[0],
+    f"{_ps.vvc_should_run(3.0, [], 20)!r} -- an empty day of a day-aware spec "
+    "read as 'no schedule' ran the loop all day",
+)
+
+# D17-s3-51 and the P2 sweep's F14 seams: every reader asking "is a hot-water
+# window open now" resolves the day's windows (dhw_schedule.windows_in_force),
+# as the planner does per step. On "weekdays 06:00-08:30, weekend
+# 08:00-09:30" Saturday 07:00 is outside every window in force; the flat
+# union 06:00-09:30 read it open at the published flag, boost's release and
+# the draw learner. Monday 07:00 is the control: inside, at every reader.
+from unittest import mock as _d17_mock  # noqa: E402
+from harness import FakeEntry as _d17_entry  # noqa: E402
+from heatpump_optimizer import boost as _d17_boost, circulation as _d17_circ, dhw_schedule as _d17_sched  # noqa: E402
+from homeassistant.util import dt as _d17_dt_util  # noqa: E402
+
+_D17_MON = datetime(2026, 1, 12, 7, 0, tzinfo=UTC)
+_D17_SAT = _D17_MON + timedelta(days=5)
+_d17_c = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30"}))
+_d17_seen = {}
+for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT), ("mon_0845", _D17_MON.replace(hour=8, minute=45))):
+    _d17_labels = []
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda _t=_d17_t: _t), \
+            _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
+                                   lambda now, lab, e, charge=False, _l=_d17_labels: _l.append(lab)):
+        _asyncio.run(_d17_c._dhw_learner.async_fold_draw_stats(_d17_t, 50.0, 3.0, 0.25))
+        _d17_seen[_d17_label] = (
+            _d17_c._dhw_in_demand_window(),
+            _d17_boost._window_open(_d17_c.arbiter_inputs(), _d17_t),
+            _d17_labels,
+        )
+R.check(
+    "the hot-water window in force is the day's at every reader: flag, boost, draw learner (D17-s3-51)",
+    _d17_seen["sat"] == (False, False, [""])
+    and _d17_seen["mon"] == (True, True, ["06:00-09:30"]),
+    f"{_d17_seen} -- Saturday 07:00 lies in the flat union 06:00-09:30 and in "
+    "no window that day",
+)
+R.check(
+    "boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)",
+    _d17_seen["mon_0845"] == (False, False, [""]),
+    f"{_d17_seen['mon_0845']} -- an hour read at half the minutes (8.375) lands back inside 06:00-08:30",
+)
+_d17_params = _d17_c._thermal_params
+_d17_params.dhw_holiday_windows = [(10.0, 11.0)]
+R.check(
+    "windows_in_force takes the holiday tier on a holiday date and the day's own windows otherwise",
+    _d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()}) == [(10.0, 11.0)]
+    and _d17_sched.windows_in_force(_d17_params, None, _D17_SAT) == [(8.0, 9.5)]
+    and _d17_sched.windows_in_force(_d17_params, None, _D17_MON) == [(6.0, 8.5)],
+    f"{_d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()})!r}",
+)
+_d17_params.dhw_holiday_windows = None
+# The learner reads the holiday tier through the coordinator's calendar,
+# its ``holidays`` callback. On a holiday whose windows cover Saturday 07:00,
+# the draw falls in a window. It takes the flat label the planner keys its
+# stats by. The same instant on an ordinary Saturday is out of window.
+_d17_params.dhw_holiday_windows = [(6.5, 7.5)]
+_d17_hol = {}
+for _d17_label, _d17_days in (("holiday", lambda now: {now.date()}), ("ordinary", lambda now: ())):
+    _d17_labels = []
+    _d17_c._dhw_learner._holidays = _d17_days
+    with _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
+                                lambda now, lab, e, charge=False, _l=_d17_labels: _l.append(lab)):
+        _asyncio.run(_d17_c._dhw_learner.async_fold_draw_stats(_D17_SAT, 50.0, 3.0, 0.25))
+    _d17_hol[_d17_label] = _d17_labels
+R.check(
+    "the draw learner takes the holiday tier from the coordinator's calendar (D17-s3-51)",
+    _d17_hol == {"holiday": ["06:00-09:30"], "ordinary": [""]},
+    str(_d17_hol),
+)
+_d17_params.dhw_holiday_windows = None
+# The other three readers take the holiday tier from the configured holiday
+# calendar too: the published in-window flag (``_dhw_effective_windows``),
+# boost's tank release (``boost._window_open``) and the VVC pump. Holiday
+# windows 10:00-11:00 against Saturday's own 08:00-09:30: Saturday 10:30 is in
+# a window only while the calendar is on, so a reader dropping the tier reads
+# it out. The ordinary Saturday is the null control: out at every reader.
+_d17_hc = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30",
+    "holiday_calendar_entity": "calendar.holiday",
+    "vvc_pump_entity": "switch.vvc", "vvc_lead_minutes": 20}))
+_d17_hc._thermal_params.dhw_holiday_windows = [(10.0, 11.0)]
+_D17_SAT1030 = _D17_SAT.replace(hour=10, minute=30)
+_d17_hcr = {}
+for _d17_label, _d17_cal in (("holiday", "on"), ("ordinary", "off")):
+    _d17_hc.hass.states.set("calendar.holiday", FakeState(_d17_cal))
+    _d17_vvc_on = []
+
+    # The VVC decision as the coordinator hands it to circulation.command,
+    # whose write and restore mechanics are not this check's subject.
+    async def _d17_cmd(hass, entry, config, pump, on, reason, _l=_d17_vvc_on):
+        if pump == _d17_circ.DHW:
+            _l.append(on)
+
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_SAT1030), \
+            _d17_mock.patch.object(_d17_circ, "command", _d17_cmd):
+        _asyncio.run(_d17_hc._async_drive_pumps())
+        _d17_hcr[_d17_label] = (
+            _d17_hc._dhw_in_demand_window(),
+            _d17_boost._window_open(_d17_hc.arbiter_inputs(), _D17_SAT1030),
+            _d17_vvc_on,
+        )
+R.check(
+    "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)",
+    _d17_hcr == {"holiday": (True, True, [True]), "ordinary": (False, False, [False])},
+    f"{_d17_hcr} -- Saturday 10:30 is inside the holiday windows 10:00-11:00 and outside "
+    "Saturday's own 08:00-09:30",
+)
+
+# The lead across midnight reads TOMORROW's windows: the VVC pre-heat and the
+# published hours to the next window. "Tu 00:10-00:40": Monday 23:55 is 15
+# minutes before Tuesday's window; Tuesday 23:55 is before no window at all
+# (Wednesday has none), where the flat every-day union pre-heated.
+_d17_mid = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True, "dhw_windows": "Tu 00:10-00:40"}))
+_D17_MON2355 = datetime(2026, 1, 12, 23, 55, tzinfo=UTC)
+_D17_TUE2355 = _D17_MON2355 + timedelta(days=1)
+_d17_vvc = {
+    _l: _ps.vvc_should_run_at(_t, _d17_mid._thermal_params, 20)[0]
+    for _l, _t in (("mon", _D17_MON2355), ("tue", _D17_TUE2355))
+}
+with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_MON2355):
+    _d17_next = _d17_mid._dhw_next_window_in_hours()
+R.check(
+    "the VVC lead and the next-window hours read tomorrow's windows across midnight (D17-s3-51)",
+    _d17_vvc == {"mon": True, "tue": False} and _d17_next == 0.25
+    and _ps.vvc_should_run_at(_D17_MON2355, None, 20)[0],
+    f"vvc {_d17_vvc} next window {_d17_next!r} h at Monday 23:55",
 )
 
 _SAFE = dict(
@@ -42104,6 +42334,9 @@ _ET_KEYS = {
     "manual_plan_invalid_expires_at": {"expires_at"},
     "manual_plan_invalid_slots": {"error"},
     "run_optimization_no_prices": {"entry_ids"},
+    # D10-s1-02: the system-identification press's two refusals.
+    "system_identification_disabled": {"entry_ids"},
+    "system_identification_not_armed": {"entry_ids", "reason"},
     "run_optimization_solve_failed": {"entry_ids"},
     "simulate_plan_no_plan": {"entry_ids"},
     "simulate_plan_no_prices": {"entry_ids"},
@@ -47870,16 +48103,23 @@ R.check(
     and _r11m_feb_rows == _r11m_jan_rows and not _r11m_jan_rows[0]["estimated"],
     repr(_r11m_feb_rows),
 )
-_r11m_sensor = _r11m_NS(_rows=lambda: _r11m_feb_rows)
+def _r11m_stand_in(rows):
+    """The sensor's two row readers on a stand-in: ``_rows`` and the one open saving."""
+    ns = _r11m_NS(_rows=rows)
+    ns._open_saving = lambda: _r11m_Sensor._open_saving(ns)
+    return ns
+
+
+_r11m_sensor = _r11m_stand_in(lambda: _r11m_feb_rows)
 _r11m_two_day = _SavLedger.from_dict(_r11m_two.as_dict())
 for _h in range(24):
     _r11m_two_day.observe_spot_and_settle_savings(
         datetime(2026, 2, 1, 0, 15) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
-_r11m_ready = _r11m_NS(_rows=lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
+_r11m_ready = _r11m_stand_in(lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
 R.check(
     "R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows",
     _r11m_Sensor._waiting_for.fget(_r11m_sensor) == "open_month_coverage"
-    and _r11m_Sensor._waiting_for.fget(_r11m_NS(_rows=lambda: [])) == "settled_savings_month"
+    and _r11m_Sensor._waiting_for.fget(_r11m_stand_in(lambda: [])) == "settled_savings_month"
     and _r11m_Sensor._waiting_for.fget(_r11m_ready) is None,
     f"{_r11m_Sensor._waiting_for.fget(_r11m_sensor)!r} / {_r11m_Sensor._waiting_for.fget(_r11m_ready)!r}",
 )
@@ -47991,7 +48231,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 5.0, "count": 1} and _SB_NOW == 5 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -48014,9 +48254,11 @@ R.check(
 # two-zone reference at the valve top: a month it opened mixes two references
 # once it books on under this code. A stamp 3.0 held a single-zone valved house
 # short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
-# 4.0, this release's, keeps its saving.
+# 4.0 held a two-zone house whose valve feeds the slab short of its setpoint,
+# before R11-SEAM-two-zone-slab's curve reached it. A stamp 5.0, this release's,
+# keeps its saving.
 _sb_by_stamp = {}
-for _sb_stamp in (2.0, 3.0, 4.0):
+for _sb_stamp in (2.0, 3.0, 4.0, 5.0):
     _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
     _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
     _sb_s_led = _SavLedger.from_dict(_sb_s)
@@ -48040,10 +48282,18 @@ R.check(
 )
 _sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
 R.check(
-    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
-    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
-    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    "a month stamped 4, booked before the two-zone valve-fed slab reached its setpoint, states no saving after the change",
+    _sb_v4_row["old_basis"] is True and _sb_v4_row["savings_sek"] is None
+    and _sb_v4_row["savings_pct"] is None and _sb_v4_row["baseline_sek"] is not None
+    and _sb_v4_row["actual_sek"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
     repr(_sb_by_stamp[4.0]),
+)
+_sb_v5_row, _sb_v5_meta = _sb_by_stamp[5.0]
+R.check(
+    "a month stamped 5, the reference in force, keeps stating its saving as it books on",
+    _sb_v5_row["old_basis"] is False and _sb_v5_row["savings_sek"] is not None
+    and _sb_v5_row["savings_pct"] is not None and _sb_v5_meta == {"sum": 5.0, "count": 1},
+    repr(_sb_by_stamp[5.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -48167,14 +48417,164 @@ R.check(
     "the booked reference reproduces its recorded digest on every pinned install "
     "(a change re-records it and bumps REFERENCE_BASIS)",
     _vr_digests == {
-        "install +5": "2f088060f8fe63dd",
-        "install -15": "35cc1d0d71a4414b",
+        "install +5": "b7300f2dfadef8eb",
+        "install -15": "c94024cf8a5fa259",
         "one-tank +5": "ba516c4bb8328b78",
         "one-tank -15": "cb3e0ea30949c952",
         "no valve +5": "514d1532f1b30760",
         "no valve -15": "0e396b7d1cc59e1a",
     },
     repr(_vr_digests),
+)
+# R11-SEAM-two-zone-slab (#3713): a two-zone valve feeds the radiators and the
+# slab, which reaches the lower floor through `slab_heat_transfer` in series.
+# One flow feeds two unequal paths, so the curve holds what the thermostat reads,
+# the area-weighted room; the house's `internal_gains` are in it, as in the
+# single-zone branch. (a) to (d) on the owner's replay install, whose valve is
+# `manual` at 21 C; the law uses `slab_heat_transfer_floored`, which equals
+# `slab_heat_transfer` on every install above 1e-6 kW/K, this one included.
+# The install's upper-floor area ratio is 0.5, where the law's r and 1 - r arms
+# are interchangeable. So (a), (b) and (d) also run it at 0.3/0.7 and 0.7/0.3,
+# where gains or losses weighted to the wrong floor miss 21 C.
+def _tz_install(**over):
+    return ThermalParameters.from_config(_tz_replay(**over))
+
+
+_TZ_SPLITS = (("install", {}),
+              ("split 0.3/0.7", {"upper_floor_area_ratio": 0.3, "radiator_power_fraction": 0.7}),
+              ("split 0.7/0.3", {"upper_floor_area_ratio": 0.7, "radiator_power_fraction": 0.3}))
+
+
+def _tz_split(over):
+    _tz_q = _tz_install()
+    for _tz_k, _tz_v in over.items():
+        setattr(_tz_q, _tz_k, _tz_v)
+    return _tz_q
+
+
+from profiles import replay_install as _tz_replay  # noqa: E402
+
+
+def _tz_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _tz_held
+
+    _tz_n = 960
+    _tz_out = {}
+    for (_tz_name, _tz_over), _tz_outdoor in (
+            (_s, _o) for _s in _TZ_SPLITS for _o in (5.0, -5.0, -15.0)):
+        _tz_p = _tz_split(_tz_over)
+        _tz_model = ThermalModel(_tz_p)
+        _tz_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_tz_outdoor,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_w = WeatherSeries(
+            outdoor_temps=np.full(_tz_n, _tz_outdoor), wind_speeds=np.full(_tz_n, 3.0),
+            precipitation=np.zeros(_tz_n), solar_radiation=np.zeros(_tz_n))
+        _tz_h = _tz_held(_tz_model, _tz_start, _tz_w, 21.0)
+        _tz_s = _tz_h
+        for _ in range(_tz_n):
+            _tz_s = _tz_model.simulate_step(
+                _tz_s, _tz_p.max_electrical_power, _tz_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _tz_b = _tz_model.simulate_trajectory_batch(
+            _tz_h, np.full((1, _tz_n), _tz_p.max_electrical_power), _tz_w, dt_hours=0.25)
+        _tz_out[(_tz_name, _tz_outdoor)] = (
+            _tz_h.room_temperature, _tz_s.room_temperature, float(_tz_b["room"][0, -1]))
+    return _tz_out
+
+
+_tz_p = _tz_install()
+_tz_holds_out = _tz_holds()
+R.check(
+    "two-zone valve-fed slab: the plant at its pump, settled, holds the room at the "
+    "valve's 21 C within 0.02 K, scalar step and batch twin",
+    _tz_p.two_zone_enabled and not _tz_p.slab_fed_direct and _tz_p.mixing_valve_target == 21.0
+    and all(abs(_tz_sc - 21.0) < 0.02 and abs(_tz_bt - 21.0) < 0.02
+            for _, _tz_sc, _tz_bt in _tz_holds_out.values()),
+    ", ".join(f"{n} {o:+.0f} C scalar {sc:.4f} batch {bt:.4f}"
+              for (n, o), (_, sc, bt) in _tz_holds_out.items()),
+)
+R.check(
+    "two-zone valve-fed slab: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_tz_room - 21.0) < 1e-3 for _tz_room, _, _ in _tz_holds_out.values()),
+    ", ".join(f"{n} {o:+.0f} C {r:.4f}" for (n, o), (r, _, _) in _tz_holds_out.items()),
+)
+
+
+def _tz_unchanged():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+    from profiles import house as _tz_house
+
+    _tz_carnot = ThermalParameters.from_config({
+        **_tz_house(), "flow_curve_cop_enabled": True, "heat_pump_max_power": 3.0,
+        "upper_floor_heat_loss": 0.2, "lower_floor_heat_loss": 0.2})
+    _tz_carnot.flow_curve_bias = 5.0
+    _tz_cases = {
+        "direct_flow_carnot": _tz_carnot,
+        "install direct slab": _tz_install(
+            topology_layout="valve_upper_direct_slab",
+            wood_tank_top_entity=None, wood_tank_bottom_entity=None),
+    }
+    _tz_out = {}
+    for _tz_name, _tz_q in _tz_cases.items():
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_row = [_tz_m.flow_target_for_indoor(21.0, o) for o in (5.0, -5.0, -15.0)]
+        if _tz_q.slab_fed_direct:
+            _tz_row.append(_valve_draw_circuits(_tz_m, _tz_st, -5.0, 3.0, 0.0)[0][1])
+            _tz_s = _tz_st
+            for _ in range(96):
+                _tz_s = _tz_m.simulate_step(
+                    _tz_s, _tz_q.max_electrical_power, -5.0, 3.0, 0.0, 0.0, 0.25)
+            _tz_row += [_tz_s.upper_floor_temperature, _tz_s.lower_floor_temperature,
+                        _tz_s.slab_temperature, _tz_s.buffer_tank_temperature]
+        _tz_out[_tz_name] = tuple(_tz_row)
+    return _tz_out
+
+
+# Literals recorded at 78d3b4022154 (R11-SEAM-two-zone-slab's base): the
+# unvalved curve and the direct slab's curve and 96-step day keep their bits.
+_tz_same = _tz_unchanged()
+R.check(
+    "two-zone valve curve: an unvalved install's curve and a direct slab's curve and day keep their bits",
+    _tz_same == {
+        "direct_flow_carnot": (30.142857142857146, 35.85714285714286, 41.57142857142857),
+        "install direct slab": (
+            23.1, 24.4125, 25.725, 24.631875, 30.367533973730524, 35.368439723147205,
+            44.028566572860214, 56.0),
+    },
+    repr(_tz_same),
+)
+
+
+def _tz_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+
+    _tz_out = {}
+    for _tz_name, _tz_over in _TZ_SPLITS:
+        _tz_q = _tz_split(_tz_over)
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=0.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        for _tz_outdoor in (5.0, -5.0, -15.0):
+            _tz_out[(_tz_name, _tz_outdoor)] = (
+                _tz_m.flow_target_for_indoor(21.0, _tz_outdoor),
+                _valve_draw_circuits(_tz_m, _tz_st, _tz_outdoor, 0.0, 0.0)[0][1])
+    return _tz_out
+
+
+# Within 1e-9 K, not bitwise: the plant passes its circuits' two conductances
+# summed, the reporter the nameplate's one, which differ by an ulp.
+_tz_agree = _tz_curve_agrees()
+R.check(
+    "two-zone valve curve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(abs(_tz_rep - _tz_plant) < 1e-9 for _tz_rep, _tz_plant in _tz_agree.values()),
+    repr(_tz_agree),
 )
 # R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
 # reaches the room through `slab_heat_transfer` in series, and the house's own
@@ -51406,7 +51806,6 @@ _RC2_SETTERS = {
     "async_reset_comfort_weight": "row: the reset button",
     "async_reset_heat_loss_learners": "row: the heat-loss reset button",
     "async_restore_learned_snapshot": "restores from the store it reads",
-    "async_arm_system_identification": "in memory by design: arms tonight's run",
     "async_update_thermal_params": "the call's fields persist into entry "
         "options and reload the entry (D1-s2-53, F1.4); the learner anchors "
         "also persist through the thermal-learning store (#86)",
@@ -51531,6 +51930,99 @@ R.check(
     "every entity action's state survives a restart before any cycle completes",
     not _rc2_lost,
     f"lost at restart: {_rc2_lost}",
+)
+
+
+# D10-s1-02: a refused or failed press raises to the caller, as the action
+# and the optimize-now press do (action-exceptions, Silver). The sysid press
+# with the option off (the default) armed nothing and returned; the diagnose
+# press with the worker down returned while its background task raised.
+from homeassistant.exceptions import ServiceValidationError as _rc2_sve  # noqa: E402
+from heatpump_optimizer.coordinator import ProcessWorkerUnavailable as _rc2_pwu  # noqa: E402
+
+
+async def _rc2_press(cls, setup):
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"rc2_refuse_{cls.__name__}")
+    coord = await _rc2_boot(entry)
+
+    async def _refresh():
+        return None
+
+    coord.async_request_refresh = _refresh
+    setup(coord)
+    ent = cls(coord, entry)
+    ent.hass = _RC2Hass()
+    try:
+        await ent.async_press()
+    except Exception as err:  # noqa: BLE001 - an untranslated escape is the defect's shape
+        return type(err).__name__, getattr(err, "translation_key", None), coord
+    return None, None, coord
+
+
+def _rc2_sysid_off(coord):
+    with_config(coord, {"system_identification_enabled": False})
+
+
+def _rc2_sysid_on(coord):
+    with_config(coord, {"system_identification_enabled": True})
+    coord._thermal_params.slab_heat_transfer *= 100.0  # the #942 gate's fast slab
+
+
+def _rc2_sysid_recent(coord):
+    _rc2_sysid_on(coord)
+    coord._sysid.last_run = _rc2_dt_util.now()  # armable's minimum days between runs
+
+
+def _rc2_worker_down(coord):
+    async def _down():
+        raise _rc2_pwu("the process worker timed out")
+
+    coord.async_diagnose_interval = _down
+
+
+_rc2_off = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_off))
+_rc2_on = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_on))
+_rc2_recent = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_recent))
+_rc2_down = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_worker_down))
+R.check(
+    "a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)",
+    _rc2_off[:2] == (_rc2_sve.__name__, "system_identification_disabled")
+    and _rc2_off[2]._sysid.phase == "idle"
+    and _rc2_on[:2] == (None, None) and _rc2_on[2]._sysid.phase == "armed"
+    and _rc2_recent[:2] == (_rc2_sve.__name__, "system_identification_not_armed")
+    and _rc2_recent[2]._sysid.phase == "idle",
+    f"option off -> {_rc2_off[:2]} phase {_rc2_off[2]._sysid.phase!r}; "
+    f"ran just now -> {_rc2_recent[:2]}; "
+    f"option on -> {_rc2_on[:2]} phase {_rc2_on[2]._sysid.phase!r}",
+)
+R.check(
+    "a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)",
+    _rc2_down[:2] == ("HomeAssistantError", "diagnose_interval_failed"),
+    f"{_rc2_down[:2]} -- the press returned while its background task raised",
+)
+
+
+_rc2_refreshes: list[str] = []
+
+
+def _rc2_diagnosed(coord):
+    async def _ran():
+        return None
+
+    def _refresh():  # counted when asked for: the press hands the coroutine off the action
+        _rc2_refreshes.append("refresh")
+        return _ran()
+
+    coord.async_diagnose_interval = _ran
+    coord.async_request_refresh = _refresh
+
+
+_rc2_ran = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_diagnosed))
+R.check(
+    "a diagnose press whose diagnosis ran returns and asks for no refresh: the diagnosis "
+    "publishes itself in place, so the press starts no solve (D10-s1-02, D9-s1-01)",
+    _rc2_ran[:2] == (None, None) and _rc2_refreshes == [],
+    f"{_rc2_ran[:2]}, refreshes asked {len(_rc2_refreshes)}",
 )
 
 
@@ -54946,17 +55438,15 @@ R.check(
 
 # The user-facing route: the item-18 button on a DEFAULT install (no k_s bump).
 _arm1329 = _t4_coord()
-_t4_count_refresh(_arm1329)
 with_config(_arm1329, {"system_identification_enabled": True})
-_t4_drive(_arm1329, "async_arm_system_identification")
+_arm1329_refused = _arm1329.arm_system_identification()
 R.check(
     "#1329: the item-18 button arms on a default install (was inert)",
     _arm1329._sysid.phase == "armed"
     and _arm1329._sysid.active
-    and _arm1329._t4_refreshes == 1
-    and _arm1329._t4_escaped is None,
+    and _arm1329_refused is None,
     f"phase {_arm1329._sysid.phase!r} active {_arm1329._sysid.active} "
-    f"refreshes {_arm1329._t4_refreshes} "
+    f"refused {_arm1329_refused!r} "
     f"reason {_arm1329._sysid.result.reason!r} -- before the fix every "
     "answers-based install refused here with 'slab mode too slow for the "
     "excitation window', so the button reported nothing at any plant the "
@@ -55716,11 +56206,11 @@ _t4_arm_on._thermal_params.slab_heat_transfer *= 100.0
 _t4_count_refresh(_t4_arm_on)
 _t4_arm_on_built = _t4_arm_on._sysid.config.enabled
 with_config(_t4_arm_on, {"system_identification_enabled": True})
-_t4_drive(_t4_arm_on, "async_arm_system_identification")
+_t4_arm_on.arm_system_identification()
 _t4_arm_off = _t4_coord(system_identification_enabled=True)
 _t4_count_refresh(_t4_arm_off)
 with_config(_t4_arm_off, {"system_identification_enabled": False})
-_t4_drive(_t4_arm_off, "async_arm_system_identification")
+_t4_arm_off.arm_system_identification()
 R.check(
     "arming re-reads the option at call time, so an edit needs no reload",
     _t4_arm_on_built is False
@@ -55735,15 +56225,35 @@ R.check(
     f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
     "invisible whenever the constructed value already agrees",
 )
+# The arm is a synchronous decision since D10-s1-02, so the press, not the
+# arm, schedules the refresh that publishes it: armed or refused alike.
+from heatpump_optimizer import button as _t4_button  # noqa: E402
+from unittest import mock as _t4_mock  # noqa: E402
+
+_t4_scheduled = []
+
+
+def _t4_off_action(entity, work):
+    _t4_scheduled.append(entity.coordinator)
+    work.close()
+
+
+_t4_press = {}
+for _t4_label, _t4_on in (("armed", True), ("refused", False)):
+    _t4_c = _t4_coord(system_identification_enabled=_t4_on)
+    _t4_c._thermal_params.slab_heat_transfer *= 100.0
+    _t4_ent = _t4_button.SystemIdentificationButton(_t4_c, _t4_c.entry)
+    with _t4_mock.patch.object(_t4_button, "off_the_action", _t4_off_action):
+        try:
+            _asyncio.run(_t4_ent.async_press())
+            _t4_press[_t4_label] = (None, _t4_scheduled.count(_t4_c))
+        except Exception as err:  # noqa: BLE001
+            _t4_press[_t4_label] = (type(err).__name__, _t4_scheduled.count(_t4_c))
 R.check(
-    "a refused arm still refreshes, which is what publishes the refusal",
-    _t4_arm_on._t4_refreshes == 1
-    and _t4_arm_off._t4_refreshes == 1
-    and _t4_arm_on._t4_escaped is None
-    and _t4_arm_off._t4_escaped is None,
-    f"armed -> {_t4_arm_on._t4_refreshes} refresh, refused -> "
-    f"{_t4_arm_off._t4_refreshes} -- returning early on a refusal leaves the "
-    "user's own button reporting nothing at all",
+    "a refused press still schedules the refresh, which is what publishes the refusal",
+    _t4_press == {"armed": (None, 1), "refused": ("ServiceValidationError", 1)},
+    f"{_t4_press} -- returning early on a refusal leaves the user's own "
+    "button reporting nothing at all",
 )
 
 _t4_reset = _t4_coord(comfort_learning_enabled=True)
@@ -70585,9 +71095,12 @@ R.check(
 
 # dhw_planner._dhw_windows_at: holiday flags shorter than the horizon.
 _sw_normal, _sw_holiday = [(6, 7)], [(10, 11)]
+_sw_wparams = SimpleNamespace(
+    dhw_weekly_windows=None, dhw_holiday_windows=_sw_holiday, dhw_day_windows=None,
+)
 _sw_win = [
     _sw_try(lambda k=k: _sw_windows_at(
-        None, None, k, _sw_normal, _sw_holiday, np.array([True, True]),
+        _sw_wparams, None, k, _sw_normal, np.array([True, True]),
     ))
     for k in range(_sw_n)
 ]
@@ -70596,6 +71109,33 @@ R.check(
     [w for w, _ in _sw_win]
     == [_sw_holiday, _sw_holiday, _sw_normal, _sw_normal],
     f"{_sw_win}",
+)
+
+# dhw_planner._dhw_next_window_hours: an empty horizon reads no day, and a
+# repeated hour is no midnight wrap. At 10:30 neither day's 06:00 window is open:
+# with no wrap tomorrow is entry 0's ordinary day (06:00, 19.5 h away); a step
+# read as a wrap would take entry 2's holiday-flagged day (10:00, 23.5 h away).
+from heatpump_optimizer.dhw_planner import _dhw_next_window_hours as _sw_next_window  # noqa: E402
+
+_sw_next_empty = _sw_try(lambda: _sw_next_window(
+    np.array([]), None, _sw_normal, _sw_wparams, None,
+))
+_sw_next_repeat = _sw_try(lambda: _sw_next_window(
+    np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
+    np.array([False, False, True]),
+))
+_sw_next_wrap = _sw_try(lambda: _sw_next_window(
+    np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
+    np.array([False, False, False, True]),
+))
+R.check(
+    "the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow "
+    "as the ordinary day, not the holiday-flagged step after it (null control: a real "
+    "midnight wrap does read that step's holiday windows)",
+    _sw_next_empty == (None, None)
+    and _sw_next_repeat == (19.5, None)
+    and _sw_next_wrap == (10.5, None),
+    f"{_sw_next_empty} {_sw_next_repeat} {_sw_next_wrap}",
 )
 
 # HeatPumpOptimizer._compute_baseline_power: comfort targets and external
@@ -71273,7 +71813,7 @@ def _f21_ms_no_continuation(objective, starts, bounds, *a, **kw):
 
 
 def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
-    # The two-zone cell's tank starts at 35 C. The seeds anchor on the
+    # The two-zone cell's tank starts at 55 C. The seeds anchor on the
     # reference, so each reference change moves which start temperature the
     # plain solve reaches the storage basin from unaided: R10-BUFFER-STORE's
     # moved it off 25 C, and R10-HOTFIX-SAV-ESTIMATE's valved reference made
@@ -71281,7 +71821,11 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     # kernel class and positive on another. At 35 C the gain is positive on
     # each of four kernel classes measured (OPENBLAS_CORETYPE Haswell,
     # Sandybridge, SkylakeX, Prescott; SkylakeX reproduces CI's figures), and
-    # the shipped objective is the same basin on each.
+    # the shipped objective is the same basin on each. R11-SEAM-two-zone-slab's
+    # curve moved it again: at 35 C the continuation lost 0.043 to 0.057 on each
+    # of SkylakeX, Haswell, Sandybridge and Nehalem, and of 35, 38, 40, 42, 45,
+    # 50 and 55 C only 55 C gains on all four (+0.189 to +0.469; 38 and 50 C
+    # gain exactly zero there).
     cfg = _f21_house(
         two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
         buffer_max_temperature=70.0, mixing_valve_mode="manual",
@@ -71300,7 +71844,7 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     state = _f21_State(
         room_temperature=20.0, upper_floor_temperature=20.0,
         lower_floor_temperature=20.0, slab_temperature=21.0,
-        buffer_tank_temperature=35.0 if two_zone else 25.0,
+        buffer_tank_temperature=55.0 if two_zone else 25.0,
         outdoor_temperature=float(out[0]),
     )
     inputs = solve_inputs(
@@ -72817,15 +73361,18 @@ R.check(
     f"valve {_z1524_admitted['manual']}, no valve {_z1524_admitted[True]} "
     f"of {len(_b942)}",
 )
-# R8-P5c: a valve target at the held 21 C sits the valve at its curve, where
+# R8-P5c: a valve target under the held 21 C sits the valve at its curve, where
 # every tank charge above it reads alike and a step only charges the tank. The
 # fit raised a singular Jacobian there ("fit raised"); it is refused by name.
+# 20.5 C, not 21 C: the curve holds the area-weighted room at its target, with
+# the radiator floor the sensor reads above it (R11-SEAM-two-zone-slab), so a
+# 21 C target opens the valve wide at a held 21 C upper floor on every preset.
 for _z1524_name in _b942:
     _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
-        _z1524_name, True, valve="manual", valve_target=21.0
+        _z1524_name, True, valve="manual", valve_target=20.5
     )
     R.check(
-        f"R8-P5c: {_z1524_name} behind a valve regulating at the held "
+        f"R8-P5c: {_z1524_name} behind a valve regulating under the held "
         "temperature is refused by name, inside the 0.8 K allowance",
         _z1524_peak <= 0.8
         and _z1524_d.reason == _SysIdModule.VALVE_REGULATES_REASON,
@@ -91681,11 +92228,7 @@ def _cp_coord(samples=482, **config):
     c._house_heat_loss_samples = samples
     with_config(c, {"system_identification_enabled": True})
 
-    async def _no_refresh():
-        return None
-
-    c.async_request_refresh = _no_refresh
-    _cp_aio.run(c.async_arm_system_identification())
+    c.arm_system_identification()
     return c
 
 
@@ -92393,6 +92936,16 @@ R.check(
     and _cp_on_lines == [f"System identification armed ({_cp_on.kind}); it will start at the next mild, cheap night hour"]
     and _cp_off_lines == [],
     f"{_cp_on_armed} {_cp_on.kind} {_cp_on_lines} {_cp_off_lines}",
+)
+R.check(
+    "arm_refusal answers a press on an armed experiment with 'already armed or running', "
+    "not the result's reason (null control: the switch off answers ARM_REFUSED_DISABLED)",
+    _cp_on.active is True
+    and _cp_sid.arm_refusal(_cp_on, _CP_T0, _CpOnCfg(_CP_PROBE_CFG), None, 482, _cp_dr.DrawRange())
+    == "an experiment is already armed or running"
+    and _cp_sid.arm_refusal(_cp_off, _CP_T0, _CpOffCfg(), None, 482, _cp_dr.DrawRange())
+    == _cp_sid.ARM_REFUSED_DISABLED,
+    f"{_cp_on.active} {_cp_on.result.reason!r}",
 )
 
 
@@ -93714,10 +94267,10 @@ def _svh_case(two_zone, outdoor, **over):
     return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
 
 
-# -10 and -15 C sag far on two zones; at 14 C the two-zone house falls just short
-# of the target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
-# A single-zone curve holds its target through the slab (R11-VALVE-REFERENCE), so
-# its held room is the setpoint at every row.
+# -15 C sags far on two zones, the 4 kW pump against the 56 C cap; at -10 C the
+# two-zone curve holds the room since R11-SEAM-two-zone-slab, and at 14 C and
+# 16 C on a need under 1 kW. A single-zone curve holds its target through the
+# slab (R11-VALVE-REFERENCE), so its held room is the setpoint at every row.
 _svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
@@ -93727,7 +94280,8 @@ R.check(
     "from a deep shortfall to a mild day the curve holds; a single-zone curve "
     "holds the setpoint itself",
     all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
-    and all(_svh_rows[(True, t)][0].room_temperature < 21.0 - 0.1 for t in (-10.0, -15.0))
+    and _svh_rows[(True, -15.0)][0].room_temperature < 21.0 - 0.1
+    and all(abs(_svh_rows[(True, t)][0].room_temperature - 21.0) < 1e-3 for t in (-10.0, 14.0, 16.0))
     and all(abs(_svh_rows[(False, t)][0].room_temperature - 21.0) < 1e-3
             for t in (-10.0, -15.0, 14.0, 16.0)),
     {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
@@ -93840,11 +94394,12 @@ R.check(
 )
 
 # Carry 9: on an install's own parameters (the owner replay's entry: two
-# zones, valve ``manual`` at 21 C, a 4 kW pump) the curve cannot hold 21 C,
-# and the plant at its pump settles with the floors apart -- radiators above,
-# slab-fed floor below. The held state is that ceiling, floor by floor, so a
-# thermostat's day starts and ends there: a held state with the floors forced
-# level sat below it and the day's reference warmed to it, booking the warming.
+# zones, valve ``manual`` at 21 C, a 4 kW pump) the plant at its pump settles
+# with the floors apart -- radiators above, slab-fed floor below. The held state
+# is that ceiling, floor by floor, so a thermostat's day starts and ends there:
+# a held state with the floors forced level sat below it and the day's
+# reference warmed to it, booking the warming. Since R11-SEAM-two-zone-slab the
+# curve holds the room at 21 C there; the 25 C cap row cannot.
 from profiles import replay_install as _c9_install  # noqa: E402
 
 
@@ -93875,14 +94430,16 @@ def _c9_zones(s):
 _c9_rows = {**{t: _c9_case(t) for t in (5.0, -5.0, -15.0)},
             "-15, cap 25": _c9_case(-15.0, buffer_max_temperature=25.0)}
 R.check(
-    "R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve "
-    "cannot hold the setpoint, the thermostat reference's held state is the "
-    "plant's own ceiling floor by floor (the pump driving it for three days "
-    "moves no floor 0.02 K), and its day ends where it started",
+    "R10-SAV-VALUATION-RESIDUE Carry 9: on a two-zone install behind its valve "
+    "the thermostat reference's held state is the plant's own ceiling floor by "
+    "floor (the pump driving it for three days moves no floor 0.02 K), and its "
+    "day ends where it started; the curve holds the room at 21 C, the 25 C cap "
+    "cannot",
     all(max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(pl))) < 0.02
         and max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(e))) < 0.02
-        and h.room_temperature < 21.0 - 0.1
-        for h, pl, e in _c9_rows.values()),
+        for h, pl, e in _c9_rows.values())
+    and all(abs(_c9_rows[t][0].room_temperature - 21.0) < 1e-3 for t in (5.0, -5.0, -15.0))
+    and _c9_rows["-15, cap 25"][0].room_temperature < 21.0 - 0.1,
     {t: tuple(tuple(round(v, 3) for v in _c9_zones(s)) for s in row) for t, row in _c9_rows.items()},
 )
 _c9_off = {t: _c9_case(t, mixing_valve_mode="none")[0] for t in (5.0, -15.0)}

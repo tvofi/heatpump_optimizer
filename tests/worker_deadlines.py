@@ -530,6 +530,10 @@ def run(R, _parent: int) -> None:
                 raise self.outcome
             return self.outcome
 
+        async def async_request_refresh(self):
+            """Never awaited: the diagnosis publishes itself in place (D9-s1-01)."""
+            return None
+
 
     def _wt_diagnose(outcome):
         saved = _wt_svc._manual_targets
