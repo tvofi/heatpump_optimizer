@@ -1,0 +1,104 @@
+lane count: nproc=4 as the environment answers it, nproc=4 with OMP_NUM_THREADS and OMP_THREAD_LIMIT unset (OMP_NUM_THREADS=''); lanes = min(that, 3)
+
+########## environment ##########
+  python   3.14.7 (linux)
+  cpu      Intel(R) Xeon(R) Processor @ 2.30GHz
+  blas     Haswell
+  stack    numpy 2.5.5, scipy 1.18.1
+  SHARD: 1/2 -- the scripts tools/ci/shards.py assigned this job; the other shards run the rest
+
+########## 3 lanes in parallel: units golden e2e ##########
+  [01:00:02] start  node tests/md_tables.mjs
+  [01:00:02] ok     node tests/md_tables.mjs (0s)
+
+########## alone on the box: stress, then harness_headers ##########
+
+SKIP: tests/env_drift.py (fast shard 1/2 runs it)
+
+SKIP: tests/closure.py (fast shard 1/2 runs it)
+
+SKIP: tests/features.py (fast shard 1/2 runs it)
+
+SKIP: tests/entities.py (fast shard 1/2 runs it)
+
+SKIP: tests/block_duty.py (fast shard 1/2 runs it)
+
+SKIP: tests/doc_claims.py (fast shard 1/2 runs it)
+
+########## node tests/md_tables.mjs ##########
+RESULT self_test_swallowed=2 count
+RESULT self_test_orphaned=2 count
+RESULT self_test_fires=true
+RESULT doc_files_checked=8 count
+RESULT doc_swallowed_prose_lines=0 count
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
+
+SKIP: tests/wood_advisor.py (fast shard 1/2 runs it)
+
+SKIP: tests/config_flow_steps.py (fast shard 1/2 runs it)
+
+SKIP: tests/cycle_lane.py (fast shard 1/2 runs it)
+
+SKIP: tests/structure.py (fast shard 1/2 runs it)
+
+SKIP: tests/typing_ruler.py (fast shard 1/2 runs it)
+
+SKIP: tests/ha_contract.py (fast shard 1/2 runs it)
+
+SKIP: tests/manual_plan.py (fast shard 1/2 runs it)
+
+SKIP: tests/open_meteo.py (fast shard 1/2 runs it)
+
+SKIP: tests/solar_alignment.py (fast shard 1/2 runs it)
+
+SKIP: tests/guard_pins.py (fast shard 1/2 runs it)
+
+SKIP: tests/debug_collect.py (fast shard 1/2 runs it)
+
+SKIP: tests/finite_boundary.py (fast shard 1/2 runs it)
+
+SKIP: tests/layout.py (fast shard 1/2 runs it)
+
+SKIP: tests/deployment_shape.py (fast shard 1/2 runs it)
+
+SKIP: tests/golden.py (fast shard 1/2 runs it)
+
+SKIP: tests/env_drift.py (fast shard 1/2 runs it)
+
+SKIP: tests/arch_score.py (fast shard 1/2 runs it)
+
+SKIP: tests/arch_score_head.py (fast shard 1/2 runs it)
+
+SKIP: tests/validate.py (fast shard 1/2 runs it)
+
+SKIP: tests/edge.py (fast shard 1/2 runs it)
+
+SKIP: tests/backtest.py (fast shard 1/2 runs it)
+
+SKIP: tests/boost_drift_replay.py (fast shard 1/2 runs it)
+
+SKIP: tests/optimality.py (fast shard 1/2 runs it)
+
+SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)
+
+SKIP: tests/plan_view.py (fast shard 1/2 runs it)
+
+SKIP: tests/frontend.py (fast shard 1/2 runs it)
+
+SKIP: tests/card.mjs (fast shard 1/2 runs it)
+
+SKIP: tests/setup_qa_render.mjs (fast shard 1/2 runs it)
+
+SKIP: tests/card_drift.mjs (fast shard 1/2 runs it)
+
+SKIP: tests/stress.py (fast shard 1/2 runs it)
+
+SKIP: tests/harness_headers.py (fast shard 1/2 runs it)
+
+########## wall clock ##########
+       0s  node tests/md_tables.mjs
+       0s  TOTAL (3 lane(s))
+
+SHARD 1/2: 1 TEST SCRIPT(S) PASSED HERE; the other shards' jobs report theirs
+ALL TEST SCRIPTS PASSED
