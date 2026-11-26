@@ -100015,31 +100015,36 @@ R.check(
 # judges it as the floor repair does. On a tank at its start temperature it
 # starts only while a charge is under way (ThermalState.dhw_charge_under_way);
 # commit_charges hands that reading to the acceptance and to the program's
-# start mask. Null: under way, the same charge passes.
+# start mask. Null: under way, the same charge passes. Called without the
+# reading, both take a charge to be under way, as dhw_start's functions do.
 _hdr_d0_plan = np.zeros(8)
 _hdr_d0_plan[0] = 2.0
 _hdr_d0_walk = np.array([52.0, 54.0, 53.8, 53.6, 53.4, 53.2, 53.0, 52.8, 52.6])
 _hdr_d0 = [
     _hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf), running)
     for running in (False, True)
-]
+] + [_hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf))]
 _hdr_d0_rig = _hdr_rig(t0=52.0)
 _hdr_d0_seen = []
 _hdr_d0_kept = (_hdr_dc.charge_refusal, _hdr_dc.startable_steps)
 _hdr_dc.charge_refusal = lambda *a: _hdr_d0_seen.append(("refusal", a[4:])) or _hdr_d0_kept[0](*a)
 _hdr_dc.startable_steps = lambda *a: _hdr_d0_seen.append(("mask", a[3:])) or _hdr_d0_kept[1](*a)
 try:
-    for _hdr_d0_running in (False, True):
+    for _hdr_d0_running in ((False,), (True,), ()):
+        _hdr_d0_seen.append(("run", _hdr_d0_running))
         _hdr_dc.commit_charges(
             _hdr_d0_rig.planner, np.where(np.arange(_HDR_N) < 2, 0.6, 0.0), (_hdr_d0_rig.ctx, *_hdr_d0_rig.tank),
-            (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.full(_HDR_N, 51.0), None, _hdr_d0_running)
+            (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.full(_HDR_N, 51.0), None, *_hdr_d0_running)
 finally:
     _hdr_dc.charge_refusal, _hdr_dc.startable_steps = _hdr_d0_kept
 R.check(
     "a charge at the first step on a tank at its start temperature is refused for its start unless a "
     "charge is under way, and the commit hands that reading to the acceptance and the program's start mask",
-    _hdr_d0 == [("start", 0), None]
-    and set(_hdr_d0_seen) == {("refusal", (False,)), ("mask", (False,)), ("refusal", (True,)), ("mask", (True,))},
+    _hdr_d0 == [("start", 0), None, None]
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (False,))) + 1 : _hdr_d0_seen.index(("run", (True,)))])
+    == {("refusal", (False,)), ("mask", (False,))}
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (True,))) + 1 :]) - {("run", ())}
+    == {("refusal", (True,)), ("mask", (True,))},
     f"{_hdr_d0}, {sorted(set(_hdr_d0_seen))}",
 )
 
