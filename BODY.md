@@ -6,6 +6,10 @@ Builds the approved design `design/R11-OWNER-MODE-LEGS` 0e59437a (rev 2, verdict
 
 ## Head
 
+`55f4f5d1c29037853d8110266fd65487ff764acf` is this PR's head (2026-11-26, `origin/main` 1d3077736d, no merge needed): the repair of the premint's PREMINT-RED on `tests / fast (3.14)` at a8aaeb0a4f. One commit splits the comment 49d3e2692a added above the heating-share check in `tests/features.py`, whose one 46-word sentence `tests/doc_claims.py`'s comment ratchet refused (tests/features.py long units 465 -> 466). Three sentences of at most 21 words now say the same. `python3 tests/doc_claims.py` at this head: `ALL 443 checks PASSED`. No production line moves.
+
+`a8aaeb0a4f4fa10c89db2d1094accb6da4c09973` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 `4c04cfc81d18217f0b8ceed7267d4092c8575781` is this PR's head (2026-11-26T11:31Z, `origin/main` 1d3077736d): the round-4 repair of fix review `verdict/3869` 18a5d67f7f (blocked ci-red, 9 added sites surviving `tests / mutation`), three commits on the PR's head 39771d9c33 (the bot's pins), then a merge of the PR's moved head 7b71a4dbe4 (`ci: merge main`) with no hand resolution. `git merge-tree --write-tree origin/main HEAD` exits 0. `tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`.
 
 - 49d3e2692a: four checks in the R11-OWNER-MODE-LEGS block of `tests/features.py`.
@@ -149,6 +153,7 @@ At bf6c487691, `python3 tools/audit/archscore/score.py --diff origin/main` (70f4
 
 ## Red checks
 
+- `tests / fast (3.14)` at a8aaeb0a4f (job 139898945744): `tests/doc_claims.py`, check `no tests/ or production comment or docstring gains a sentence over 40 words (comment ratchet)`, REFUSE tests/features.py long units 465 -> 466, on the comment 49d3e2692a added. Introduced by this PR; main does not carry the sentence. Fixed at 55f4f5d1c2 (## Head). Cheaper detector: `python3 tests/doc_claims.py` in the scoped gate, which the receiptless handoff at 4c04cfc81d left to CI; the existing detector caught it, nothing built.
 - `codeql / Analyze (python)` at f4ec7bf618 (run 45630904629): the runner received a shutdown signal at 14:58:53Z during CodeQL's file extraction (`tests/entities.py` alone took 714 s to extract) and produced no analysis; no alert was raised. It re-runs at this head. Cheaper detector: none, as a runner stopped by its host is not a property of the diff; recorded, nothing built.
 - `tests / fast (3.14)` at 1aa635d275: `tests/entities.py`, the two checks of #3734's numeric-option census (Mutation proof). The census reached this branch in the merge of `origin/main` 3fd6a00125, after the gate run at 81db193f15. Cheaper detector: none; the cheapest run that sees a check main adds after the fork is `tests/entities.py` on the merged tree, which is this lane. Recorded, nothing built.
 - `tests / mutation` at 4ab51be4 (job 139793015722): the table refused 14 unpinned sites, and `mutation-autofix` left 9 alive (verdict 18a5d67f7f). At 4c04cfc81d: 4 of the 9 have killing checks and 5 carry an `equivalent` triage. The 5 anchors prepr step 7d names (`5 site(s) the diff adds with no pin`) are those the round-4 drive killed, owed a pin by `mutation-autofix` once the head moves (`ci-autofix.md`): duty_legs.py:370 CLAMP_DROP, and duty_switch.py:616 GUARD_OFF, 621 GUARD_OFF, 621 CMP_BOUND*3 and 631 CLAMP_DROP. Cheaper detector: `mutant_run.py --spec` over the block, which this round ran. The earlier rounds left the sites unmeasured within `--pin-killed`'s budget and handed them to the bot. Owed: a fixer drives each site the diff adds over its own block before the handoff, which `fg3-fixer-mutants.txt` now asks.
@@ -170,6 +175,8 @@ Null control for the triage: a differential probe (scratch, not committed) of `p
 
 - custom_components/heatpump_optimizer/duty_legs.py:98 RETURN_DEL -- killed at 6e1c645f65; pinned by `mutation-autofix` in 39771d9c33
 - custom_components/heatpump_optimizer/duty_switch.py:569 RETURN_DEL -- killed at 6e1c645f65; pinned by `mutation-autofix` in 39771d9c33
+- custom_components/heatpump_optimizer/config_flow.py:4021 GUARD_OFF -- outside the mode-legs block MUTANT_CMD; applied by hand at the repair head it fails 3 checks of `tests/config_flow_steps.py`, first `an unparseable month mask on the grid page is invalid_peak_months`
+- custom_components/heatpump_optimizer/coordinator.py:6190 STMT_DEL -- the `config = replace(...)` statement whose argument list this diff changes at 6196; deleting it leaves `config` unbound, so every solve raises NameError; outside the mode-legs block MUTANT_CMD
 
 ## Forward-carry
 
@@ -180,5 +187,6 @@ Null control for the triage: a differential probe (scratch, not committed) of `p
 ## Friction
 
 none
+
 
 
