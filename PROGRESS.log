@@ -1,2 +1,3 @@
 1795735826 INIT r11-repair-3845
 1795735835 HB alive
+1795736125 CKPT reproduced owner_only_channel red: D5 s7 tests/f* 4513>4500 units at head, 4487 at base snapshot 51c3531c7105
