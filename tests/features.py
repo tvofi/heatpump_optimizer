@@ -90662,6 +90662,10 @@ class _FhHost:
         return self.inp
 
 
+class _FhBare:
+    """A host with no arbiter_inputs (as _SysIdHost): no hold on, nothing is read."""
+
+
 def _fh_take(out, enabled=True):
     held = _sa_pa.ArbiterState()
     return _fh.take_off(held, _fh_inp(out, enabled=enabled), _SA_T0), held.frost_holding
@@ -90686,6 +90690,7 @@ for _fh_name, _fh_got, _fh_want in (
     ("a run seen at 06:00 still freezes at 06:59, the meter idle since", _fh_freeze(1.5, at=59, later=0.0), _fh.FREEZE_FROST),
     ("the freeze ends two intervals after the run was last seen", _fh_freeze(1.5, at=60, later=0.0), None),
     ("a hold still running at 07:01 keeps the learners frozen", _fh_freeze(1.5, at=61), _fh.FREEZE_FROST),
+    ("no hold on, a host with no inputs builder is not frozen and is not read", _fh.freeze_reason(_FhBare(), _SA_T0), None),
 ):
     R.check(f"frost hold: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
 
