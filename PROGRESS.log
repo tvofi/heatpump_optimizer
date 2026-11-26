@@ -5,3 +5,4 @@
 1795670411 HB alive
 1795670558 CKPT delta read; entities.py running at head snapshot 8b6f0a1add26
 1795671015 HB alive
+1795671171 CKPT mutants m1-m4 killed; twin+main-cancel checks ok at head snapshot 4749c48c4ab8
