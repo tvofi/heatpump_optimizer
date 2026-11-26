@@ -8553,6 +8553,82 @@ async def seam_config_one_place():
     await recover(flow, "finish_now", {}, (("setup_overview", {}),))
 
 
+def stored_options_of_the_wrong_type() -> None:
+    """R11-LATE-P1-OPTIONS: a stored option of the wrong type reads as its default.
+
+    The migration repairs a non-number stored under a declared numeric option
+    (``entry_config.number_repairs``) only when it stamps the version, so a value
+    written past it -- a hand edit, a restored backup -- still reaches the raw
+    readers. Each reader below is driven through its own production symbol with
+    the spellings ``float()`` refuses; each must return what it returns for the
+    absent key, and a well-typed value (the null control) must still be read.
+    """
+    from heatpump_optimizer import quiet_windows
+
+    bad = ("abc", None, {"x": 1}, [1.0], True, float("nan"))
+
+    def same(call, absent, label):
+        ok, got = True, []
+        for value in bad:
+            try:
+                result = call(value)
+            except (TypeError, ValueError) as err:
+                ok, result = False, f"raised {type(err).__name__}"
+            if result != absent:
+                ok = False
+                got.append(f"{value!r}->{result!r}")
+        R.check(f"R11-LATE-P1-OPTIONS: {label} reads a wrong-typed stored option as its default",
+                ok, "; ".join(got))
+
+    # The options flow's effective-value reader, through its two cross-field checks.
+    # Each pair is a check and a key it reads: _power_errors never reads the derate.
+    for check_fn, key in (
+        (config_flow._power_errors, const.CONF_HEAT_PUMP_MIN_POWER),
+        (config_flow._power_errors, const.CONF_HEAT_PUMP_MAX_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_MIN_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_MAX_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_COP_PARTLOAD_DERATE),
+    ):
+        same(lambda v: check_fn({}, {key: v}), check_fn({}, {}),
+             f"config_flow.{check_fn.__name__} on stored {key}")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored floor above the ceiling is still refused",
+            config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 99.0,
+                                           const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
+            == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"})
+
+    # The setup description's wood-tank volume.
+    def volume(v):
+        return topology.describe_setup({const.CONF_WOOD_TANK_VOLUME: v})["wood"]["volume_l"]
+    same(volume, topology.describe_setup({})["wood"]["volume_l"], "topology.describe_setup")
+    R.check("R11-LATE-P1-OPTIONS: null -- describe_setup reads a well-typed tank volume",
+            volume(321.0) == 321.0, f"{volume(321.0)!r}")
+
+    # The mixing-valve slot's manual setpoint.
+    def setpoint(v):
+        return topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY,
+                                     {const.CONF_MIXING_VALVE_TARGET: v})
+    same(setpoint, topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {}),
+         "topology._slot_extras")
+    R.check("R11-LATE-P1-OPTIONS: null -- _slot_extras reads a well-typed setpoint",
+            setpoint(21.5) == {"manual_setpoint": 21.5}, f"{setpoint(21.5)!r}")
+
+    # The measured quiet-window ceiling, off a compressor-frequency reading.
+    def states(entity_id):
+        return FakeState("60") if entity_id == "sensor.hz" else None
+    for key in (const.CONF_COMPRESSOR_FREQ_MIN_HZ, const.CONF_COMPRESSOR_FREQ_MAX_HZ):
+        def ceiling(v, key=key):
+            return quiet_windows.measured_ceiling_kw(
+                {key: v, const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, states, 9.0)
+        same(ceiling, quiet_windows.measured_ceiling_kw(
+            {const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, states, 9.0),
+             f"quiet_windows.measured_ceiling_kw on stored {key}")
+    hz = quiet_windows.measured_ceiling_kw(
+        {const.CONF_COMPRESSOR_FREQ_MAX_HZ: 120.0, const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"},
+        states, 9.0)
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored max Hz scales the ceiling",
+            hz is not None and abs(hz - 4.5) < 1e-9, f"{hz!r}")
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -8605,6 +8681,7 @@ async def main() -> int:
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
     await options_room_list()
+    stored_options_of_the_wrong_type()
 
     rendered, recovered = LEDGER.error_triples()
     residual = sorted(f"{k}/{s}/{c}" for k, s, c in rendered - recovered)
