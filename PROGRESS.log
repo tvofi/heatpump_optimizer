@@ -2,3 +2,4 @@
 1795660546 HB alive
 1795660618 CKPT setup, packet, merge-tree clean, classify poll started snapshot 0961e12b2975
 1795660807 CKPT verdict merge pushed fc5ea6d6 snapshot 6a935cc32213
+1795660811 DONE Fix review: merge c189c21d, 4 notes, probe fc5ea6d6
