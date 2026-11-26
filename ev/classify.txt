@@ -1,0 +1,5 @@
+[1 rc=3] WAIT 8ec4351288a069c784e7cfa6996b8e1c56c417f6 pending: gate red: none
+[2 rc=3] WAIT 8ec4351288a069c784e7cfa6996b8e1c56c417f6 pending: gate red: none
+[3 rc=0] GREEN 8ec4351288a069c784e7cfa6996b8e1c56c417f6 pending: none red: none
+
+[exited with code 0]
