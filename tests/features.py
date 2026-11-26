@@ -11221,10 +11221,10 @@ _u_up = _m_dp.effective_heat_loss_coefficient(
 _u_lo = _m_dp.effective_heat_loss_coefficient(
     _p_dp.lower_floor_heat_loss_learned, 0.0, 0.0
 )
-_fs_c = _mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-5.0,
-    heat_loss_coefficient=_u_up + _u_lo, emitter_ua=_ua_tot,
-)
+# The plant's own curve (R11-SEAM-two-zone-slab: the slab in series, the gains),
+# read from production rather than re-derived here.
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _vdc_c  # noqa: E402
+_fs_c = _vdc_c(_m_dp, _st_c, -5.0, 0.0, 0.0)[0][1]
 _tmix_c = min(50.0, _fs_c)
 _q_del = _mv.emitter_delivery(
     mix_temp=_tmix_c, zone_temp=21.0, ua=_ua_rad
@@ -11252,6 +11252,9 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     _Horizon,
     _price_ranked_start,
 )
+
+
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _valve_draw_circuits_s  # noqa: E402
 
 
 def _storage_plan(price_profile, two_zone=True):
@@ -11296,6 +11299,7 @@ def _storage_plan(price_profile, two_zone=True):
     pw = np.asarray(r.power_schedule)
     _, _, _, _, buf, _, _ = m.simulate_trajectory(
         st, pw, _WS(outdoor, zeros, zeros, zeros), dt_hours=0.25)
+    _storage_plan.curve = _valve_draw_circuits_s(m, st, -10.0, 0.0, 0.0)[0][1]
     night = float(pw[hours < 5].sum() * 0.25)
     peaks = float(
         pw[((hours >= 7) & (hours < 10)) | ((hours >= 16) & (hours < 20))].sum()
@@ -11305,16 +11309,20 @@ def _storage_plan(price_profile, two_zone=True):
 
 
 _night_s, _peak_s, _buf_s = _storage_plan("spread")
+_curve_s = _storage_plan.curve
 _night_f, _peak_f, _buf_f = _storage_plan("flat")
 R.check(
     "with a price spread the optimizer charges through the cheap night",
     _night_s > 22.0,
     f"bought {_night_s:.1f} kWh of a possible 30 in the 00-05 trough",
 )
+# Above the curve it feeds, the tank holds heat the emitters do not take yet:
+# a margin over the 25 C start encoded the curve in force when it was written
+# (R11-SEAM-two-zone-slab's curve sits higher and drains the tank lower).
 R.check(
-    "and deliberately lifts the tank to do it",
-    float(_buf_s.max()) > 25.0 + 8.0,
-    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start",
+    "and deliberately lifts the tank to do it, above the curve it feeds",
+    float(_buf_s.max()) > max(25.0, _curve_s) + 1.0,
+    f"tank peaked at {float(_buf_s.max()):.1f} C from a 25 C start, curve {_curve_s:.2f} C",
 )
 R.check(
     "and coasts both price peaks on stored heat",
@@ -13611,10 +13619,7 @@ _ff = _write_coord(
 )
 _ff._current_state.outdoor_temperature = -5.0
 _asyncio.run(_ff._command_valve_target())
-_expected_flow = _mv.flow_setpoint(
-    target_temp=23.5, outdoor_temp=-5.0,
-    heat_loss_coefficient=0.20, emitter_ua=10.0 / 15.0,
-)
+_expected_flow = _ff._thermal_model.flow_target_for_indoor(23.5, -5.0)
 R.check(
     "'flow' commands the flow curve's temperature, not the raw indoor target",
     bool(_ff.hass.services.calls)
@@ -16410,18 +16415,9 @@ _w2t_ua_tot = (
 )
 _w2t_ua_rad = _w2t_p_c.radiator_power_fraction * _w2t_ua_tot
 _w2t_ua_floor = (1.0 - _w2t_p_c.radiator_power_fraction) * _w2t_ua_tot
-_w2t_fs = _w2t_mv.flow_setpoint(
-    target_temp=23.0, outdoor_temp=-15.0,
-    heat_loss_coefficient=(
-        _w2t_m_c.effective_heat_loss_coefficient(
-            _w2t_p_c.upper_floor_heat_loss
-        )
-        + _w2t_m_c.effective_heat_loss_coefficient(
-            _w2t_p_c.lower_floor_heat_loss_learned
-        )
-    ),
-    emitter_ua=_w2t_ua_tot,
-)
+# The plant's own curve, read from production (R11-SEAM-two-zone-slab).
+from heatpump_optimizer.thermal_model import _valve_draw_circuits as _w2t_vdc  # noqa: E402
+_w2t_fs = _w2t_vdc(_w2t_m_c, _w2t_s0, -15.0, 0.0, 0.0)[0][1]
 _w2t_tmix = min(
     max(_w2t_s0.wood_tank_temperature, _w2t_s0.buffer_tank_temperature),
     _w2t_fs,
@@ -48004,7 +48000,7 @@ _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
     # The literal is the persisted stamp this release writes: a bump is deliberate.
-    _sb_meta == {"sum": 4.0, "count": 1} and _SB_NOW == 4 and _sb_row["old_basis"] is False
+    _sb_meta == {"sum": 5.0, "count": 1} and _SB_NOW == 5 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
@@ -48027,9 +48023,11 @@ R.check(
 # two-zone reference at the valve top: a month it opened mixes two references
 # once it books on under this code. A stamp 3.0 held a single-zone valved house
 # short of its setpoint, before R11-VALVE-REFERENCE's curve reached it. A stamp
-# 4.0, this release's, keeps its saving.
+# 4.0 held a two-zone house whose valve feeds the slab short of its setpoint,
+# before R11-SEAM-two-zone-slab's curve reached it. A stamp 5.0, this release's,
+# keeps its saving.
 _sb_by_stamp = {}
-for _sb_stamp in (2.0, 3.0, 4.0):
+for _sb_stamp in (2.0, 3.0, 4.0, 5.0):
     _sb_s = _sb_copy.deepcopy(_sb_led.as_dict())
     _sb_s["months"]["2026-02"]["meta"][_SB_META] = {"sum": _sb_stamp, "count": 1}
     _sb_s_led = _SavLedger.from_dict(_sb_s)
@@ -48053,10 +48051,18 @@ R.check(
 )
 _sb_v4_row, _sb_v4_meta = _sb_by_stamp[4.0]
 R.check(
-    "a month stamped 4, the reference in force, keeps stating its saving as it books on",
-    _sb_v4_row["old_basis"] is False and _sb_v4_row["savings_sek"] is not None
-    and _sb_v4_row["savings_pct"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
+    "a month stamped 4, booked before the two-zone valve-fed slab reached its setpoint, states no saving after the change",
+    _sb_v4_row["old_basis"] is True and _sb_v4_row["savings_sek"] is None
+    and _sb_v4_row["savings_pct"] is None and _sb_v4_row["baseline_sek"] is not None
+    and _sb_v4_row["actual_sek"] is not None and _sb_v4_meta == {"sum": 4.0, "count": 1},
     repr(_sb_by_stamp[4.0]),
+)
+_sb_v5_row, _sb_v5_meta = _sb_by_stamp[5.0]
+R.check(
+    "a month stamped 5, the reference in force, keeps stating its saving as it books on",
+    _sb_v5_row["old_basis"] is False and _sb_v5_row["savings_sek"] is not None
+    and _sb_v5_row["savings_pct"] is not None and _sb_v5_meta == {"sum": 5.0, "count": 1},
+    repr(_sb_by_stamp[5.0]),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -48180,14 +48186,164 @@ R.check(
     "the booked reference reproduces its recorded digest on every pinned install "
     "(a change re-records it and bumps REFERENCE_BASIS)",
     _vr_digests == {
-        "install +5": "2f088060f8fe63dd",
-        "install -15": "35cc1d0d71a4414b",
+        "install +5": "b7300f2dfadef8eb",
+        "install -15": "c94024cf8a5fa259",
         "one-tank +5": "ba516c4bb8328b78",
         "one-tank -15": "cb3e0ea30949c952",
         "no valve +5": "514d1532f1b30760",
         "no valve -15": "0e396b7d1cc59e1a",
     },
     repr(_vr_digests),
+)
+# R11-SEAM-two-zone-slab (#3713): a two-zone valve feeds the radiators and the
+# slab, which reaches the lower floor through `slab_heat_transfer` in series.
+# One flow feeds two unequal paths, so the curve holds what the thermostat reads,
+# the area-weighted room; the house's `internal_gains` are in it, as in the
+# single-zone branch. (a) to (d) on the owner's replay install, whose valve is
+# `manual` at 21 C; the law uses `slab_heat_transfer_floored`, which equals
+# `slab_heat_transfer` on every install above 1e-6 kW/K, this one included.
+# The install's upper-floor area ratio is 0.5, where the law's r and 1 - r arms
+# are interchangeable. So (a), (b) and (d) also run it at 0.3/0.7 and 0.7/0.3,
+# where gains or losses weighted to the wrong floor miss 21 C.
+def _tz_install(**over):
+    return ThermalParameters.from_config(_tz_replay(**over))
+
+
+_TZ_SPLITS = (("install", {}),
+              ("split 0.3/0.7", {"upper_floor_area_ratio": 0.3, "radiator_power_fraction": 0.7}),
+              ("split 0.7/0.3", {"upper_floor_area_ratio": 0.7, "radiator_power_fraction": 0.3}))
+
+
+def _tz_split(over):
+    _tz_q = _tz_install()
+    for _tz_k, _tz_v in over.items():
+        setattr(_tz_q, _tz_k, _tz_v)
+    return _tz_q
+
+
+from profiles import replay_install as _tz_replay  # noqa: E402
+
+
+def _tz_holds():
+    from heatpump_optimizer.optimizer import _thermostat_held_state as _tz_held
+
+    _tz_n = 960
+    _tz_out = {}
+    for (_tz_name, _tz_over), _tz_outdoor in (
+            (_s, _o) for _s in _TZ_SPLITS for _o in (5.0, -5.0, -15.0)):
+        _tz_p = _tz_split(_tz_over)
+        _tz_model = ThermalModel(_tz_p)
+        _tz_start = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=_tz_outdoor,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_w = WeatherSeries(
+            outdoor_temps=np.full(_tz_n, _tz_outdoor), wind_speeds=np.full(_tz_n, 3.0),
+            precipitation=np.zeros(_tz_n), solar_radiation=np.zeros(_tz_n))
+        _tz_h = _tz_held(_tz_model, _tz_start, _tz_w, 21.0)
+        _tz_s = _tz_h
+        for _ in range(_tz_n):
+            _tz_s = _tz_model.simulate_step(
+                _tz_s, _tz_p.max_electrical_power, _tz_outdoor, 3.0, 0.0, 0.0, 0.25)
+        _tz_b = _tz_model.simulate_trajectory_batch(
+            _tz_h, np.full((1, _tz_n), _tz_p.max_electrical_power), _tz_w, dt_hours=0.25)
+        _tz_out[(_tz_name, _tz_outdoor)] = (
+            _tz_h.room_temperature, _tz_s.room_temperature, float(_tz_b["room"][0, -1]))
+    return _tz_out
+
+
+_tz_p = _tz_install()
+_tz_holds_out = _tz_holds()
+R.check(
+    "two-zone valve-fed slab: the plant at its pump, settled, holds the room at the "
+    "valve's 21 C within 0.02 K, scalar step and batch twin",
+    _tz_p.two_zone_enabled and not _tz_p.slab_fed_direct and _tz_p.mixing_valve_target == 21.0
+    and all(abs(_tz_sc - 21.0) < 0.02 and abs(_tz_bt - 21.0) < 0.02
+            for _, _tz_sc, _tz_bt in _tz_holds_out.values()),
+    ", ".join(f"{n} {o:+.0f} C scalar {sc:.4f} batch {bt:.4f}"
+              for (n, o), (_, sc, bt) in _tz_holds_out.items()),
+)
+R.check(
+    "two-zone valve-fed slab: a thermostat set to 21 C holds 21 C behind it",
+    all(abs(_tz_room - 21.0) < 1e-3 for _tz_room, _, _ in _tz_holds_out.values()),
+    ", ".join(f"{n} {o:+.0f} C {r:.4f}" for (n, o), (r, _, _) in _tz_holds_out.items()),
+)
+
+
+def _tz_unchanged():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+    from profiles import house as _tz_house
+
+    _tz_carnot = ThermalParameters.from_config({
+        **_tz_house(), "flow_curve_cop_enabled": True, "heat_pump_max_power": 3.0,
+        "upper_floor_heat_loss": 0.2, "lower_floor_heat_loss": 0.2})
+    _tz_carnot.flow_curve_bias = 5.0
+    _tz_cases = {
+        "direct_flow_carnot": _tz_carnot,
+        "install direct slab": _tz_install(
+            topology_layout="valve_upper_direct_slab",
+            wood_tank_top_entity=None, wood_tank_bottom_entity=None),
+    }
+    _tz_out = {}
+    for _tz_name, _tz_q in _tz_cases.items():
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        _tz_row = [_tz_m.flow_target_for_indoor(21.0, o) for o in (5.0, -5.0, -15.0)]
+        if _tz_q.slab_fed_direct:
+            _tz_row.append(_valve_draw_circuits(_tz_m, _tz_st, -5.0, 3.0, 0.0)[0][1])
+            _tz_s = _tz_st
+            for _ in range(96):
+                _tz_s = _tz_m.simulate_step(
+                    _tz_s, _tz_q.max_electrical_power, -5.0, 3.0, 0.0, 0.0, 0.25)
+            _tz_row += [_tz_s.upper_floor_temperature, _tz_s.lower_floor_temperature,
+                        _tz_s.slab_temperature, _tz_s.buffer_tank_temperature]
+        _tz_out[_tz_name] = tuple(_tz_row)
+    return _tz_out
+
+
+# Literals recorded at 78d3b4022154 (R11-SEAM-two-zone-slab's base): the
+# unvalved curve and the direct slab's curve and 96-step day keep their bits.
+_tz_same = _tz_unchanged()
+R.check(
+    "two-zone valve curve: an unvalved install's curve and a direct slab's curve and day keep their bits",
+    _tz_same == {
+        "direct_flow_carnot": (30.142857142857146, 35.85714285714286, 41.57142857142857),
+        "install direct slab": (
+            23.1, 24.4125, 25.725, 24.631875, 30.367533973730524, 35.368439723147205,
+            44.028566572860214, 56.0),
+    },
+    repr(_tz_same),
+)
+
+
+def _tz_curve_agrees():
+    from heatpump_optimizer.thermal_model import _valve_draw_circuits
+
+    _tz_out = {}
+    for _tz_name, _tz_over in _TZ_SPLITS:
+        _tz_q = _tz_split(_tz_over)
+        _tz_m = ThermalModel(_tz_q)
+        _tz_st = ThermalState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=0.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+        for _tz_outdoor in (5.0, -5.0, -15.0):
+            _tz_out[(_tz_name, _tz_outdoor)] = (
+                _tz_m.flow_target_for_indoor(21.0, _tz_outdoor),
+                _valve_draw_circuits(_tz_m, _tz_st, _tz_outdoor, 0.0, 0.0)[0][1])
+    return _tz_out
+
+
+# Within 1e-9 K, not bitwise: the plant passes its circuits' two conductances
+# summed, the reporter the nameplate's one, which differ by an ulp.
+_tz_agree = _tz_curve_agrees()
+R.check(
+    "two-zone valve curve: the curve the model reports is the plant's own, at zero wind and rain",
+    all(abs(_tz_rep - _tz_plant) < 1e-9 for _tz_rep, _tz_plant in _tz_agree.values()),
+    repr(_tz_agree),
 )
 # R11-VALVE-REFERENCE (carries 0, 1): a single-zone valve feeds the slab, which
 # reaches the room through `slab_heat_transfer` in series, and the house's own
@@ -71702,7 +71858,7 @@ def _f21_ms_no_continuation(objective, starts, bounds, *a, **kw):
 
 
 def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
-    # The two-zone cell's tank starts at 35 C. The seeds anchor on the
+    # The two-zone cell's tank starts at 55 C. The seeds anchor on the
     # reference, so each reference change moves which start temperature the
     # plain solve reaches the storage basin from unaided: R10-BUFFER-STORE's
     # moved it off 25 C, and R10-HOTFIX-SAV-ESTIMATE's valved reference made
@@ -71710,7 +71866,11 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     # kernel class and positive on another. At 35 C the gain is positive on
     # each of four kernel classes measured (OPENBLAS_CORETYPE Haswell,
     # Sandybridge, SkylakeX, Prescott; SkylakeX reproduces CI's figures), and
-    # the shipped objective is the same basin on each.
+    # the shipped objective is the same basin on each. R11-SEAM-two-zone-slab's
+    # curve moved it again: at 35 C the continuation lost 0.043 to 0.057 on each
+    # of SkylakeX, Haswell, Sandybridge and Nehalem, and of 35, 38, 40, 42, 45,
+    # 50 and 55 C only 55 C gains on all four (+0.189 to +0.469; 38 and 50 C
+    # gain exactly zero there).
     cfg = _f21_house(
         two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
         buffer_max_temperature=70.0, mixing_valve_mode="manual",
@@ -71729,7 +71889,7 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     state = _f21_State(
         room_temperature=20.0, upper_floor_temperature=20.0,
         lower_floor_temperature=20.0, slab_temperature=21.0,
-        buffer_tank_temperature=35.0 if two_zone else 25.0,
+        buffer_tank_temperature=55.0 if two_zone else 25.0,
         outdoor_temperature=float(out[0]),
     )
     inputs = solve_inputs(
@@ -73246,15 +73406,18 @@ R.check(
     f"valve {_z1524_admitted['manual']}, no valve {_z1524_admitted[True]} "
     f"of {len(_b942)}",
 )
-# R8-P5c: a valve target at the held 21 C sits the valve at its curve, where
+# R8-P5c: a valve target under the held 21 C sits the valve at its curve, where
 # every tank charge above it reads alike and a step only charges the tank. The
 # fit raised a singular Jacobian there ("fit raised"); it is refused by name.
+# 20.5 C, not 21 C: the curve holds the area-weighted room at its target, with
+# the radiator floor the sensor reads above it (R11-SEAM-two-zone-slab), so a
+# 21 C target opens the valve wide at a held 21 C upper floor on every preset.
 for _z1524_name in _b942:
     _z1524_d, _z1524_peak, _z1524_why = _z1524_run(
-        _z1524_name, True, valve="manual", valve_target=21.0
+        _z1524_name, True, valve="manual", valve_target=20.5
     )
     R.check(
-        f"R8-P5c: {_z1524_name} behind a valve regulating at the held "
+        f"R8-P5c: {_z1524_name} behind a valve regulating under the held "
         "temperature is refused by name, inside the 0.8 K allowance",
         _z1524_peak <= 0.8
         and _z1524_d.reason == _SysIdModule.VALVE_REGULATES_REASON,
@@ -94642,10 +94805,10 @@ def _svh_case(two_zone, outdoor, **over):
     return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
 
 
-# -10 and -15 C sag far on two zones; at 14 C the two-zone house falls just short
-# of the target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
-# A single-zone curve holds its target through the slab (R11-VALVE-REFERENCE), so
-# its held room is the setpoint at every row.
+# -15 C sags far on two zones, the 4 kW pump against the 56 C cap; at -10 C the
+# two-zone curve holds the room since R11-SEAM-two-zone-slab, and at 14 C and
+# 16 C on a need under 1 kW. A single-zone curve holds its target through the
+# slab (R11-VALVE-REFERENCE), so its held room is the setpoint at every row.
 _svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
@@ -94655,7 +94818,8 @@ R.check(
     "from a deep shortfall to a mild day the curve holds; a single-zone curve "
     "holds the setpoint itself",
     all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
-    and all(_svh_rows[(True, t)][0].room_temperature < 21.0 - 0.1 for t in (-10.0, -15.0))
+    and _svh_rows[(True, -15.0)][0].room_temperature < 21.0 - 0.1
+    and all(abs(_svh_rows[(True, t)][0].room_temperature - 21.0) < 1e-3 for t in (-10.0, 14.0, 16.0))
     and all(abs(_svh_rows[(False, t)][0].room_temperature - 21.0) < 1e-3
             for t in (-10.0, -15.0, 14.0, 16.0)),
     {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
@@ -94768,11 +94932,12 @@ R.check(
 )
 
 # Carry 9: on an install's own parameters (the owner replay's entry: two
-# zones, valve ``manual`` at 21 C, a 4 kW pump) the curve cannot hold 21 C,
-# and the plant at its pump settles with the floors apart -- radiators above,
-# slab-fed floor below. The held state is that ceiling, floor by floor, so a
-# thermostat's day starts and ends there: a held state with the floors forced
-# level sat below it and the day's reference warmed to it, booking the warming.
+# zones, valve ``manual`` at 21 C, a 4 kW pump) the plant at its pump settles
+# with the floors apart -- radiators above, slab-fed floor below. The held state
+# is that ceiling, floor by floor, so a thermostat's day starts and ends there:
+# a held state with the floors forced level sat below it and the day's
+# reference warmed to it, booking the warming. Since R11-SEAM-two-zone-slab the
+# curve holds the room at 21 C there; the 25 C cap row cannot.
 from profiles import replay_install as _c9_install  # noqa: E402
 
 
@@ -94803,14 +94968,16 @@ def _c9_zones(s):
 _c9_rows = {**{t: _c9_case(t) for t in (5.0, -5.0, -15.0)},
             "-15, cap 25": _c9_case(-15.0, buffer_max_temperature=25.0)}
 R.check(
-    "R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve "
-    "cannot hold the setpoint, the thermostat reference's held state is the "
-    "plant's own ceiling floor by floor (the pump driving it for three days "
-    "moves no floor 0.02 K), and its day ends where it started",
+    "R10-SAV-VALUATION-RESIDUE Carry 9: on a two-zone install behind its valve "
+    "the thermostat reference's held state is the plant's own ceiling floor by "
+    "floor (the pump driving it for three days moves no floor 0.02 K), and its "
+    "day ends where it started; the curve holds the room at 21 C, the 25 C cap "
+    "cannot",
     all(max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(pl))) < 0.02
         and max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(e))) < 0.02
-        and h.room_temperature < 21.0 - 0.1
-        for h, pl, e in _c9_rows.values()),
+        for h, pl, e in _c9_rows.values())
+    and all(abs(_c9_rows[t][0].room_temperature - 21.0) < 1e-3 for t in (5.0, -5.0, -15.0))
+    and _c9_rows["-15, cap 25"][0].room_temperature < 21.0 - 0.1,
     {t: tuple(tuple(round(v, 3) for v in _c9_zones(s)) for s in row) for t, row in _c9_rows.items()},
 )
 _c9_off = {t: _c9_case(t, mixing_valve_mode="none")[0] for t in (5.0, -15.0)}
