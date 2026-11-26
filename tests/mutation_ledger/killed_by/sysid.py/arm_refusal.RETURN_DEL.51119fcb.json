@@ -1,6 +1,6 @@
 {
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._waiting_for RETURN_DEL 2c97a7fe",
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:arm_refusal RETURN_DEL 51119fcb",
   "killed_by": "tests/features.py",
-  "old": "        return \"open_month_coverage\"",
+  "old": "    return ident.result.reason or \"the experiment cannot be armed now\"",
   "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 }

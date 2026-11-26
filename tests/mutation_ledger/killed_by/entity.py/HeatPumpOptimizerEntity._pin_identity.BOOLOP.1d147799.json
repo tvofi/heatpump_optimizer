@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:HeatPumpOptimizerEntity._pin_identity BOOLOP 1d147799",
+  "killed_by": "tests/entities.py",
+  "old": "            lead = f\"{family}_\" if family and not translation_key.startswith(f\"{family}_\") else \"\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`lead = f\"{family}_\" if family or not translation_key.startswith(f\"{family}_\") else \"\"`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

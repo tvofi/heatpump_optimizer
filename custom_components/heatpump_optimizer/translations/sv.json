@@ -465,6 +465,12 @@
     "diagnose_interval_failed": {
       "message": "Intervalldiagnosen kunde inte köras för {entry_ids}: {error}"
     },
+    "system_identification_disabled": {
+      "message": "Systemidentifiering är avstängd för {entry_ids}: slå på \"Tillåt ett engångsförsök för att mäta huset\" i alternativen för att aktivera den"
+    },
+    "system_identification_not_armed": {
+      "message": "Systemidentifiering aktiverades inte för {entry_ids}: {reason}"
+    },
     "simulate_plan_failed": {
       "message": "Simuleringen kunde inte köras för {entry_ids}: {error}"
     },

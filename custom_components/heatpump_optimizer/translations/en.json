@@ -465,6 +465,12 @@
     "diagnose_interval_failed": {
       "message": "The interval diagnosis could not run for {entry_ids}: {error}"
     },
+    "system_identification_disabled": {
+      "message": "System identification is turned off for {entry_ids}: turn on \"Allow a one-off measurement experiment\" in the options to arm it"
+    },
+    "system_identification_not_armed": {
+      "message": "System identification was not armed for {entry_ids}: {reason}"
+    },
     "simulate_plan_failed": {
       "message": "The what-if simulation could not run for {entry_ids}: {error}"
     },
