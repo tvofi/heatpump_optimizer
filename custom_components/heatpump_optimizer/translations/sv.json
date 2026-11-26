@@ -2306,6 +2306,9 @@
       "block_space": {
         "name": "Blockera rumsvärme"
       },
+      "external_heat_ignore_block": {
+        "name": "Extern värme: åsidosätt blockering"
+      },
       "optimizer_active": {
         "name": "Optimeraren aktiv"
       }
