@@ -8646,6 +8646,45 @@ def stored_options_of_the_wrong_type() -> None:
     R.check("R11-LATE-P1-OPTIONS: null -- _flow_curve_values reads a well-typed target",
             indoor(19.5)["flow_curve_indoor_target"] == 19.5, f"{indoor(19.5)!r}")
 
+    # The thermal table's other raw reads.
+    for key, field in ((const.CONF_MIXING_VALVE_TARGET, "mixing_valve_target"),
+                       (const.CONF_BUFFER_MAX_TEMP, "buffer_max_temp"),
+                       (const.CONF_MAX_TEMP, "comfort_ceiling")):
+        def param(v, key=key, field=field):
+            return getattr(thermal_model.ThermalParameters.from_config({key: v}), field)
+        same(param, getattr(thermal_model.ThermalParameters.from_config({}), field),
+             f"thermal_model.ThermalParameters.from_config on stored {key}")
+        R.check(f"R11-LATE-P1-OPTIONS: null -- from_config reads a well-typed {key}",
+                param(31.5) == 31.5, f"{param(31.5)!r}")
+
+    # The questionnaire's stored upper-floor share.
+    from heatpump_optimizer import modbus_prefill, presets
+
+    def ratio(v):
+        return presets.preset_from_config({}, {const.CONF_UPPER_FLOOR_AREA_RATIO: v}).upper_area_ratio
+    same(ratio, presets.preset_from_config({}, {}).upper_area_ratio, "presets.preset_from_config")
+    R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed ratio",
+            ratio(0.3) == 0.3, f"{ratio(0.3)!r}")
+
+    # The heated area: presets.grade passes the stored configuration as the answers.
+    def area(v):
+        return presets.preset_from_config({const.CONF_HEATED_AREA: v}, {}).heated_area_m2
+    same(area, presets.preset_from_config({}, {}).heated_area_m2,
+         "presets.preset_from_config on stored heated_area")
+    R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed area",
+            area(140.0) == 140.0, f"{area(140.0)!r}")
+
+    # The Modbus prefill's ceiling, scaled by the stored nominal COP.
+    snap = {"unit_capacity": ("sensor.capacity", "7.0", 1.0)}
+
+    def ceiling_kw(v):
+        return modbus_prefill._plant(snap, {const.CONF_HEAT_PUMP_COP_NOMINAL: v})[
+            const.CONF_HEAT_PUMP_MAX_POWER]
+    same(ceiling_kw, modbus_prefill._plant(snap, {})[const.CONF_HEAT_PUMP_MAX_POWER],
+         "modbus_prefill._plant")
+    R.check("R11-LATE-P1-OPTIONS: null -- _plant scales by a well-typed nominal COP",
+            ceiling_kw(2.0) == 3.5, f"{ceiling_kw(2.0)!r}")
+
 
 async def main() -> int:
     if "--self-check" in sys.argv:

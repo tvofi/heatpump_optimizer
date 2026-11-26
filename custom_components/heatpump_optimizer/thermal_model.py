@@ -1054,17 +1054,15 @@ class ThermalParameters:
         values["mixing_valve_mode"] = (
             mode if mode in mixing_valve.MODES else mixing_valve.MODE_NONE
         )
-        values["mixing_valve_target"] = float(
-            config.get(
-                const.CONF_MIXING_VALVE_TARGET, const.DEFAULT_MIXING_VALVE_TARGET
-            )
-            or 0.0
+        values["mixing_valve_target"] = (
+            finite_float(config.get(const.CONF_MIXING_VALVE_TARGET))
+            or const.DEFAULT_MIXING_VALVE_TARGET
         )
-        values["buffer_max_temp"] = float(
-            config.get(const.CONF_BUFFER_MAX_TEMP, const.DEFAULT_BUFFER_MAX_TEMP)
+        values["buffer_max_temp"] = finite_float(
+            config.get(const.CONF_BUFFER_MAX_TEMP), const.DEFAULT_BUFFER_MAX_TEMP
         )
-        values["comfort_ceiling"] = float(
-            config.get(const.CONF_MAX_TEMP, const.DEFAULT_MAX_TEMP)
+        values["comfort_ceiling"] = finite_float(
+            config.get(const.CONF_MAX_TEMP), const.DEFAULT_MAX_TEMP
         )
         # The COP penalty only means anything when a valve can actually charge
         # the tank, so it follows the mode rather than being separately switched.

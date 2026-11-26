@@ -1103,12 +1103,12 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
     if CONF_DHW_MIN_TEMP in updates or CONF_DHW_SETPOINT in updates:
         for entry in targets:
             stored = {**entry.data, **entry.options}
-            setpoint = float(updates.get(
-                CONF_DHW_SETPOINT, stored.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
-            ))
-            wanted = float(updates.get(
-                CONF_DHW_MIN_TEMP, stored.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP),
-            ))
+            setpoint = comfort_band.effective(
+                updates, stored, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT
+            )
+            wanted = comfort_band.effective(
+                updates, stored, CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP
+            )
             ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
             if wanted > ceiling:
                 raise ServiceValidationError(
