@@ -6012,7 +6012,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_update_data(self) -> Payload:
         """Fetch data and run optimization."""
-        ctx = getattr(self, "_ctx", self)
         if self._skip_solve_once:
             # Consume the flag FIRST: no exception below may leave it
             # latched, or every later cycle would skip its solve too.
@@ -6081,7 +6080,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._async_watch_learning_drift, "Snapshot heartbeat skipped: %s")
 
             self._next_optimization = utc_shift(dt_util.now(), timedelta(
-                minutes=ctx._config.optimization_interval
+                minutes=_ctx_of(self)._config.optimization_interval
             ))
 
             return await _with_sensor_advisor(self, self._build_data_dict())
@@ -6099,6 +6098,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
         finally:
             self._refresh_task = None
+            if not self._entry_released:  # a cycle that raised before its step tail still follows (#3897)
+                await _best_effort_cycle_step(functools.partial(self._legionella.async_follow_missed, pump_arbiter.state_for(self).tail_lock), "Disinfection follower skipped: %s")
             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
                 self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
 
@@ -7680,8 +7681,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_step_tail(self, boundary: bool = False, reason: str = "scheduled_update") -> bool:
         """The step-derived writers the cycle and the step tick run, each best-effort; True
         where the frequency's rate limit refused a changed target (the tick retries it)."""
-        await _best_effort_cycle_step(
-            functools.partial(self._legionella.async_track_cycle, self._legionella.tank_c), "Disinfection follower skipped: %s")
+        await _best_effort_cycle_step(self._legionella.async_follow, "Disinfection follower skipped: %s")
         await _best_effort_cycle_step(
             functools.partial(self.async_publish_current_action, reason, boundary=boundary), "ECL110 publish skipped: %s")
         pending = await _best_effort_cycle_step(self._command_frequency, "Frequency command skipped: %s")

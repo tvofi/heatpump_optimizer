@@ -62566,7 +62566,7 @@ def _g5_tick(coord, reason):
     async def _cycle():
         await coord._update_current_state()
         # The follower runs in the step tail since observe stopped driving it.
-        await coord._legionella.async_track_cycle(coord._legionella.tank_c)
+        await coord._legionella.async_follow()
 
     _asyncio.run(_cycle())
 
@@ -62673,6 +62673,86 @@ R.check(
     "disabling disinfection during a boost turns the switch OFF",
     _g5_writes(_g5_c) == [_ON, _OFF],
     f"writes={_g5_writes(_g5_c)}",
+)
+
+# #3897 review block: the follower runs in the step tail, so a cycle that raises
+# before its tail (the Tibber outage latch's UpdateFailed, or any fetch or solve
+# fault the generic handler turns into one) ran none, and while no cycle
+# succeeded the boost bound and the disabled-disinfection switch-off went
+# unenforced. The cycle's own path is driven, the price fetch made to raise.
+from heatpump_optimizer.const import MODE_COMFORT as _MODE_COMFORT  # noqa: E402
+
+
+def _g5_cycle(coord, reason, fail=True):
+    """One ``_async_update_data``; ``fail`` raises from the price fetch, else
+    the fetches, the solve and the primary write are no-ops so the tail runs."""
+    coord._current_action = {"dhw_reason": reason}
+    coord._mode = _MODE_COMFORT
+
+    async def _raise():
+        raise _r9f13_update_failed("no published price covers now")
+
+    async def _none(*_a, **_k):
+        return None
+
+    coord._fetch_tibber_prices = _raise if fail else _none
+    for name in ("_fetch_weather_forecast", "_fetch_solar_forecast", "_async_learn_price_shape", "_apply_action"):
+        setattr(coord, name, _none)
+    coord._fixed_mode_action = lambda: {"dhw_reason": reason}
+    try:
+        _asyncio.run(coord._async_update_data())
+    except _r9f13_update_failed:
+        return "raised"
+    return "ok"
+
+
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+_g5_out = _g5_cycle(_g5_c, _LG_REASON)
+R.check(
+    "a cycle whose price fetch raises past the boost bound still turns the switch OFF",
+    _g5_out == "raised" and _g5_writes(_g5_c) == [_ON, _OFF] and _g5_state(_g5_c) == "off",
+    f"outcome={_g5_out} writes={_g5_writes(_g5_c)} state={_g5_state(_g5_c)}",
+)
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_c._thermal_params.dhw_legionella_enabled = False
+_g5_out = _g5_cycle(_g5_c, _LG_REASON)
+R.check(
+    "…and disabling disinfection during a boost turns it OFF on a cycle that raises",
+    _g5_out == "raised" and _g5_writes(_g5_c) == [_ON, _OFF],
+    f"outcome={_g5_out} writes={_g5_writes(_g5_c)}",
+)
+# Null control: inside the bound the follower on a raising cycle keeps the
+# commanded boost on and writes nothing, so the OFF above is the bound's.
+_g5_c = _g5_control()
+_g5_tick(_g5_c, _LG_REASON)
+_g5_out = _g5_cycle(_g5_c, _LG_REASON)
+R.check(
+    "…while inside the bound a raising cycle leaves the commanded boost ON, unwritten",
+    _g5_out == "raised" and _g5_writes(_g5_c) == [_ON] and _g5_state(_g5_c) == "on",
+    f"outcome={_g5_out} writes={_g5_writes(_g5_c)}",
+)
+# Once per cycle: a cycle that reaches its tail follows there and not again.
+_g5_c = _g5_control()
+_g5_runs = []
+_g5_follow = _g5_c._legionella.async_track_cycle
+
+
+async def _g5_counted(tank):
+    _g5_runs.append(tank)
+    await _g5_follow(tank)
+
+
+_g5_c._legionella.async_track_cycle = _g5_counted
+_g5_ok = _g5_cycle(_g5_c, _LG_REASON, fail=False)
+_g5_ok_runs = len(_g5_runs)
+_g5_failed = _g5_cycle(_g5_c, _LG_REASON)
+R.check(
+    "a cycle that reaches its step tail runs the follower once, and a raising one once",
+    (_g5_ok, _g5_ok_runs, _g5_failed, len(_g5_runs)) == ("ok", 1, "raised", 2),
+    f"ok_cycle={_g5_ok} runs_after_ok={_g5_ok_runs} failed={_g5_failed} runs={len(_g5_runs)}",
 )
 
 # The mode block is read live, on the same cycle: a pump whose mode entity says

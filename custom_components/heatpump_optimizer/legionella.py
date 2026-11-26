@@ -14,6 +14,7 @@ table the pull request publishes; the residual diff per method is the proof.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import replace
 from datetime import datetime
@@ -164,6 +165,9 @@ class LegionellaGuard:
         self._switch_saved: tuple[tuple[str, ...], bool] = ((), False)
         self.last_cycle: datetime | None = None
         self.tank_c: float | None = None
+        #: Whether the follower ran since the last observe: a cycle that raised
+        #: before its step tail did not, and ``async_follow_missed`` runs it.
+        self.followed: bool = False
         self.store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             LEGIONELLA_STORE_VERSION,
@@ -551,9 +555,31 @@ class LegionellaGuard:
         self.disinfect.observe(reader)
         self.off_step.check(self._params(), self._config)
         self.tank_c = dhw_temp
+        self.followed = False
         self.check_ceiling()
         self.check_overdue()
         return self.hours_since()
+
+    async def async_follow(self) -> None:
+        """The cycle follower on the last observed reading: the step tail's writer."""
+        self.followed = True
+        await self.async_track_cycle(self.tank_c)
+
+    async def async_follow_missed(self, lock: asyncio.Lock) -> None:
+        """The follower for a cycle that raised before its step tail, under the tail's ``lock``.
+
+        The step tail follows after adoption. A cycle whose fetch or solve
+        raised never reaches it, and once the plan is stale the step tick runs
+        no tail either, so the boost bound, the OFF when disinfection is
+        disabled and the idle OFF retry would wait for a cycle that succeeds
+        (#3897). A cycle that reached its tail, or a tick since the observe,
+        followed already and is not followed twice.
+        """
+        if self.followed:
+            return
+        async with lock:
+            if not self.followed:
+                await self.async_follow()
 
     def _has_probe(self) -> bool:
         """Whether a tank sensor is configured to verify a cycle at all."""
