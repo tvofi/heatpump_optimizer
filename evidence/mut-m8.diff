@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/duty_legs.py b/custom_components/heatpump_optimizer/duty_legs.py
+index 896b499d32..49dca8bc88 100644
+--- a/custom_components/heatpump_optimizer/duty_legs.py
++++ b/custom_components/heatpump_optimizer/duty_legs.py
+@@ -95,7 +95,7 @@ def leg_rule(
+     stops = [p > 0 and not free for p, free in zip(stop_probability, unlatched)]
+     first = "space" if stops[0] and not stops[1] else "dhw"
+     into = 0 if first == "dhw" else 1
+-    return LegRule(first, off_seconds[into] / 60.0 if stops[into] else None)
++    return DEFAULT_RULE
+ 
+ 
+ def entry_rule(split: LegRule, cfg: Any, before: int) -> LegRule:
