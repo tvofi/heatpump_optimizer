@@ -1,0 +1,34 @@
+{
+ "key": "67a0550ee998a213",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2854 GUARD_OFF",
+ "patch": "if e <= 1e-9: -> if False:",
+ "function": "thermal_model",
+ "cluster": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3186.5,
+  "load1_start": 0.87,
+  "load1_end": 0.85,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_json": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/gates/67a0550ee998a213.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_67a0550ee998a213.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_67a0550ee998a213.py",
+  "output": [
+   "INPUT (20.0, 0.0, 0.0, 0.7) base -100.0 mut -194.90728051942975",
+   "INPUT (20.0, -5.0, 0.0, 0.7) base -100.0 mut -194.90728051942975",
+   "INPUT (20.0, 1e-12, 0.0, 0.7) base -100.0 mut -194.90728051942975",
+   "RESULT floor_at_rh0_base=-100.0 mutant=-194.90728051942975"
+  ]
+ },
+ "should_fail": "tests/features.py/entities.py execute line 2854; no check asserts mold_safe_room_floor(.., indoor_rh=0, ..) == -100.0 (mutant gives -194.9)",
+ "provisional": true
+}
