@@ -40,6 +40,8 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
+`3be782209e7e54fbf50762efaa82b8288be30cad` merges origin/main `dbdc520e86e4453755f553ab21a39de205a70b34` into the PR head `e4a8523d89`, which did not merge cleanly in `tests/deployment_shape.py`. Resolution delta for review: `git diff e4a8523d89 3be782209e -- tests/deployment_shape.py`. The #1218 selection-cost note is the union of both histories (this branch's fault_hold.py clause and main's entity-service and flow_limit.py clauses); its count is 184 of the 561 pairs and "all 184 among the 435", re-derived from the merged `tests/closures.json` with entities.py's `_d308_pairs` predicate (Jaccard >= 0.80 over the package files). `tests/structure_budgets.json` merged without conflict; `python3 tests/structure.py` `STRUCTURE RATCHET PASSED`; `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`; `git merge-tree --write-tree origin/main` on the head is clean.
+
 `0c8d0bd41e6ba209371052fb874129d2ec1cbc1a`, the merge of `origin/main` `91773476edb3` into the PR head `3c89b84f7bd8`; measured against its merge base `91773476edb3` (`origin/main`). `git merge-tree --write-tree origin/main HEAD` exits 0.
 
 The commits since the last body's head `71af14b6d889` (tree identical to `1cd16648104d`, the handoff ref before this pass), `git log --first-parent 1cd16648104d..0c8d0bd41e6b`:
