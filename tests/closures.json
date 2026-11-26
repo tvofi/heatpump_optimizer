@@ -324,6 +324,7 @@
   "tests/backtest.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_charges.py",
@@ -1737,6 +1738,7 @@
   "tests/edge.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_charges.py",
@@ -3893,6 +3895,7 @@
   "tests/optimality.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_charges.py",
@@ -4171,6 +4174,7 @@
   "tests/stress.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_charges.py",
@@ -4442,6 +4446,7 @@
   "tests/validate.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/approach.py",
    "custom_components/heatpump_optimizer/batchmath.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_charges.py",
