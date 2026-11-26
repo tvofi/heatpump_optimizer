@@ -8679,6 +8679,28 @@ def stored_options_of_the_wrong_type() -> None:
     def derived(v):
         return quick_setup.derive({const.CONF_HEATED_AREA: v})
     same(derived, quick_setup.derive({}), "quick_setup.derive on stored heated_area")
+    # The quick-setup page's stored answers: a stored buffer volume.
+    def buffer_answer(v):
+        return quick_setup.suggested_answers({const.CONF_BUFFER_TANK_VOLUME: v})
+    same(buffer_answer, quick_setup.suggested_answers({}), "quick_setup.suggested_answers")
+    R.check("R11-LATE-P1-OPTIONS: null -- suggested_answers reads a well-typed volume",
+            buffer_answer(300.0)[quick_setup.FIELD_BUFFER_TANK] is True, f"{buffer_answer(300.0)!r}")
+
+    # The hot-water page's deadband rule, on the stored half of its pair.
+    for key in (const.CONF_DHW_SETPOINT, const.CONF_DHW_MIN_TEMP):
+        same(lambda v, key=key: config_flow._dhw_min_too_close({}, {key: v}),
+             config_flow._dhw_min_too_close({}, {}), f"config_flow._dhw_min_too_close on stored {key}")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored setpoint still closes the deadband",
+            config_flow._dhw_min_too_close({}, {const.CONF_DHW_SETPOINT: 46.0}) is True)
+
+    # The pre-fill page's uncapped-schedule rule, on the stored fraction.
+    windows = {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00"}
+    same(lambda v: config_flow._uncapped_schedule_errors(windows, {const.CONF_SILENT_MODE_FRACTION: v}),
+         config_flow._uncapped_schedule_errors(windows, {}), "config_flow._uncapped_schedule_errors")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored fraction of 1.0 is still refused",
+            config_flow._uncapped_schedule_errors(windows, {const.CONF_SILENT_MODE_FRACTION: 1.0})
+            == {const.CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"})
+
     R.check("R11-LATE-P1-OPTIONS: null -- derive reads a well-typed area",
             derived(95.0)[const.CONF_HEATED_AREA] == 95.0, f"{derived(95.0).get(const.CONF_HEATED_AREA)!r}")
 

@@ -1057,13 +1057,9 @@ def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bo
     impossible minimum is not rejected downstream, the plan just sits in
     permanent slight violation.
     """
-    setpoint = candidate.get(
-        CONF_DHW_SETPOINT, current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
-    )
-    minimum = candidate.get(
-        CONF_DHW_MIN_TEMP, current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
-    )
-    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+    setpoint = comfort_band.effective(candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
+    minimum = comfort_band.effective(candidate, current, CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
+    return minimum > setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
 
 
 def _dhw_legionella_warning(
@@ -2455,8 +2451,10 @@ def _uncapped_schedule_errors(saved: Mapping[str, Any], current: Mapping[str, An
     (``_PREFILL_PAIRED``), so the refusal lands on that field."""
     if not saved.get(CONF_SILENT_MODE_WINDOWS):
         return {}
-    fraction = {**current, **saved}.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
-    if float(fraction) >= 1.0:
+    fraction = comfort_band.effective(
+        saved, current, CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+    )
+    if fraction >= 1.0:
         return {CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"}
     return {}
 

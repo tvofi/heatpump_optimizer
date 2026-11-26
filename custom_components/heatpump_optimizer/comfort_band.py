@@ -28,7 +28,7 @@ be imported from anywhere in the integration without dragging the config flow
 """
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -73,7 +73,7 @@ class BandViolation:
 
 
 def effective(
-    candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
+    candidate: Mapping[str, Any], current: Mapping[str, Any], key: str, default: Any
 ) -> float:
     """The value a save would leave in force for one field.
 

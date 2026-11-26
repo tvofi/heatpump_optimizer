@@ -140,9 +140,9 @@ def stored_answers(current: Mapping[str, Any]) -> dict[str, bool]:
     mode = current.get(CONF_TWO_ZONE_MODE, TWO_ZONE_MODE_AUTO)
     if mode in (TWO_ZONE_MODE_ON, TWO_ZONE_MODE_OFF):
         answers[FIELD_TWO_ZONE] = mode == TWO_ZONE_MODE_ON
-    volume = current.get(CONF_BUFFER_TANK_VOLUME)
+    volume = finite_float(current.get(CONF_BUFFER_TANK_VOLUME))
     if volume is not None:
-        answers[FIELD_BUFFER_TANK] = float(volume) >= BUFFER_STORE_MIN_VOLUME
+        answers[FIELD_BUFFER_TANK] = volume >= BUFFER_STORE_MIN_VOLUME
     if current.get(CONF_DHW_ENABLED) is not None:
         answers[FIELD_DHW_TANK] = bool(current.get(CONF_DHW_ENABLED))
     if current.get(CONF_WOOD_FURNACE_ENABLED) is not None:
