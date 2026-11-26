@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/frost_hold.py:_freeze GUARD_OFF 4e803dbc",
+  "killed_by": "tests/features.py",
+  "old": "    if held.frost_holding:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:on_room_event BOOLOP 7f17833c",
+  "killed_by": "tests/features.py",
+  "old": "    if reason is None and wiring.frost_off():",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if reason is None or wiring.frost_off():`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
