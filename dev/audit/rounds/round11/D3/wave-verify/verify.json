@@ -113,6 +113,14 @@
    "votes": {
     "verify": 7
    }
+  },
+  {
+   "stage": 8,
+   "boxes": [
+    "D3-g46-h"
+   ],
+   "findings": 0,
+   "votes": {}
   }
  ],
  "votes": [
