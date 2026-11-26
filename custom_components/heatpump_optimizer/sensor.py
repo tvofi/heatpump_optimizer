@@ -51,7 +51,7 @@ from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
-from .entity import dhw_split_attributes
+from .entity import PayloadFlagMixin, dhw_split_attributes
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
@@ -71,6 +71,11 @@ ECL110_TOPIC_SLOTS = (
     CONF_ECL110_STATE_TOPIC,
     CONF_HEAT_CURVE_DISPLACE_ENTITY,
 )
+
+#: A temperature DIFFERENCE in K/degC (D10-s2-04): TEMPERATURE would convert it
+#: as an absolute for a Fahrenheit user. Home Assistant 2025.11.0 added this class,
+#: above hacs.json's floor, where it reads None and the readout stays classless.
+_TEMPERATURE_DELTA = getattr(SensorDeviceClass, "TEMPERATURE_DELTA", None)
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle
@@ -530,24 +535,27 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
         rows = (self._data()).get("savings_months")
         return rows if isinstance(rows, list) else []
 
+    def _open_saving(self) -> float | None:
+        """The open month's estimated saving: the one number both the state and
+        the availability read (D8-s1-03), ``None`` while the ledger has no open
+        row or withholds its saving (``old_basis``, ``below_meter_floor``)."""
+        for row in self._rows():
+            if isinstance(row, dict) and row.get("estimated"):
+                return payload_number(row.get("savings_sek"))
+        return None
+
     @property
     def _waiting_for(self) -> str | None:
-        # Closed months and no open row: the ledger holds the open month back
-        # until it has covered ``ledger.MIN_COVERAGE_HOURS``.
-        rows = self._rows()
-        if not rows:
-            return "settled_savings_month"
-        if any(isinstance(row, dict) and row.get("estimated") for row in rows):
+        # Closed months and no open saving: the ledger holds the open month
+        # back until it has covered ``ledger.MIN_COVERAGE_HOURS``.
+        if self._open_saving() is not None:
             return None
-        return "open_month_coverage"
+        return "open_month_coverage" if self._rows() else "settled_savings_month"
 
     @property
     def native_value(self) -> float | None:
-        for row in self._rows():
-            if isinstance(row, dict) and row.get("estimated"):
-                val = payload_number(row.get("savings_sek"))
-                return None if val is None else round(val, 2)
-        return None
+        val = self._open_saving()
+        return None if val is None else round(val, 2)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1441,6 +1449,7 @@ class ECL110DisplaceSensor(_PayloadNumberMixin, _ConfiguredInputMixin, HeatPumpO
     """Current ECL110 displace command value."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = _TEMPERATURE_DELTA
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
     # ECL110 hardware is a per-install opt-in (its MQTT topics live on the
@@ -1463,6 +1472,7 @@ class ECL110EffectiveDisplaceSensor(_PayloadNumberMixin, _ConfiguredInputMixin, 
     """Modeled effective displace after ECL110 PI/PID dynamics."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = _TEMPERATURE_DELTA
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_suggested_display_precision = 1
     # Same opt-in hardware as ECL110 Displace above, same gate and category.
@@ -1746,7 +1756,7 @@ class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class MeasuredPowerSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class MeasuredPowerSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """The heat pump's actual electrical draw.
 
     Deliberately named to contrast with "Recommended Power", which is what the
@@ -1770,10 +1780,7 @@ class MeasuredPowerSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "measured_power", "measured_power")
 
-    @property
-    def available(self) -> bool:
-        data = self._data()
-        return bool(super().available and data.get("measured_power_available"))
+    _available_flag = ("measured_power_available",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2018,6 +2025,7 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
     """
 
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = _TEMPERATURE_DELTA
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_suggested_display_precision = 2
@@ -2231,7 +2239,7 @@ def _sysid_outcome(view: Any) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 
 
-class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class MonthlyPeakSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """The peak level this month's capacity tariff is currently based on."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2248,12 +2256,7 @@ class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "monthly_peak", "cost_monthly_peak_power")
 
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available
-            and (self._data()).get("peak_tariff_enabled")
-        )
+    _available_flag = ("peak_tariff_enabled",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2282,7 +2285,7 @@ class MonthlyPeakSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
 # ---------------------------------------------------------------------------
 
 
-class PVSurplusSensor(HeatPumpOptimizerSensorBase):
+class PVSurplusSensor(PayloadFlagMixin, HeatPumpOptimizerSensorBase):
     """Forecast solar surplus available to the heat pump."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2306,11 +2309,7 @@ class PVSurplusSensor(HeatPumpOptimizerSensorBase):
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "pv_surplus", "solar_surplus_forecast")
 
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available and (self._data()).get("pv_enabled")
-        )
+    _available_flag = ("pv_enabled",)
 
     @property
     def native_value(self) -> float | None:
@@ -2560,7 +2559,7 @@ class ContractComparisonSensor(
         return self._evidence_attributes("contract_comparison", "monthly_report")
 
 
-class PowerHeadroomSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class PowerHeadroomSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """How many kW the house can draw right now without new cost (#5).
 
     ``min(main fuse, capacity threshold) − current house draw``, clamped at
@@ -2588,10 +2587,7 @@ class PowerHeadroomSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
             coordinator, entry, "power_headroom", "cost_power_headroom"
         )
 
-    @property
-    def available(self) -> bool:
-        data = (self._data()).get("power_headroom") or {}
-        return bool(super().available and data.get("available"))
+    _available_flag = ("power_headroom", "available")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2649,7 +2645,7 @@ class DHWSetpointAdvisorSensor(_PayloadNumberMixin, _DHWEntityMixin, HeatPumpOpt
 
 
 class MixedHotWaterSensor(
-    _PayloadNumberMixin, _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
+    PayloadFlagMixin, _PayloadNumberMixin, _DHWEntityMixin, _MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase
 ):
     """The tank translated into shower terms (#28).
 
@@ -2689,11 +2685,7 @@ class MixedHotWaterSensor(
             coordinator, entry, "dhw_mixed_water", "dhw_mixed_water"
         )
 
-    @property
-    def available(self) -> bool:
-        return bool(
-            super().available and (self._data()).get("dhw_mixed")
-        )
+    _available_flag = ("dhw_mixed",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -2860,7 +2852,7 @@ class OptimizationScoreSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
         return attrs
 
 
-class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
+class CompressorStartsSensor(PayloadFlagMixin, _PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     """Realised compressor starts, counted from the meter (#55).
 
     State: lifetime starts. TOTAL_INCREASING, so long-term statistics and
@@ -2885,10 +2877,7 @@ class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
             coordinator, entry, "compressor_starts", "compressor_starts"
         )
 
-    @property
-    def available(self) -> bool:
-        data = (self._data()).get("measured_power_available")
-        return bool(super().available and data)
+    _available_flag = ("measured_power_available",)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
