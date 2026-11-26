@@ -57,6 +57,11 @@ from .const import (
     DEFAULT_MIN_TEMP,
     DEFAULT_TARGET_TEMP,
     finite_float,
+    CONF_DHW_MIN_TEMP,
+    CONF_DHW_SETPOINT,
+    DEFAULT_DHW_MIN_TEMP,
+    DEFAULT_DHW_SETPOINT,
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
 )
 
 
@@ -89,6 +94,21 @@ def effective(
     (R11-LATE-P1-OPTIONS) would otherwise raise out of the rule judging it.
     """
     return finite_float(candidate.get(key, current.get(key, default)), float(default))
+
+
+def dhw_deadband(
+    candidate: Mapping[str, Any], current: Mapping[str, Any]
+) -> tuple[float, float, float]:
+    """``(minimum, setpoint, ceiling)`` of the hot-water pair a save would leave in force.
+
+    The minimum must stay at or below ``ceiling``, the setpoint less
+    ``DHW_MIN_TEMP_SETPOINT_MARGIN``: the tank limits are soft penalties, so a
+    minimum above it is not refused downstream and the plan sits in permanent
+    violation. The options page and ``apply_schedule`` judge the pair here.
+    """
+    setpoint = effective(candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
+    minimum = effective(candidate, current, CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
+    return minimum, setpoint, setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
 
 
 def _pair_violations(

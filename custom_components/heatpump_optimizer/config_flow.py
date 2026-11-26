@@ -260,7 +260,6 @@ from .const import (
     DEFAULT_DHW_TANK_VOLUME,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
-    DHW_MIN_TEMP_SETPOINT_MARGIN,
     DEFAULT_DHW_DAILY_CONSUMPTION,
     DEFAULT_DHW_COOLING_RATE,
     DEFAULT_DHW_SCHEDULE_ENABLED,
@@ -1057,9 +1056,8 @@ def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bo
     impossible minimum is not rejected downstream, the plan just sits in
     permanent slight violation.
     """
-    setpoint = comfort_band.effective(candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
-    minimum = comfort_band.effective(candidate, current, CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
-    return minimum > setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
+    minimum, _setpoint, ceiling = comfort_band.dhw_deadband(candidate, current)
+    return minimum > ceiling
 
 
 def _dhw_legionella_warning(
