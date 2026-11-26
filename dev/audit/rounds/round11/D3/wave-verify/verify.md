@@ -14,8 +14,9 @@ Not run here, by the brief: the judge, dedup and the class sweep (they wait for 
 | 2 | g36 | 14 | {'verify': 14} |
 | 3 | g40 | 4 | {'verify': 4} |
 | 4 | g43 | 2 | {'verify': 2} |
+| 5 | g45 | 11 | {'unresolved': 11} |
 
-Total: 401 findings; {'verify': 389, 'weaken': 9, 'unresolved': 3}.
+Total: 412 findings; {'verify': 389, 'weaken': 9, 'unresolved': 14}.
 
 ## Method
 
@@ -55,6 +56,17 @@ Carry: R11-D3-JUDGE
 | 1 | 64f3ef1feaaf7bc9 | D3-g35 | sysid.py:2223 | unresolved | low | hunt_hit=0 of 14087 evaluations; key case not reached | read by hand: the finder's boundary input does not land on the boundary on this host (macOS arm64 CPython/numpy): the probe's hunt found no hitting input, so neither arm moves here; solver floats do not reproduce across BLAS builds, so this is a non-reproduction to re-take on a Linux x86 box, not a  |
 | 1 | d661d68f54982097 | D3-g35 | sysid.py:2223 | unresolved | low | key_tapped_tau=200.00000000000887 (not 200); key_completed baseline False = mutant False | read by hand: the finder's boundary input does not land on the boundary on this host (macOS arm64 CPython/numpy): the probe's hunt found no hitting input, so neither arm moves here; solver floats do not reproduce across BLAS builds, so this is a non-reproduction to re-take on a Linux x86 box, not a  |
 | 1 | 4da9d281d4714565 | D3-g35 | sysid.py:2246 | unresolved | low | hunt_hit=0 of 28215 evaluations; key case not reached | read by hand: the finder's boundary input does not land on the boundary on this host (macOS arm64 CPython/numpy): the probe's hunt found no hitting input, so neither arm moves here; solver floats do not reproduce across BLAS builds, so this is a non-reproduction to re-take on a Linux x86 box, not a  |
+| 5 | b2faf84904db389e | D3-g45 | thermal_model.py:677 | unresolved | low |  |  |
+| 5 | 1b476993921016f9 | D3-g45 | thermal_model.py:852 | unresolved | low |  |  |
+| 5 | ea888783bb621669 | D3-g45 | thermal_model.py:855 | unresolved | low |  |  |
+| 5 | b098598faf0d87dc | D3-g45 | thermal_model.py:835 | unresolved | low |  |  |
+| 5 | dd40fdb4edae4d79 | D3-g45 | thermal_model.py:2270 | unresolved | medium |  | severity: claimed medium, kept: not re-graded beyond reach in this stage |
+| 5 | 19404e3632806509 | D3-g45 | thermal_model.py:2554 | unresolved | medium |  | severity: claimed medium, kept: not re-graded beyond reach in this stage |
+| 5 | beeb068352333132 | D3-g45 | thermal_model.py:2573 | unresolved | low |  |  |
+| 5 | ea9c4705de428b28 | D3-g45 | thermal_model.py:2576 | unresolved | low |  |  |
+| 5 | 98853a541b6b5d6a | D3-g45 | thermal_model.py:2581 | unresolved | medium |  | severity: claimed medium, kept: not re-graded beyond reach in this stage |
+| 5 | fdf5872fd576c405 | D3-g45 | thermal_model.py:2581 | unresolved | medium |  | severity: claimed medium, kept: not re-graded beyond reach in this stage |
+| 5 | 39041ccf21eedba6 | D3-g45 | thermal_model.py:2583 | unresolved | medium |  | severity: claimed medium, kept: not re-graded beyond reach in this stage |
 
 ## All votes
 
@@ -461,3 +473,14 @@ Carry: R11-D3-JUDGE
 | 3 | 1894e6dcd2251a30 | D3-g40 | tariff.py:570 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('nan_windows', ['0', '10']) | inconclusive by construction |
 | 4 | 7068e39e4608027f | D3-g43 | thermal_model.py:4699 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('batch_vs_scalar_parity', ['0', '0.00408045']) | faithful by construction |
 | 4 | 6462c28df2f973e0 | D3-g43 | thermal_model.py:4702 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('batch_vs_scalar_parity', ['0', '0.0166438']) | faithful by construction |
+| 5 | b2faf84904db389e | D3-g45 | thermal_model.py:677 | unresolved | low |  | faithful by construction |
+| 5 | 1b476993921016f9 | D3-g45 | thermal_model.py:852 | unresolved | low |  | faithful by construction |
+| 5 | ea888783bb621669 | D3-g45 | thermal_model.py:855 | unresolved | low |  | faithful by construction |
+| 5 | b098598faf0d87dc | D3-g45 | thermal_model.py:835 | unresolved | low |  | faithful by construction |
+| 5 | dd40fdb4edae4d79 | D3-g45 | thermal_model.py:2270 | unresolved | medium |  | faithful by construction |
+| 5 | 19404e3632806509 | D3-g45 | thermal_model.py:2554 | unresolved | medium |  | faithful by construction |
+| 5 | beeb068352333132 | D3-g45 | thermal_model.py:2573 | unresolved | low |  | faithful by construction |
+| 5 | ea9c4705de428b28 | D3-g45 | thermal_model.py:2576 | unresolved | low |  | faithful by construction |
+| 5 | 98853a541b6b5d6a | D3-g45 | thermal_model.py:2581 | unresolved | medium |  | faithful by construction |
+| 5 | fdf5872fd576c405 | D3-g45 | thermal_model.py:2581 | unresolved | medium |  | faithful by construction |
+| 5 | 39041ccf21eedba6 | D3-g45 | thermal_model.py:2583 | unresolved | medium |  | faithful by construction |
