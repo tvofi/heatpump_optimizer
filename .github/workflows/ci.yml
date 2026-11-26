@@ -66,15 +66,21 @@ permissions: {}
 
 # A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
-# let a re-run cancel a pending run. A push to main's run is no exception
-# (owner 2026-11-25, retiring CI-5's `CI-main` group): every main push run
-# starts at once, and supersession is the cancellers' alone -- this file's
-# cancel-superseded job for a pull request, and for main main-cancel.yml, which
-# cancels the older active main push runs when the new push is graded in full,
-# never past three main runs with no concluded verdict.
+# let a re-run cancel a pending run. Except a `synchronize` run's first attempt
+# sent by anyone but github-actions[bot] (#3885 L1): it joins its pull request's
+# `CI-pr-<number>` group and cancels the older such run at creation, pending or
+# in progress. A synchronize always heads a new SHA, so no same-head twin is
+# cancelled; a re-run keeps its run-id group; a bot-sent run (an autofix push)
+# never cancels the run doing the other autofix jobs. Every other superseded run
+# (opened, reopened, dispatched, bot-sent) is the `cancel-superseded` job's.
+# A push to main's run is no exception to the run-id group (owner 2026-11-25,
+# retiring CI-5's `CI-main` group): every main push run starts at once, and
+# supersession is main-cancel.yml's, which cancels the older active main push
+# runs when the new push is graded in full, never past three main runs with no
+# concluded verdict.
 concurrency:
-  group: ${{ format('CI-{0}', github.run_id) }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}', github.event.pull_request.number) || format('CI-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   prelude:

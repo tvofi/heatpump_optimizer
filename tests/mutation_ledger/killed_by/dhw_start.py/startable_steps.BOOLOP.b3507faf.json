@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_start.py:startable_steps BOOLOP b3507faf",
+  "killed_by": "tests/block_duty.py",
+  "old": "    under_way = bool(on[:1].any()) and (charge_running or bool(ok[:1].any()))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`under_way = bool(on[:1].any()) or (charge_running or bool(ok[:1].any()))`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=6."
+}
