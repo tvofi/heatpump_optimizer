@@ -1,0 +1,27 @@
+{
+ "key": "c9a7d4d29d08c3b4",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2952 CLAMP_DROP",
+ "patch": "m = max(margin, 1e-6) -> m = (margin)",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3825.0,
+  "load1_start": 0.93,
+  "load1_end": 0.93
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c9a7d4d29d08c3b4.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c9a7d4d29d08c3b4.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 60,
+  "null_n_differing": 0,
+  "n_inputs": 2205,
+  "first_difference": "((array([10.]), array([10.]), 25.0, array([10.]), 0.0), ('0.0',), ('nan',))",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "margin==0.0 is unreachable: both callers (thermal_model.py:2570, 4685) use the default WOOD_TANK_MIN_MARGIN=2.0 (const.py:362); the probe moves only at margin 0.0"
+}
