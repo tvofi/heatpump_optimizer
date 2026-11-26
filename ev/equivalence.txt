@@ -1,0 +1,11 @@
+real listing lines: 180
+real: old=[v10.1.4] new=[v10.1.4]
+case='' old=[] new=[] SAME
+case=abc\\trefs/tags/v1.2.3 old=[v1.2.3] new=[v1.2.3] SAME
+case=abc\\trefs/tags/v1.2.3\\ndef\\trefs/tags/v1.0.0 old=[v1.2.3] new=[v1.2.3] SAME
+case=x\\trefs/tags/refs/tags/v9 old=[v9] new=[v9] SAME
+case=abc\\trefs/tags/v1.0.0-rc1 old=[v1.0.0-rc1] new=[v1.0.0-rc1] SAME
+case=nohit old=[nohit] new=[nohit] SAME
+old rc=141
+new t=v20000.0.0
+new rc=0
