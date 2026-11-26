@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/pages.yml b/.github/workflows/pages.yml
+index 1496f073f3..0f9a3cc07a 100644
+--- a/.github/workflows/pages.yml
++++ b/.github/workflows/pages.yml
+@@ -111,7 +111,7 @@ jobs:
+           set -euo pipefail
+           # awk reads to the end: `| head -n 1` closed the pipe early, and the listing's
+           # SIGPIPE failed the step under pipefail (exit 141, run 45663211757).
+-          tag=$(git ls-remote --tags --refs --sort=-v:refname origin 'refs/tags/v*' | awk 'NR == 1 { sub(/.*refs\/tags\//, ""); print }')
++          tag=$(git ls-remote --tags --refs --sort=-v:refname origin 'refs/tags/v*' | head -n 1 | sed 's#.*refs/tags/##')
+           if [ -z "$tag" ]; then
+             echo "::warning title=No release tag::no v* tag; the docs are the dispatched ref's"
+             exit 0
