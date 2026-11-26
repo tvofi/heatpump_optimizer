@@ -4569,12 +4569,7 @@ class Train:
             if m.group(1) not in reran.values():
                 if not reran:
                     self.hold_reruns(h, "stale re-run")
-                # #3885 L7: failed and cancelled jobs only; the whole run only when GitHub
-                # refuses that (no failed or cancelled job to re-run).
-                code, o = self.run(["gh", "api", "-X", "POST",
-                                    f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun-failed-jobs"])
-                if code:
-                    code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
+                code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
                 self.log(f"STALE {name} at {h[:8]}: check-run {c.get('id')} {c.get('status')} over completed "
                          f"run {m.group(1)}; re-run once (rc={code}{': ' + o.strip()[-120:] if code else ''})")
             reran[name] = m.group(1)
@@ -5278,9 +5273,7 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and "actions/runs?per_page=30" in a:  # `actions_mark`
                 n = world["mark_reads"] = world.get("mark_reads", 0) + 1
                 return world.get("marks", lambda n: (0, f"2026-11-11T20:{n:02d}:00Z"))(n)
-            if argv[:2] == ["gh", "api"] and a.endswith(("/rerun", "/rerun-failed-jobs")):  # K15 (b)'s re-run
-                if a.endswith("/rerun-failed-jobs") and world.get("failed_only_refused"):
-                    return 1, "HTTP 403: This workflow run cannot be rerun"
+            if argv[:2] == ["gh", "api"] and a.endswith("/rerun"):  # K15 (b)'s re-run
                 world.get("on_rerun", lambda: None)()
                 return 0, ""
             wf = re.search(r"/actions/runs/(\d+)\b", a)
@@ -9245,28 +9238,19 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         return w
 
     rc, lines, calls = go(stale_world("completed", True))
-    reruns = [i for i, c in enumerate(calls) if c[-1].endswith("/actions/runs/119308796140/rerun-failed-jobs")]
+    reruns = [i for i, c in enumerate(calls) if c[-1].endswith("/actions/runs/119308796140/rerun")]
     first_merge = next((i for i, c in enumerate(calls) if c[:3] == ["gh", "pr", "merge"]), -1)
     check("K15 (b): a stale check-run at the head is re-run once, before the merge attempt, and logged "
           "with its run id",
           rc == 0 and merged(calls) and len(reruns) == 1 and reruns[0] < first_merge
           and any(ln.startswith("STALE ") and "119308796140" in ln for ln in lines))
-    check("K15 (b) L7: the stale re-run is failed-only, never the whole run while GitHub accepts that",
-          not any(c[-1].endswith("/rerun") for c in calls))
-    w = stale_world("completed", True)
-    w["failed_only_refused"] = True
-    rc, lines, calls = go(w)
-    posts = [c[-1].rsplit("/", 1)[-1] for c in calls if c[-1].endswith(("/rerun", "/rerun-failed-jobs"))]
-    check("K15 (b) L7: a refused failed-only re-run falls back to the whole run, once, and merges "
-          "(null: the accepted case above posts no whole-run re-run)",
-          rc == 0 and merged(calls) and posts == ["rerun-failed-jobs", "rerun"])
     stale2 = cr("closures", "in_progress", cid=8, url=url)
     w = {"runs": [cr("fast"), stale_cr, stale2], "wf_runs": {"119308796140": "completed"}}
     w["on_rerun"] = lambda: w.update(runs=[cr("fast"), stale_cr, stale2, cr("budget-raise-gate", started="2"),
                                            cr("closures", started="2")])
     rc, lines, calls = go(w)
     check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
-          rc == 0 and merged(calls) and sum(c[-1].endswith(("/rerun", "/rerun-failed-jobs")) for c in calls) == 1
+          rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
           and sum(ln.startswith("STALE ") for ln in lines) == 1)
     asked: list = []
 
@@ -9285,7 +9269,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "(HOLD, then HOLD-END after 2 polls), then re-runs once and merges",
           rc == 0 and merged(calls) and len(held_at) == 1 and "priority #10 run 901" in lines[held_at[0]]
           and any(ln.startswith("HOLD-END stale re-run") and "after 2 poll(s)" in ln for ln in lines)
-          and len(asked) == 3 and sum(c[-1].endswith(("/rerun", "/rerun-failed-jobs")) for c in calls) == 1)
+          and len(asked) == 3 and sum(c[-1].endswith("/rerun") for c in calls) == 1)
     asked.clear()
     Train.ci_pause = lambda self: type("_Never", (), {"hold": lambda s, h: asked.append(h)})()
     try:
@@ -9301,13 +9285,13 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         Train.ci_pause = _cp_attr
     check("carry 6 (ii): a priority queue that never drains holds HOLD_POLLS polls, then re-runs (HOLD-EXPIRED)",
           rc == 0 and merged(calls) and any(ln.startswith("HOLD-EXPIRED stale re-run") for ln in lines)
-          and sum(c[-1].endswith(("/rerun", "/rerun-failed-jobs")) for c in calls) == 1)
+          and sum(c[-1].endswith("/rerun") for c in calls) == 1)
     rc, lines, calls = go(stale_world("in_progress", False))
     check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
-          rc == 0 and not any(c[-1].endswith(("/rerun", "/rerun-failed-jobs")) for c in calls))
+          rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
     rc, lines, calls = go(stale_world("completed", False))
     check("K15 (b): a re-run that leaves it unconcluded stops the merge, and never re-runs twice",
-          rc == 1 and not merged(calls) and sum(c[-1].endswith(("/rerun", "/rerun-failed-jobs")) for c in calls) == 1)
+          rc == 1 and not merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1)
     # (d) the `classify` CLI a reviewer dispatch asks: a pull request's head
     # is judged on every required context, PR_ONLY included; --main drops them.
     def cli(runs, ruleset="fast\npr-contract\n", *flags) -> "tuple[int, str]":
