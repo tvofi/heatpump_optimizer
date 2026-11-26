@@ -13,3 +13,4 @@
 1795652015 CKPT setup ok; delta review 033fe14f->49658957 FRESH-REVIEW snapshot d9a03f243b8c
 1795652263 HB alive
 1795652264 CKPT block 55/55 pass; 3 delta mutants die; structure raise == measured snapshot 169d737ec304
+1795652867 HB alive
