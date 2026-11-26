@@ -465,6 +465,12 @@
     "diagnose_interval_failed": {
       "message": "The interval diagnosis could not run for {entry_ids}: {error}"
     },
+    "system_identification_disabled": {
+      "message": "System identification is turned off for {entry_ids}: turn on \"Allow a one-off measurement experiment\" in the options to arm it"
+    },
+    "system_identification_not_armed": {
+      "message": "System identification was not armed for {entry_ids}: {reason}"
+    },
     "simulate_plan_failed": {
       "message": "The what-if simulation could not run for {entry_ids}: {error}"
     },
@@ -2124,6 +2130,7 @@
           "manual_plan": "Your own schedule",
           "preheat_weather": "Pre-heating before colder weather",
           "pump_mode": "Blocked by the heat pump's mode",
+          "room_floor": "Lifting the floor for a room below its target",
           "scheduled": "Keeping the house at target",
           "solar_surplus": "Covered by solar surplus",
           "terminal_value": "Leaving the house warm",
@@ -2296,6 +2303,9 @@
       },
       "block_space": {
         "name": "Block Space Heating"
+      },
+      "external_heat_ignore_block": {
+        "name": "External Heat Block Override"
       },
       "optimizer_active": {
         "name": "Optimizer Active"

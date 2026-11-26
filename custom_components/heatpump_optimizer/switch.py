@@ -1,6 +1,6 @@
 """Switch entities for Heat Pump Cost Optimizer.
 
-Six switches, all plain toggles over coordinator state. Each reads the live
+Seven switches, all plain toggles over coordinator state. Each reads the live
 state rather than the published payload, and publishes it as soon as the
 action has changed it, before the refresh that runs the solve (30 to 70 s on
 a Pi). Home Assistant's toggle falls back to the old state after about two
@@ -15,6 +15,10 @@ front of the user (v6.6.12).
   water and the space heating, released when their window ends.
 * "Block DHW" and "Block Space Heating" — the opposite, for the same two
   hours. A safety floor releases a block and the switch says why.
+* "External heat block override" — while on, a detected fire (inferred or
+  from the stove entity) no longer holds the plan back; detection and the
+  learning freeze are unchanged. Persisted, no timeout, inert with detection
+  off (#3862).
 """
 from __future__ import annotations
 
@@ -52,6 +56,7 @@ async def async_setup_entry(
             BoostSpaceSwitch(coordinator, entry),
             BlockDhwSwitch(coordinator, entry),
             BlockSpaceSwitch(coordinator, entry),
+            ExternalHeatIgnoreBlockSwitch(coordinator, entry),
         ]
     )
 
@@ -111,11 +116,11 @@ class OptimizerEnableSwitch(HeatPumpOptimizerEntity, SwitchEntity):
         publish_then_refresh(self)
 
 
-class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
-    """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
+class _KeyedSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+    """A switch whose registry identity is its class's ``_unique_key``."""
 
-    _attr_translation_key = "away"
     _platform_domain = "switch"
+    _unique_key = ""
 
     def __init__(
         self,
@@ -123,7 +128,14 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._pin_identity(entry, "away")
+        self._pin_identity(entry, self._unique_key)
+
+
+class AwaySwitch(_KeyedSwitch):
+    """Plan-page away override on/off. ``is_on`` is the override, not resolve()."""
+
+    _attr_translation_key = "away"
+    _unique_key = "away"
 
     @property
     def is_on(self) -> bool:
@@ -138,7 +150,7 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         publish_then_refresh(self)
 
 
-class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+class TimedDutySwitch(_KeyedSwitch):
     """A two-hour boost or block of one duty. The four switches share this.
 
     Subclasses set the channel, the polarity and the registry key. Hot-water
@@ -146,18 +158,8 @@ class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
     map; the coordinator grows no attribute.
     """
 
-    _platform_domain = "switch"
     _channel = ""
     _block = False
-    _unique_key = ""
-
-    def __init__(
-        self,
-        coordinator: HeatPumpOptimizerCoordinator,
-        entry: HeatPumpOptimizerConfigEntry,
-    ) -> None:
-        super().__init__(coordinator)
-        self._pin_identity(entry, self._unique_key)
 
     @property
     def is_on(self) -> bool:
@@ -232,3 +234,28 @@ class BlockSpaceSwitch(TimedDutySwitch):
     _channel = "space"
     _block = True
     _unique_key = "block_space"
+
+
+class ExternalHeatIgnoreBlockSwitch(_KeyedSwitch):
+    """Lift the external-heat block on the plan (#3862); state held in ``boost``."""
+
+    _attr_translation_key = "external_heat_ignore_block"
+    _unique_key = "external_heat_ignore_block"
+
+    @property
+    def is_on(self) -> bool:
+        return boost.extheat_block_ignored(self.coordinator)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Whether the switch is effective: False while detection is off."""
+        published = (self.coordinator.data or {}).get("external_heat") or {}
+        return {"block_ignored": bool(published.get("block_ignored"))}
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await boost.set_extheat_block_ignored(self.coordinator, True)
+        publish_then_refresh(self)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await boost.set_extheat_block_ignored(self.coordinator, False)
+        publish_then_refresh(self)

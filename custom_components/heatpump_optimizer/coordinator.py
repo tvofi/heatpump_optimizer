@@ -219,6 +219,7 @@ from .external_heat import (
     wood_mean_temperature,
 )
 from . import away as away_mode
+from . import external_heat as extheat
 from . import boost
 from . import circulation
 from . import driving_grade
@@ -372,6 +373,7 @@ from .dhw_schedule import (
     overlap_fraction,
     parse_weekly_windows,
     parse_windows,
+    windows_in_force,
 )
 from .optimizer import (
     ForecastSeries,
@@ -3762,6 +3764,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The live detector, never a solve's copy of it: no solve runs
             # in comfort, boost or off to refresh one (#1736 H4).
             external_heat_active=lambda: bool(self._external_heat_active),
+            holidays=lambda now: away_mode.holiday_dates(self.hass, _ctx_of(self)._config.holiday_calendar_entity, now),
         )
         # #193's W5-G10: the disinfection cycle, its ceilings and its three
         # repair notices are their own subsystem. It reads the published
@@ -4486,15 +4489,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # With hot water disabled (or no schedule) there is no frame to
             # exploit and the loop is simply left on — never abandoned in
             # whatever state the last schedule-driven command left it.
-            windows = (
-                list(params.dhw_windows)
-                if params.dhw_enabled and params.dhw_windows_active
-                else []
-            )
-            on, reason = pump_schedule.vvc_should_run(
-                now.hour + now.minute / 60.0,
-                windows,
-                ctx._config.vvc_lead_minutes,
+            scheduled = params.dhw_enabled and params.dhw_windows_active
+            on, reason = pump_schedule.vvc_should_run_at(
+                now, params if scheduled else None, ctx._config.vvc_lead_minutes,
+                away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now),
             )
             await circulation.command(self.hass, self.entry, ctx._config, circulation.DHW, on, reason)
 
@@ -5207,7 +5205,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         its answer into the array the optimizer takes.
         """
         ctx = getattr(self, "_ctx", self)
-        if not self._external_heat.suppressing:
+        if not extheat.blocking(self._external_heat, boost.extheat_block_ignored(self)):
             return None
         forecast = self._external_heat.forecast_free_heat(
             n_steps,
@@ -5982,17 +5980,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             },
         )
 
-    def _dhw_effective_windows(self) -> list[Any]:
-        """Demand windows the optimizer is actually planning against."""
-        result = self._optimization_result
-        planned = (result.predictive_info or {}).get("dhw_windows") if result else None
-        if planned:
-            try:
-                return parse_windows(planned)
-            except DHWWindowError:
-                pass
-        windows: list[Any] = getattr(self, "_ctx", self)._thermal_params.dhw_demand_windows
-        return windows
+    def _dhw_effective_windows(self, days: int = 0) -> list[Any]:
+        """Demand windows the optimizer plans against, today or ``days`` on (``windows_in_force``)."""
+        ctx, now = getattr(self, "_ctx", self), dt_util.now()
+        holidays = away_mode.holiday_dates(self.hass, ctx._config.holiday_calendar_entity, now)
+        return windows_in_force(ctx._thermal_params, self._optimization_result, now, holidays, days)
 
     def _dhw_in_demand_window(self) -> bool:
         """Whether hot water is required right now."""
@@ -6003,7 +5995,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _dhw_next_window_in_hours(self) -> float | None:
         """Hours until the next DHW demand window opens (0 if inside one)."""
         hours = hours_until_next_window(
-            _dhw_current_hour(), self._dhw_effective_windows()
+            _dhw_current_hour(), self._dhw_effective_windows(), self._dhw_effective_windows(1)
         )
         return round(hours, 2) if hours is not None else None
 
@@ -6222,7 +6214,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         state = replace(
             copy.deepcopy(ctx._current_state),
-            external_heat_active=self._external_heat_active,
+            external_heat_active=self._external_heat_active and not extheat.ignore_effective(
+                self._external_heat, boost.extheat_block_ignored(self)),
             # T2: the live guard's suppression and the post-outage DHW queue
             # both ride the same discretionary-DHW gate in the solve (#7/#22).
             peak_guard_active=self._peak_guard.suppressing
@@ -6269,9 +6262,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             caps = env_caps if caps is None else np.minimum(caps, env_caps)
         quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         return SolveRecord(config, params, SolveInputs(
-            state=state,
+            state=pump_signals.with_dhw_under_way(state, self._pump_signals, running := duty_switch.running_now(duty_switch.record_for(self), self._current_action), self._current_action),
             start_time=solve_now,
-            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
+            compressor_running=running,
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -6289,7 +6282,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
                 # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
-                min_temp_margins=rooms.lifted(rooms.hold(self, rooms.resolve(  # #3616: plus a short room's lift
+                **rooms.floor_limits(rooms.hold(self, rooms.resolve(  # #3616: plus a short room's lift
                     rooms.readings_of(self), rooms.lift_of(self), rooms.gate(enabled=ctx._config.room_lift_enabled, economy=self._mode == MODE_ECONOMY, open_window=self._vent_cusum.tripped, away=self._away_state.active, manual_pin=space_pins is not None, two_zone=params.two_zone_enabled),
                     config, state.room_temperature, solve_now)), self._confidence_margins(n), config, solve_now, n),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
@@ -8070,12 +8063,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         }
 
     def _external_heat_view(self) -> ExternalHeatView:
-        """Whether something other than the heat pump is charging the tanks."""
-        return {
-            "external_heat_active": self._external_heat.state.active,
-            "external_heat_suppressing": self._external_heat.suppressing,
-            "external_heat": self._external_heat.state.as_dict(),
-        }
+        return extheat.view(self._external_heat, boost.extheat_block_ignored(self))
 
     def configured_dhw_windows(self) -> str:
         """The hot-water windows as CONFIGURED, in the grammar the config flow
@@ -10977,14 +10965,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def system_identification_active(self) -> bool:
         return self._sysid.active
 
-    async def async_arm_system_identification(self) -> None:
-        """Arm a step-response experiment for the next suitable moment."""
+    def arm_system_identification(self) -> str | None:
+        """Arm a step-response experiment for the next suitable moment; why not, else ``None``."""
         ctx = getattr(self, "_ctx", self)
-        sysid.arm_from_config(
+        return sysid.arm_refusal(
             self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
             self._house_heat_loss_samples, self._accuracy.draw,
         )
-        await self.async_request_refresh()
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
         """Advance sysid and override the plan when the experiment commands heat.
@@ -11289,7 +11276,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # except the mold cap follows the SIMULATED target, so
                 # a what-if dragging the target down sees the floor
                 # that choice would actually get.
-                min_temp_margins=rooms.lifted(rooms.lift_of(self), self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices)),  # the baseline's lift, #3616
+                **rooms.floor_limits(rooms.lift_of(self), self._confidence_margins(len(horizon.prices)), scratch_config, solve_at, len(horizon.prices)),  # the baseline's lift, #3616
                 min_temp_floors=self._mold_floor_series(
                     horizon.outdoor_temps,
                     target_cap=float(scratch_config.target_temp),

@@ -27,3 +27,7 @@ tests/closures.json merge=ledgermerge
 # entry after the same last one, so two in flight conflict in a line merge
 # (dev/audit/rca/R9-RCA-bugclasses.md). The same driver merges it key by key.
 dev/audit/config/bugclasses.json merge=ledgermerge
+
+# R11-CI-CASE-SELECT's per-span table: tests/case_select.py's own three-way
+# merge, reached through the same driver (tools/merge/ledger_merge.py _TABLE_ARMS).
+tests/case_closures.json merge=ledgermerge

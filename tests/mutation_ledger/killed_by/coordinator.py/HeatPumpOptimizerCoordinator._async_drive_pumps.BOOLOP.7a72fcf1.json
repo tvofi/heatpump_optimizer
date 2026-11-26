@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_drive_pumps BOOLOP 7a72fcf1",
-  "killed_by": "tests/features.py",
-  "old": "                if params.dhw_enabled and params.dhw_windows_active",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if params.dhw_enabled or params.dhw_windows_active`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

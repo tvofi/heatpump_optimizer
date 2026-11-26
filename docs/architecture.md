@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 104 modules, of which 37 import the
+knows nothing about Home Assistant: 106 modules, of which 37 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -28,7 +28,7 @@ flowchart TB
         states["Entity states<br/>temperatures, power, tank probes,<br/>presence, humidity"]
 
         subgraph glue["Integration glue — imports homeassistant"]
-            entities["Entity layer<br/>82 entities<br/>62 sensors, 6 binary sensors,<br/>6 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+            entities["Entity layer<br/>83 entities<br/>62 sensors, 6 binary sensors,<br/>6 buttons, 7 switches,<br/>1 climate, 1 datetime"]
             ui["config_flow · services · frontend<br/>repairs · diagnostics · notifier"]
             reader["inputs.py — InputReader<br/>freshness and unit guards"]
             coord["coordinator.py<br/>HeatPumpOptimizerCoordinator<br/>the orchestration seam"]
@@ -124,6 +124,8 @@ custom_components/heatpump_optimizer/
 ├── notifier.py           # The documented events, fired from the payload on each update
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
+├── comfort_floor.py      # The comfort floor a solve holds, and the steps the
+│                         #   room lift holds on it
 ├── plan_step.py          # The plan step: its width, and which step an instant
 │                         #   falls in, for the solve and the pump arbiter
 ├── duty_legs.py          # The legs a step is served in, the switches between
@@ -134,6 +136,7 @@ custom_components/heatpump_optimizer/
 ├── slot_drivers.py       # Why each step runs or idles: five signed driver weights,
 │                         #   and the current step's "why now" for the card
 ├── dhw_planner.py        # The hot-water planner one solve builds: floors, LP, repairs
+├── dhw_start.py          # The pump's hot-water start condition: which planned charges it starts
 ├── batchmath.py          # The batched row reduction every batch twin owes its scalar
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
@@ -271,7 +274,8 @@ custom_components/heatpump_optimizer/
 │                         #   is on
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
 ├── switch.py             # Away, Block DHW, Block Space Heating,
-│                         #   Boost Space Heating, DHW Boost, Optimizer Active
+│                         #   Boost Space Heating, DHW Boost, Optimizer Active,
+│                         #   External Heat Block Override
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
 ├── services.py           # The domain's 15 services: schemas, handlers and registration
@@ -297,7 +301,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-37 of the 104 modules import `homeassistant` at module level: `__init__`,
+37 of the 106 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
@@ -306,7 +310,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 66 modules are deliberately free of it, so each can be driven
+The other 68 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
