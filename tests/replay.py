@@ -617,10 +617,10 @@ REPLAY_JOB_SETUP_S = 20.0
 #: red there while the pull-request arm still finishes, and names the cap to
 #: raise before that arm starts timing out.
 REPLAY_HEADROOM_SHARE = 0.8
-#: The slowest pull-request replay job on record, the cap's sizing draw: job
+#: The slowest pull-request replay job on record, the cap's sizing draw. Job
 #: 139918878679 (run 45821055133) landed on a ``ref47`` runner (``ref_ms``
-#: 46.75) and its owner fixture read 16 cycles in 2424.3 s at ``cpu_ratio``
-#: 532.0, 4.56 s a unit against the nightly ``ref31`` runs' 3.4-3.8; the rest
+#: 46.75). Its owner fixture read 16 cycles in 2424.3 s at ``cpu_ratio``
+#: 532.0, 4.56 s a unit against the nightly ``ref31`` runs' 3.4-3.8. The rest
 #: of the lane took 81.0 s. ``budget_wall_s`` scales that draw to the owner
 #: fixture's ``cpu_ratio`` budget.
 REPLAY_SIZING_DRAW = {"owner_s": 2424.3, "owner_cpu_ratio": 532.0176, "rest_s": 81.0}
