@@ -1,0 +1,11 @@
+07:11:23 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:12:25 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:13:27 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:14:29 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:15:32 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:16:34 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:17:37 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:18:40 rc=3 WAIT 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none
+07:19:44 rc=1 RED 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none introduced: 2
+INTRODUCED Show a planted owner-only canary reaching no public path of the audit pipeline
+INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
