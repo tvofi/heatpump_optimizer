@@ -57,13 +57,19 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 182 of the 561 script pairs (34 choose 2) sharing 0.80 or more
-of their production-module closure (184 before R11-OWNER-FAULT-TEXT's
+recording finds 181 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+of their production-module closure (181 on the merge joining main's 182 to this branch's 182, the union of the two histories that follow: this branch's, 184 before R11-OWNER-FAULT-TEXT's
 fault_log.py, read by config_flow_steps.py's closure but not by
 boost_drift_replay.py's or plan_view.py's, moved each of those two pairs with
 config_flow_steps.py from 0.800 to 0.792; 182 before R11-OWNER-FLOWCAP's
 flow_limit.py joined main's closures, adding env_drift.py/manual_plan.py and
-golden.py/manual_plan.py; 169 of 528 before R11-SEAM-tests's
+golden.py/manual_plan.py; and main's, 184 on main and 180 on R11-SEAM-entity-service's
+branch before the merge joining them, the branch's services.yaml having taken
+config_flow_steps.py's pairs with debug_collect.py and wood_advisor.py under 0.80;
+182 on main before R11-OWNER-FLOWCAP's flow_limit.py joined its closures, adding
+env_drift.py/manual_plan.py and golden.py/manual_plan.py, and 167 on the branch
+before the earlier merge joining it to that main;
+169 of 528 before R11-SEAM-tests's
 cycle_lane.py, whose closure opens the whole package, and 180 on its branch
 before the merge bringing R11-SEAM-actuation-release's three production
 modules; 167 before both; 164 on each side before the merge joining
