@@ -1,0 +1,11 @@
+  FAIL the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a run-name equal to prelude.title, one run per group, a push to main's included (no C
+  FAIL a superseded long-job pull-request run is cancelled; pr-contract same-SHA twins are not  [["ci.yml: two push runs by hpo-author[bot] get groups 'CI-main'
+  ok   and a group keyed on the ref, cancelling everything, is refused (null control)
+  ok   ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, on a non-bot same-repo pull_request run only
+  ok   and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)
+  ok   #3885: main-cancel.yml cancels superseded main runs on a push to main only, outside any concurrency group, passing the push's prelude scope and head
+  ok   and a main-cancel.yml in a concurrency group, on pull_request, or not passing the scope is refused (null control)
+  ok   pr-contract is a workflow_call callee with no event and no concurrency group of its own
+  ok   and a pr-contract.yml that lists pull_request, or declares a concurrency group, is refused (null control)
+  ok   and the cancelling block, a serialised one, or an unrouted `edited` file is refused (null control)
+_CI_PLANT_MISSED = ['push runs serialised in one main group (CI-5)']
