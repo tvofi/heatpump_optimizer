@@ -4231,14 +4231,24 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   # before it, and the result line carries the run's.
   out=$(TMPDIR="$SM" bash -c "$sfn"'
     rc=0 digest="" ORDER="" PREPR_LOG="" LOG_MARK=0 STEP_MARK=$SECONDS; summary_start
-    sleep 2; step "slow" 0 "slept"; step "noop" 0 "did nothing"; summary_end deadbeef')
+    sleep 2; step "slow" 0 "slept"; step "noop" 0 "did nothing"; SECONDS=1000; summary_end deadbeef')
   t=$(sed -nE 's/^  ok +slow +\[([0-9]+)s\] slept$/\1/p' <<<"$out")
   [ "${t:-0}" -ge 2 ]; st $? 0 "a step stubbed to sleep 2 s prints an elapsed of at least 2 (C3)"
   t=$(sed -nE 's/^  ok +noop +\[([0-9]+)s\] did nothing$/\1/p' <<<"$out")
   case "$t" in 0|1) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and a no-op step after it prints 0 or 1, so the field times the step, not the run (C3's null control)"
   t=$(sed -nE 's/^PRE-PR: deadbeef 00 rc=0 elapsed=([0-9]+)s; .*/\1/p' <<<"$out")
-  [ "${t:-0}" -ge 2 ]; st $? 0 "and the result line carries the run's elapsed, at least the 2 s slept"
+  case "$t" in 1000|1001) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the result line carries the run's elapsed read from the clock: SECONDS set to 1000 before summary_end prints 1000 or 1001, so a constant fails"
+  # The main flow's own stdout result line, run with the clock driven and git
+  # stubbed: its elapsed is the clock read, neither a constant nor absent.
+  pl=$(sed -n '/^echo "PRE-PR: /p' <<<"$flow")
+  out=$(bash -c 'git() { echo cafe; }; digest=07; SECONDS=730; '"$pl")
+  case "$out" in 'PRE-PR: cafe 07 elapsed='73[01]s) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the main flow's stdout PRE-PR line carries the run's elapsed from the clock (SECONDS=730 prints 730 or 731)"
+  out=$(bash -c 'git() { echo cafe; }; digest=07; SECONDS=40; '"$pl")
+  case "$out" in 'PRE-PR: cafe 07 elapsed='4[01]s) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a different clock (SECONDS=40) prints 40 or 41, so the field tracks the clock"
   case "$flow" in *'step "merge-base" 0 "$BASE"
 summary_start'*'summary_end "$(git rev-parse HEAD)"
 exit $rc'*) r=0 ;; *) r=1 ;; esac
