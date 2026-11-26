@@ -74,3 +74,4 @@
 1795736783 HB alive
 1795736811 CKPT pins for 7 diff-mutant survivors at 057401f0; mutants re-run: no survivors; scoped gate running snapshot 1d132051422f
 1795737420 HB alive
+1795737534 CKPT head cf2ea5fc: structure recorded, archscore +2 footprint answered; gate+mutants running snapshot 2a7751de2dd8
