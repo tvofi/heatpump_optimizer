@@ -1,0 +1,55 @@
+{
+ "key": "dd40fdb4edae4d79",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2270 GUARD_OFF",
+ "patch": "if valve_target is not None: -> if False:",
+ "function": "_valve_flow_set",
+ "cluster": "thermal_model.py:_valve_flow_set@2270-2270",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3317.4,
+  "load1_start": 0.88,
+  "load1_end": 1.0,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_dd40fdb4edae4d79.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_dd40fdb4edae4d79.py",
+  "baseline": "51.75",
+  "mutant": "40.25",
+  "inputs_tried": [
+   "45.0 (moves)",
+   "25.0 (moves)",
+   "None (null, identical)"
+  ]
+ },
+ "should_fail": "tests/optimality.py / features.py (valved-tank closures) lack an assertion that a per-step valve_target changes the delivered flow set-point",
+ "finding": {
+  "title": "No check pins the per-step valve_target override of _valve_flow_set",
+  "claim": "Replacing `if valve_target is not None:` at thermal_model.py:2270 with False survives the full gate; a per-step valve_target of 45 gives flow set-point 51.75 baseline vs 40.25 mutant (configured target 35), 25 gives 28.75 vs 40.25.",
+  "mechanism": "The per-step target is how a commanded valve holds its charge; no gate script asserts that the plan's lowered/raised valve target changes the simulated flow temperature, so the plan's valve target could be ignored without any check failing.",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "metric_definition": "_valve_flow_set return (degC) for valve_target=45 with mixing_valve_target=35",
+  "perturbation": {
+   "change": "one-line mutant of dd40fdb4edae4d79 in an in-memory module copy",
+   "expected_direction": "down",
+   "observed_value": 40.25
+  },
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_dd40fdb4edae4d79.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key dd40fdb4edae4d79; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_dd40fdb4edae4d79.py",
+  "null_control": "fullgate.py null on box D3-g45: gate_rc=1, red scripts closure.py selftest, entities.py, harness_headers.py (stripped-tree artefacts); the mutant's red set is identical (killed_by empty)"
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "key": "98853a541b6b5d6a",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2581 CLAMP_DROP",
+ "patch": "hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0)) -> hp_draw = min(drawn - wood_draw, (avail_hp))",
+ "function": "_valve_two_zone_delivery",
+ "cluster": "thermal_model.py:_valve_two_zone_delivery@2554-2598",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3251.2,
+  "load1_start": 0.85,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_98853a541b6b5d6a.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_98853a541b6b5d6a.py",
+  "baseline": "non-negative draws",
+  "mutant": "max abs diff 2.7158 kW",
+  "inputs_tried": [
+   "grid of 34992 (two-tank True/False), null 0"
+  ]
+ },
+ "should_fail": "tests/optimality.py / features.py two-tank closures lack an assertion with thermal_power < standing loss that the heat-pump draw is not negative",
+ "finding": {
+  "title": "No check pins the max(avail_hp, 0) floor of the two-tank heat-pump-tank draw",
+  "claim": "Removing the zero floor of avail_hp at thermal_model.py:2581 survives the full gate; 1275 of 17496 ordinary-dt grid inputs change the delivery (max abs diff 2.72 kW).",
+  "mechanism": "With a negative availability (heat-pump input below standing loss and the tank at the floor), the floor keeps the draw non-negative; unpinned, a negative hp_draw makes the tank gain heat from the emitters.",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "metric_definition": "grid inputs where _valve_two_zone_delivery's 5-tuple differs",
+  "perturbation": {
+   "change": "one-line mutant of 98853a541b6b5d6a in an in-memory module copy",
+   "expected_direction": "changes",
+   "observed_value": 1275
+  },
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_98853a541b6b5d6a.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key 98853a541b6b5d6a; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_98853a541b6b5d6a.py",
+  "null_control": "fullgate.py null on box D3-g45: gate_rc=1, red scripts closure.py selftest, entities.py, harness_headers.py (stripped-tree artefacts); the mutant's red set is identical (killed_by empty)"
+ }
+}

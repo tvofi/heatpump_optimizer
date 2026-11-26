@@ -1,0 +1,43 @@
+{
+ "key": "1a9ac2bac45ef9e0",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:270 CMP_BOUND",
+ "patch": "if not np.isfinite(value) or value < THERMAL_MASS_FLOOR: -> if not np.isfinite(value) or value <= THERMAL_MASS_FLOOR:",
+ "function": "ThermalParameters.clamp",
+ "cluster": "thermal_model.py:ThermalParameters.clamp@270-287",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3306.5,
+  "load1_start": 0.8,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_1a9ac2bac45ef9e0.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_1a9ac2bac45ef9e0.py",
+  "baseline": "max_abs_diff=0.0",
+  "mutant": "max_abs_diff=0.0, inputs_moved=0 of 48",
+  "inputs_tried": [
+   "floor exactly",
+   "nextafter(floor,0)",
+   "nextafter(floor,1)",
+   "floor/2",
+   "0.0",
+   "-1.0",
+   "nan",
+   "inf",
+   "'x'",
+   "None",
+   "floor*(1+1e-10)",
+   "1.0"
+  ]
+ },
+ "should_fail": "none: equivalent. At value == floor the mutant branch assigns the floor, the value it already holds."
+}

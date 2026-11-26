@@ -1,0 +1,53 @@
+{
+ "key": "ea9c4705de428b28",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2576 CLAMP_DROP",
+ "patch": ") / max(dt_hours, 1e-6) -> ) / (dt_hours)",
+ "function": "_valve_two_zone_delivery",
+ "cluster": "thermal_model.py:_valve_two_zone_delivery@2554-2598",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3067.5,
+  "load1_start": 0.93,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ],
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_ea9c4705de428b28.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_ea9c4705de428b28.py",
+  "baseline": "finite tuple at dt=0",
+  "mutant": "ZeroDivisionError at dt=0",
+  "inputs_tried": [
+   "dt 0.0, 1e-7, 0.25, 1.0 (only the first two move)"
+  ]
+ },
+ "should_fail": "tests/features.py (two-tank closure) lacks an assertion that a zero dt_hours is finite",
+ "finding": {
+  "title": "No check pins the dt floor (1e-6) of the heat-pump-tank energy bound",
+  "claim": "Dropping max(dt_hours,1e-6) at thermal_model.py:2576 survives the full gate; dt_hours=0 raises ZeroDivisionError, 1e-7 changes the bound (4374 of 34992 grid inputs; none at dt >= 0.25).",
+  "mechanism": "Same floor as the wood-tank twin one line above; no check drives a degenerate dt through the two-tank throttled path.",
+  "class_guess": "new",
+  "severity_claimed": "low",
+  "metric_definition": "grid inputs where the 5-tuple differs or raises, dt in {0, 1e-7}",
+  "perturbation": {
+   "change": "one-line mutant of ea9c4705de428b28 in an in-memory module copy",
+   "expected_direction": "changes (ZeroDivisionError at dt=0)",
+   "observed_value": 4374
+  },
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_ea9c4705de428b28.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/fullgate.py run --src complete --key ea9c4705de428b28; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_ea9c4705de428b28.py",
+  "null_control": "fullgate.py null on box D3-g45: gate_rc=1, red scripts closure.py selftest, entities.py, harness_headers.py (stripped-tree artefacts); the mutant's red set is identical (killed_by empty)"
+ }
+}
