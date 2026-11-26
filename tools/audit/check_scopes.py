@@ -1393,6 +1393,10 @@ def ledger_round_self_test():
                          classes=whole[:1] + [("2026-01-03T00:00:00Z", "cloud-x", "cloud")])
         arms["--round: a seat class whose only row falls at the window's end prints unread"] = (
             late_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in late_cloud[1])
+        # The lower bound is closed: a class whose only row is the window's first second is read (`a <` survived).
+        arms["--round null: a seat class whose only row is at the window's first second is read"] = run(
+            [("2026-01-02T00:00:00Z", "fixer-r11-x")],
+            classes=[whole[0], ("2026-01-01T00:00:00Z", "cloud-x", "cloud")]) == ([], "")
         arms["--round null: an unkeyed seat row at the window's end is no unread"] = (
             run([("2026-01-02T00:00:00Z", "fixer-r11-x"), ("2026-01-03T00:00:00Z", "-")]) == ([], ""))
         unkeyed = run([("2026-01-02T00:00:00Z", "-"), ("2026-01-02T00:00:00Z", "r11-evaluator")])
