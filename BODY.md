@@ -6,7 +6,9 @@ Base: worktree cut from `origin/main` 0e1eba2b4aafb5dbabbac7e0b0dc31b6ca1ad83e, 
 
 ## Head
 
-b0313f213a merges `origin/main` 7aa6020f2a into the authored code head 18849164a8da98e53ea605e9ca642331094aa302. Four record-text conflicts, resolved by hand, all counting the package's files after main's R11-OWNER-FLOWCAP `flow_limit.py`: `docs/architecture.md` (106 modules, 36 importing `homeassistant`, the other 69 free of it), `dev/audit/rounds/round4/D6/claims.py` and `claims.md` (106 on disk and listed, `flow_limit.py` added to each chain), and `tests/deployment_shape.py` (125 package files; 195 of the 561 script pairs at 0.80 or more, read by `pairnote_check.py` at b0313f213a). At b0313f213a `tests/doc_claims.py` (443 checks) and `tests/deployment_shape.py` pass, and the scoped gate is below (Red checks). The figures below are 18849164a8's, measured on its tree (stamped: `origin/main` at 0e1eba2b4aafb5dbabbac7e0b0dc31b6ca1ad83e, 2026-11-25T19:07Z).
+2c6174a723 merges `origin/main` 76dd8811d4 into b0313f213a: one record-text conflict, `tests/deployment_shape.py`'s pair note, resolved to the 192 of 561 pairs `pairnote_check.py` derives at 2c6174a723 (main's R11-SEAM-entity-service took two pairs under 0.80); the two coordinator `## Unpinned sites` keys are the lines at this head (`ci_predict.py --only mutation`).
+
+b0313f213a merges `origin/main` 7aa6020f2a into the authored code head 18849164a8da98e53ea605e9ca642331094aa302. Four record-text conflicts, resolved by hand, all counting the package's files after main's R11-OWNER-FLOWCAP `flow_limit.py`: `docs/architecture.md` (106 modules, 36 importing `homeassistant`, the other 69 free of it), `dev/audit/rounds/round4/D6/claims.py` and `claims.md` (106 on disk and listed, `flow_limit.py` added to each chain), and `tests/deployment_shape.py` (125 package files; 195 of the 561 script pairs at 0.80 or more, read by `pairnote_check.py` at b0313f213a). At 2c6174a723 `tests/doc_claims.py` and `tests/deployment_shape.py` pass, and the scoped gate is below (Red checks). The figures below are 18849164a8's, measured on its tree (stamped: `origin/main` at 0e1eba2b4aafb5dbabbac7e0b0dc31b6ca1ad83e, 2026-11-25T19:07Z).
 
 ## Mutation proof
 
@@ -119,8 +121,8 @@ Rule: every site `prepr.sh` step 7d lists for this diff (92), each `file:line KI
 - `custom_components/heatpump_optimizer/approach.py:226 CMP_BOUND`: mutation-autofix
 - `custom_components/heatpump_optimizer/approach.py:226 GUARD_OFF`: mutation-autofix
 - `custom_components/heatpump_optimizer/approach.py:228 RETURN_DEL`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:5349 GUARD_OFF`: mutation-autofix
-- `custom_components/heatpump_optimizer/coordinator.py:9954 GUARD_OFF`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:5345 GUARD_OFF`: mutation-autofix
+- `custom_components/heatpump_optimizer/coordinator.py:9943 GUARD_OFF`: mutation-autofix
 - `custom_components/heatpump_optimizer/draw_range.py:578 GUARD_OFF`: mutation-autofix
 - `custom_components/heatpump_optimizer/draw_range.py:905 BOOLOP`: mutation-autofix
 - `custom_components/heatpump_optimizer/draw_range.py:905 GUARD_OFF`: mutation-autofix
