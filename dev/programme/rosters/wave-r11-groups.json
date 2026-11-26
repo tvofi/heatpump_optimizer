@@ -5261,7 +5261,7 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-store",
     "commit": "dc2b2bab316419ced8f919c256908275a2cc3e25",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
@@ -8118,6 +8118,66 @@
     "next_step": "next round's D0 finders measure carry-3881.json; a confirmed finding is re-homed to the solver seam's group then",
     "note": "deferred to the next round's D0 finders, the destination carry-3881.json records (pull request 3892); wired by the roster-wiring seat 2026-11-25 so the issue carries a disposition; overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-wallclock-dst, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE, R11-LATE-P2-REPLAY-FINITE): deferred to the next round's D0 finders, so it builds nothing in round 11 and cannot collide with these groups' optimizer.py and tests/features.py edits; a confirmed finding is re-homed at that round's plan",
     "pr": null
+   }
+  },
+  {
+   "group": "R11-SEAM-cycle-reporting-p2",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "merged": {},
+   "classes": [],
+   "seam": "cycle",
+   "hot_files": [
+    "debugger.py",
+    "diagnostics.py",
+    "draw_range.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "Part 2 of R11-SEAM-cycle-reporting, same seam and owner (cycle). Part 1 (the seven built findings, PR #3845) merges first; this part builds the seven roster carries that part 1 does not build: part F of R11-CARRY-DRAWMAP (the debug-week trace and the bundle readers), ported per the approved note design/R11-CARRY-DRAWMAP a1688d8d6a from archive/handoff/r10-draw-map-evidence-f 880b015c8b.",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-cycle-reporting"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/debugger.py",
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "custom_components/heatpump_optimizer/draw_range.py"
+   ],
+   "brief": "R11-SEAM-cycle-reporting, part 2 of 2 (the cycle seam). Part 1 builds the seven register findings of R11-SEAM-cycle-reporting (PR #3845); this part builds its roster carries 0 to 6, all routed from R11-CARRY-DRAWMAP part F: the debug-week and diagnostics-bundle field design (carry 0), owner rulings S1-S4 (carry 1), the MAP_ROWS size re-measure (carry 2), the trace's pass-record hook (carry 3), the trace's store wear and its disclosure in docs/configuration.md (carry 4), the bundle readers weighing sweep levels by steady minutes (carry 5) and the running-draw window rows and map_rows columns in draw_range.diagnostics_view (carry 6). After: R11-SEAM-cycle-reporting, whose merge this part's branch starts from. The plan of record is dev/audit/rounds/round11/PLAN/PLAN.md with its ADRs beside it.",
+   "carry": [
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), body carry 0 (item a1204677), roster carry 0: owner scope addition 2026-11-14: the collection and sweep design also enables the best possible wider debugging for the audit dimension that runs from a live diagnostics bundle (dev/governance/dimensions/D15.md). The design states what the debug-week collection and the diagnostics download must carry so a D15 seat can debug an install from the bundle alone, each field tied to the D15 question it answers, with its size and retention on a Raspberry-Pi-class host, its pass through the existing redaction, and a bundle shape marker an instrument can read; one collection mechanism, never a second recorder. Part F builds it with its debug week. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries.",
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), body carry 2 (item d3edeb82), roster carry 2: owner rulings S1-S4 of 2026-11-14, confirmed standing by the owner's inbox ruling of 2026-11-18 (refs/heads/inbox/r11-carry-drawmap 5daa665b3f, line 1). Verbatim answer line: \"S1 flat price sweep: Yes, allow on flat price (recommended) \u00b7 S2 trace text columns: Ship text columns (recommended) \u00b7 S3 probe before fit: Yes, probe first where the top is unlearned (recommended) \u00b7 S4 d15 brief line: Prepare it in the part F pull request (recommended)\". This group builds S2 and S4: the trace's text columns ship in the diagnostics download through the existing redaction; the part F pull request prepares the one line naming the trace in dev/governance/dimensions/D15.md, which is policy and merges only on the owner's approving review. S1 and S3 (part B) went to R11-SEAM-learners. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries.",
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), body carry 7 (item 130d54ae), roster carry 7 (item f715deff): the stored rows at `MAP_ROWS` measure 58,058 bytes compact against the note's 52.7 KB estimate, and P7's margin was 226 bytes at indent 2; part F re-measures P7 with the rows as stored before choosing its drop order. Re-measured at #3737's code head 7b9204eb with `dev/audit/harnesses/draw_map_rows.py --synthetic`: `RESULT store rows=672 ... added_bytes=58058`, which reproduces. Part F's trace reads `ArbiterState.last_pass`, a `draw_range.PassRecord` (mode reading and defrost flag included) at `pump_arbiter.py:402` at 35402f7817. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Re-measure at this group's own merge-base before building; a figure here is a snapshot at 35402f7817. Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries.",
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), body carry 9 (item 1d00d09f), roster carry 9 (item 1db3c110): the trace's pass-record hook: #3737 publishes the record as `ArbiterState.last_pass`, reached by `pump_arbiter.state_for(coord)` (`pump_arbiter.py:517` at 35402f7817), and adds no `pump_arbiter.pass_record(coord)` function. The approved note (design/R11-CARRY-DRAWMAP a1688d8d6a, line 34) has part F wire `debugger.pass_record` to `pump_arbiter.state_for(coord).last_pass`, so part F renames its one-line `getattr`; until then the manifest says `arbiter: absent` and `debug_ingest` reports `trace-arbiter` unfinished, which is the control. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries.",
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), body carry 10 (item 8525a020), roster carry 10 (item 7384f61f): store wear: with the debug-week option on, the hourly save rewrites the whole ring, so the trace multiplies the write volume by the day (about 9.4 to 16.7 MB on day 7 for 27 columns, against 1.8 MB for the ring without a trace). Part F discloses it in docs/configuration.md; a per-day trace store written once a day would cut it, at the cost of a second store document and its migration. Part F decides with its trace store. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Re-measure at this group's own merge-base before building; a figure here is a snapshot at 35402f7817. Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries.",
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), body carry 14 (item 54019afd), roster carry 14 (item 7d9a0702): a sweep on fast-warming water keeps few running minutes at its low levels (`yield` at 0.1 and 0.2 K/min): a reader of sweep rows weighs a level by its steady minutes in `draw_range.last_sweep`, never by its presence. Part F's bundle readers land after part B (R11-SEAM-learners) writes `last_sweep`. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Re-measure at this group's own merge-base before building; a figure here is a snapshot at 35402f7817. Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries.",
+    "From R11-CARRY-DRAWMAP (PR #3737, merged at 35402f7817; part A of the approved note design/R11-CARRY-DRAWMAP a1688d8d6a, design review approve at design-verdict/R11-CARRY-DRAWMAP 2e7c39a4d9), roster carry 15 (item e97e01d8; issue 3106): at 35402f7817 `draw_range.diagnostics_view` returns `DrawRange.summary()` and the effective and learned figures, but not the running-draw window rows nor #3737's `map_rows` columns, which only the store record (`DrawRange.as_dict`) carries; so the band fit cannot run from a download without the debug week or a change that publishes those rows. Part F's bundle readers answer it or record a refusal with the reason. Control: a download from a store holding map rows shows no `map_rows` key under `diagnostics_view` until part F publishes them. The band measurement itself (item f2abf2d0) went to R11-SEAM-learners. Part F (the debug-week trace and the bundle readers) is built on archive/handoff/r10-draw-map-evidence-f 880b015c8b and ported per the note; routed to R11-SEAM-cycle-reporting, the live owner of debugger.py and diagnostics.py (R11-CARRY-DRAWMAP is carries-open and takes no carry). Re-measure at this group's own merge-base before building; a figure here is a snapshot at 35402f7817. Moved from R11-SEAM-cycle-reporting by the part split (orchestrator ruling 2026-11-26): part 1 builds the seven findings, this part owns the seven carries."
+   ],
+   "source": "audit",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-seam-cycle-reporting-p2",
+    "commit": null,
+    "last_step": "split from R11-SEAM-cycle-reporting by the orchestrator's part ruling 2026-11-26",
+    "next_step": "fixer per the carries, after R11-SEAM-cycle-reporting merges",
+    "note": "overlap admitted (R11-SEAM-cycle-reporting): same seam, same hot files; the part runs after its first part; overlap admitted (R11-OUTSIDE-START-APPROACH): part 2 of R11-SEAM-cycle-reporting: its seven part-F carries; same seam and hot files, runs after part 1"
    }
   }
  ]
