@@ -1,0 +1,35 @@
+{
+ "key": "011b9e2e975b5e98",
+ "mutant": {
+  "kind": "CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "line": 3654,
+  "old": "        return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))",
+  "new": "        return float(((c_dhw / ua) * np.log(hot / cold)))",
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_coast_hours CLAMP_DROP 83c68b4b"
+ },
+ "gate_rc": 1,
+ "failed_scripts": [
+  "python3 tests/closure.py selftest",
+  "python3 tests/entities.py",
+  "python3 tests/harness_headers.py"
+ ],
+ "fail_lines": {
+  "python3 tests/closure.py selftest": 2,
+  "python3 tests/entities.py": 1,
+  "python3 tests/harness_headers.py": 3
+ },
+ "summary": [
+  "3 TEST SCRIPT(S) FAILED"
+ ],
+ "wall_s": 3531.8,
+ "child_cpu_s": 5826.7,
+ "load1_start": 0.93,
+ "load1_end": 0.92,
+ "provisional": true,
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "command": "GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh",
+ "more_fails_than_null": [],
+ "killed_by": [],
+ "verdict": "RED-AS-NULL"
+}

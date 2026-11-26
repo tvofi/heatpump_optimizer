@@ -1,0 +1,55 @@
+{
+ "key": "9df41596c4fa89c6",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3479 CMP_BOUND",
+ "patch": "if precipitation > 0.1:  # threshold for \"raining\" -> if precipitation >= 0.1:  # threshold for \"raining\"",
+ "function": "ThermalModel.effective_heat_loss_coefficient",
+ "cluster": "thermal_model.py:ThermalModel.effective_heat_loss_coefficient@3479-3483",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3433.5,
+  "load1_start": 0.93,
+  "load1_end": 0.92
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_9df41596c4fa89c6.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_9df41596c4fa89c6.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_9df41596c4fa89c6.out",
+  "metrics_moved": "1",
+  "numbers": {
+   "rain_mult_baseline": "1.15",
+   "rain_mult_mutant": "1.15",
+   "u_0.0_baseline": "'0.1'",
+   "u_0.0_mutant": "'0.1'",
+   "u_0.099_baseline": "'0.1'",
+   "u_0.099_mutant": "'0.1'",
+   "u_0.1_baseline": "'0.1'",
+   "u_0.1_mutant": "'0.10075'",
+   "u_0.1000001_baseline": "'0.10075000075000001'",
+   "u_0.1000001_mutant": "'0.10075000075000001'",
+   "u_1.0_baseline": "'0.1075'",
+   "u_1.0_mutant": "'0.1075'",
+   "metrics_moved": "1"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "tests/features.py: effective_heat_loss_coefficient at precipitation 0.1 equals the dry value",
+ "note": "effective_heat_loss_coefficient(0.1, 0, 0.1): baseline equals the dry value, `>=` applies the 5 % ramp of the 1.15 multiplier. Any weather entity reporting exactly 0.1 mm reaches it.",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+ "title": "Rain threshold boundary: precipitation == 0.1 mm/h is dry on the baseline",
+ "claim": "effective_heat_loss_coefficient(0.1, 0, 0.1): baseline equals the dry value, `>=` applies the 5 % ramp of the 1.15 multiplier. Any weather entity reporting exactly 0.1 mm reaches it.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-boundary-test",
+ "severity_claimed": "low",
+ "metric_definition": "probe_9df41596c4fa89c6.py RESULT metrics_moved: count of probed outputs that differ between the baseline and the one-line mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_9df41596c4fa89c6.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_9df41596c4fa89c6.py",
+ "perturbation": "if precipitation > 0.1:  # threshold for \"raining\" -> if precipitation >= 0.1:  # threshold for \"raining\" (thermal_model.py:3479); numbers move baseline -> mutant as listed in probe output",
+ "null_control": "fullgate.py null (comment-only marker) is red only on the artefact scripts; inputs the line cannot distinguish in the same probe give no movement"
+}

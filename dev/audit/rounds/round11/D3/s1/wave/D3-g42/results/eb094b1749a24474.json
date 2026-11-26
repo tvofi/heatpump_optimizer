@@ -1,0 +1,47 @@
+{
+ "key": "eb094b1749a24474",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3640 GUARD_OFF",
+ "patch": "if to_temp >= from_temp: -> if False:",
+ "function": "ThermalModel.dhw_coast_hours",
+ "cluster": "thermal_model.py:ThermalModel.dhw_coast_hours@3640-3654",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3622.5,
+  "load1_start": 1.01,
+  "load1_end": 0.96
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_eb094b1749a24474.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_eb094b1749a24474.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_eb094b1749a24474.out",
+  "metrics_moved": "2",
+  "numbers": {
+   "DHW_COOLING_RATE_MIN_baseline": "0.05",
+   "DHW_COOLING_RATE_MIN_mutant": "0.05",
+   "config_ua_cooling_rate_-5.0_baseline": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_-5.0_mutant": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_0.0_baseline": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_0.0_mutant": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_1e-12_baseline": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_1e-12_mutant": "'0.00046400000000000006'",
+   "default_ua_50_50_baseline": "'0.0'",
+   "default_ua_50_50_mutant": "'0.0'",
+   "default_ua_50_55_baseline": "'0.0'",
+   "default_ua_50_55_mutant": "'0.0'",
+   "default_ua_55_60_baseline": "'0.0'",
+   "default_ua_55_60_mutant": "'0.0'",
+   "ua0_50_50_baseline": "'0.0'",
+   "ua0_50_50_mutant": "'168.0'",
+   "ua0_50_55_baseline": "'0.0'",
+   "ua0_50_55_mutant": "'168.0'",
+   "metrics_moved": "2"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "",
+ "note": "With the to>=from guard off, to>=from still returns 0.0 through hot<=0 or the clip (default UA, 3 cells). It diverges (0.0 -> 168.0) only for ua_kw_per_c == 0, which the config cannot produce: dhw_tank_heat_loss_coefficient clips dhw_cooling_rate at DHW_COOLING_RATE_MIN=0.05 (cooling_rate 0, -5, 1e-12 all give ua 4.64e-4); the zero was reached only by priming the memo cache",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+}

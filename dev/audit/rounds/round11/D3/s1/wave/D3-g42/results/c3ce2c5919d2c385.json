@@ -1,0 +1,45 @@
+{
+ "key": "c3ce2c5919d2c385",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3651 CMP_BOUND",
+ "patch": "if cold <= 0.0 or ua <= 0.0: -> if cold <= 0.0 or ua < 0.0:",
+ "function": "ThermalModel.dhw_coast_hours",
+ "cluster": "thermal_model.py:ThermalModel.dhw_coast_hours@3640-3654",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3929.0,
+  "load1_start": 0.94,
+  "load1_end": 0.92
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_c3ce2c5919d2c385.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_c3ce2c5919d2c385.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_c3ce2c5919d2c385.out",
+  "metrics_moved": "1",
+  "numbers": {
+   "DHW_COOLING_RATE_MIN_baseline": "0.05",
+   "DHW_COOLING_RATE_MIN_mutant": "0.05",
+   "config_ua_cooling_rate_-5.0_baseline": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_-5.0_mutant": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_0.0_baseline": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_0.0_mutant": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_1e-12_baseline": "'0.00046400000000000006'",
+   "config_ua_cooling_rate_1e-12_mutant": "'0.00046400000000000006'",
+   "default_h_baseline": "'57.762265046662115'",
+   "default_h_mutant": "'57.762265046662115'",
+   "default_ua_baseline": "0.002784",
+   "default_ua_mutant": "0.002784",
+   "ua_0.0_baseline": "'168.0'",
+   "ua_0.0_mutant": "'ZeroDivisionError'",
+   "ua_1e-12_baseline": "'168.0'",
+   "ua_1e-12_mutant": "'168.0'",
+   "metrics_moved": "1"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "",
+ "note": "ua == 0 is the only input the edit changes (baseline 168.0, mutant ZeroDivisionError) and is not config-reachable: DHW_COOLING_RATE_MIN=0.05 floors ua at 4.64e-4 (cooling_rate 0/-5/1e-12 probed); ua=1e-12 gives 168.0 in both",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json"
+}

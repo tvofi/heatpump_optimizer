@@ -1,0 +1,13 @@
+RESULT rain_mult_baseline=1.15
+RESULT rain_mult_mutant=1.15
+RESULT u_0.0_baseline='0.1'
+RESULT u_0.0_mutant='0.1'
+RESULT u_0.099_baseline='0.1'
+RESULT u_0.099_mutant='0.1'
+RESULT u_0.1_baseline='0.1'
+RESULT u_0.1_mutant='0.10075'
+RESULT u_0.1000001_baseline='0.10075000075000001'
+RESULT u_0.1000001_mutant='0.10075000075000001'
+RESULT u_1.0_baseline='0.1075'
+RESULT u_1.0_mutant='0.1075'
+RESULT metrics_moved=1
