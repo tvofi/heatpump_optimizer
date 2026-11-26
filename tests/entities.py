@@ -104,7 +104,7 @@ def _seed_prices(hass, entity_id="sensor.prices", hours=48, base=0.5):
     )
 
 
-from homeassistant.components.sensor import SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 import heatpump_optimizer as integration
 from homeassistant import const as ha_const
@@ -4298,6 +4298,48 @@ def _p2_registry(sources):
                  ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
                  lambda n: isinstance(n.test, ast.Compare)),
              owners=["tariff.py::_window_starts"], dispositions={}),
+        # D17-s3-51 and the P2 sweep's F14 seams (R11-SEAM-entity-service):
+        # the hot-water window in force at an instant is windows_in_force's,
+        # the planner's per-step day chain for a reader holding a clock. A
+        # read of the flat every-day set elsewhere tests no instant.
+        dict(fact="dhw_window_in_force", finding="D17-s3-51",
+             match=_p2_match_node(
+                 ast.Attribute, r"\.dhw_(demand_)?windows$",
+                 lambda n: n.attr in ("dhw_windows", "dhw_demand_windows")),
+             owners=["dhw_schedule.py::windows_in_force"], dispositions={
+                 # The flat set itself, and whether a schedule is in force.
+                 "thermal_model.py::ThermalParameters.dhw_demand_windows":
+                     "defines the flat every-day set windows_in_force's chain ends in",
+                 "thermal_model.py::ThermalParameters.dhw_windows_active":
+                     "whether a schedule is configured at all; no instant",
+                 # The 24-hour draw profile, a day-agnostic mask.
+                 "thermal_model.py::ThermalParameters.effective_dhw_draw_pattern":
+                     "the draw mask's cache key; no instant",
+                 "thermal_model.py::ThermalParameters._windowed_draw_pattern":
+                     "masks the 24-hour draw profile by each hour's window coverage, "
+                     "the day-agnostic profile the weekday pattern multiplies; no instant",
+                 # The planner's own fallback, which its per-step chain resolves.
+                 "dhw_planner.py::DhwPlanner._effective_dhw_windows":
+                     "the fallback set the planner's per-step windows_for_day chain "
+                     "(_dhw_windows_at) resolves; windows_in_force is that chain for a clock; "
+                     "every consumer of its return is the flat-consumers census's",
+                 # Stats tables keyed by the flat windows' labels.
+                 "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats":
+                     "labels a draw with the flat window, the key the planner reads "
+                     "the stats by; whether it fell in a window is windows_in_force's",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_plan_fields":
+                     "keys the stats table by the flat labels; the clock picks the "
+                     "weekday pattern, and no instant is tested (sweep-P2.md F14)",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep":
+                     "the heaviest window's ready energy over the flat labels' stats; no instant",
+                 # Published text.
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view":
+                     "publishes the spec text and the per-window stats; no instant",
+                 "coordinator.py::HeatPumpOptimizerCoordinator.configured_dhw_windows":
+                     "formats the configured spec for display; no instant",
+                 "optimizer.py::_dhw_resolved_publish":
+                     "formats the resolved day spec for the card; no instant",
+             }),
         # D7-s3-04 (R11-SEAM-kernel-step): the heat that warms a litre of
         # water by one kelvin is const.WATER_SPECIFIC_HEAT, and the per-kg
         # form is derived from it there (const.py is not scanned). Any
@@ -4359,6 +4401,19 @@ _P2_CENSUSES = {
     # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
     # payload_number's -- every number state driven with a bool and a text
     # payload publishes neither, nor reads either as a number.
+    # D8-s1-03 and the sweep's F18 family (R11-SEAM-entity-service): a
+    # waits-for-evidence sensor is available exactly when it has a value.
+    "waits_for_evidence_value": (
+        "tests/entities.py",
+        "waits_for_evidence census: every waits-for-evidence sensor is available only with a value"),
+    # D17-s3-51's other half: the flat set's consumers past the attribute
+    # load, and the planner's published countdown against windows_in_force.
+    "dhw_window_flat_consumers": (
+        "tests/entities.py",
+        "D17-s3-51: every consumer of the flat every-day hot-water windows, "),
+    "dhw_planner_next_window_day": (
+        "tests/features.py",
+        "the planner's published next window reads the day's windows, today's and "),
     "payload_number_published": (
         "tests/finite_boundary.py",
         "every number state publishes None, never the bool or the text, from a "),
@@ -4545,6 +4600,10 @@ _P2_PLANTS["power_state_kw"] = (
 _P2_PLANTS["channel_active_kw"] = (
     "\n\ndef _p2_plant(dhw_power):\n    return dhw_power > CHANNEL_ACTIVE_KW\n"
 )
+_P2_PLANTS["dhw_window_in_force"] = (
+    "\n\ndef _p2_plant(params, hour):\n"
+    "    return hour_in_windows(hour, params.dhw_demand_windows)\n"
+)
 _P2_PLANTS["defrost_standoff"] = (
     "\n\ndef _p2_plant(signals):\n"
     "    if signals.defrosting:\n"
@@ -4614,6 +4673,179 @@ R.check(
     == {"p2_dead", "p2_dead_proxy"}
     and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
     f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+# D17-s3-51's consumers census (R11-SEAM-entity-service). dhw_window_in_force's
+# rule matches the flat set's attribute loads, function by function. So a
+# value that leaves a dispositioned site -- a return (`_effective_dhw_windows`),
+# a local, a same-module parameter -- reached an instant test unread: the
+# planner's next window read the flat union on a weekend. This follows every
+# flat value from those loads to the call that consumes it. A resolver
+# (`_FW_RESOLVERS`, the windows_for_day chain) ends the walk; a same-module
+# function is entered at the parameter it binds; a function returning the
+# value becomes a source. Every other consumer is keyed
+# "file::site -> callee" against a disposition. Design choice: the key is the
+# callee, not the line, so a second read through a dispositioned callee in the
+# same site rides its disposition.
+_FW_ATTRS = ("dhw_windows", "dhw_demand_windows")
+_FW_WRAPS = ("list", "tuple", "sorted")
+_FW_RESOLVERS = ("windows_for_day", "_dhw_windows_at", "windows_in_force")
+_FW_DISPOSITIONS = {
+    "thermal_model.py::ThermalParameters.dhw_demand_windows -> <Return>":
+        "the flat set itself (a source)",
+    "thermal_model.py::ThermalParameters.dhw_windows_active -> <BoolOp>":
+        "whether a schedule is configured; no instant",
+    "thermal_model.py::ThermalParameters.effective_dhw_draw_pattern -> <BoolOp>":
+        "the draw mask's cache key; no instant",
+    "thermal_model.py::ThermalParameters._windowed_draw_pattern -> overlap_fraction":
+        "each hour's coverage of the day-agnostic 24-hour profile; no instant",
+    "dhw_planner.py::DhwPlanner._effective_dhw_windows -> <Return>":
+        "the planner's fallback set (a source)",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> _dhw_window_floors":
+        "entered: its per-step chain resolves the set",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> _dhw_next_window_hours":
+        "entered: today's and the next day's windows, resolved",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> format_windows":
+        "publishes the spec text windows_in_force's chain ends in; no instant",
+    "dhw_planner.py::DhwPlanner._dhw_window_floors -> draw_window_label":
+        "keys the stats table by the flat labels the learner writes; the step "
+        "is a resolved window start already",
+    "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats -> draw_window_label":
+        "the flat label the stats table is keyed by, taken only when the "
+        "day's windows (windows_in_force) hold the instant",
+    "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats -> labels_for":
+        "prunes the stats table to the flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_plan_fields -> labels_for":
+        "the stats table's flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep -> labels_for":
+        "the heaviest window's stats over the flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep -> zip":
+        "pairs each flat window with its label for the profile overlap; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view -> format_windows":
+        "publishes the spec text; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view -> labels_for":
+        "publishes the per-window stats; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator.configured_dhw_windows -> format_windows":
+        "formats the configured spec for display; no instant",
+    "optimizer.py::_dhw_resolved_publish -> format_resolved_day_spec":
+        "formats the resolved day spec for the card; no instant",
+}
+
+
+def _fw_consumers(sources):
+    """({"file::site -> callee": [line, ...]}, flat source function names)."""
+    idx, funcs = {}, {}
+    for name, text in sources.items():
+        if name == "const.py":
+            continue
+        tree = ast.parse(text)
+        parents, qual = _p2_index(tree)
+        idx[name] = parents
+        for n in ast.walk(tree):
+            if (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and not isinstance(parents.get(n), (ast.FunctionDef, ast.AsyncFunctionDef))):
+                funcs.setdefault((name, n.name), (qual[n], n))
+
+    def callee(c):
+        return c.func.attr if isinstance(c.func, ast.Attribute) else getattr(c.func, "id", "?")
+
+    def flat(n, names, srcs):
+        return (isinstance(n, ast.Attribute) and n.attr in _FW_ATTRS and isinstance(n.ctx, ast.Load)
+                or isinstance(n, ast.Name) and n.id in names and isinstance(n.ctx, ast.Load)
+                or isinstance(n, ast.Call) and callee(n) in srcs)
+
+    def scan(file, site, fn, names, srcs, out, depth):
+        parents, names = idx[file], set(names)
+        grew = True
+        while grew:
+            grew = False
+            for n in ast.walk(fn):
+                if isinstance(n, ast.Assign) and len(n.targets) == 1:
+                    v, t = n.value, n.targets[0]
+                    while isinstance(v, ast.Call) and callee(v) in _FW_WRAPS and v.args:
+                        v = v.args[0]
+                    t = t.elts[0] if isinstance(t, ast.Tuple) and t.elts else t
+                    if flat(v, names, srcs) and isinstance(t, ast.Name) and t.id not in names:
+                        names.add(t.id)
+                        grew = True
+        for n in ast.walk(fn):
+            if not flat(n, names, srcs):
+                continue
+            node, up = n, parents.get(n)
+            while isinstance(up, ast.Call) and callee(up) in _FW_WRAPS and node in up.args:
+                node, up = up, parents.get(up)
+            if isinstance(up, ast.Assign):
+                continue
+            if isinstance(up, ast.Tuple) and isinstance(parents.get(up), ast.Return):
+                up = parents[up]
+            if isinstance(up, ast.Call) and (node in up.args or any(k.value is node for k in up.keywords)):
+                c = callee(up)
+                if c in _FW_RESOLVERS:
+                    continue
+                out.setdefault(f"{file}::{site} -> {c}", []).append(n.lineno)
+                if (file, c) in funcs and depth < 4:
+                    cq, cfn = funcs[(file, c)]
+                    params = [a.arg for a in cfn.args.args if a.arg != "self"]
+                    i = up.args.index(node) if node in up.args else None
+                    p = (params[i] if i is not None and i < len(params)
+                         else next((k.arg for k in up.keywords if k.value is node), None))
+                    if p:
+                        scan(file, cq, cfn, [p], srcs, out, depth + 1)
+                continue
+            out.setdefault(f"{file}::{site} -> <{type(up).__name__}>", []).append(n.lineno)
+
+    srcs = set()
+    while True:
+        out = {}
+        for (file, _), (site, fn) in sorted(funcs.items()):
+            if site.rsplit(".", 1)[-1] not in _FW_RESOLVERS:
+                scan(file, site, fn, (), srcs, out, 0)
+        grown = srcs | {k.split(" -> ")[0].rsplit(".", 1)[-1].split("::")[-1]
+                        for k in out if k.endswith("<Return>")}
+        if grown == srcs:
+            return out, srcs
+        srcs = grown
+
+
+_fw_out, _fw_srcs = _fw_consumers(_P2_SOURCES)
+_fw_stray = sorted(k for k in _fw_out if k not in _FW_DISPOSITIONS)
+_fw_stale = sorted(k for k in _FW_DISPOSITIONS if k not in _fw_out)
+R.check(
+    "D17-s3-51: every consumer of the flat every-day hot-water windows, "
+    "followed from each attribute load through locals, returns and same-module "
+    "parameters, is a resolver or a dispositioned no-instant read; none stale, "
+    "and the walk found its two sources (its own precondition)",
+    not _fw_stray and not _fw_stale
+    and {"_effective_dhw_windows", "dhw_demand_windows"} <= _fw_srcs,
+    f"SEAM {[(k, _fw_out[k]) for k in _fw_stray]} STALE {_fw_stale} sources={sorted(_fw_srcs)}",
+)
+# Null controls: the pre-fix countdown, a flat set returned and tested by a
+# caller, and a parameter carrying it into an instant test each fail alone.
+_FW_FIXED = "next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)"
+_fw_plants = {
+    "pre-fix countdown": _P2_SOURCES["dhw_planner.py"].replace(
+        _FW_FIXED, "next_window = hours_until_next_window(\n"
+        "            float(hours_mod[0]) if n_steps else 0.0, windows\n        )"),
+    "returned then tested": _P2_SOURCES["dhw_planner.py"]
+    + "\n\ndef _fw_src(p):\n    return list(p.dhw_windows)\n"
+      "\n\ndef _fw_use(p, h):\n    return hour_in_windows(h, _fw_src(p))\n",
+    "parameter then tested": _P2_SOURCES["dhw_planner.py"]
+    + "\n\ndef _fw_inner(ws, h):\n    return hour_in_windows(h, ws)\n"
+      "\n\ndef _fw_outer(p, h):\n    ws = p.dhw_demand_windows\n    return _fw_inner(ws, h)\n",
+}
+_fw_planted = {
+    k: sorted(set(_fw_consumers({**_P2_SOURCES, "dhw_planner.py": v})[0]) - set(_FW_DISPOSITIONS))
+    for k, v in _fw_plants.items()
+}
+R.check(
+    "and the consumers census fails on each planted flat read: the pre-fix "
+    "countdown, a returned set, a parameter (null controls)",
+    _P2_SOURCES["dhw_planner.py"].count(_FW_FIXED) == 1
+    and _fw_planted["pre-fix countdown"]
+    == ["dhw_planner.py::DhwPlanner._build_dhw_requirements -> hours_until_next_window"]
+    and "dhw_planner.py::_fw_use -> hour_in_windows" in _fw_planted["returned then tested"]
+    and "dhw_planner.py::_fw_inner -> hour_in_windows" in _fw_planted["parameter then tested"],
+    f"{_fw_planted}",
 )
 
 
@@ -5048,6 +5280,8 @@ P6_UPSTREAM_PROBES = {
     "async_start_reauth", "last_update_success", "async_items",
     "register_static_path", "async_update_item", "last_updated", "last_changed",
     "last_reported", "isoformat", "temperature_unit",
+    # SensorDeviceClass member since 2025.11.0, read above the hacs.json floor (D10-s2-04).
+    "TEMPERATURE_DELTA",
 }
 #: Home Assistant's own climate presets (climate/const.py PRESET_*), which the
 #: climate component translates and icons itself.
@@ -6798,18 +7032,31 @@ R.check(
     "; ".join(_impossible),
 )
 
-# Two the audit brief flagged and this PR deliberately leaves alone, pinned so
-# a future "consistency" pass does not add a device class to either.
-R.check(
-    "Heat-Curve Displace stays bare: it is a parallel shift, not a temperature",
-    getattr(by_name["Heat-Curve Displace"], "_attr_device_class", None) is None
-    and by_name["Heat-Curve Displace"]._attr_native_unit_of_measurement == "°C",
-    "a TEMPERATURE device class would have HA convert a delta as an absolute",
+# A temperature DIFFERENCE never takes TEMPERATURE, which converts a delta as
+# an absolute for a Fahrenheit user; it takes TEMPERATURE_DELTA where the
+# running core has it (2025.11.0, above the hacs.json floor: None there).
+# D10-s2-04 found these readouts left bare after the class existed.
+_DELTA_DC = getattr(SensorDeviceClass, "TEMPERATURE_DELTA", None)
+for _delta_name in ("Heat-Curve Displace", "Heat-Curve Effective Displace", "Prediction Accuracy"):
+    R.check(
+        f"{_delta_name} is a temperature difference: TEMPERATURE_DELTA, never TEMPERATURE (D10-s2-04)",
+        _DELTA_DC is not None
+        and getattr(by_name[_delta_name], "_attr_device_class", None) == _DELTA_DC
+        and by_name[_delta_name]._attr_native_unit_of_measurement == "°C",
+        f"{getattr(by_name[_delta_name], '_attr_device_class', None)!r} -- TEMPERATURE "
+        "would have HA convert a delta as an absolute",
+    )
+# The census the rule needs (D10-s2-04's metric): no sensor publishing in °C
+# or K is left classless where the class exists.
+_delta_bare = sorted(
+    type(_e).__name__ for _e in by_name.values()
+    if getattr(_e, "_attr_native_unit_of_measurement", None) in ("°C", "K")
+    and getattr(_e, "_attr_device_class", None) is None
 )
 R.check(
-    "Prediction Accuracy stays bare for the same reason: it is a mean error",
-    getattr(by_name["Prediction Accuracy"], "_attr_device_class", None) is None
-    and by_name["Prediction Accuracy"]._attr_native_unit_of_measurement == "°C",
+    "no sensor in degC or K is published without a device class (D10-s2-04 census)",
+    len(by_name) > 40 and not _delta_bare,
+    f"bare: {_delta_bare} of {len(by_name)} sensors",
 )
 R.check(
     "a device class with no state class is legal, so the valve target is fine",
@@ -13148,6 +13395,49 @@ R.check(
     == _ATTR_RICH["savings_months"],
     repr(_ready_sav.native_value),
 )
+# D8-s1-03: availability and state read the same row. At a month rollover
+# (only the settled month booked) and on an open row whose saving the ledger
+# withholds (old_basis, below_meter_floor: savings_sek None) the sensor was
+# available with state unknown.
+for _sav_label, _sav_rows in (
+    ("rollover: only the settled month", [{"month": "2026-01", "estimated": False, "savings_sek": 80.0}]),
+    ("open row withheld", [{"month": "2026-01", "estimated": False, "savings_sek": 80.0},
+                           {"month": "2026-02", "estimated": True, "savings_sek": None}]),
+):
+    _sav_w = sensor.MonthlySavingsSensor(FakeCoordinator({**DATA, "savings_months": _sav_rows}), ENTRY)
+    R.check(
+        f"MonthlySavingsSensor is unavailable, never unknown, with no open saving ({_sav_label}; D8-s1-03)",
+        not _sav_w.available and _sav_w.native_value is None
+        and _sav_w.extra_state_attributes.get("waiting_for") == "open_month_coverage",
+        f"available {_sav_w.available} value {_sav_w.native_value!r} "
+        f"waiting_for {_sav_w.extra_state_attributes.get('waiting_for')!r}",
+    )
+
+# The census the fact needs (sweep-P2 F18). Every waits-for-evidence sensor
+# the platform builds is available exactly when it has a value, on the empty,
+# the default and the rich payload. That is the mixin's contract: "not
+# measured yet" is unavailable, never unknown. The census asserts its reach:
+# every subclass the module defines is built here.
+_wfe_classes = {
+    _c for _c in vars(sensor).values()
+    if isinstance(_c, type) and issubclass(_c, sensor._WaitsForEvidenceMixin)
+    and _c is not sensor._WaitsForEvidenceMixin
+}
+_wfe_seen, _wfe_bad = set(), []
+_wfe_runtime = getattr(ENTRY, "runtime_data", None)
+for _wfe_data in ({}, DATA, _ATTR_RICH):
+    for _wfe in collect(sensor, _wfe_data):
+        if isinstance(_wfe, sensor._WaitsForEvidenceMixin):
+            _wfe_seen.add(type(_wfe))
+            if _wfe.available and _wfe.native_value is None:
+                _wfe_bad.append(f"{type(_wfe).__name__}@{len(_wfe_data)} keys")
+ENTRY.runtime_data = _wfe_runtime
+R.check(
+    "waits_for_evidence census: every waits-for-evidence sensor is available only with a value",
+    _wfe_classes and _wfe_seen == _wfe_classes and not _wfe_bad,
+    f"available and unknown: {_wfe_bad}; not built: "
+    f"{sorted(c.__name__ for c in _wfe_classes - _wfe_seen)}",
+)
 # R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so on
 # a house with wood configured the entity's saving says it includes wood's heat
 # and not firewood's cost, by the receipt event's one definition. The null
@@ -14049,13 +14339,43 @@ _bad_ids = sorted(
     e._attr_unique_id
     for _platform, e in _named_entities
     if _platform != "climate"
-    and getattr(e, "entity_id", None)
-    != f"{_platform}.heat_pump_optimizer_{e._attr_translation_key}"
+    and not (
+        str(getattr(e, "entity_id", "")).startswith(f"{_platform}.heat_pump_optimizer_")
+        and str(getattr(e, "entity_id", "")).endswith(f"_{e._attr_translation_key}")
+    )
 )
 R.check(
     "every entity pre-assigns its suggested object id",
     not _bad_ids,
     ", ".join(_bad_ids),
+)
+
+
+# D8-s2-02: a declared family (_fam_token: override, else lead token) is ONE
+# run in each platform's suggested entity-id sort, as it is in each language's
+# name sort above. The four lifetime meters sorted as three id runs while
+# their names led with "Lifetime". The null control sorts the same entities
+# by the bare translation-key id the scheme used before, which must split.
+def _fam_id_splits(_id_of):
+    _out = []
+    for _plat in sorted({_p for _p, _ in _named_entities}):
+        _order = [_fam_token(_e._attr_translation_key) for _, _e in sorted(
+            ((_id_of(_p, _e), _e) for _p, _e in _named_entities if _p == _plat),
+            key=lambda _r: _r[0])]
+        for _fam in sorted(set(_order)):
+            _runs = sum(1 for _i, _f in enumerate(_order) if _f == _fam and (_i == 0 or _order[_i - 1] != _fam))
+            if _runs > 1:
+                _out.append(f"{_plat}:{_fam}:{_runs} runs")
+    return _out
+
+
+_fam_id_split = _fam_id_splits(lambda _p, _e: str(_e.entity_id))
+_fam_id_split_bare = _fam_id_splits(
+    lambda _p, _e: f"{_p}.heat_pump_optimizer_{_e._attr_translation_key}")
+R.check(
+    "every declared family is one run in each platform's entity-id sort (D8-s2-02)",
+    not _fam_id_split and bool(_fam_id_split_bare),
+    f"split: {_fam_id_split}; null control (bare translation-key ids) split: {_fam_id_split_bare}",
 )
 # Spot-pins against the pre-v5.0.0 slugs, written out literally so a renamed
 # translation key cannot silently move the goalposts of the check above.
@@ -14155,7 +14475,8 @@ for _display, _new_id, _uid in (
     ("Cost Monthly Peak Power", "sensor.heat_pump_optimizer_cost_monthly_peak_power", "monthly_peak"),
     ("Cost Power Headroom", "sensor.heat_pump_optimizer_cost_power_headroom", "power_headroom"),
     ("Cost Predicted", "sensor.heat_pump_optimizer_cost_predicted", "predicted_cost"),
-    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
+    # D8-s2-02 then led the lifetime meters' ids with their declared family.
+    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_lifetime_cost_total_heating", "total_cost"),
     ("Learning Comfort Weight", "sensor.heat_pump_optimizer_learning_comfort_weight", "comfort_weight"),
     ("Learning Estimated COP", "sensor.heat_pump_optimizer_learning_estimated_cop", "current_cop"),
     ("Learning Observed COP", "sensor.heat_pump_optimizer_learning_observed_cop", "observed_cop"),
@@ -32883,6 +33204,39 @@ R.check(
                    branch="b", run_id=13) == [],
     "a same-SHA twin must survive",
 )
+# #3885: a superseded MAIN push run is cancelled from main-cancel.yml, never from
+# ci.yml, whose workflow-level `CI-main` group holds the newer push's run pending
+# until the older one ends. The job reads the push's prelude `scope` and hands it
+# to `cancel_superseded.py main --scope`, which cancels only for `full`, within
+# the three-run bound and while GitHub grants runners (its self-test).
+def _mc_shape(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    job = (doc.get("jobs") or {}).get("main-cancel") or {}
+    run = " ".join(str(s.get("run") or "") for s in job.get("steps") or [])
+    return (list(on) == ["push"] and (on["push"] or {}).get("branches") == ["main"]
+            and "concurrency" not in doc and "concurrency" not in job
+            and (job.get("permissions") or {}).get("actions") == "write"
+            and "python3 -I tools/ci/prelude.py" in run
+            and "cancel_superseded.py main --repo" in run and '--scope "${scope:-unknown}"' in run
+            and '--head-sha "$HEAD_SHA"' in run)
+
+
+_MC_PATH = Path(".github/workflows/main-cancel.yml")
+_MC_TEXT = _MC_PATH.read_text() if _MC_PATH.exists() else ""
+_MC_DOC = _RC_DOCS.get("main-cancel.yml") or {}
+R.check(
+    "#3885: main-cancel.yml cancels superseded main runs on a push to main only, outside any "
+    "concurrency group, passing the push's prelude scope and head",
+    _mc_shape(_MC_DOC) and "main-cancel" not in (_RC_DOCS["ci.yml"].get("jobs") or {}),
+    f"on={list(_MC_DOC.get('on', _MC_DOC.get(True)) or [])} jobs={sorted(_MC_DOC.get('jobs') or {})}",
+)
+R.check(
+    "and a main-cancel.yml in a concurrency group, on pull_request, or not passing the scope is refused (null control)",
+    not _mc_shape({**_MC_DOC, "concurrency": {"group": "CI-main"}})
+    and not _mc_shape({**_MC_DOC, "on": {"push": {"branches": ["main"]}, "pull_request": None}})
+    and not _mc_shape(_yaml.safe_load(_MC_TEXT.replace('--scope "${scope:-unknown}"', "")) or {}),
+    "the predicate over three shapes the workflow must not take",
+)
 # pr-contract.yml is a callee since U6: it lists `workflow_call` alone and no
 # `concurrency`, so no event can start it and no group can cancel its run. The
 # same-SHA twins of a body edit are ci.yml's, held by its run-id group (the
@@ -44180,5 +44534,22 @@ R.check(
     f"rows: {_BR('dev/audit/README.md') + _BR('tools/audit/README.md') + _BR('tests/README.md')}",
 )
 
+
+R.section("The case runner and recorder (R11-CI-CASE-SELECT)")
+# tests/case_select.py cuts features.py and this script into spans, runs them
+# span by span, and records per span what it reads and which earlier spans it
+# needs, into tests/case_closures.json. Its self-test checks the splitter
+# against the R.section line count of both scripts, and that a span-wise run
+# prints what python3 prints. It also checks the recorder's static and dynamic
+# reads, the needs rules (in-place binding, RNG draws, module moves) and the
+# table's merge arm.
+_csel_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_select.py")), "--self-test"],
+                           capture_output=True, text=True, timeout=600)
+R.check(
+    "the case runner's self-test passes: spans match the R.section count, a span-wise run equals the script's "
+    "own output, the recorder sees reads no code runs and moves no store shows, and the table merges per span",
+    _csel_run.returncode == 0 and "CASE-SELECT SELF-TEST: PASSED" in _csel_run.stdout,
+    (_csel_run.stdout + _csel_run.stderr)[-600:],
+)
 
 sys.exit(R.close("ENTITY CHECKS"))
