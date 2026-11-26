@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter.served_space_alone BOOLOP c90a604e",
+  "killed_by": "tests/features.py",
+  "old": "        return a.dhw <= 0.0 < a.space and not self.unplanned_charge(plan_split)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return a.dhw <= 0.0 < a.space or not self.unplanned_charge(plan_split)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

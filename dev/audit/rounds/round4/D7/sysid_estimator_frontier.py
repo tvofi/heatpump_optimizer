@@ -121,6 +121,9 @@ from heatpump_optimizer.sysid import (
     slab_mode_identifiability,
     slab_mode_tau_fast,
 )
+#: The switch: a config field before R11-SEAM-learners (ADR-003), arm's argument (default on)
+#: after it; so the same file runs at both ends.
+_SID_ON = {"enabled": True} if "enabled" in SysIdConfig.__dataclass_fields__ else {}
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
@@ -169,7 +172,7 @@ def _drive(p: ThermalParameters, sigma: float, seed: int):
     ua = p.heat_loss_coefficient * p.house_heat_loss_scale
     gains = float(p.internal_gains)
     sid = SystemIdentification(
-        SysIdConfig(enabled=True, min_days_between_runs=0.0)
+        SysIdConfig(**_SID_ON, min_days_between_runs=0.0)
     )
     assert sid.arm(START, plant=p)
     ks = max(float(p.slab_heat_transfer), 1e-9)
@@ -289,7 +292,7 @@ def main() -> int:
     for name in BUILDINGS:
         p = _plant(name)
         sy = SystemIdentification(
-            SysIdConfig(enabled=True, min_days_between_runs=0.0)
+            SysIdConfig(**_SID_ON, min_days_between_runs=0.0)
         )
         ok = sy.arm(START, plant=p)
         why = sy.result.reason

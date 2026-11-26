@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learning_freeze.py:reason BOOLOP fe66f904",
+  "killed_by": "tests/features.py",
+  "old": "        (why for why, kinds, raised in _ADDITIVE if sample in kinds and raised(facts, evidence)),",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`(why for why, kinds, raised in _ADDITIVE if sample in kinds or raised(facts, evidence)),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=14."
+}
