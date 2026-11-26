@@ -4893,14 +4893,9 @@ class ThermalModel:
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
         )
-        # Each step's hour of day is the caller's step clock (P7, issue
-        # 3786): an hour extrapolated from the first one runs an hour off the
-        # zone's clock past a DST change. No clock is a day from midnight.
-        hours = (
-            np.arange(n_steps) * dt_hours
-            if step_hours is None
-            else np.asarray(step_hours, dtype=float)
-        ) % 24.0
+        # The caller's step clock, never start + i * dt across a DST day (P7, #3786).
+        clock = np.arange(n_steps) * dt_hours if step_hours is None else step_hours
+        hours = np.asarray(clock, dtype=float) % 24.0
         if dhw_draw_rates is None:
             dhw_draw_rates = self.dhw_draw_rates(hours)
 
