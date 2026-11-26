@@ -1,0 +1,3 @@
+  ok   every module the package runs by path is exercised here
+
+ALL DEPLOYMENT SHAPE CHECKS PASSED
