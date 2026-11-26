@@ -1289,7 +1289,9 @@ def controls() -> list[tuple[str, bool, str]]:
     res.append(("control:headroom:reads_the_replay_job",
                 replay_timeout_minutes(job) == 45
                 and replay_timeout_minutes(job.replace("  replay:", "  other:")) is None
-                and replay_timeout_minutes(job.replace("    timeout", "      timeout")) is None,
+                and replay_timeout_minutes(job.replace("    timeout", "      timeout")) is None
+                and replay_timeout_minutes(job.replace("    timeout-minutes: 45\n  next:\n",
+                                                       "  next:\n    timeout-minutes: 45\n")) is None,
                 f"read {replay_timeout_minutes(job)}"))
     pair("away:covered_names_are_committed",
          away_covered_offenders({"owner-2026-10-30-awya.json"},
