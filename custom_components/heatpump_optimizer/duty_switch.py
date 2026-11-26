@@ -618,7 +618,7 @@ def _kept_leg(rec: _Record, wanted: str | None, now: datetime, rule: duty_legs.L
     age_min = utc_elapsed_seconds(now, since) / 60.0
     keep = rule.dhw_min if current == "dhw" else rule.heat_min if previous == pump_mode.MODE_DHW else 0.0
     need = rule.dhw_min if wanted == "dhw" else rule.heat_min
-    if 0.0 <= age_min < keep or (need > 0 and _kept_minutes(legs, start, now, wanted) < need):
+    if 0.0 <= age_min < keep or _kept_minutes(legs, start, now, wanted) < need:
         return current
     return wanted
 
