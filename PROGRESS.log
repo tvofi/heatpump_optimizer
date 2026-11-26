@@ -105,3 +105,4 @@
 1795737095 CKPT arm amended, mutants rerunning snapshot a6227df0100b
 1795737369 HB alive
 1795737484 CKPT BLOCKED pushed 03721b1565 snapshot 45c9c86b70b2
+1795737487 DONE blocked: part 1 merged as #3906; lower-bound arm 09425c02b6 needs a return ref (non-FF handoff refs, force refused)
