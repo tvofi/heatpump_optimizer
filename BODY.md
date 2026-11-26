@@ -23,6 +23,20 @@ Merge of main, 2026-11-25. The head merges origin/main `0f63320c96cb4e1926a584c8
 
 ## Head
 
+`537e45b787be2417fad483b12a4c99c405103d52` is the head, merge base `dbdc520e86e4453755f553ab21a39de205a70b34` (origin/main, #3841), stamped 2026-11-26. It merges origin/main dbdc520e86 into the PR head `99511c75f8`, which carries the repair `8d56f9c960` (same tree).
+- **8d56f9c960, docs/architecture.md**: "The other 66 modules are deliberately free of it" now reads 67. The recarry had raised the package to 104 modules with `dhw_start.py`, but the count stayed at 66. `tests/entities.py` and the `tests/doc_claims.py` prose-count census both derive the count from the tree, and both were red on it in `tests / fast (3.14)` run 45671641225. The `tests / replay` job in that run was cancelled, not failed.
+- **537e45b787, the merge**: one conflict, in `tests/deployment_shape.py`'s #1218 selection-cost note. This branch had moved the count to 186 pairs and main to 182: R11-SEAM-entity-service's services.yaml took config_flow_steps.py's pairs with debug_collect.py and wood_advisor.py under 0.80. The resolution is the union of both histories. The merged count is re-derived from the merged `tests/closures.json` by entities.py's `_d308_pairs` predicate: 184 of 561 pairs, 435 comparable, in both places. `tests/closures.json` went through the ledger merge driver.
+- **Module counts, measured on the merged tree**: origin/main dbdc520e86 has 103 modules, and this head has 104 with `dhw_start.py`. The HA-free count is 104 less the 37 that touch `homeassistant`, so 67. If another pull request that adds a module lands first, the next merge of main moves it again.
+
+At this head:
+- the pair-note check reads `PAIRNOTE OK HEAD: 184 of 561 pairs, 123 files`;
+- `tests/deployment_shape.py` reads `ALL DEPLOYMENT SHAPE CHECKS PASSED`;
+- `python3 tests/structure.py` reads `STRUCTURE RATCHET PASSED`.
+
+At 8d56f9c960, `tests/doc_claims.py` read `ALL 443 checks PASSED`. No production line of this diff moved: the sorted added and removed lines of `git diff <merge-base> <head> -- custom_components/` are the same at 8d56f9c960 and at this head. CI is the authority for the rest.
+
+Previous head:
+
 `f2f9e3f5d55b90fbf20d470e6d5bf913d77c0125` merges origin/main `d3d66c40408e76351ffc528686353cadf815a05c` into `875dfbc86f`. This is the repair round for the fix review's M1, M8 and M9, two commits on the PR head `3f8fb54ffc`:
 - `2b382a93d9` (tests/block_duty.py):
   - `_solve_winter_mild` takes `under_way`, `window`, `min_c` and `tank_c`.
