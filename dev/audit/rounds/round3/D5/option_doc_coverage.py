@@ -24,90 +24,21 @@ RUN (from the repository root, no cd):
 
 Set D5_ROOT=<dir> to point the document side at a copy of the tree.
 
-EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
-    wood_economics_doc_lines=0; both moved on main before this check;
-    option_fields_undocumented moved 7 -> 0 when #937's reference rows
-    named the last seven fields -- three schedule hours, the three
-    external-heat detection fields, and the split Surcharge per kWh row.
-    #1067 moved the two rendered counts 180 -> 183 and 213 -> 216: three
-    new optional entities_pump pickers -- the space backup heater, the DHW
-    tank booster and the capacity-limited flag. `option_fields_undocumented`
-    stayed 0 because docs/configuration.md gained a row for each in the same
-    commit; had it not, this harness would have printed 3.
-    #1067's learner half then moved them again, 183 -> 185 and 216 -> 218:
-    two more optional entities_pump pickers, the pump's own supply (flow)
-    and return water temperatures. `option_fields_undocumented` stayed 0 for
-    the same reason and under the same condition -- each has a row in
-    docs/configuration.md's Heat pump telemetry table. #1067's solver half
-    moved them once more, 185 -> 186 and 218 -> 219: one boolean on the
-    building page, the flow-curve lift, with its row in docs/configuration.md's
-    heating-system table in the same commit. #1067's silent-mode half moved
-    them again, 186 -> 188 and 219 -> 221: the pump's silent-mode window and
-    the power it keeps, on the fuse-and-peak-guards page, each with its row
-    in docs/configuration.md's Fuse and peak guards table in the same
-    commit. #1067's disinfection half (W1067-G5a) moved them again, 188 -> 189
-    and 221 -> 222: the pump's disinfection switch on the hot water tank page,
-    with its row in docs/configuration.md's Hot water tank and inlet table in
-    the same commit. #1067's frequency half (W1067-G6) moved them again,
-    189 -> 191 and 222 -> 224: the compressor's lowest and highest frequency,
-    on the power and solar sensors page, each with its row in
-    docs/configuration.md's Power and solar sensors table in the same commit.
-    #1067's pre-fill page (W1067-G7) moved them once more, 191 -> 192 and
-    224 -> 225: the Modbus package entity prefix, the one field that page
-    renders unsubmitted, with its row in docs/configuration.md's Pre-fill
-    from a Modbus heat pump table in the same commit. #1067's disinfection
-    control half (W1067-G5b) moved them once more, 192 -> 193 and 225 -> 226:
-    the disinfection switch mode (observe/control), on the hot water tank
-    page, with its row in docs/configuration.md's Hot water tank and inlet
-    table in the same commit. #1067's post-wave follow-on (W1067-POST1) moved
-    them once more, 193 -> 194 and 226 -> 227: the offer switch on the
-    pre-fill page, with its row in docs/configuration.md's Pre-fill from a
-    Modbus heat pump table in the same commit -- the offer page the initial
-    flow shows renders whole fields, never this switch, so it adds nothing
-    here. #1260 moved them once more, 194 -> 195 and 227 -> 228: the
-    by-day toggle on the hot-water page, with its row in
-    docs/configuration.md's Hot water table in the same commit; the seven
-    per-day fields stay hidden while the toggle is off, so they add
-    nothing to this count on an unconfigured render. #1512 moved them once
-    more, 195 -> 196 and 228 -> 229: the peaks-on-different-days toggle on
-    the grid peak tariff page, with its row in docs/configuration.md's Grid
-    peak tariff table in the same commit. #1495 moved them once more,
-    196 -> 197 and 229 -> 230: the mold-floor breach warning margin, on the
-    comfort page's mold group, with its row in docs/configuration.md's
-    Comfort and temperatures table in the same commit. #1588 moved them once
-    more, 197 -> 198 and 230 -> 231: the pump-duty control mode select on
-    the entities_pump page, with its row in docs/configuration.md in the
-    same commit. #1939 moved them once more, 198 -> 199 and 231 -> 232:
-    the debug-collection toggle on the learning page, with its row in
-    docs/configuration.md in the same commit. #2016 moved them once more,
-    199 -> 200 and 232 -> 233: the water flow sensor on the entities_metering
-    page, with its row in docs/configuration.md in the same commit. #1955
-    fold (e) moved them once more, 200 -> 201 and 233 -> 234: the thermal
-    power meter on the entities_metering page, with its row in
-    docs/configuration.md in the same commit. #2261 moved them once more,
-    201 -> 202 and 234 -> 235: the heat energy meter on the
-    entities_metering page, with its row in docs/configuration.md in the
-    same commit. R10-COP-PARTLOAD moved them once more, 202 -> 203 and
-    235 -> 236: the part-load derate number on the thermal model page, with
-    its row in docs/configuration.md in the same commit. R10-WOOD-NOTIFY
-    moved them once more, 203 -> 204 and 236 -> 237: the wood lighting lead
-    time on the wood page, with its row in docs/configuration.md in the same
-    commit. R10-HOTFIX-COP-UNMEASURED moved them once more, 204 -> 207 and
-    237 -> 240: the power and thermal power meter source selects and the
-    hot-water coverage switch on the entities_metering page, with their rows
-    in docs/configuration.md in the same commit. R10-MIN-POWER-FLOOR moved
-    them once more, 207 -> 208 and 240 -> 241: the compressor modulation
-    select on the thermal model page, with its row in docs/configuration.md
-    in the same commit. R10-COMBI-TANK (#3225) moved them 211 -> 216 and
-    244 -> 250: the building page's combi section (one section key, five
-    fields), each with its row. This block is an
-    ASSERTION `tests/harness_headers.py` executes the script against, and it
-    is reached by a shell-out the closure recorder cannot see, so it does not
-    go red on a pull request: it is re-measured in the commit that changes
-    what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=221 count   (220 until R11-OWNER-FAULT-TEXT's fault-text list; 219 until R11-OUTSIDE-ROOMS-P2's room lift toggle; 218 until R11-OUTSIDE-ROOMS-P1's room list; 216 until the two start-hysteresis pickers; 211 until R10-COMBI-TANK's five combi fields; 208 until R10-GENERIC-HEAT-CURVE's three heat_curve fields)
+EXPECTED on this tree. This block is an ASSERTION `tests/harness_headers.py`
+    executes the script against, and it is reached by a shell-out the
+    closure recorder cannot see, so it does not go red on a pull request: it
+    is re-measured in the commit that changes what the script prints, or
+    main's forced-full run finds it. The run also prints
+    option_fields_rendered and option_schema_keys_rendered, derived from the
+    option flow on every run; this header pins neither (FG-1, 2026-11-26):
+    each moved with every option-adding pull request, two such branches
+    re-recorded it each from its own tree, and git merged the two lines as
+    text. A page that fails to render is pinned as
+    option_pages_unrendered=0, and a render that reads no field fails
+    wood_economics_fields_rendered=4. The history of each line is in
+    `git log -L` on this header, not in it:
+    RESULT option_pages_unrendered=0 count
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=255 count   (254 until R11-OWNER-FAULT-TEXT's fault-text list; 253 until R11-OUTSIDE-ROOMS-P2's room lift toggle; 252 until R11-OUTSIDE-ROOMS-P1's room list; 250 until the two start-hysteresis pickers; 244 until R10-COMBI-TANK; 241 until R10-GENERIC-HEAT-CURVE)
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=8 count      (tolerance: exact;
     moved 6 -> 8 by #1645/F8.1: the Services section's `simulate_plan`
@@ -282,6 +213,7 @@ def main():
 
     print()
     print(f"RESULT option_pages_rendered={pages_ok} count")
+    print(f"RESULT option_pages_unrendered={len(cf._OPTION_PAGES) - pages_ok} count")
     print(f"RESULT option_schema_keys_rendered={len(rendered)} count")
     print(f"RESULT option_section_or_unlabelled_keys={sectionish} count")
     print(f"RESULT option_fields_rendered={len(rendered) - sectionish} count")
