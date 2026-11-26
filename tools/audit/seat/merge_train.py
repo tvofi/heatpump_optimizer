@@ -9252,7 +9252,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           rc == 0 and merged(calls) and len(reruns) == 1 and reruns[0] < first_merge
           and any(ln.startswith("STALE ") and "119308796140" in ln for ln in lines))
     check("K15 (b) L7: the stale re-run is failed-only, never the whole run while GitHub accepts that",
-          not any(c[-1].endswith("/rerun") for c in calls))
+          [c[-1].rsplit("/", 1)[-1] for c in calls if "/actions/runs/119308796140/rerun" in c[-1]]
+          == ["rerun-failed-jobs"])
     w = stale_world("completed", True)
     w["failed_only_refused"] = True
     rc, lines, calls = go(w)
