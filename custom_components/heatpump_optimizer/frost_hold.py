@@ -69,9 +69,10 @@ class FrostRecord:
 
 def _record(held: ArbiterState) -> FrostRecord:
     """``held``'s :class:`FrostRecord`, made on first use."""
-    if held.frost is None:
-        held.frost = FrostRecord()
-    return held.frost
+    rec: FrostRecord | None = held.frost
+    if rec is None:
+        rec = held.frost = FrostRecord()
+    return rec
 
 
 def outdoor_reading(health: Any, forecast_c: Callable[[], float | None], config: Any) -> float | None:
@@ -166,8 +167,7 @@ def _note_run(held: ArbiterState, inp: ArbiterInputs, now: datetime | None) -> N
 
 def freeze_reason(coord: Any, now: datetime | None = None) -> str | None:
     """:data:`FREEZE_FROST` while a learner's interval may hold a held run, else ``None``."""
-    held = state_for(coord)
-    return _freeze(held, coord.arbiter_inputs, now)
+    return _freeze(state_for(coord), lambda: coord.arbiter_inputs(), now)
 
 
 def _freeze(held: ArbiterState, inputs: Callable[[], ArbiterInputs], now: datetime | None) -> str | None:
