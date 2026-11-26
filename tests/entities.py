@@ -21725,15 +21725,15 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
-    # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
-    # push run is replaced by the newest and none in progress is cancelled; every other run and
-    # every re-run keeps its run-id group (N1). Rendered per event and attempt, not matched as text.
+    # Every run and every re-run keeps its run-id group (N1), a push to main's included: no
+    # group serialises main push runs (owner 2026-11-25, retiring CI-5's `CI-main` group);
+    # main-cancel.yml cancels the superseded ones. Rendered per event and attempt, not as text.
     cc = doc.get("concurrency") or {}
     if cc.get("cancel-in-progress") is not False:
         out.append(f"concurrency {cc} cancels in progress")
     for (ev, a), payload in _CI_EVENTS.items():
         for attempt in ("1", "2"):
-            want = "CI-main" if ev == "push" and attempt == "1" else "CI-99"
+            want = "CI-99"
             got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
             if got != want:
                 out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
@@ -21845,11 +21845,13 @@ _CI_PLANTS = {
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                        "format('CI-{0}', github.event.pull_request.number)", 1),
-    "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
-    "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
-    "the main group cancelling in progress": _CI_TEXT.replace(
-        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
-        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
+    "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
+        "group: ${{ format('CI-{0}', github.run_id) }}",
+        "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
+        " || format('CI-{0}', github.run_id) }}", 1),
+    "a run-id group cancelling in progress": _CI_TEXT.replace(
+        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
+        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21895,7 +21897,7 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5), "
+    "run-name equal to prelude.title, one run per group, a push to main's included (no CI-main), "
     "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
@@ -22018,6 +22020,32 @@ R.check(
     f"defects={_pages_defects(_PAGES_TEXT)} plant caught={bool(_pages_defects(_PAGES_PLANT))}",
 )
 
+
+# Run 45663211757: the release step's tag pipeline ended `| head -n 1`, which closes the pipe
+# after one line; once the tag listing outgrew the pipe buffer, `git ls-remote` took SIGPIPE and
+# pipefail failed the step with exit 141. The step's own `tag=` line runs here against a stand-in
+# `git` listing 20000 tags; the plant restores the truncating `head` and must fail.
+def _pages_tag_run(text: str) -> "tuple[int, str]":
+    steps = (((_yaml.safe_load(text) or {}).get("jobs") or {}).get("pages-build") or {}).get("steps") or []
+    rel = next((str(s.get("run", "")) for s in steps if s.get("name") == "Check out the release"), "")
+    line = next((ln.strip() for ln in rel.splitlines() if ln.strip().startswith("tag=$(")), "")
+    if not line:
+        return -1, "no tag= line"
+    script = ("set -euo pipefail\n"
+              "git() { for ((i = 20000; i > 0; i--)); do printf '%040d\\trefs/tags/v%d.0.0\\n' 0 \"$i\"; done; }\n"
+              f"{line}\nprintf '%s' \"$tag\"\n")
+    r = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=60)
+    return r.returncode, r.stdout
+
+
+_PAGES_TAG_PLANT = _PAGES_TEXT.replace("| awk 'NR == 1 { sub(/.*refs\\/tags\\//, \"\"); print }')",
+                                       "| head -n 1 | sed 's#.*refs/tags/##')", 1)
+_PAGES_TAG_GOT, _PAGES_TAG_PLANT_GOT = _pages_tag_run(_PAGES_TEXT), _pages_tag_run(_PAGES_TAG_PLANT)
+R.check(
+    "pages.yml: the release step's tag pipeline reads its listing to the end under pipefail (run 45663211757)",
+    _PAGES_TAG_GOT == (0, "v20000.0.0") and _PAGES_TAG_PLANT != _PAGES_TEXT and _PAGES_TAG_PLANT_GOT[0] != 0,
+    f"got={_PAGES_TAG_GOT} plant={_PAGES_TAG_PLANT_GOT}",
+)
 
 # The stand-ins hold under a BASH_ENV that re-prepends a toolchain (#2835): a
 # cloud seat's profile there failed U0c and the delivery_status check at every
@@ -33028,11 +33056,10 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 _CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
-# The (file, event) pairs whose first attempts share one group that cancels
-# nothing in progress, so GitHub replaces a pending run with the newest: CI-5's
-# push-to-main coalescing (owner 2026-11-21). A re-run keeps its run-id group
-# (the umbrella check above renders that per attempt).
-_CC_COALESCED = {("ci.yml", "push")}
+# No (file, event) pair shares a group across runs: CI-5's push-to-main
+# `CI-main` group is retired (owner 2026-11-25), so every main push run starts
+# at once and main-cancel.yml cancels the superseded ones.
+_CC_COALESCED: "set[tuple[str, str]]" = set()
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -33138,8 +33165,8 @@ R.check(
     "a same-SHA twin must survive",
 )
 # #3885: a superseded MAIN push run is cancelled from main-cancel.yml, never from
-# ci.yml, whose workflow-level `CI-main` group holds the newer push's run pending
-# until the older one ends. The job reads the push's prelude `scope` and hands it
+# ci.yml: a job of the newer run would need that run to start, and no main push
+# run waits on another (no `CI-main` group since 2026-11-25). The job reads the push's prelude `scope` and hands it
 # to `cancel_superseded.py main --scope`, which cancels only for `full`, within
 # the three-run bound and while GitHub grants runners (its self-test).
 def _mc_shape(doc: dict) -> bool:
