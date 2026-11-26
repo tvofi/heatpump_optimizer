@@ -1,0 +1,10 @@
+a00b840848 scripts=34 pairs>=0.80=184 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+498708251b scripts=34 pairs>=0.80=184 of 561 comparable=435 pkgfiles=122 modules=103 ha_top_level=36 ha_free_incl_fn=66
+3ee06864da scripts=34 pairs>=0.80=182 of 561 comparable=435 pkgfiles=122 modules=103 ha_top_level=36 ha_free_incl_fn=66
+ef4e2564f9 scripts=34 pairs>=0.80=184 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+99511c75f8 scripts=34 pairs>=0.80=186 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+d426256f2c scripts=34 pairs>=0.80=186 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+58c38c7dd6 scripts=34 pairs>=0.80=186 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+8d56f9c960 scripts=34 pairs>=0.80=186 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+537e45b787 scripts=34 pairs>=0.80=184 of 561 comparable=435 pkgfiles=123 modules=104 ha_top_level=36 ha_free_incl_fn=67
+dbdc520e86 scripts=34 pairs>=0.80=182 of 561 comparable=435 pkgfiles=122 modules=103 ha_top_level=36 ha_free_incl_fn=66
