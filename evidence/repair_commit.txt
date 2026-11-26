@@ -1,8 +1,0 @@
-2869f172b0df91e2f99bc35ddb4d5f166d82d587 tvofi
-test(R11-OUTSIDE-ROOMS-3B): the #1218 note records 184 of the 561 pairs
-
-comfort_floor.py joined the closures this PR re-records, adding the
-env_drift.py/manual_plan.py and golden.py/manual_plan.py pairs at >= 0.80
-(re-derived with entities.py's _d308_pairs predicate: 182 at origin/main,
-184 at d7029ade and at its merge with origin/main bb6377b4da).
-
