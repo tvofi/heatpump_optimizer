@@ -1,0 +1,10 @@
+pred-true rc=1 :: 41 2 ['control:headroom:over_the_cap', 'control:headroom:cap_covers_the_budget']
+pred-loose rc=1 :: 41 2 ['control:headroom:over_the_cap', 'control:headroom:cap_covers_the_budget']
+none-not-red rc=1 :: Traceback (most recent call last):
+regex-loose rc=1 :: 41 1 ['control:headroom:reads_the_replay_job']
+share-1 rc=1 :: 41 1 ['control:headroom:cap_covers_the_budget']
+setup-0 rc=0 :: 41 0 []
+budget-unscaled rc=1 :: 41 1 ['control:headroom:cap_covers_the_budget']
+rest-0 rc=1 :: 41 1 ['control:headroom:cap_covers_the_budget']
+cap-58 rc=1 :: 41 1 ['control:headroom:cap_covers_the_budget']
+cap-600 rc=0 :: 41 0 []

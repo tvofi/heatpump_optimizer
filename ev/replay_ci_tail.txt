@@ -1,0 +1,4 @@
+tests / replay job 140208054638 at ce21b136c649d60e3f00d52a458c0abafb6b73a4 (log tail):
+replay lane wall time 1766.1 s
+  ok   lane wall time within the pull-request replay job's headroom
+ALL 203 replay checks PASSED
