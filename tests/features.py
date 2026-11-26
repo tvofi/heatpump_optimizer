@@ -101448,10 +101448,11 @@ async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
     gate = solve_gate.gate_for(coord)
     coord._refresh_task = object() if refreshing else None
     gate.solving, coord._entry_released = solving, released
+    before = coord.data
     await coord.async_apply_held()
     _r9f13_dt.freeze(None)
-    return (n["solve"], n["call"], n["act"], n["pub"], dict(coord._current_action or {}),
-            (gate.trailing, gate.rerun))
+    return (n["solve"], n["call"], n["act"], n["pub"] if coord.data is not before else -n["pub"],
+            dict(coord._current_action or {}), (gate.trailing, gate.rerun))
 
 
 _sg_held = _sg_aio.run(_sg_duty())
@@ -101474,6 +101475,65 @@ R.check(
     and _sg_inflight[1][:4] == (0, 0, 0, 0) and _sg_inflight[1][5] == (False, True),
     f"unbased {_sg_unbased[:4]}, refreshing {_sg_inflight[0][:4]} {_sg_inflight[0][5]}, "
     f"solving {_sg_inflight[1][:4]} {_sg_inflight[1][5]}",
+)
+
+
+async def _sg_cycle_tail():
+    """One refresh on a stubbed solve: the order the cycle runs its writes and its bookkeeping."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make("sg_cycle_tail")
+    ran = []
+
+    def _rec(name):
+        async def _step(*_a, **_k):
+            ran.append(name)
+        return _step
+
+    async def _solve():
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.5})
+
+    coord.async_run_optimization = _solve
+    steps = ("_apply_action", "_command_frequency", "_async_drive_pumps", "_record_accuracy",
+             "_track_realised_peak", "_async_save_accuracy", "_async_save_energy_totals")
+    for name in steps:
+        setattr(coord, name, _rec(name))
+    await coord._async_update_data()
+    _r9f13_dt.freeze(None)
+    return ran == list(steps), ran
+
+
+_sg_tail = _sg_aio.run(_sg_cycle_tail())
+R.check(
+    "N-solve-recompute: the cycle's write tail the toggle shares runs inside every refresh -- action, "
+    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order",
+    _sg_tail[0],
+    f"ran {_sg_tail[1]}",
+)
+
+
+async def _sg_diagnose_publish():
+    """A diagnose press publishes the insight view without a cycle (D9-s1-01), through the shared publish."""
+    _hass, _entry, coord = _r9f13_make("sg_diagnose")
+    real, pubs = _r9f13_cmod._await_process, []
+
+    async def _no_report(*_a, **_k):
+        return None
+
+    _r9f13_cmod._await_process = _no_report
+    coord.data = {"plan": "held"}
+    coord.async_update_listeners = lambda: pubs.append(1)
+    try:
+        await coord.async_diagnose_interval()
+    finally:
+        _r9f13_cmod._await_process = real
+    return coord.data.get("plan"), "insight" in coord.data, len(pubs)
+
+
+_sg_diag = _sg_aio.run(_sg_diagnose_publish())
+R.check(
+    "N-solve-recompute: a diagnose press publishes the insight view on the held payload, once, without a cycle",
+    _sg_diag == ("held", True, 1),
+    f"{_sg_diag}",
 )
 
 
