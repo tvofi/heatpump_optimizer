@@ -101417,6 +101417,95 @@ R.check(
 )
 
 
+# N-solve-recompute (carry, R11-SEAM-cycle-solve): a timed duty switch's toggle is laid on the plan in
+# hand. Boost and block state is no solve input (the overlay is applied after the solve), so the toggle
+# actuates and publishes the adopted plan without a fetch or a solve; it requests a refresh only with no
+# plan base, or with a refresh or solve in flight, whose trailing refresh or re-run lays the overlay after.
+async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
+    """One toggle through ``async_apply_held``: (solves, debouncer calls, actuations, published, action, gate)."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make(f"sg_duty_{based}_{refreshing}_{solving}")
+    n = {"solve": 0, "call": 0, "act": 0, "pub": 0}
+
+    async def _solve():
+        n["solve"] += 1
+
+    async def _call():
+        n["call"] += 1
+
+    async def _act():
+        n["act"] += 1
+
+    async def _none():
+        return None
+
+    coord.async_run_optimization, coord._debounced_refresh.async_call = _solve, _call
+    coord._apply_action, coord._command_frequency, coord._async_drive_pumps = _act, _none, _none
+    coord.async_update_listeners = lambda: n.__setitem__("pub", n["pub"] + 1)
+    if based:
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.25, "dhw_power": 1.0, "heat_pump_on": True})
+    boost_mod.held_for(coord).set(boost_mod.CHANNEL_SPACE, True, _R9F13_NOW, block=True)
+    gate = solve_gate.gate_for(coord)
+    coord._refresh_task = object() if refreshing else None
+    gate.solving, coord._entry_released = solving, released
+    await coord.async_apply_held()
+    _r9f13_dt.freeze(None)
+    return (n["solve"], n["call"], n["act"], n["pub"], dict(coord._current_action or {}),
+            (gate.trailing, gate.rerun))
+
+
+_sg_held = _sg_aio.run(_sg_duty())
+R.check(
+    "N-solve-recompute: a duty toggle on a held plan actuates and publishes it with the overlay laid "
+    "on (a space block zeroes the space power, hot water untouched), and never solves or requests a refresh",
+    _sg_held[:4] == (0, 0, 1, 1)
+    and _sg_held[4].get("power_normalized") == 0.0 and _sg_held[4].get("dhw_power") == 1.0,
+    f"solves, calls, actuations, publishes, action: {_sg_held[:5]}",
+)
+_sg_unbased = _sg_aio.run(_sg_duty(based=False))
+_sg_inflight = (_sg_aio.run(_sg_duty(refreshing=True)), _sg_aio.run(_sg_duty(solving=True)))
+_sg_released = _sg_aio.run(_sg_duty(released=True))
+R.check(
+    "N-solve-recompute: with no plan base the toggle is an ordinary request; with a refresh in flight it "
+    "trails it, with a solve in flight it re-runs it; a released entry writes nothing (#237) -- and none "
+    "of the four actuates beside them",
+    _sg_unbased[:4] == (0, 1, 0, 0) and _sg_released[2:4] == (0, 0)
+    and _sg_inflight[0][:4] == (0, 0, 0, 0) and _sg_inflight[0][5] == (True, False)
+    and _sg_inflight[1][:4] == (0, 0, 0, 0) and _sg_inflight[1][5] == (False, True),
+    f"unbased {_sg_unbased[:4]}, refreshing {_sg_inflight[0][:4]} {_sg_inflight[0][5]}, "
+    f"solving {_sg_inflight[1][:4]} {_sg_inflight[1][5]}",
+)
+
+
+def _sg_press(cls):
+    """Toggle a duty switch; the name of the coroutine its press hands the entry's background task."""
+    _hass, _entry, coord = _r9f13_make(f"sg_press_{cls.__name__}")
+    handed = []
+
+    class _Entry:
+        entry_id = "sg_press"
+
+        def async_create_background_task(self, _hass, coro, name=None):
+            handed.append(coro.cr_code.co_name)
+            coro.close()
+
+    ent = cls(coord, _Entry())
+    ent.async_write_ha_state = lambda: handed.append("published")
+    _sg_aio.run(ent.async_turn_on())
+    return handed
+
+
+from heatpump_optimizer import switch as _sg_switch  # noqa: E402
+
+_sg_presses = {c.__name__: _sg_press(c) for c in (_sg_switch.BoostSpaceSwitch, _sg_switch.BlockSpaceSwitch)}
+R.check(
+    "N-solve-recompute: a boost or block switch publishes its state, then hands the entry's background "
+    "task the held-plan toggle, not the publish-then-refresh helper's refresh",
+    all(v == ["published", "async_apply_held"] for v in _sg_presses.values()),
+    f"{_sg_presses}",
+)
+
+
 class _SgUpstreamDebouncer:
     """``homeassistant.helpers.debounce.Debouncer``'s call path as of 2025.2.0
     (cooldown, ``immediate=True``), the part the stub's inline one lacks.
