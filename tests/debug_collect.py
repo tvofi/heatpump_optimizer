@@ -1192,11 +1192,9 @@ R.check(
     and not any(replay_doc.numeric(v) for v in (True, "nan", "inf", float("nan"))),
     f"{[(v, a, b) for v, a, b in _numeric_split if a != b]}",
 )
-# R11-LATE-P2-REPLAY-FINITE: _number, the attribute shape every number and
-# every price-series value passes, is the same fact: it keeps a real number
-# exactly when replay_doc.numeric does, so NaN and an infinity are cut, as a
-# bare value and as a series row's value alike. Its text and bool refusals are
-# its own shape's, so the probes compare on the real numbers only.
+# R11-LATE-P2-REPLAY-FINITE: _number is the shape of every numeric attribute
+# and price-series value. It keeps a real number exactly when numeric does.
+# Its text and bool refusals are its own shape's: the probes compare numbers.
 _number_split = [(v, replay_doc._number(v) is not _D,
                   isinstance(v, (int, float)) and replay_doc.numeric(v))
                  for v in _numeric_probes if v is not None]
@@ -1232,6 +1230,16 @@ R.check(
     and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
     f"kept keys {sorted(_cleaned)}; "
     + _unrecorded(["s3cret-value", "north", "https://nas.example.se/cam"], _dropped),
+)
+_coord_drop: list = []
+R.check(
+    "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses, NaN and "
+    "an infinity in any spelling, and records the text it nulled",
+    replay_doc.clean_value({"latitude": "nan", "lat": float("inf"), "longitude": "1e400",
+                            "lon": float("-inf"), "lng": "north"}, _coord_drop)
+    == {"latitude": None, "lat": None, "longitude": None, "lon": None, "lng": None}
+    and _coord_drop == ["nan", "1e400", "north"],
+    f"{_coord_drop}",
 )
 _secret_drop: list = []
 replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
