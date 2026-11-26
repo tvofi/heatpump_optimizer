@@ -38,3 +38,4 @@
 1795654733 INIT r11-rev-3805
 1795654870 HB alive
 1795654948 CKPT setup done; delta = tests/features.py combi check + docs/claims counts; no custom_components delta snapshot 88e3ef21b768
+1795655042 CKPT figures verified; mutants running snapshot c1cffd14b849
