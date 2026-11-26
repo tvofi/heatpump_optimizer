@@ -65982,7 +65982,7 @@ R.check(
 )
 
 
-def _fl_coord(kw=1.0, how=None, attrs=None, option=None, sensor=None, low_sensor=None, unit="flow"):
+def _fcap_coord(kw=1.0, how=None, attrs=None, option=None, sensor=None, low_sensor=None, unit="flow"):
     """One pass on a two-step space plan at ``kw`` of a 0.4-2.0 kW band; the space writes."""
     coord = _PaCoord(_PA_TUYA, duties="ss")
     coord.hass.states.set("number.water_set", FakeState("40", attributes=attrs or {"min": 25, "max": 70}))
@@ -66005,7 +66005,7 @@ def _fl_coord(kw=1.0, how=None, attrs=None, option=None, sensor=None, low_sensor
 
 
 _fl_boost = {
-    name: _fl_coord(how="channel", **kw)[1]
+    name: _fcap_coord(how="channel", **kw)[1]
     for name, kw in {
         "option 46": {"option": 46}, "sensor 52, option 46": {"sensor": 52, "option": 46},
         "sensor 52, option 58": {"sensor": 52, "option": 58},
@@ -66026,7 +66026,7 @@ R.check(
     },
     f"{_fl_boost=}",
 )
-_fl_top = {o: _fl_coord(kw=2.0, option=o)[1] for o in (46, 58, None)}
+_fl_top = {o: _fcap_coord(kw=2.0, option=o)[1] for o in (46, 58, None)}
 R.check(
     "R11-OWNER-FLOWCAP: a band-top heating step is held at an option under the 55 degC heating "
     "ceiling; null controls: an option above the ceiling and no option both write the ceiling",
@@ -66035,9 +66035,9 @@ R.check(
 )
 _fl_min = {}
 for _name, _attrs in (("min 40", {"min": 40, "max": 70}), ("min 41, step 5", {"min": 41, "max": 70, "step": 5})):
-    _c, _w = _fl_coord(how="channel", option=35, attrs=_attrs)
+    _c, _w = _fcap_coord(how="channel", option=35, attrs=_attrs)
     _fl_min[_name] = (_w, _pa.state_for(_c).written["space_setpoint"][0])
-_c, _w = _fl_coord(how="channel", option=45, attrs={"min": 40, "max": 70})
+_c, _w = _fcap_coord(how="channel", option=45, attrs={"min": 40, "max": 70})
 _fl_min["option 45 over min 40"] = (_w, _pa.state_for(_c).written["space_setpoint"][0])
 R.check(
     "R11-OWNER-FLOWCAP: an option under the entity's minimum (35 under 40, and under 41 on a 5-degree step) "
@@ -66071,7 +66071,7 @@ R.check(
     _fl_over == {65: ([60], 60.0), 50: ([50], 50.0), None: ([60], 60.0)},
     f"{_fl_over=}",
 )
-_fl_part = {o: _fl_coord(kw=1.2, option=o)[1] for o in (46, None)}
+_fl_part = {o: _fcap_coord(kw=1.2, option=o)[1] for o in (46, None)}
 R.check(
     "R11-OWNER-FLOWCAP: a partial level maps on a band whose top is the limit, so it sits below both the "
     "limit and the unlimited level's value, not on the limit itself; null control: no option maps on 55",
@@ -66081,7 +66081,7 @@ R.check(
 )
 _fl_hold = {}
 for _o in (30, None):
-    _c = _fl_coord(option=_o)[0]
+    _c = _fcap_coord(option=_o)[0]
     _fl_hold[_o] = _pa._flow_target(_c.arbiter_inputs(), None, _PA_T0)
 R.check(
     "R11-OWNER-FLOWCAP: the fallback's hold stays under the limit (option 30 holds 30); null control: no "
@@ -66091,16 +66091,16 @@ R.check(
 )
 _fl_room = {}
 for _o in (46, None):
-    _c, _w = _fl_coord(option=_o, unit="indoor", attrs={"min": 5, "max": 30})
+    _c, _w = _fcap_coord(option=_o, unit="indoor", attrs={"min": 5, "max": 30})
     _fl_room[_o] = (_w, _pa._space_limit_c(_c.arbiter_inputs()))
-_fl_flow_limit = _pa._space_limit_c(_fl_coord(option=46)[0].arbiter_inputs())
+_fl_flow_limit = _pa._space_limit_c(_fcap_coord(option=46)[0].arbiter_inputs())
 R.check(
     "R11-OWNER-FLOWCAP: an indoor unit reads no high limit and writes the same room value with the option "
     "stored as without; null control: the same option on a flow unit is its limit, 46",
     _fl_room[46] == (_fl_room[None][0], None) and _fl_room[None][1] is None and _fl_flow_limit == 46.0,
     f"{_fl_room=} {_fl_flow_limit=}",
 )
-_fl_cmd = {o: _pa.flow_command(_fl_coord(kw=2.0, option=o)[0]) for o in (46, None)}
+_fl_cmd = {o: _pa.flow_command(_fcap_coord(kw=2.0, option=o)[0]) for o in (46, None)}
 _fl_at_top = {o: c is not None and c.written_c >= c.ceiling_c - _fl_dr.CEILING_TOLERANCE_K for o, c in _fl_cmd.items()}
 R.check(
     "R11-OWNER-FLOWCAP: a band-top write capped at the option is not read as commanding the pump's top "
@@ -66113,7 +66113,7 @@ R.check(
 
 
 def _fl_loop_hi(**kw):
-    coord = _fl_coord(**kw)[0]
+    coord = _fcap_coord(**kw)[0]
     run = _pa.FeedbackRun(_PA_T0, 40.0, _PA_T0)
     return _pa._feedback_bounds(_pa.state_for(coord), run, coord.arbiter_inputs(), 35.0)[1]
 
