@@ -1,0 +1,32 @@
+{
+ "key": "1111a3e5d9c44e3f",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2854 CMP_BOUND",
+ "patch": "if e <= 1e-9: -> if e < 1e-9:",
+ "function": "thermal_model",
+ "cluster": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3113.6,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_json": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/gates/1111a3e5d9c44e3f.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_1111a3e5d9c44e3f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_1111a3e5d9c44e3f.py",
+  "output": [
+   "INPUTS tried 720 exactly-1e-9 hits (-20.0, 7.93870519098195e-08)",
+   "RESULT floor_e_eq_1e-9_base=-100.0 mutant=-194.0555820506525"
+  ]
+ },
+ "should_fail": "tests/features.py/entities.py execute line 2854; no check pins mold_safe_room_floor at e == 1e-9 exactly (room -20C, rh 7.94e-08: -100.0 vs -194.06); single-point boundary, low consequence",
+ "provisional": true
+}
