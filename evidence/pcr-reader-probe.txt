@@ -1,5 +1,0 @@
-roots ['tools/audit/seat/merge_train.py', 'tools/policy/budget_raise_gate.py']
-new-only ['tests/run.sh']
-old-only ['tests']
-tests/run.sh restored in pr-contract: True
-reader of run.sh: ['    src = (ROOT / "tests/run.sh").read_text()', 'RUN_SH = ROOT / "tests" / "run.sh"']

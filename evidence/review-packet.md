@@ -1,57 +1,48 @@
 # Review packet #3902
-head: eead33b0ac600ce4f6ef250ba47166fefe8e0402
+head: 98c1e9dff262a71ce3c5285c790b4b6173dd16a9
 base: d9100de781ec174960655fdab1a5af48c303d7bd
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=139892324575 success
-arch-score / arch-score id=139904704799 success
-arm id=139888200751 skipped
-budget-raise-gate / budget-raise-gate id=139904704472 success
-cancel-superseded id=139901415805 success
-codeql id=139904706323 skipped
-codeql / Analyze (actions) id=139890761799 success
-codeql / Analyze (javascript-typescript) id=139890761747 success
-codeql / Analyze (python) id=139890761832 success
-gate id=139906690967 failure
-governance id=139904706794 skipped
-governance / env-matrix id=139890761862 success
-governance / instrument-self-tests id=139890761820 success
-governance / policy-docs id=139890761823 success
-governance / record id=139890764250 skipped
-governance / wave-script id=139890761844 success
-hassfest id=139904707512 skipped
-hassfest / hassfest id=139890761610 success
-kernel-points id=139904707464 skipped
-pr-contract id=139906693215 skipped
-prelude id=139901416370 success
-refresh id=139901416394 success
-sweep-self id=139907256708 skipped
-tests id=139904706945 skipped
-tests / arch-instrument id=139896056553 in_progress
-tests / briefs id=139890761897 success
-tests / browser id=139896056550 success
-tests / claims-autofix id=139912232085 skipped
-tests / closure-scope id=139890762046 success
-tests / closures id=139896056658 in_progress
-tests / coverage id=139896056574 in_progress
-tests / fast (3.14) id=139896056569 success
-tests / mutation id=139890761882 success
-tests / mutation-autofix id=139893960052 skipped
-tests / mutation-pins id=139893958648 skipped
-tests / nightly-ha id=139896059377 skipped
-tests / nightly-status id=139890761910 failure
-tests / replay id=139896059871 skipped
-tests / typing id=139896056576 success
-validate id=139904707791 skipped
-validate / validate-hacs id=139890761669 success
+CodeQL id=139933290395 success
+arch-score / arch-score id=139932763487 success
+budget-raise-gate / budget-raise-gate id=139932763547 success
+cancel-superseded id=139930741804 skipped
+codeql / Analyze (actions) id=139932764041 success
+codeql / Analyze (javascript-typescript) id=139932764311 success
+codeql / Analyze (python) id=139932764467 success
+governance / env-matrix id=139932765767 success
+governance / instrument-self-tests id=139932763483 success
+governance / policy-docs id=139932763686 success
+governance / record id=139932766473 skipped
+governance / wave-script id=139932763449 success
+hassfest / hassfest id=139932763360 success
+kernel-points id=139932765897 skipped
+prelude id=139930739812 success
+refresh id=139930739181 success
+tests / arch-instrument id=139935019155 in_progress
+tests / briefs id=139932763671 success
+tests / browser id=139935019104 success
+tests / claims-autofix id=139952109906 skipped
+tests / closure-scope id=139932763588 success
+tests / closures id=139935019118 in_progress
+tests / coverage id=139935019196 in_progress
+tests / fast (3.14) id=139935019022 success
+tests / mutation id=139932763798 success
+tests / mutation-autofix id=139936047629 skipped
+tests / mutation-pins id=139936047023 skipped
+tests / nightly-ha id=139935021724 skipped
+tests / nightly-status id=139932763806 failure
+tests / replay id=139935021955 skipped
+tests / typing id=139935019121 success
+validate / validate-hacs id=139932763467 success
 
 ## Refusals
 none
 
 ## Advisories
-required-wait: required context `gate` reads concluded failure at eead33b0ac600ce4f6ef250ba47166fefe8e0402 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+none
 
 ## carry_audit at the head
 NOTE body item 4ac78aa9: #3885
@@ -97,7 +88,7 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (no verdict on verdict/<pr> names the reviewed head eead33b0ac600ce4f6ef250ba47166fefe8e0402, so there is no finding to confirm resolved)
+## Review scope: full (no verdict on verdict/<pr> names the reviewed head 98c1e9dff262a71ce3c5285c790b4b6173dd16a9, so there is no finding to confirm resolved)
 
 ## Three-dot diff
 diff --git a/.gitattributes b/.gitattributes
@@ -2849,10 +2840,18 @@ index e714e063d7..2c1af0cebd 100644
  
  
 diff --git a/tests/closures.json b/tests/closures.json
-index 244e2086d3..10d2df2faa 100644
+index 244e2086d3..c84cf9bf5b 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -1580,6 +1580,7 @@
+@@ -951,6 +951,7 @@
+    "custom_components/heatpump_optimizer/runs.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/services.py",
++   "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "custom_components/heatpump_optimizer/silent_mode.py",
+    "custom_components/heatpump_optimizer/slab_seed.py",
+@@ -1580,6 +1581,7 @@
     "tests/card_browser.mjs",
     "tests/card_drift.mjs",
     "tests/card_rig.mjs",
@@ -2860,7 +2859,7 @@ index 244e2086d3..10d2df2faa 100644
     "tests/ci_ratchet.py",
     "tests/closures.json",
     "tests/comment_ratchet.py",
-@@ -2002,6 +2003,7 @@
+@@ -2002,6 +2004,7 @@
     "tests/backtest.py",
     "tests/block_duty.py",
     "tests/boost_drift_replay.py",
@@ -2868,7 +2867,15 @@ index 244e2086d3..10d2df2faa 100644
     "tests/ci_budgets.json",
     "tests/ci_ratchet.py",
     "tests/closures.json",
-@@ -4928,6 +4930,10 @@
+@@ -2304,6 +2307,7 @@
+    "tools/ci/prelude.py",
+    "tools/ci/ruleset_cutover.py",
+    "tools/ci/selftest_scope.py",
++   "tools/ci/shards.py",
+    "tools/ci/sweep.py",
+    "tools/ci/sweep_selftest.py",
+    "tools/coverage/coverage_tree.sh",
+@@ -4928,6 +4932,10 @@
     "dev/audit/harnesses/r11_comments_ratchet_mutants.py",
     "dev/audit/harnesses/r11_comments_ratchet_reconcile.py",
     "dev/audit/harnesses/r11_denominator_planted.py",
@@ -2879,6 +2886,33 @@ index 244e2086d3..10d2df2faa 100644
     "dev/audit/harnesses/r11_honest_starts_runs.py",
     "dev/audit/harnesses/r11_kernel_step_agree.py",
     "dev/audit/harnesses/r11_main_cancel_mutants.py",
+@@ -6250,7 +6258,7 @@
+   },
+   "tests/block_duty.py": {
+    "rc": 0,
+-   "seconds": 8.3
++   "seconds": 19.8
+   },
+   "tests/boost_drift_replay.py": {
+    "rc": 0,
+@@ -6294,7 +6302,7 @@
+   },
+   "tests/entities.py": {
+    "rc": 0,
+-   "seconds": 1338.1
++   "seconds": 2691.9
+   },
+   "tests/env_drift.py": {
+    "rc": 0,
+@@ -6326,7 +6334,7 @@
+   },
+   "tests/harness_headers.py": {
+    "rc": 0,
+-   "seconds": 159.7
++   "seconds": 320.0
+   },
+   "tests/layout.py": {
+    "rc": 0,
 diff --git a/tests/derive_closures.sh b/tests/derive_closures.sh
 index 607a3a569c..7eed36b73d 100755
 --- a/tests/derive_closures.sh
