@@ -7,7 +7,7 @@ KILLED hold-after dropped (fault_hold.py): 9 failing
     - null control: the same OFF with the alarm on for 9 minutes passes, unmarked  [(None, True)]
     - null control: the alarm on for 7 minutes, the same reading cuts  [([], 'fault')]
     - null control: the alarm on for 5 minutes, the displace is published  [([], ['pump_fault_hold'])]
-KILLED unbounded read (fault_hold.py): 24 failing
+KILLED unbounded read (fault_hold.py): 25 failing
     - a fault alarm on for 11 minutes: the control pass writes nothing into the pump  [[('select', 'select_option', 'DHW (Hot Water)'), ('number', 'set_valu
     - a step boundary under the hold writes no mode  [[('select', 'select_option', 'Heating')]]
     - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([('number', 'set_value', 48)], {}, [], 53.0)]
@@ -60,7 +60,7 @@ KILLED gate held mark (fault_hold.py): 2 failing
     - the cycle's OFF under the hold is left, and the step tick writes it once the alarm clears  [{0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 'cutoff_entry':
 KILLED release clears (fault_hold.py): 1 failing
     - and cleared on its falling edge, at Off and at unload  [{'rise': ['pump_fault_hold'], 'fall': [], 'off': [], 'unload': (True, ['pump_fault_hold']), 'r
-KILLED apply consult (pump_arbiter.py): 15 failing
+KILLED apply consult (pump_arbiter.py): 16 failing
     - a fault alarm on for 11 minutes: the control pass writes nothing into the pump  [[('select', 'select_option', 'DHW (Hot Water)'), ('number', 'set_valu
     - a step boundary under the hold writes no mode  [[('select', 'select_option', 'Heating')]]
     - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([('number', 'set_value', 48)], {}, [], 53.0)]
@@ -78,8 +78,9 @@ KILLED space_before drop (pump_arbiter.py): 1 failing
     - drift under the hold is not re-sent, and the retry and the ignored-write warning are dropped  [([], {}, [], 53.0)]
 KILLED _lead_mode skip (pump_arbiter.py): 1 failing
     - a switch-on under the hold writes no mode ahead of it  [[('select', 'select_option', 'DHW (Hot Water)')]]
-KILLED release row skip (pump_arbiter.py): 1 failing
+KILLED release row skip (pump_arbiter.py): 2 failing
     - unload under the hold writes no baseline row, and drops the latch  [([('select', 'select.pump_mode', 'Heating + DHW')], False)]
+    - the unload's held mark lasts only until the entry's next consult: the next unload writes the owed row  [[]]
 KILLED ledger faulted mark (pump_arbiter.py): 2 failing
     - CRASH TypeError: observe() missing 1 required keyword-only argument: 'faulted'
     - CRASH TypeError: observe() missing 1 required keyword-only argument: 'faulted'
@@ -117,6 +118,14 @@ KILLED publish mode_off (heat_curve.py): 1 failing
     - the Off displace under a held latch is published, and clears the latch and the fault repair  [(([], True), ([], True, ['pump_fault_hold']))]
 KILLED diagnostics since (fault_hold.py): 1 failing
     - the diagnostics row's since is the latch's start, the alarm's last change  [{-30: None, -45: None}]
-RESULT mutants=38
+KILLED unload mark set (fault_hold.py): 2 failing
+    - unload under the hold writes no baseline row, and drops the latch  [([('select', 'select.pump_mode', 'Heating + DHW')], False)]
+    - the unload's held mark lasts only until the entry's next consult: the next unload writes the owed row  [[]]
+KILLED unload mark read (fault_hold.py): 2 failing
+    - unload under the hold writes no baseline row, and drops the latch  [([('select', 'select.pump_mode', 'Heating + DHW')], False)]
+    - the unload's held mark lasts only until the entry's next consult: the next unload writes the owed row  [[]]
+KILLED unload mark cleared (fault_hold.py): 1 failing
+    - the unload's held mark lasts only until the entry's next consult: the next unload writes the owed row  [[]]
+RESULT mutants=41
 RESULT survived=0
 EXIT 0
