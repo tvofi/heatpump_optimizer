@@ -935,7 +935,8 @@ def self_test() -> int:
         return None if args[0].endswith("/rerun-failed-jobs") else {}
     held = {501: {"pr": 11, "cause_pr": 10, "cause_run": 500, "at": 1000.0}}
     with contextlib.redirect_stdout(io.StringIO()):
-        r3 = priority_step(pstub_refuse, repo=REPO, plan_=nop, held=held, allow_cancel=True, now=1100.0)
+        r3 = priority_step(pstub_refuse, repo=REPO, plan_=nop, held=held, allow_cancel=True,
+                           now=1000.0 + HELD_MAX_AGE_S)  # the age bound itself: still re-run
     check("priority L7: a refused failed-only re-run falls back to the whole run, once",
           (r3["rerun"], pposts, held),
           (1, [f"repos/{REPO}/actions/runs/501/rerun-failed-jobs", f"repos/{REPO}/actions/runs/501/rerun"], {}))
