@@ -624,12 +624,17 @@ PY
   return 1
 }
 
-# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
-# statically -- no test or mutant runs, and the one recording is a changed
-# file's own self-test a gate script runs (SELF-TEST READS, the fifth
-# argument), so it costs seconds where
-# step 6b's recordings cost the scoped scripts' run time and are left to CI
-# under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
+# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff. Its
+# default arms read the diff statically; the fifth argument adds the gated
+# arms (`GATED_ARMS`), which run code: a changed file's own self-test a gate
+# script runs (SELF-TEST READS), every program of each restoring job the diff
+# keys (GRADER, its jobs side by side), each instrument-self-tests step the
+# diff keys (STEP REPLAY, bounded by HPO_STEP_REPLAY_BUDGET_S, the rest left
+# to CI) and SELFTEST SCOPE. It costs seconds only on a diff keying none of
+# them: one the gate cannot scope runs GRADER's slowest job for minutes, which
+# dev/audit/rca/open_prepr_6d.sh times at one head (R10-RCA-OPEN-PREPR-SLOW,
+# C4). Step 6b's recordings are left to CI under the owner's heavy-scripts
+# rule (2026-10-07). It predicts `closures`'s
 # UNDER-SCOPED and INERT READS, entities' unclassified file and
 # a STALE PIN the diff itself stales (a stale pin main carries only warns),
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
@@ -648,7 +653,7 @@ predict_line() { # base ref, [file the unpinned site keys are written to], [body
   fi
   local bf=""; [ -n "${3:-}" ] && [ -f "$3" ] && bf=$3   # pr-contract's carry check, when a body exists
   [ -n "${4:-}" ] && only="--only $4"   # a caller that needs one arm's answer, not every arm's
-  [ -n "${5:-}" ] && rec="--record-self-tests"   # 6d itself: the one arm that runs code (SELF-TEST READS)
+  [ -n "${5:-}" ] && rec="--record-self-tests"   # 6d itself: the gated arms, which run code (`GATED_ARMS`, above)
   # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"; $rec is empty or one flag
   out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only $rec 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
@@ -4216,11 +4221,34 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   case "$out" in *'| AssertionError: the failing line'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and the refusal's failing lines"
   lg=$(sed -n '$s/.*full log: \([^ ]*\) .*/\1/p' <<<"$out")
-  case "$(tail -1 <<<"$out")" in 'PRE-PR: deadbeef 01 rc=1; full log: '"$SM"/prepr-log.*) r=0 ;; *) r=1 ;; esac
+  case "$(tail -1 <<<"$out")" in 'PRE-PR: deadbeef 01 rc=1 elapsed='[0-9]*'s; full log: '"$SM"/prepr-log.*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "the last line is the result with rc, naming a unique log under TMPDIR"
   [ -f "$lg" ] && [ -n "$(sed -n '/test_one PASSED/p' "$lg")" ]; st $? 0 "and that log holds the full output"
   out=$(sdrv 1); case "$out" in *'test_one PASSED'*'REFUSE   loud'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "PREPR_VERBOSE=1 prints the full output on stdout"
+  # C3 (dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md): each step line leads its
+  # detail with the step's elapsed seconds, measured from the verdict line
+  # before it, and the result line carries the run's.
+  out=$(TMPDIR="$SM" bash -c "$sfn"'
+    rc=0 digest="" ORDER="" PREPR_LOG="" LOG_MARK=0 STEP_MARK=$SECONDS; summary_start
+    sleep 2; step "slow" 0 "slept"; step "noop" 0 "did nothing"; SECONDS=1000; summary_end deadbeef')
+  t=$(sed -nE 's/^  ok +slow +\[([0-9]+)s\] slept$/\1/p' <<<"$out")
+  [ "${t:-0}" -ge 2 ]; st $? 0 "a step stubbed to sleep 2 s prints an elapsed of at least 2 (C3)"
+  t=$(sed -nE 's/^  ok +noop +\[([0-9]+)s\] did nothing$/\1/p' <<<"$out")
+  case "$t" in 0|1) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a no-op step after it prints 0 or 1, so the field times the step, not the run (C3's null control)"
+  t=$(sed -nE 's/^PRE-PR: deadbeef 00 rc=0 elapsed=([0-9]+)s; .*/\1/p' <<<"$out")
+  case "$t" in 1000|1001) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the result line carries the run's elapsed read from the clock: SECONDS set to 1000 before summary_end prints 1000 or 1001, so a constant fails"
+  # The main flow's own stdout result line, run with the clock driven and git
+  # stubbed: its elapsed is the clock read, neither a constant nor absent.
+  pl=$(sed -n '/^echo "PRE-PR: /p' <<<"$flow")
+  out=$(bash -c 'git() { echo cafe; }; digest=07; SECONDS=730; '"$pl")
+  case "$out" in 'PRE-PR: cafe 07 elapsed='73[01]s) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the main flow's stdout PRE-PR line carries the run's elapsed from the clock (SECONDS=730 prints 730 or 731)"
+  out=$(bash -c 'git() { echo cafe; }; digest=07; SECONDS=40; '"$pl")
+  case "$out" in 'PRE-PR: cafe 07 elapsed='4[01]s) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a different clock (SECONDS=40) prints 40 or 41, so the field tracks the clock"
   case "$flow" in *'step "merge-base" 0 "$BASE"
 summary_start'*'summary_end "$(git rev-parse HEAD)"
 exit $rc'*) r=0 ;; *) r=1 ;; esac
@@ -4372,19 +4400,24 @@ ORDER=""
 # verdict line, each refusal's own log lines (`refusal_lines`), and the result
 # line naming the log. `PREPR_VERBOSE=1` or `--verbose` keeps today's stdout.
 # Both pushers that run this mode read its rc alone, never its stdout.
-PREPR_LOG="" LOG_MARK=0
+# STEP_MARK is bash's $SECONDS at the last verdict line, so a step line's
+# elapsed field (`step`) is the time since the line before it, read with no
+# spawn: the step's own cost, not the run's (R10-RCA-OPEN-PREPR-SLOW, C3).
+PREPR_LOG="" LOG_MARK=0 STEP_MARK=$SECONDS
 say() {
   local l; l=$(printf '  %-8s %-22s %s' "$1" "$2" "${3:-}")
   printf '%s\n' "$l"; [ -z "$PREPR_LOG" ] || printf '%s\n' "$l" >&3
   [ -z "$PREPR_LOG" ] || LOG_MARK=$(wc -l <"$PREPR_LOG")
+  STEP_MARK=$SECONDS
 }
 refusal_lines() { # -> fd 3: the last 40 log lines since the previous verdict
   [ -n "$PREPR_LOG" ] || return 0
   tail -n +"$((LOG_MARK + 1))" "$PREPR_LOG" | tail -40 | sed 's/^/    | /' >&3
 }
-step() { # name, rc, detail
+step() { # name, rc, detail; the detail is led by the step's elapsed seconds
+  local t="[$((SECONDS - ${STEP_MARK:-0}))s]"
   digest="${digest}$2"
-  if [ "$2" -eq 0 ]; then say ok "$1" "${3:-}"; else refusal_lines; say REFUSE "$1" "${3:-}"; rc=1; fi
+  if [ "$2" -eq 0 ]; then say ok "$1" "$t ${3:-}"; else refusal_lines; say REFUSE "$1" "$t ${3:-}"; rc=1; fi
 }
 summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; none under PREPR_VERBOSE=1
   [ "${PREPR_VERBOSE:-}" != 1 ] || return 0
@@ -4394,7 +4427,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
 summary_end() { # head sha -> the result line on fd 3, naming the log
   [ -n "$PREPR_LOG" ] || return 0
   [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3
-  echo "PRE-PR: $1 $digest rc=$rc; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
+  echo "PRE-PR: $1 $digest rc=$rc elapsed=${SECONDS}s; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
 }
 
 # --- 0. the body is not in a root other seats write to (`shared_root` above).
@@ -4804,7 +4837,8 @@ fi
 # --- 6d. the CI reds a static read of the diff predicts (`predict_line`), and
 # the reads each changed file's own self-test makes in a gate script that runs
 # it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
-# seconds per such file, none on a diff that changes none.
+# seconds per such file, none on a diff that changes none; the other gated
+# arms' cost is `predict_line`'s comment's.
 UNPINNED_SITES=/tmp/prepr-unpinned.$$
 if [ -z "$REUSE" ]; then  # under PREPR_SKIP_CODE, `merged_steps` runs it on the merged tree
 PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)
@@ -5024,6 +5058,6 @@ fi
 rm -f "${UNPINNED_SITES:-}"
 receipt_write "$rc" "${BODY:-}" "$RUN_START"
 echo
-echo "PRE-PR: $(git rev-parse HEAD) $digest"
+echo "PRE-PR: $(git rev-parse HEAD) $digest elapsed=${SECONDS}s"
 summary_end "$(git rev-parse HEAD)"
 exit $rc

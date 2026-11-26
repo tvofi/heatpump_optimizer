@@ -141,7 +141,7 @@ def store_arm() -> None:
     house = sysid.HousePlant(ua=0.35, capacity=12.0, gains=0.3)
     for night in range(3):
         start = datetime(2026, 1, 10, 23, 0, tzinfo=timezone.utc) + timedelta(days=8 * night)
-        s = sysid.SystemIdentification(sysid.SysIdConfig(enabled=True))
+        s = sysid.SystemIdentification(sysid.SysIdConfig())
         if not s.arm(start, learner_samples=482, probe=store):
             print("store: night", night, "refused:", s.result.reason)
             return

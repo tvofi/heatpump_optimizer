@@ -45,6 +45,11 @@ from heatpump_optimizer.thermal_model import InstallCapability, ThermalParameter
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--perturb-floor", action="store_true")
+# R11-SEAM-learners companion: 60 run samples leave 29 asked at the configured floor, under
+# draw_range.MIN_SAMPLES (48), so the floor in force stays the configured 1.0 kW and the fix
+# (which reads the floor in force, never DrawRange.observed()) rightly leaves the cell alone.
+# More samples learn the floor the plan uses; the default keeps the finder's figures.
+ap.add_argument("--run-samples", type=int, default=60)
 A = ap.parse_args()
 
 if A.perturb_floor:
@@ -73,10 +78,22 @@ T0 = 1_800_000_000.0
 rng = np.random.default_rng(11)
 
 
+def _ceiling_ask(d, drawn):
+    """The coordinator's ceiling ask (``coordinator._ceiling_frozen``) on a clean cycle: the
+    production predicate on draw_range's evidence. Empty where the tree has neither (a
+    baseline export), so the same file runs at both ends."""
+    try:
+        from heatpump_optimizer import learning_freeze as lf
+    except ImportError:
+        return {}
+    ev = lf.Evidence(at_running_floor=draw_range.at_running_floor(d, drawn))
+    return {"ceiling_frozen": lf.reason(lf.Facts(), (), lf.Sample.CEILING, ev) is not None}
+
+
 def run(cell, top):
     d = draw_range.DrawRange()
     t = T0
-    for k in range(60):
+    for k in range(A.run_samples):
         ask = rng.uniform(1.0, 6.0) if cell == "uncensored" else rng.uniform(1.0, 1.4)
         drawn = max(ask, 1.5) if cell == "uncensored" else 1.5
         drawn = min(drawn, top)
@@ -86,7 +103,7 @@ def run(cell, top):
     for k in range(14):
         drawn = top if cell == "uncensored" else 1.5
         draw_range.fold(d, drawn, (6.0, 0.0), P, frozen=False, distorted=False, defrost=False,
-                        command=CEIL, experiment_s=t)
+                        command=CEIL, experiment_s=t, **_ceiling_ask(d, drawn))
         t += 1800.0
     band = draw_range.solve_band(d, P, CAP, t)
     pr = draw_range.planned_range(d, P, CAP)
