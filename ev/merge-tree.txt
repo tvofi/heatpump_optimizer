@@ -1,0 +1,6 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (302 entries)
+  closures.tests/entities.py: merged as a set (603 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+e5acd9d885b43128b367fec5c204830ec1dd7c9a

@@ -1,0 +1,18 @@
+KILLED run.sh shard_of default 1->2 rc=1 | FAIL #3902: run.sh's routing over a 2-shard plan runs every script once across the shards, an unnamed one in shard 1: got ((0, ['tests/a.py', 'tests/c
+KILLED run.sh owner test inverted rc=1 | FAIL #3902: run.sh's routing over a 2-shard plan runs every script once across the shards, an unnamed one in shard 1: got ((0, ['tests/b.py']), (0, [' / FAIL #3902: ... and over a 3-shard plan, each shard exactly its own: got [(0, ['tests/a.py', 'tests/c.py', 'tests/d.mjs']), (0, ['tests/a.py', 'tests/
+KILLED run.sh refused plan returns 0 rc=1 | FAIL #3902: run.sh refuses a shard its plan does not hold, and runs nothing: got (0, ['tests/a.py', 'tests/b.py', 'tests/c.py', 'tests/d.mjs']), want 
+KILLED run.sh no shard skip rc=1 | FAIL #3902: run.sh's routing over a 2-shard plan runs every script once across the shards, an unnamed one in shard 1: got ((0, ['tests/a.py', 'tests/b / FAIL #3902: ... and over a 3-shard plan, each shard exactly its own: got [(0, ['tests/a.py', 'tests/b.py', 'tests/c.py', 'tests/d.mjs']), (0, ['tests/
+KILLED run.sh shard_setup ignores FAST_SHARD rc=1 | FAIL #3902: run.sh's routing over a 2-shard plan runs every script once across the shards, an unnamed one in shard 1: got ((0, ['tests/a.py', 'tests/b / FAIL #3902: ... and over a 3-shard plan, each shard exactly its own: got [(0, ['tests/a.py', 'tests/b.py', 'tests/c.py', 'tests/d.mjs']), (0, ['tests/
+KILLED prelude owed_needs unsharded rc=1 | FAIL #3902: a completed sharded run is judging: got False, want True / FAIL #3902: owed_needs owes every shard of the listed count, not the unsharded name: got ['tests / fast (3.14)'], want ['tests / fast (3.14, 1/3)', 't
+KILLED gate status old present-shards rc=1 | FAIL #3902: a sharded push run whose listing lacks one shard reads PRODUCT unread, never green: got ('green', 'green'), want ('unread', 'green')
+SURVIVED sweep drop is_fast rc=0 | 
+KILLED probe_bridge LANE only rc=1 | 
+SURVIVED probe_bridge ratio floor always half rc=0 | 
+KILLED replan no fold rc=1 | FAIL #3902: a sharded fast lane is one row, first shard start to last shard end, red when one is: {'fast (3.14, 2/2)': {'job': 12, 'minutes': 39.0, 'c / FAIL #3902: a commit missing one shard of its count has no fast row (its null): {'fast (3.14, 1/2)': {'job': 11, 'minutes': 30.0, 'conclusion': 'succe
+KILLED replan fold ignores missing shard rc=1 | FAIL #3902: a commit missing one shard of its count has no fast row (its null): {'fast (3.14)': {'job': 11, 'minutes': 30.0, 'conclusion': 'success',  / FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+KILLED owed_fast mixed counts -> union rc=1 | FAIL #3902: owed_fast owes every shard of the one listed count, else the unsharded name: got [['tests / fast (3.14, 1/3)', 'tests / fast (3.14, 2/3)',
+SURVIVED owed_fast ignore prefix rc=0 | 
+KILLED is_fast unanchored rc=1 | FAIL #3902: is_fast reads the unsharded job, a shard and their caller-prefixed names, and nothing else: got [True, True, False, False, True, False], w
+KILLED READERS drops gate.py rc=1 | FAIL #3902: every file naming the fast job is routed in READERS, and every READERS file names it: got (['tools/ci/gate.py'], []), want ([], [])
+KILLED sweep drop is_fast (re-run via sweep.py --self-test) rc= 1 ["FAIL stale pin, #3902: a red fast shard is the fast unit's red: nothing dispatched, the shard named"]
+unmutated sweep.py --self-test rc= 0 sweep self-test: 124 checks, 0 failed
