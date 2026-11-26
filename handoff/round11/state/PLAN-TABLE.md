@@ -211,8 +211,8 @@ gantt
 | R11-D3-PINS-inputs | CORE | 2 | not-started | #3755, #3917 | opus/opus | - | Tests-only pins for the input boundary seam: 23 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/... |  |
 | R11-D3-PINS-money | CORE | 1 | not-started | #3755, #3918 | opus/opus | - | Tests-only pins for the money seam: 40 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-judg... |  |
 | R11-D3-PINS-plant | CORE | 1 | not-started | #3755, #3919 | opus/opus | - | Tests-only pins for the plant model seam: 46 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wav... |  |
-| R11-D3-PINS-solver | CORE | 3 | not-started | #3755 | opus/opus | - | Tests-only pins for the solver seam: 131 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-ju... |  |
-| R11-D3-PINS-sysid | CORE | 2 | not-started | #3755 | opus/opus | - | Tests-only pins for the learners seam: 62 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-j... |  |
+| R11-D3-PINS-solver | CORE | 3 | not-started | #3755, #3920 | opus/opus | - | Tests-only pins for the solver seam: 131 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-ju... |  |
+| R11-D3-PINS-sysid | CORE | 2 | not-started | #3755, #3921 | opus/opus | - | Tests-only pins for the learners seam: 62 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-j... |  |
 
 ## ETA
 
