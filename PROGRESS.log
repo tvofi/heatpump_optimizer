@@ -20,3 +20,4 @@
 1795654889 DONE verdict merge 49658957 pending-ci: gate pushed probe/rev-3882-a4cb488b f5c4ebb8
 1795659622 HB alive
 1795659874 CKPT verdict pushed 97561fbb blocked merge-conflict snapshot 6d881f516389
+1795659877 DONE blocked 49658957 merge-conflict: tests/deployment_shape.py vs main dbdc520e; probe 97561fbb
