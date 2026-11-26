@@ -1,9 +1,0 @@
-98c1e9dff262a71ce3c5285c790b4b6173dd16a9 eead33b0ac600ce4f6ef250ba47166fefe8e0402 github-actions[bot] 2026-11-26 13:07:33 +0000 ci: re-record closures
- tests/closures.json | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
---- review_carry
-  branch-only commits: 1
-  why: 1 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
-  98c1e9dff  ci: re-record closures
-review_carry: CARRY
-rc=0
