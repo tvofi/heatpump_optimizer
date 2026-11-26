@@ -40,3 +40,4 @@
 1795685719 CKPT delta reviewed: resolutions union, merge-tree clean, CI GREEN; awaiting features/structure runs snapshot e1101b1fbe5b
 1795685975 HB alive
 1795686579 HB alive
+1795687107 DONE merge 3da1655391: independent re-review agrees with existing probe verdict cdaef8259a; own commit 3f9a437843 not pushed (non-fast-forward)
