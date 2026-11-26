@@ -27,6 +27,20 @@ R11-CI-CASE-SELECT P2 as the owner directed on 2026-11-25 ("Do the sharding", th
   - `status()` reads the shards in place of the one job.
   - `gate` is still the only required check, and it still aggregates through `needs: [prelude, pr-contract]`.
 - **`governance.yml` instrument-self-tests** gains `ci-shards`, which runs `tools/ci/shards.py --self-test`. It has no `tools/ci/selftest_closures.json` entry yet: the table reads stale, so pull requests run every step, and the next main push measures the step and `selftest-absorb` commits its entry (`selftest_scope.py` THE BOT'S HALF). `tests/closures.json` records the three new harnesses as `harness_headers.py` inert reads (`ci_predict.py --apply-inert`).
+- **Readers of the fast job name (#3902 review, class-open).** The rule: every file under `tools/`, `tests/` and `.github/` whose text names the job (`fast (3.14`) is a reader. `shards.READERS` routes each of the 45 such files to one disposition, and `shards.py --self-test` greps the tree and refuses a file missing from it or listed there and no longer naming the job (it caught this PR's own new `sweep.py` comment). The name is read through one owner, `shards.FAST`, `is_fast` and `owed_fast`; `gate.FAST` and `prelude.UNITS` take it from there.
+  - Fixed (`sharded`, 8 files):
+    - `prelude.owed_needs`: the fast lane owes every `tests / fast (3.14, K/N)` of the one count the run lists, else the unsharded name. `judging()` and `requeued()` read it, and so do their callers `gate.busy`, `prelude.wait_sources` and `sweep.py`. A completed sharded run was read as not judging before the fix.
+    - `gate.status`: it owes every shard of the listed count, so a listing missing one reads unread.
+    - `sweep.code_red`: a red shard is the fast unit's red, so a STALE-PIN dispatch is not fired over it.
+    - `probe_bridge.bridge`: a successful shard implies a reference over the scripts it ran.
+    - `replan._ingest_check_runs`: the shards fold into one `fast (3.14)` row, running from the first shard's start to the last one's end and red when any shard is red. A commit missing a shard has no row; before the fix, a sharded main gave no rows and the median raised.
+    - `ci.yml`, `tests.yml`, `gate.py` and `shards.py` emit or read the shard names themselves.
+  - Unaffected:
+    - `ruleset` (4): `merge_train.py`, `orchestrator_tick.py`, `record_row.py` and `ci-watch.sh` read the required set from the ruleset, which requires `gate` alone (main-protect-checks, read 2026-11-26). Their lines naming the job are self-test fixtures.
+    - `generic` (3): `tests/ci_ratchet.py` counts every `tests / ` job and prices by probe step; `ci_critpath.py`'s `MATRIX_RE` maps `fast (3.14, K/N)` to job `fast`; `policy_lint.mjs` asks the body to name each red check by its own name.
+    - `label` (1): `ci_predict.py`'s `JOB["fast"]` is the lane named in a PREDICT line, never matched against a listing.
+    - `fixture` (22) and `prose` (7).
+- **`tests/run.sh` routing, driven in CI (#3902 review, mutation-vacuous).** The shard block is the function `shard_setup`. `shards.py --self-test` sources `shard_setup`, `shard_of`, `run_always` and `skip` from run.sh, stubs only the lease, and drives them over a 2-shard and a 3-shard fixture plan. It checks that every script runs exactly once across the shards, that an unnamed script runs in shard 1, that no shard runs everything, and that `3/2` is refused with nothing run. The step is governance's `ci-shards`.
 - **`tests/closure.py` `PRODUCERS`** gains `tests/setup_qa_render.mjs` -> `plan_view.py`. run.sh's lane_e2e runs it on the payload `plan_view.py` writes. It is not selectable (`NOT_A_TEST`), so only `lane_edges` reads the entry.
 
 Bootstrap. On a pull request the prelude and the gate run the base's `tools/ci/*.py`. This PR's own runs therefore get no plan, run the one unsharded `fast (3.14)`, and are judged by the base gate as before. Sharding first runs on the push to main that merges this, where both programs are the head's.
@@ -37,7 +51,7 @@ Code-owned paths: `.github/workflows/ci.yml` and `tests.yml`. The owner's approv
 
 ## Head
 
-`a486d863340304d6f6a37d2deaa28380fa0cd70f`, on `origin/handoff/r11-ci-case-select` 58c73880 merged with `origin/main` 91f6e91b (merge ea95bdd3). Measured 2026-11-25T22:43Z.
+`5f068649ae921257a4725846fd0fc4d0ec0b75be`: the reviewed head `f03b95f36ebcb0cc4481ca138c953a96f951f269` plus two commits, the fast-job readers and run.sh routing (fc14b732) and the readers harness's inert read (5f068649). Review delta: `git diff f03b95f3 5f068649`, 10 files. Everything else below was measured at `a486d863340304d6f6a37d2deaa28380fa0cd70f`, the code head before the delta. The readers figures were measured at this head on 2026-11-26.
 
 ## Mutation proof
 
@@ -51,11 +65,23 @@ Code-owned paths: `.github/workflows/ci.yml` and `tests.yml`. The owner's approv
 - closure.PRODUCERS without the setup render: `FAIL every payload reader shares the writer's shard: got {2, 4}, want {4}`.
 - prelude, planner outputs not emitted: `FAIL P2: the prelude emits the planner's two outputs`.
 
+Readers (#3902 review): `python3 dev/audit/harnesses/r11_fast_shards_readers.py <detached worktree at fc14b732>` reverts each reader's fix in place, or plants the review's run.sh mutant, runs that reader's own self-test, and restores the file. Its output is `BASELINE gate=green prelude=green probe=green replan=green shards=green sweep=green`, then `READERS MUTANTS: 7 of 7 killed`:
+- review's run.sh mutant (`${FAST_SHARD%/*}` to `${FAST_SHARD#*/}`): killed by the 2- and 3-shard routing checks.
+- prelude, fast owed as the unsharded name: killed (`a completed sharded run is judging`, `owed_needs owes every shard`, `a re-run's re-queued shard is requeued`).
+- gate.status, the listed shards only: killed (`a sharded push run whose listing lacks one shard reads PRODUCT unread`).
+- sweep.code_red, required names only: killed (`a red fast shard is the fast unit's red`).
+- probe_bridge, the unsharded lane only: killed (`two fast shards ... each imply 20 s`).
+- replan, shards not folded: killed (`a sharded fast lane is one row`).
+- census, a reader dropped from READERS: killed.
+
+Each reverted fix is the reading at f03b95f3, so these are the new checks failing first. Baselines at 5f068649: gate 133/0, prelude 153/0, shards 28/0, sweep 124/0, probe_bridge 10/0, replan `self-test: 0 failed`.
+
 Failing first: the gate's 9 new checks read FAIL before `fast_names` existed (`gate self-test: 130 checks, 9 failed`). The payload-reader check read FAIL before the PRODUCERS entry. Baseline: gate 132/0, shards 21/0, prelude 147/0.
 
 ## Null control
 
 - run.sh routing, driven as `r11_fast_shards_random.sh` drives it (CI's env, one shard per run). A 2-shard plan run as `HPO_FAST_SHARD=1/2` ran its 4 scripts, skipped 30 by name, printed `SHARD 1/2: 4 TEST SCRIPT(S) PASSED HERE`, and exited 0. The same plan run as `3/2` printed `shards: REFUSE shard 3/2 does not belong to a plan of 2 shard(s)` and `SHARD: REFUSED`, and exited 1 with no script run.
+- Readers: each fixed reader's unsharded case still passes beside the new check: `a completed unsharded run is judging`, `run.sh with no shard runs every script`, and a job only resembling a shard name implies nothing in probe_bridge.
 - Shard balance against a random assignment (Figures).
 - Split assessment against the same split with `needs` dropped (Figures).
 
@@ -78,9 +104,11 @@ Prices are CI medians over the closing wall-clock tables of the 14 FULL `tests /
   | `tests/stress.py` | 302 s | no / no | out of scope by the design (its memory pass is one span) | - | - | - |
 
   Follow-up: features.py is the critical path. Splitting it soundly needs fewer `needs` edges (the `@random` chain), not a different splitter. Carry: #3885.
-- Independence: unmeasured, running. `bash dev/audit/harnesses/r11_fast_shards_random.sh 1 OUT 3` (seed 1, 3 random shards, PRODUCERS groups drawn whole) is running on the seat host at this head; its per-shard rc and the RAN/TWICE lines replace this line on this body ref when it ends.
+- Independence: unmeasured, running. Shard 1/3 so far exited 1, on two host conditions rather than an ordering: `typing_ruler.py`'s `mypy is pinned at 2.4.1 [found 2.3.1]` (this host's interpreter), and `card.mjs`'s V8 heap running out at 2 GB on the loaded host (exit 250, `ENDED BEFORE ITS SUMMARY`). `bash dev/audit/harnesses/r11_fast_shards_random.sh 1 OUT 3` (seed 1, 3 random shards, PRODUCERS groups drawn whole) is running on the seat host at this head; its per-shard rc and the RAN/TWICE lines replace this line on this body ref when it ends.
 - Architecture score: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL` (no scored production file changed)
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 443 checks PASSED`; `pairnote_check.py --repo . --ref HEAD`: `PAIRNOTE OK HEAD: 184 of 561 pairs, 122 files`.
+
+Prepr at 5f068649: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` exits 0. `ci_predict.py --base origin/main` then predicts no closures, fast, governance or instrument red. `structure.py`: `STRUCTURE RATCHET PASSED`. `comment_ratchet.py --base origin/main`: `comment_ratchet: OK`. `harness_headers.inline_scan()` exits 0.
 
 Gate scope: `closure.py select` reads `MODE: FULL` for this diff (`tests/run.sh`, `tests/closure.py`, `tools/ci/`, `tests.yml` and `ci.yml` are gate files). The randomized run above runs every script once, across its three shards, so it is the local full gate. CI runs the rest.
 
