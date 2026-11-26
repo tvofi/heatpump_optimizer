@@ -26,3 +26,4 @@
 1795677630 CKPT delta read, figures re-derived, features base+m3 and gates running snapshot fe917fee0938
 1795678036 HB alive
 1795678640 HB alive
+1795678690 CKPT review complete: m3 killed by T6b, gates green locally; waiting on classify snapshot ddf700c843f5
