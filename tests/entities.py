@@ -33984,7 +33984,8 @@ R.check(
 # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
 _PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
 _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
-_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+# A chained read, ROOT / "tests" / "run.sh", is the one file tests/run.sh, never the directory.
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT((?:\s*/\s*\"[^\"]+\")+)", re.M)
 
 
 def _pcr_spawned(mjs: str) -> "list[str]":
@@ -34005,7 +34006,7 @@ def _pcr_closure(roots) -> "list[str]":
         text = Path(f).read_text()
         todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
                  if Path(q).is_file()]
-        todo += _PCR_READ.findall(text)
+        todo += ["/".join(re.findall(r'"([^"]+)"', m)) for m in _PCR_READ.findall(text)]
     return sorted(seen)
 
 
