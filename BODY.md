@@ -6,6 +6,21 @@ Builds the approved design `design/R11-OWNER-MODE-LEGS` 0e59437a (rev 2, verdict
 
 ## Head
 
+`6e1c645f65f7633af41d4a751a9103742725480b` re-keys 9 `## Unpinned sites` line(s) that the main merge and the round-3 repair moved from `392fe0b7eb`, each to the line at this head with identical text and kind (`ci_predict.py --rekey-body`): custom_components/heatpump_optimizer/duty_legs.py:150 CLAMP_DROP -> custom_components/heatpump_optimizer/duty_legs.py:160 CLAMP_DROP; custom_components/heatpump_optimizer/duty_legs.py:158 CLAMP_DROP -> custom_components/heatpump_optimizer/duty_legs.py:168 CLAMP_DROP; custom_components/heatpump_optimizer/duty_legs.py:159 CMP_BOUND -> custom_components/heatpump_optimizer/duty_legs.py:169 CMP_BOUND; custom_components/heatpump_optimizer/duty_legs.py:186 CMP_BOUND -> custom_components/heatpump_optimizer/duty_legs.py:196 CMP_BOUND; custom_components/heatpump_optimizer/duty_legs.py:191 GUARD_OFF -> custom_components/heatpump_optimizer/duty_legs.py:201 GUARD_OFF; custom_components/heatpump_optimizer/duty_legs.py:360 CLAMP_DROP -> custom_components/heatpump_optimizer/duty_legs.py:370 CLAMP_DROP; custom_components/heatpump_optimizer/duty_switch.py:617 GUARD_OFF -> custom_components/heatpump_optimizer/duty_switch.py:616 GUARD_OFF; custom_components/heatpump_optimizer/duty_switch.py:622 CMP_BOUND -> custom_components/heatpump_optimizer/duty_switch.py:621 CMP_BOUND; custom_components/heatpump_optimizer/duty_switch.py:632 CLAMP_DROP -> custom_components/heatpump_optimizer/duty_switch.py:631 CLAMP_DROP.
+
+`bf6c487691d3e60169162b5d2258e91a60e82ae8` is this PR's head: a merge of `origin/main` 70f410e996 into 6e1c645f65, which is three commits on 392fe0b7, a merge of `origin/main` d9100de781 and the round-3 repair of fix review `verdict/3869` 37ab2d58 (blocked metric-gamed), measured against merge base d9100de781 (`origin/main`'s tip at 2026-11-26T00:40Z).
+
+**Second main merge** (bf6c487691). No hand resolution: git's ort merge with the ledger drivers resolved `tests/structure_budgets.json` (`module_excess_loc` 21763 + both deltas = 21754) and `tests/closures.json`. Without it, the predictor refused 6e1c645f65 (`governance / wave-script AGREEMENT UNMERGED`: HEAD did not merge into main dbdc520e86 without the drivers). At bf6c487691: `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/deployment_shape.py`'s counts are main's, and its closures measure 184 of the 561 pairs, as main records; `ci_predict.py` predicts no closures, fast, governance or instrument red against bdcfee6dcc96, and its 11 unpinned sites are those listed below, at the same lines. The gate below ran at 6e1c645f65; the merge adds no line to this PR's diff.
+
+**Main merge** (c51360d13b, resolution delta 392fe0b7..c51360d13b). One hand resolution, `tests/golden/claimed_drift.txt`. The `claimnotes` driver refused it because both sides added claims. Both are kept: this branch's `config_flow` claim and paragraph, and main's eight R11-SEAM-two-zone-slab claims and #3713 paragraph, under main's `claims-for: 10.1.4`, which equals `VERSION`. `tests/structure_budgets.json` and `tests/closures.json` were resolved by their ledger drivers.
+
+**Round 3 repair** (08ade1c115, 6e1c645f65):
+
+- Block 1 (metric-gamed). ec6be8dbdf's re-wrap of `optimizer._leg_rule`'s call is gone. `duty_legs.entry_rule(split, cfg, before)` is now the one reading of `cfg.mode_leg_heat_min_minutes`, `cfg.mode_leg_dhw_min_minutes` and the leg the pump is in as the plan starts. `duty_switch.leg_rule` (the arbiter) and `optimizer._leg_rule` (the planner) both call it; before, the planner passed the three values as three extra `leg_rule` parameters and the arbiter `_replace`d them itself. `leg_rule` takes main's three parameters again. The planner's call no longer lists the two minimums, which is where `optimizer.py`'s line goes: `module_excess_loc` 21756 -> 21755, re-recorded in 6e1c645f65.
+- Block 2 (surviving mutant on `leg_rule`'s neighbour). A check drives `optimizer._leg_rule` with `duty_leg_before` DHW and SPACE through `duty_legs.plan_legs` (Mutation proof).
+
+`392fe0b7eb427ab84c9d4971256defe611b9a839` was the previous head: its code was already in it and main merged cleanly, so the orchestrator's script set that body without a push.
+
 54a8c81c15f0fcc99066f82908c64f64b4f5abe5, measured against merge base d3d66c40408e76351ffc528686353cadf815a05c (`origin/main`'s tip at 2026-11-25T13:30Z).
 
 **Pin repair** (delta 180da49d41..54a8c81c15). f244a4b7b5 merges the pull request's own head f4ec7bf618, `mutation-autofix`'s `ci: pin killed mutants` on 02fc3cde92 (31 ledger files, 5 byte-identical to the pins below), so the handoff is a fast-forward of the pull request's head and keeps its pins; the merge was clean. 54a8c81c15 drops that commit's `leg_rule` CMP_BOUND pin (2413dc3f), recorded on the pre-merge `return LegRule(...)` line the merge of `origin/main` replaced: `prepr.sh` predicted it a `STALE PIN` red. `ci_predict` named added unpinned sites at 180da49d41 for `tests / mutation`. `tests/mutation_table.py --pin-killed --base d3d66c40 --jobs 4 --budget-minutes 110` at 180da49d41 pinned the 6 it reached, all killed (5 ledger files under `tests/mutation_ledger/killed_by/duty_legs.py/`: `_mode_runs` CMP_BOUND, `_split` GUARD_OFF and RETURN_DEL, `leg_minimum` CLAMP_DROP and RETURN_DEL); 0 survived, and 38 were not started within the budget (`tests/features.py` takes 861 s per run on this container's 4 cores). Of those 38, the pull request's pins cover all but the 9 listed under Unpinned sites. The merge resolution is otherwise unchanged.
@@ -17,7 +32,7 @@ Builds the approved design `design/R11-OWNER-MODE-LEGS` 0e59437a (rev 2, verdict
 - `optimizer._leg_rule` passes main's latched stops and mask with this diff's minimum legs. `OptimizationConfig` carries both sides' fields.
 - The ledger pairs were four different sites that git's rename detection had paired. `mutation_table.py --carry-rows` rebuilt the ledger from main's, byte-identical to keeping all four entries. 180da49d41 drops main's two pins, on `leg_rule`'s and `planner_fields`' old returns, which the merge replaced: `prepr.sh` predicted them as `STALE PIN` reds.
 - Main's new `tests/features.py` checks compared a leg rule with 2-tuples, and one of them called the removed `both_step_duty`. They now compare with `LegRule(...)` and call `served_leg` (ec6be8dbdf).
-- `_leg_rule`'s call lost one line, which pays the merged tree's `module_excess_loc` +1 (`tests/structure.py` rc 0).
+- `_leg_rule`'s call lost one line, which paid the merged tree's `module_excess_loc` +1 (`tests/structure.py` rc 0). The fix review blocked that re-wrap as metric-gamed; round 3 replaces it with `duty_legs.entry_rule` (`## Head`).
 
 **Round 2 repair** (block `mutation-vacuous` at 8ca95413, `probe/rev-3869-8ba22bbd` 7c308abb), two defects:
 
@@ -74,6 +89,12 @@ The entities.py repair, `PYTHONPATH=tests/hastub python3 tests/entities.py` in a
 
 Failing first: the same 15 checks as their own block (`"# --- R11-OWNER-MODE-LEGS (#3859)"` to `"# --- R10-CEILING-PROBE (#2498"`) with `custom_components/` stashed back to the merge base: T1, T1b and T2 FAIL, then `AttributeError: module 'heatpump_optimizer.duty_legs' has no attribute 'plan_legs'` at T3; at the head ALL 15 PASSED.
 
+**Round 3** (at 08ade1c115, `features_block.py` from the check's comment "The solve's own rule carries it" to "The leg record:", preludes `duty_legs as _ds_legs`, `optimizer as _ml_om`, `SimpleNamespace`). Unmutated: `ALL 1 FEATURES BLOCK PASSED`. Each mutant applied alone, then restored:
+
+- `optimizer._leg_rule`'s `opt.config.duty_leg_before` -> `duty_legs.IDLE`: `FAIL the solve's leg rule (optimizer._leg_rule) joins step 0's 6-min hot-water leg to a pump in hot water; null control, a pump in heating lengthens it to 10  [{2: 'dhw:10 space:5', 1: 'dhw:10 space:5'}]`.
+- `duty_legs.entry_rule`'s `before=before` -> `before=IDLE`: the same check FAILs with the same values.
+- At c51360d13b (the merged head, before the refactor), `_leg_rule`'s `opt.config.duty_leg_before` argument -> `duty_legs.IDLE`, the reviewer's R6: the same check FAILs with the same values. The check passes unmutated there too.
+
 ## Null control
 
 - Options at 0 reproduce today: the existing duty-switch, `_PaCoord` and `_rp2` checks run with both options at 0 and pass unchanged in value; T1, T1b and T2 each carry an options-off arm that writes main's sequence.
@@ -89,19 +110,27 @@ Failing first: the same 15 checks as their own block (`"# --- R11-OWNER-MODE-LEG
   - merge base (the same file, run with `custom_components/` stashed; it prints the counts only there): seed 3859 1.708, 34, 25, 0, 0; seed 7 1.417, 20, 23, 0, 0, equal to the 0/0 nulls.
   - space_priced_minus_delivered is negative: the execution checks keep heating the plan priced as hot water, after a re-solve. The design's bound is max(N, M) minutes of step 0 per re-solve; 95 re-solves at a level of at most 5.5 kW bound it at 87 kWh, so the second availability pass the design names was not added.
 - Batch cost (design carry batch-cost, D9): `switch_weights_batch` on a [64, 192] batch, min of 5x20 calls, `timeit`: default rule 0.61-0.97 ms (two runs, this box is shared); N = M = 10: 3.9-6.3 ms, two fixed-point passes. Only a solve that prices a stop calls it (`_switch_cost_fn` returns `None` otherwise).
-- `python3 tests/structure.py`: `module_excess_loc` 21779 -> 21772, re-recorded in b72e97c8a7 (the commit message names the payment).
+- `python3 tests/structure.py`: `module_excess_loc` 21779 -> 21772, re-recorded in b72e97c8a7 (the commit message names the payment). At 08ade1c115 it prints `gain module_excess_loc 21755 (budget 21756, -1)` with every other row `ok`; `--record` wrote 21755 in 6e1c645f65. Null control: the same script at c51360d13b, which still carries the re-wrap, prints `STRUCTURE RATCHET PASSED` at 21756, and the reviewer's revert of the re-wrap alone printed `FAIL module_excess_loc 21757 > 21756`.
+- `python3 tools/audit/archscore/score.py --diff HEAD` at c51360d13b, run over 08ade1c115's tree: `Architecture score: dS +0.0000 NULL`.
 - `python3 tools/audit/archscore/score.py --diff 8ef450936a17`: `Architecture score: dS +0.0017 IMPROVES` (`coord_footprint` 2525 -> 2522). The two rises an earlier cut read (`literal_clone_copies` 114 -> 119, `coord_footprint` +2) were paid by `pump_mode.SINGLE_DUTY`, `np.diff` in `_mode_runs` and `_fields`.
 - Scope: `python3 tests/closure.py select --diff 8ef450936a17`: `MODE: SCOPED -- 30 script(s) run, 3 scoped out`.
 - Gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=8ef450936a17 ./tests/run.sh` at 74f1c87240 red on six scripts; each is repaired by 1690cc83db and 81db193f15 and re-run at the head: `tests/features.py` (6044 checks; 2 red, both repaired: #2365's patched step width, and `_bootstrap`, which fails only outside `run.sh`'s interpreter path and passed in the gate), `tests/doc_claims.py` ALL 441, `tests/typing_ruler.py` ALL 12 with `HPO_TYPING_PYTHON`, `tests/env_drift.py --all` NO UNCLAIMED DRIFT over 56, `tests/finite_boundary.py` ALL 119, `dev/audit/rounds/round3/D5/option_doc_coverage.py` printing its new header values.
-- `python3 tools/pr/ci_predict.py`: no closures, fast, governance or instrument red predicted; 54 unpinned sites (below).
+- `python3 tools/pr/ci_predict.py` at bf6c487691: no closures, fast, governance or instrument red predicted against bdcfee6dcc96; 11 unpinned sites the diff adds, each with a line below.
 
 ## Gate at head
+
+At 6e1c645f65: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=d9100de781 ./tests/run.sh` under the gate lease, `MODE: SCOPED -- 31 script(s) run, 3 scoped out`, rc 1 with four scripts red. Each red comes from this arm64 seat, not from the diff:
+- `tests/optimality.py` `1 of 84`: `one|summer_negative|shoulder: a recorded claim still has a gap (not stale)` (gap 0.0000 %, obj 0.254795). The claim's own comment in `tests/optimality.py` records that the arm64 seat reaches the basin (obj 0.2548) while CI's linux lane measures +10.55 %, "so this claim reads stale on arm64 only".
+- `tests/typing_ruler.py`: `mypy is pinned at 2.4.1 [found 2.3.1]`, the seat's venv, and the census under `HPO_TYPING_PYTHON` exiting 1 with it.
+- `node tests/card.mjs`: `ENDED BEFORE ITS SUMMARY (exit 250)`, a V8 `OOMErrorHandler` abort on a host running two gates (it took 2272 s).
+- `tests/entities.py` `1 of 2767`: `a measured script's late-writing descendant is waited for, not recorded as nodata`. The closure recorder's self-test timed out waiting for `entities` (the script took 5145 s on the loaded host).
+CI is the authority for all four.
 
 `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` (code steps run) at 54a8c81c15: `MODE: SCOPED`, `PRE-PR: 54a8c81c15… rc=0`; `ci predict` names no closures, fast, governance or instrument red, `merged structure` reads `STRUCTURE RATCHET PASSED` against current `origin/main`, and step 7d reads every one of the 9 site lines disposed of. `tests/entities.py` at b736a6addc (54a8c81c15 adds only ledger files and a merge of them): `ALL 2763 ENTITY CHECKS PASSED`, rc 0. At 180da49d41, before the pins: `tests/features.py` `ALL 6190 FEATURE CHECKS PASSED`, rc 0, with this PR's mode-leg checks (T6b–T6e) among them.
 
 ## Architecture score
 
-dS +0.0017 IMPROVES; no gate rise.
+At bf6c487691, `python3 tools/audit/archscore/score.py --diff origin/main` (70f410e996): `dS +0.0006 IMPROVES` (`coord_footprint` 2526 -> 2525); no gate rise.
 
 ## Red checks
 
@@ -111,15 +140,18 @@ dS +0.0017 IMPROVES; no gate rise.
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/duty_legs.py:150 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_legs.py:158 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_legs.py:159 CMP_BOUND -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_legs.py:186 CMP_BOUND -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_legs.py:191 GUARD_OFF -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_legs.py:360 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_switch.py:617 GUARD_OFF -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_switch.py:622 CMP_BOUND*4 -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
-- custom_components/heatpump_optimizer/duty_switch.py:632 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_legs.py:160 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_legs.py:168 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_legs.py:169 CMP_BOUND -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_legs.py:196 CMP_BOUND -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_legs.py:201 GUARD_OFF -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_legs.py:370 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_switch.py:616 GUARD_OFF -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_switch.py:621 CMP_BOUND*4 -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+- custom_components/heatpump_optimizer/duty_switch.py:631 CLAMP_DROP -- unmeasured: `--pin-killed` at 180da49d41 did not start it within its 110-minute budget, and `mutation-autofix`'s pins at 02fc3cde92 predate this line; pinned or named a survivor by `mutation-autofix` (its lane mutates `custom_components/`)
+
+- custom_components/heatpump_optimizer/duty_legs.py:98 RETURN_DEL -- killed at 6e1c645f65 (`return None` applied alone): the round-3 check `the solve's leg rule (optimizer._leg_rule) joins step 0's 6-min hot-water leg...` raises `AttributeError: 'NoneType' object has no attribute '_replace'` in `entry_rule`; pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:569 RETURN_DEL -- killed at 6e1c645f65 (`return None` applied alone): `T11, the options: ... N = 13 and M = 12 reach both the solve's rule and the arbiter's` raises `AttributeError: 'NoneType' object has no attribute 'heat_min'` (unmutated, the same block passes); pinned by `mutation-autofix`
 
 ## Forward-carry
 
@@ -130,3 +162,4 @@ dS +0.0017 IMPROVES; no gate rise.
 ## Friction
 
 none
+
