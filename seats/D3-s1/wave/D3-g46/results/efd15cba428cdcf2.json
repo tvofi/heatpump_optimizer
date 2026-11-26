@@ -1,0 +1,27 @@
+{
+ "key": "efd15cba428cdcf2",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2939 CMP_BOUND",
+ "patch": "r2 = (~r1) & (hp_temp > flow_set) -> r2 = (~r1) & (hp_temp >= flow_set)",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3564.7,
+  "load1_start": 0.96,
+  "load1_end": 1.01
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_efd15cba428cdcf2.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_efd15cba428cdcf2.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 0,
+  "null_n_differing": 0,
+  "n_inputs": 2205,
+  "first_difference": "None",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "hp_temp==flow_set gives f_w==0 in region 2, the same 0.0 as region 3 reaches at that tie"
+}
