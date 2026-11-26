@@ -1,11 +1,6 @@
-tests / closures (job 139713900560, run 45761392833, at fe2b516c710e65e281f870131b08f95897c6297d), SCOPE_CASE full:
-  UNDER-SCOPED: tests/entities.py really reads 1 file(s) the committed closure does not list:
-      tools/ci/shards.py
-  1 closure(s) are stale. Re-derive the named script:
-      ./tests/derive_closures.sh --single <script>
-  ##[error]Process completed with exit code 1.
-tests / closures-autofix (job 139733081295): failure -- no autofix commit repairs it.
-tests / fast (3.14) (job 139713900475, CLAIM_HEAD fe2b516c...): "1 TEST SCRIPT(S) FAILED", exit 1 (failing script's own lines not in the 330-line tail read).
-Local: tests/closures.json at head, closure of tests/entities.py has 603 entries, tools/ci/* members:
-  alert_list codescan_wait gate ghapi prelude ruleset_cutover selftest_scope sweep sweep_selftest -- no shards.py.
-tools/ci/shards.py is new in this PR (+410 lines, merge-base...HEAD); gate.py, prelude.py, sweep.py at head name it.
+tests / closures, job 139896056658 (run 45813808385) at eead33b0ac600ce4f6ef250ba47166fefe8e0402, tail:
+2026-11-26T13:07:05.2902039Z 1 closure(s) are stale. Re-derive the named script:
+2026-11-26T13:07:05.2902689Z     ./tests/derive_closures.sh --single <script>
+2026-11-26T13:07:05.2977833Z ##[error]Process completed with exit code 1.
+classify at 13:2x UTC: RED eead33b0ac600ce4f6ef250ba47166fefe8e0402 pending: none red: gate (rc 1)
+Bot repair: 98c1e9dff262a71ce3c5285c790b4b6173dd16a9 (github-actions[bot], 13:07:33Z, "ci: re-record closures"), parent eead33b0; adds tools/ci/shards.py to tests/entities.py's closure (see autofix-closures.diff).

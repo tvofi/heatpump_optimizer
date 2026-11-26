@@ -1,63 +1,57 @@
 # Review packet #3902
-head: fe2b516c710e65e281f870131b08f95897c6297d
+head: eead33b0ac600ce4f6ef250ba47166fefe8e0402
 base: d9100de781ec174960655fdab1a5af48c303d7bd
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=139713851802 success
-arch-score / arch-score id=139728207672 success
-arm id=139711972393 skipped
-budget-raise-gate / budget-raise-gate id=139728207546 success
-cancel-superseded id=139725755234 success
-codeql id=139728209316 skipped
-codeql / Analyze (actions) id=139712544565 success
-codeql / Analyze (javascript-typescript) id=139712544557 success
-codeql / Analyze (python) id=139712544474 success
-gate id=139733939889 failure
-governance id=139728209460 skipped
-governance / env-matrix id=139712544567 success
-governance / instrument-self-tests id=139712544641 success
-governance / policy-docs id=139712544573 success
-governance / record id=139712546264 skipped
-governance / wave-script id=139712544647 success
-hassfest id=139728209526 skipped
-hassfest / hassfest id=139712544680 success
-kernel-points id=139728209357 skipped
-pr-contract id=139729364385 skipped
-pr-contract / pr-contract id=139733245312 success
-prelude id=139725755277 success
-refresh id=139725754878 success
-sweep-self id=139734314287 skipped
-tests id=139728209261 skipped
-tests / arch-instrument id=139713900508 success
-tests / briefs id=139712544639 success
-tests / browser id=139713900553 success
-tests / ci-ratchet id=139733083445 skipped
-tests / claims-autofix id=139728483844 success
-tests / closure-scope id=139712544631 success
-tests / closures id=139713900560 failure
-tests / closures-autofix id=139733081295 failure
-tests / coverage id=139713900466 success
-tests / coverage-ratchet id=139726977139 success
-tests / fast (3.14) id=139713900475 failure
-tests / graders-head-copy id=139726977098 success
-tests / lane-proofs id=139728483856 success
-tests / mutation id=139712544693 success
-tests / mutation-autofix id=139714586032 skipped
-tests / mutation-pins id=139714585871 skipped
-tests / nightly-ha id=139713902468 skipped
-tests / nightly-status id=139712544651 failure
-tests / replay id=139713901939 skipped
-tests / typing id=139713900557 success
-validate id=139728209101 skipped
-validate / validate-hacs id=139712544396 success
+CodeQL id=139892324575 success
+arch-score / arch-score id=139904704799 success
+arm id=139888200751 skipped
+budget-raise-gate / budget-raise-gate id=139904704472 success
+cancel-superseded id=139901415805 success
+codeql id=139904706323 skipped
+codeql / Analyze (actions) id=139890761799 success
+codeql / Analyze (javascript-typescript) id=139890761747 success
+codeql / Analyze (python) id=139890761832 success
+gate id=139906690967 failure
+governance id=139904706794 skipped
+governance / env-matrix id=139890761862 success
+governance / instrument-self-tests id=139890761820 success
+governance / policy-docs id=139890761823 success
+governance / record id=139890764250 skipped
+governance / wave-script id=139890761844 success
+hassfest id=139904707512 skipped
+hassfest / hassfest id=139890761610 success
+kernel-points id=139904707464 skipped
+pr-contract id=139906693215 skipped
+prelude id=139901416370 success
+refresh id=139901416394 success
+sweep-self id=139907256708 skipped
+tests id=139904706945 skipped
+tests / arch-instrument id=139896056553 in_progress
+tests / briefs id=139890761897 success
+tests / browser id=139896056550 success
+tests / claims-autofix id=139912232085 skipped
+tests / closure-scope id=139890762046 success
+tests / closures id=139896056658 in_progress
+tests / coverage id=139896056574 in_progress
+tests / fast (3.14) id=139896056569 success
+tests / mutation id=139890761882 success
+tests / mutation-autofix id=139893960052 skipped
+tests / mutation-pins id=139893958648 skipped
+tests / nightly-ha id=139896059377 skipped
+tests / nightly-status id=139890761910 failure
+tests / replay id=139896059871 skipped
+tests / typing id=139896056576 success
+validate id=139904707791 skipped
+validate / validate-hacs id=139890761669 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at fe2b516c710e65e281f870131b08f95897c6297d (merge_train.py classify --pr reads RED pending: none red: gate)
+none
 
 ## Advisories
-none
+required-wait: required context `gate` reads concluded failure at eead33b0ac600ce4f6ef250ba47166fefe8e0402 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 NOTE body item 4ac78aa9: #3885
@@ -103,7 +97,7 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (no verdict on verdict/<pr> names the reviewed head fe2b516c710e65e281f870131b08f95897c6297d, so there is no finding to confirm resolved)
+## Review scope: full (no verdict on verdict/<pr> names the reviewed head eead33b0ac600ce4f6ef250ba47166fefe8e0402, so there is no finding to confirm resolved)
 
 ## Three-dot diff
 diff --git a/.gitattributes b/.gitattributes
@@ -170,8 +164,30 @@ index eb2fbfe6f6..920c49d3f0 100644
        - name: Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
          id: gate-predicate
          if: ${{ !cancelled() && steps.scope.outputs.gate-predicate == 'true' }}
+diff --git a/.github/workflows/pr-contract.yml b/.github/workflows/pr-contract.yml
+index a9e0e3f0ed..4792a7ef1e 100644
+--- a/.github/workflows/pr-contract.yml
++++ b/.github/workflows/pr-contract.yml
+@@ -96,7 +96,8 @@ jobs:
+       # `gh_read.py` it imports and the `required-contexts.json` it reads are the
+       # base's too, or a diff editing merge_train.py would choose which reds it
+       # owes. tests/entities.py pins every python3 program policy_lint spawns,
+-      # with its local import closure, to a pathspec of this list.
++      # with its local import closure, to a pathspec of this list: tests/run.sh is
++      # tools/ci/shards.py's read, which gate.py reaches through prelude.py.
+       - name: Restore the check source from the base commit
+         env:
+           # The event's base commit; a dispatch carries none, and falls back to
+@@ -119,6 +120,7 @@ jobs:
+             'tools/audit/seat/merge_train.py' \
+             'tools/audit/seat/gh_read.py' \
+             'tools/policy/fixtures/required-contexts.json' \
++            'tests/run.sh' \
+             'tools/policy/*.mjs' \
+             'tools/policy/*.py' \
+             'tools/pr/*.py' \
 diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
-index 72728a7a1d..255557ff9f 100644
+index 72728a7a1d..c229845266 100644
 --- a/.github/workflows/tests.yml
 +++ b/.github/workflows/tests.yml
 @@ -160,6 +160,14 @@ on:
@@ -189,7 +205,7 @@ index 72728a7a1d..255557ff9f 100644
      # The autofix jobs' push token and the run-approver App, until M-3.
      secrets:
        CLOSURES_PUSH_TOKEN:
-@@ -202,6 +210,12 @@ jobs:
+@@ -202,6 +210,14 @@ jobs:
          || github.event_name == 'merge_group'
          || github.event_name == 'workflow_dispatch'
        )
@@ -198,11 +214,13 @@ index 72728a7a1d..255557ff9f 100644
 +    # (an empty `fast_shards`, e.g. a base whose prelude predates the planner) the one job keeps
 +    # its old name and runs everything. `gate` owes every shard the prelude named
 +    # (gate.fast_names): a shard missing, skipped or red is a red gate, never a smaller suite.
-+    name: ${{ matrix.shard && format('fast ({0}, {1})', matrix.python-version, matrix.shard) || format('fast ({0})', matrix.python-version) }}
++    # The literal `fast (` ... `)` keeps the name from rendering any other job's (a name that is
++    # one expression matches every context: entities.py's forgery and producer readers).
++    name: fast (${{ matrix.python-version }}${{ matrix.shard && format(', {0}', matrix.shard) || '' }})
      runs-on: ubuntu-latest
      # The only job that runs the production suite. It was matrixed over both
      # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
-@@ -220,15 +234,13 @@ jobs:
+@@ -220,15 +236,13 @@ jobs:
      # derived from this matrix alone, so retiring a leg without saying so in
      # the README fails there.
      #
@@ -222,7 +240,7 @@ index 72728a7a1d..255557ff9f 100644
      # Drift mode captures all 53 scenarios twice (tree + merge-base); the
      # first main run proved 45 min is not enough on GitHub's runners — the
      # step was cancelled mid-suite by its own timeout.
-@@ -289,6 +301,23 @@ jobs:
+@@ -289,6 +303,23 @@ jobs:
          if: needs.closure-scope.outputs.fast_skip != 'skip'
          run: python3 tests/host_probe.py
  
@@ -246,7 +264,7 @@ index 72728a7a1d..255557ff9f 100644
        - name: Resolve the golden comparison ref
          if: needs.closure-scope.outputs.fast_skip != 'skip'
          env:
-@@ -351,20 +380,22 @@ jobs:
+@@ -351,20 +382,22 @@ jobs:
        - name: Key the drift baseline cache
          id: driftkey
          if: >-
@@ -273,7 +291,7 @@ index 72728a7a1d..255557ff9f 100644
          uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
          with:
            path: ~/.cache/heatpump_optimizer/drift-baseline
-@@ -382,9 +413,10 @@ jobs:
+@@ -382,9 +415,10 @@ jobs:
        - name: Key the warmed drift baseline
          id: warmkey
          if: >-
@@ -286,7 +304,7 @@ index 72728a7a1d..255557ff9f 100644
          env:
            PYTHONPATH: tests/hastub
          run: |
-@@ -396,8 +428,15 @@ jobs:
+@@ -396,8 +430,15 @@ jobs:
          env:
            # CI-cost metrics (tests/ci_ratchet.py): run.sh appends this run's
            # scope decision here when the variable is set; local runs never
@@ -304,7 +322,7 @@ index 72728a7a1d..255557ff9f 100644
            GOLDEN_MODE: drift
            # The scope is the prelude's (its "Decide" step moved there, U5):
            # `auto` on a pull request, the merge queue, a dispatch and a light
-@@ -436,7 +475,9 @@ jobs:
+@@ -436,7 +477,9 @@ jobs:
        # however the suite ended -- a red run's cost is still cost -- and
        # empty on a run whose lane never executed a line.
        - name: Upload the fast lane's CI metrics
@@ -315,7 +333,7 @@ index 72728a7a1d..255557ff9f 100644
          uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
          with:
            name: ci-metrics-fast
-@@ -450,9 +491,10 @@ jobs:
+@@ -450,9 +493,10 @@ jobs:
        # is computed for a different ref than anything restored here.
        - name: Save the warmed drift baseline
          if: >-
@@ -2924,10 +2942,29 @@ index 607a3a569c..7eed36b73d 100755
    rec_special "$SINGLE"
    echo
 diff --git a/tests/entities.py b/tests/entities.py
-index 2697593345..3ffc926f86 100644
+index 2697593345..5770017921 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -44143,4 +44143,21 @@ R.check(
+@@ -33526,7 +33526,8 @@ R.check(
+ # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
+ _PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+ _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+-_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
++# A chained read, ROOT / "tests" / "run.sh", is the one file tests/run.sh, never the directory.
++_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT((?:\s*/\s*\"[^\"]+\")+)", re.M)
+ 
+ 
+ def _pcr_spawned(mjs: str) -> "list[str]":
+@@ -33547,7 +33548,7 @@ def _pcr_closure(roots) -> "list[str]":
+         text = Path(f).read_text()
+         todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
+                  if Path(q).is_file()]
+-        todo += _PCR_READ.findall(text)
++        todo += ["/".join(re.findall(r'"([^"]+)"', m)) for m in _PCR_READ.findall(text)]
+     return sorted(seen)
+ 
+ 
+@@ -44143,4 +44144,21 @@ R.check(
  )
  
  
@@ -3220,7 +3257,7 @@ index b6613a8310..69b8da713c 100644
            [st(drop=("tests / typing",)), st(typing=running), st(typing=cancelled),
             st(drop=("tests / briefs",)), st(briefs=running), st(briefs=cancelled)],
 diff --git a/tools/ci/prelude.py b/tools/ci/prelude.py
-index be18e1424c..131ed2b98f 100644
+index be18e1424c..be3dec35e8 100644
 --- a/tools/ci/prelude.py
 +++ b/tools/ci/prelude.py
 @@ -53,6 +53,7 @@ from pathlib import Path
@@ -3273,17 +3310,19 @@ index be18e1424c..131ed2b98f 100644
      kind, pr, base = derive(ctx)
      ev = ctx["event_name"]
      out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
-@@ -693,6 +700,9 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
+@@ -693,6 +700,11 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
      # and re-measures them.
      out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
      out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
++    # Both keys always: ci.yml declares them as prelude outputs; empty is one unsharded job.
++    out.update({"fast_shards": "", "fast_plan": ""})
 +    if fast is not None:
 +        out.update(fast(changed if scoped == "pull_request" else None,
 +                        ctx.get("base_sha") or ctx.get("before") or ctx["head"]))
      out["legs"] = json.dumps({leg: "skip" if out["light"] == "true" and leg in LIGHT_SKIP_LEGS
                                else codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
                                for leg in codeql_scope.LEGS}, separators=(",", ":"))
-@@ -719,7 +729,7 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
+@@ -719,7 +731,7 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
          return 2
      ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
      try:
@@ -3292,7 +3331,7 @@ index be18e1424c..131ed2b98f 100644
      except ghapi.RateLimited as e:
          print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
          return 3
-@@ -951,6 +961,20 @@ def self_test() -> int:
+@@ -951,6 +963,23 @@ def self_test() -> int:
      check("C7a: the prelude's output on a product-only pull request", (out["machinery"], out["machinery_rowblind"]),
            ("false", "false"))
      check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
@@ -3310,10 +3349,13 @@ index be18e1424c..131ed2b98f 100644
 +    out, _ = outputs(ctx("push", before="B"), None, g(live), fast=fast)
 +    check("P2: a pull request's plan reads its diff at its base; a full push reads all at `before`",
 +          seen, [(["README.md"], "BASE"), (None, "B")])
++    check("P2: with no planner both outputs are still printed, empty (one unsharded job)",
++          {k: outputs(ctx("push"), None, g(live))[0].get(k) for k in ("fast_shards", "fast_plan")},
++          {"fast_shards": "", "fast_plan": ""})
      out, why = outputs(ctx("push"), None, g(live))
      check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
      # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.
-@@ -1228,6 +1252,28 @@ def self_test() -> int:
+@@ -1228,6 +1257,28 @@ def self_test() -> int:
      check("#3885: the step-gated lanes are light lanes", set(STEP_GATED) <= set(LIGHT_LANES), True)
      check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
            sorted(set(LIGHT_GATE.values())), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))

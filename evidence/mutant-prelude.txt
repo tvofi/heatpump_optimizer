@@ -1,0 +1,2 @@
+FAIL P2: with no planner both outputs are still printed, empty (one unsharded job): got {'fast_shards': None, 'fast_plan': None}, want {'fast_shards': '', 'fast_plan': ''}
+prelude self-test: 154 checks, 1 failed
