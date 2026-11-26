@@ -1,2 +1,3 @@
 1795737373 INIT r11-d3-pins-plant
 1795737384 HB alive
+1795737589 CKPT probes exported and run at merge base 7194ff84; d3_fnstate: same 34 changed 10 module 2; porting line-anchored probes snapshot e2059a224e50
