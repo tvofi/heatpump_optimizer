@@ -16,3 +16,4 @@
 1795674572 DONE blocked fe2b516c ci-red: tests/closures UNDER-SCOPED entities.py over tools/ci/shards.py; verdict 17af4c65 on probe/rev-3902-575416be
 1795696900 HB alive
 1795696989 CKPT delta read fe2b516c..eead33b0; classify polling snapshot 9830bd62c471
+1795697107 CKPT mutants: prelude self-test kills; pcr reader probe; merge-tree clean; waiting CI snapshot 4e4a4d20e73e
