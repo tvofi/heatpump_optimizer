@@ -21557,9 +21557,9 @@ R.check(
 #     for every modelled event (on `merge_group` with `pr=- base=-`, which no
 #     expression can cut from the queue ref), so a past run's kind, PR, base
 #     and `sha=` read back as the prelude derived them;
-#   - one run per concurrency group (rev2, N1), but a push's first attempt
-#     (CI-main, CI-5, cancelling nothing) and a non-bot `synchronize`'s first
-#     attempt (CI-pr-<number>, #3885 L1, cancelling the PR's older one);
+#   - one run per concurrency group (rev2, N1), a push to main's included (no
+#     CI-main), but a non-bot `synchronize`'s first attempt (CI-pr-<number>,
+#     #3885 L1, cancelling the PR's older one);
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
@@ -21728,20 +21728,20 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
-    # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
-    # push run is replaced by the newest and none in progress is cancelled. #3885 L1: a
-    # `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins its pull
-    # request's CI-pr-<number> group and cancels the older run there at creation. Every other
-    # run and every re-run keeps its run-id group (N1: a re-run never cancels a pending run), and
-    # a bot-sent run never cancels the run doing the other autofix jobs (cancel_superseded.BOT).
-    # Rendered per event, attempt and sender, not matched as text.
+    # #3885 L1: a `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins
+    # its pull request's CI-pr-<number> group and cancels the older run there at creation. Every
+    # other run and every re-run keeps its run-id group (N1: a re-run never cancels a pending
+    # run), a push to main's included: no group serialises main push runs (owner 2026-11-25,
+    # retiring CI-5's `CI-main` group); main-cancel.yml cancels the superseded ones. A bot-sent
+    # run never cancels the run doing the other autofix jobs (cancel_superseded.BOT). Rendered per
+    # event, attempt and sender, not matched as text.
     cc = doc.get("concurrency") or {}
     for (ev, a), payload in _CI_EVENTS.items():
         for attempt in ("1", "2"):
             for sender in ("hpo-author[bot]", "tvofi", _SELF_ACTOR):
                 ctx = {**_ci_ctx(ev, payload, actor=sender)[0], "github.run_attempt": attempt}
                 pr_group = (ev, a, attempt) == ("pull_request", "synchronize", "1") and sender != _SELF_ACTOR
-                want = "CI-main" if ev == "push" and attempt == "1" else "CI-pr-7" if pr_group else "CI-99"
+                want = "CI-pr-7" if pr_group else "CI-99"
                 got = _ghx(cc.get("group", ""), ctx)
                 if got != want:
                     out.append(f"concurrency group under {ev}/{a} attempt {attempt} sender {sender} "
@@ -21858,10 +21858,6 @@ _CI_PLANTS = {
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                        "format('CI-{0}', github.event.pull_request.number)", 1),
-    "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
-    "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
-    "the main group cancelling in progress": re.sub(
-        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
     # #3885 L1's own plants: each widens or narrows the CI-pr-<number> arm by one condition.
     "the PR group on every pull_request action": _CI_TEXT.replace(
         " && github.event.action == 'synchronize'", "", 2),
@@ -21877,6 +21873,12 @@ _CI_PLANTS = {
         r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: false", _CI_TEXT, count=1),
     "no PR group": _CI_TEXT.replace(
         "format('CI-pr-{0}', github.event.pull_request.number)", "format('CI-{0}', github.run_id)", 1),
+    "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
+        "group: ${{ github.event_name == 'pull_request'",
+        "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
+        " || github.event_name == 'pull_request'", 1),
+    "a run-id group cancelling in progress": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21922,8 +21924,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5) "
-    "and a non-bot synchronize's first attempt (CI-pr-<number>, cancelling in progress, #3885 L1), "
+    "run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt "
+    "(CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), "
     "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
@@ -33082,11 +33084,10 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 _CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
-# The (file, event) pairs whose first attempts share one group that cancels
-# nothing in progress, so GitHub replaces a pending run with the newest: CI-5's
-# push-to-main coalescing (owner 2026-11-21). A re-run keeps its run-id group
-# (the umbrella check above renders that per attempt).
-_CC_COALESCED = {("ci.yml", "push")}
+# No (file, event) pair shares a group across runs: CI-5's push-to-main
+# `CI-main` group is retired (owner 2026-11-25), so every main push run starts
+# at once and main-cancel.yml cancels the superseded ones.
+_CC_COALESCED: "set[tuple[str, str]]" = set()
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -33192,8 +33193,8 @@ R.check(
     "a same-SHA twin must survive",
 )
 # #3885: a superseded MAIN push run is cancelled from main-cancel.yml, never from
-# ci.yml, whose workflow-level `CI-main` group holds the newer push's run pending
-# until the older one ends. The job reads the push's prelude `scope` and hands it
+# ci.yml: a job of the newer run would need that run to start, and no main push
+# run waits on another (no `CI-main` group since 2026-11-25). The job reads the push's prelude `scope` and hands it
 # to `cancel_superseded.py main --scope`, which cancels only for `full`, within
 # the three-run bound and while GitHub grants runners (its self-test).
 def _mc_shape(doc: dict) -> bool:
