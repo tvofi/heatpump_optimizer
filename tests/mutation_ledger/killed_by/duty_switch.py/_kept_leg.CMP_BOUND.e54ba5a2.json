@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:_kept_leg CMP_BOUND e54ba5a2",
+  "killed_by": "tests/features.py",
+  "old": "    if 0.0 <= age_min < keep or _kept_minutes(legs, start, now, wanted) < need:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if 0.0 < age_min < keep or _kept_minutes(legs, start, now, wanted) < need:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 3 sites under this anchor was killed."
+}
