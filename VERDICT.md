@@ -1,28 +1,29 @@
-Fix review: merge a00b84084857e2c39a93f67b30443975d096c740
+Fix review: merge f476a8ab5cb1229da5d78c622fa984ac7324c86c
 
-bus-nonce: 2d7522b4e81b70dcf786f5fd1771808b
-pending-ci: gate
+bus-nonce: 38e58eb754140b96e6108b62ae04d954
 
 ## Scope
 
-Delta re-review. The previous verdict was `merge` at 498708251b6d122add9aae8ae8542afe27bef5ba (probe/rev-3863-a0f438d8). This review covers `git diff 498708251b a00b8408`, which contains only main merges and their resolutions. The packet's `## Review scope` line reads `full` because the dispatch renders it with `--reviewed-head` set to this head. The brief scopes this review to the delta. No production delta widens it.
+Delta from the previous merge verdict at a00b84084857e2c39a93f67b30443975d096c740 (fix-review.md step 12). The packet printed `Review scope: full` because verdict/<pr> names no verdict at this head. `review_carry.py a00b8408 f476a8ab` printed FRESH-REVIEW, because 7ddff620 is not the automatic merge of its parents. The delta is a main merge (8f22a3b2: #3838, #3906) and its hand resolution. It changes no production line, so nothing widens the scope.
 
 ## Evidence
 
-- Production lines are unchanged. The PR's own diff against its merge base was taken at each head: `git diff $(merge-base origin/main 498708251b) 498708251b -- custom_components/` (base d3d66c4040) and the same for a00b8408 (base 3ee06864da). Their `+`/`-` lines are identical (`PROD_PM_IDENTICAL`; ev/prod_old.diff and ev/prod_new.diff, 351 lines each). Both heads touch the same 39 files (ev/old_files, ev/new_files). The production files that 537e45b787's combined diff names (coordinator.py, dhw_planner.py, thermal_model.py) are therefore resolved to the PR's own patch.
-- The resolution in tests/deployment_shape.py is the union. Against main 3ee06864da it keeps main's history clauses: R11-SEAM-entity-service's services.yaml, 184 and 180 before it landed, and 182 before flow_limit.py. It also keeps the branch's clauses: dhw_start.py and 122 until #3848's dhw_start.py (ev/ds_vs_main.diff).
-- Every count was re-derived independently (ev/derive.py, a Jaccard predicate written from entities.py's `_d308_pairs` description, not imported). ev/derive.txt holds the results:
-  - Merged head a00b8408: 184 of 561 pairs at >= 0.80, 435 comparable, 123 package files, 104 modules, 36 at module level plus one in a function. That gives 67 HA-free modules.
-  - Branch side 99511c75f8 reads 186 and main side dbdc520e86 reads 182, as the note states. 537e45b787 reads 184. The previous head 498708251b reads 184 (103 modules, 66 HA-free).
-- docs/architecture.md at the head reads "104 modules" and "The other 67 modules", which matches the derivation.
-- Local runs at the head: `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py` gives `ALL DEPLOYMENT SHAPE CHECKS PASSED` (ev/deployment_shape.txt). `python3 tests/structure.py` gives `STRUCTURE RATCHET PASSED` (ev/structure.txt).
-- The body's `## Head` figures were checked at this head and agree with the tree: 184 of 561, 435 comparable, 123 files, 104 modules, 67 HA-free.
-- `git merge-tree --write-tree origin/main a00b8408` reports no conflict (ev/mergetree.txt).
-- No mutation run is owed. The delta moves no production line, so the earlier proof (M1, M9 killed; M8 equivalent and removed) carries.
-- Merge-order note: #3838 and #3835 also claim module count 67. Whichever lands second must re-derive the count in docs/architecture.md and the #1218 pair note on its main merge. entities.py and doc_claims.py derive both from the tree, so a stale count goes red on that PR's own CI and cannot merge silently.
-- CI: `merge_train.py classify a00b84084857e2c39a93f67b30443975d096c740 --pr 3863` printed `WAIT a00b84084857e2c39a93f67b30443975d096c740 pending: gate red: none` (rc=3) on every run from 02:56 to about 03:30 UTC, more than 30 minutes, with no red. The relay posts this verdict once gate is green at this head (ev/classify.txt).
-- seat_comms: the heartbeat loop was stopped at the 30-minute background limit. It was restarted and stopped again at exit. The inbox carried no command.
-
-## Findings
-
-- Note: stale-body: the body's intro bullets and the earlier "Merge of main" paragraph still read 103 modules, 66 HA-free, 122 package files and "102 modules less the 37". `## Head` reads the current 104, 67, 123 and 184 of 561, and those agree with the tree. The stale lines are paperwork, not a block. Carry: dismissed: PR-body paperwork, settled by editing the body before the merge, nothing owed after it
+- Resolution: `git merge-tree --write-tree a00b8408 8f22a3b2` conflicts in `dev/audit/rounds/round4/D6/claims.py` and `tests/deployment_shape.py` only. Diffed against that automatic tree (ev/resolution-vs-automerge.diff), the head changes those two files plus the regenerated `docs/architecture.md` and D6 `claims.md`/`claims.json`. Each conflict keeps both histories: R11-OUTSIDE-ROOMS-3B's comfort_floor.py and #3848's dhw_start.py are both named in the arch_modules_on_disk, arch_map_listed and #1218 package-file notes. The pair note keeps both branches' history lines.
+- The reviewed fix is unchanged. `git diff <base>...<head> -- custom_components/` is line-identical at a00b8408 (base 3ee06864) and at f476a8ab (base 8f22a3b2): PROD-DIFF-IDENTICAL. Across all 39 files, the PR's own diff changed only in claims.py, claims.json, claims.md, architecture.md, deployment_shape.py and structure_budgets.json (ev/pr-diff-delta.txt). The PR's own closures.json, features.py, block_duty.py and mutation-ledger diffs are unchanged.
+- Counts were re-derived at this head, not carried over:
+  - 124 tracked files under the package (`git ls-tree`), 105 `.py` modules.
+  - claims.py printed `RESULT arch_modules_on_disk=105`, `arch_map_listed=105` and `claims_false=0` (rc 0). `git status --short` was empty afterwards, so the committed claims.md/json and architecture.md are byte-identical to a fresh regeneration (ev/claims.txt).
+  - 36 module-level importers + 1 in-function + 68 others = 105.
+- Closure pairs, my own independent computation from tests/closures.json (production-file Jaccard >= 0.80, ev/pairs.txt):
+  - main 8f22a3b2: 34 scripts, 561 pairs, 435 comparable, 184 at or above 0.80;
+  - a00b8408: 184;
+  - f476a8ab: 190.
+  These match the note and the body.
+- `python3 tests/structure.py` at the head: rc 0, `module_excess_loc 21650 <= 21650`. Measured, it equals the ledger driver's value (21762 + both deltas = 21650), and it is 103 below main's 21753, the same payment as before (ev/structure.txt).
+- `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py`: `ALL DEPLOYMENT SHAPE CHECKS PASSED` rc 0.
+- Mutation re-proof at the head. In `pump_signals.with_dhw_under_way`, `dhw_charge_under_way=True` replaced the running/mode expression: `tests/block_duty.py` printed `1 of 161 BLOCK DUTY CHECKS FAILED`, rc 1, KILLED (ev/mutant_M1.txt). Unmutated null: `ALL 161 BLOCK DUTY CHECKS PASSED`, rc 0.
+- `git merge-tree --write-tree origin/main(dbdc71fa) f476a8ab`: no conflict, tree 95b819a5 (closures.json via the ledger driver).
+- CI: `merge_train.py classify f476a8ab --pr 3863` printed `GREEN f476a8ab5cb1229da5d78c622fa984ac7324c86c pending: none red: none`, rc 0, twice (ev/classify.txt). No owed reds.
+- Head re-read before return: `refs/heads/fix/r11-outside-3848` = f476a8ab5cb1229da5d78c622fa984ac7324c86c.
+- Body `## Head`: the figures for 7ddff620 were each re-derived and match: 124 files, 190 of 561, 435 comparable, main 184, 105 modules, 36 importers, other 68. The opening `dhw_start.py` bullet still quotes an earlier round's "21672 against main's 21775". That is a dated history line; the payment it describes (103) is unchanged at 21650 against 21753.
+- I did not rerun doc_claims.py or the full entities.py locally. CI is green on both at this head.
