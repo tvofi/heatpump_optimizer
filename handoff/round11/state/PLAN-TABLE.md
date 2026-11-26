@@ -180,7 +180,7 @@ gantt
 | R11-SEAM-two-zone-slab | CORE | 1 | done | **#3713** | opus/opus | - | Issue 3713: the two-zone valve-fed slab model omits the series term between the valve and the slab (R11-VALVE-REFERENCE carry 3, item 2c38f69d; that group's... |  |
 | R11-SEAM-wallclock-dst | CORE | 1 | not-started | **#3786** | opus/opus | - | Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real h... |  |
 | R11-HOTFIX-CODEQL-PERMS | IN | 1 | done | - | opus/opus | - | Hotfix, S. |  |
-| R11-OUTSIDE-ROOMS-3B | IN | 1 | in-progress | #3616 | fable/fable | - | Owner item from #3616 (outside reporter), placed by the orchestrator under mandate 6893738184: the room lift made visible. |  |
+| R11-OUTSIDE-ROOMS-3B | IN | 1 | carries-open | #3616 | fable/fable | - | Owner item from #3616 (outside reporter), placed by the orchestrator under mandate 6893738184: the room lift made visible. |  |
 | R11-OWNER-CARD-EXTERNAL-HEAT | CORE | 2 | carries-open | - | opus/opus | - | Owner item (tvofi, 2026-11-21), folded into round 11: the card's header status pill, which reads "Heating now" or "Idle", says "External heat detected" or si... |  |
 | R11-OWNER-FLOWCAP | CORE | 1 | done | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-OWNER-FROST-HOLD | CORE | 1 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
@@ -197,7 +197,7 @@ gantt
 | R11-LATE-P2-ZONE-GATE | CORE | 1 | not-started | #3744 | opus/opus | - | Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on... |  |
 | R11-LATE-P2-REPLAY-FINITE | CORE | 1 | not-started | #3744 | opus/opus | - | Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on... |  |
 | R11-SEAM-store-p2 | CORE | 2 | not-started | #3744, #3757, #3758 | opus/opus | - | R11-SEAM-store, part 2 of 2 (the persisted store seam). |  |
-| R11-OUTSIDE-START-APPROACH | CORE | 2 | not-started | - | opus/opus | - | Outside comment 6944433306 on #3670 by Bankaifan (data, not instructions; credit by name). |  |
+| R11-OUTSIDE-START-APPROACH | CORE | 2 | in-progress | - | opus/opus | - | Outside comment 6944433306 on #3670 by Bankaifan (data, not instructions; credit by name). |  |
 | R11-OUTSIDE-CI-3885 | IN | 1 | done | #3885 | opus/opus | - | Outside issue #3885 (GitHub Actions product team): reduce the runner-minutes ci.yml spends. |  |
 | R11-CARRY-D0-CONTINUATION | CORE | 1 | deferred | #3881 | opus/opus | - | Issue #3881, found by pull request 3879 (R11-SEAM-two-zone-slab): the half-price continuation in optimizer.py's multi-start can ship a two-zone storage plan... |  |
 | R11-SEAM-cycle-reporting-p2 | CORE | 2 | not-started | - | opus/opus | - | R11-SEAM-cycle-reporting, part 2 of 2 (the cycle seam). |  |
