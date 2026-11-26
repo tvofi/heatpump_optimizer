@@ -90931,6 +90931,28 @@ R.check(
     and _fh_gchv.get("number.water_set") == 25.0,
     f"{_fh_gchv}",
 )
+
+
+# The pass a frost hold serves is recorded as ``idle`` (``pump_arbiter._note_pass``):
+# the hold protects the unit and heats nothing the plan priced, so the map
+# reads no space row from it, though the hold serves space. Null control: a
+# planned space step, not held, is recorded as the space it served.
+def _fh_pass_duty(frost, duties="----"):
+    coord = _PaCoord(_PA_TUYA, duties=duties, flow=True)
+    coord.hass.states.get("number.water_set").attributes = {"min": 25, "max": 63}
+    _pa.state_for(coord).frost_holding = frost
+    _pa_run(coord, 0)
+    rec = _pa.state_for(coord).last_pass
+    return "no record" if rec is None else rec.duty
+
+
+_fh_rec_held, _fh_rec_free = _fh_pass_duty(True), _fh_pass_duty(False, "ssss")
+R.check(
+    "frost hold, control: the held pass is recorded idle, not the space it serves; "
+    "null control: a planned space step not held is recorded space",
+    _fh_rec_held == "idle" and _fh_rec_free == "space",
+    f"held {_fh_rec_held!r} | not held {_fh_rec_free!r}",
+)
 for _fh_name, _fh_got, _fh_want in (
     ("an entity minimum of 20 °C is written as is", _fh_pass(minimum=20).get("number.water_set"), 20.0),
     ("the controller's lower limit of 28 °C raises it", _fh_pass(minimum=20, limit=28).get("number.water_set"), 28.0),
