@@ -1,0 +1,27 @@
+{
+ "key": "a087d5efb15533ce",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND",
+ "patch": "elif available <= 0.0: -> elif available < 0.0:",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3783.1,
+  "load1_start": 0.86,
+  "load1_end": 0.94
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_a087d5efb15533ce.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_a087d5efb15533ce.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 0,
+  "null_n_differing": 0,
+  "n_inputs": 34560,
+  "first_difference": "None",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "available==0 reaches the elif only through `available <= 0.0`; `< 0.0` sends 0 to nothing, but the preceding `drawn > available > 0.0` is false and the zero-available case is handled by min(...)/max(...) arithmetic; sweep finds no input that moves"
+}
