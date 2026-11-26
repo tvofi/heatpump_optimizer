@@ -49,22 +49,29 @@ COORDINATOR = {
     "store": "_async_load_energy_totals _learned_pair _storable_sample_count",
 }
 CO_FN = {f: s for s, v in COORDINATOR.items() for f in v.split()}
-# seam -> (group, new?, unused, after-edges added, seam label, production files read); the size is size_for()
+# seam -> (group, new?, size floor, after-edges added, seam label, production files read). The size is size_for()
+# of the pins; a folded group takes the largest of its roster size, that and its floor. The floor is set only where
+# a folded group's existing production carries are work size_for() does not count.
+# An after-edge is added where an open pull request, or a not-started group chartered to rewrite a pinned
+# function, would change a function the group pins.
 PLAN = {
-    "solver": ("R11-D3-PINS-solver", True, "XL", ["R11-OUTSIDE-START-APPROACH", "R11-SEAM-cycle-reporting"],
+    "solver": ("R11-D3-PINS-solver", True, None, ["R11-OUTSIDE-START-APPROACH", "R11-SEAM-cycle-reporting"],
                "solver", ["optimizer.py", "dhw_planner.py"]),
-    "sysid": ("R11-D3-PINS-sysid", True, "L", ["R11-SEAM-learners"], "learners", ["sysid.py"]),
-    "fabric": ("R11-D3-PINS-fabric", True, "L",
+    "sysid": ("R11-D3-PINS-sysid", True, None, ["R11-SEAM-learners"], "learners", ["sysid.py"]),
+    "fabric": ("R11-D3-PINS-fabric", True, None,
                ["R11-ARCH-fabric-learner", "R11-SEAM-cycle-reporting", "R11-OUTSIDE-START-APPROACH"],
                "learners", ["coordinator.py"]),
-    "plant": ("R11-D3-PINS-plant", True, "L", [], "plant model", ["thermal_model.py", "defrost.py", "flow_lift.py"]),
-    "money": ("R11-D3-PINS-money", True, "L", [], "money", ["price_model.py", "tariff.py", "grid_fee.py"]),
-    "actuation": ("R11-D3-PINS-actuation", True, "M", ["R11-SEAM-actuation-writes", "R11-OWNER-FAULT-HOLD"],
+    "plant": ("R11-D3-PINS-plant", True, None, [], "plant model", ["thermal_model.py", "defrost.py", "flow_lift.py"]),
+    "money": ("R11-D3-PINS-money", True, None, [], "money", ["price_model.py", "tariff.py", "grid_fee.py"]),
+    "actuation": ("R11-D3-PINS-actuation", True, None, ["R11-SEAM-actuation-writes", "R11-OWNER-FAULT-HOLD"],
                   "actuation", ["coordinator.py"]),
     # Not folded into R11-SEAM-inputs-freshness (not started, same seam): that group holds a coordinator
     # slot ahead of R11-SEAM-cycle-solve on the binding chain, and the fold moved closure (CHANGES-R5.md).
-    "inputs": ("R11-D3-PINS-inputs", True, "M", [], "input boundary", ["coordinator.py"]),
-    "cycle": ("R11-SEAM-cycle-reporting-p2", False, "M", ["R11-SEAM-actuation-writes", "R11-SEAM-learners"],
+    # It waits on that group instead: its findings rewrite the readers these pins hold.
+    "inputs": ("R11-D3-PINS-inputs", True, None, ["R11-SEAM-inputs-freshness"], "input boundary",
+               ["coordinator.py"]),
+    # Floor L: 26 pins size M alone, and the group already holds 7 production carries, one a field design.
+    "cycle": ("R11-SEAM-cycle-reporting-p2", False, "L", ["R11-SEAM-actuation-writes", "R11-SEAM-learners"],
               None, None),
     "store": ("R11-SEAM-store-p2", False, None, [], None, None),
 }
@@ -171,11 +178,11 @@ def main() -> int:
             continue
         per[seam_of(v, fn)].append(row)
     for seam, rows in sorted(per.items()):
-        group, new, _, after, label, prod = PLAN[seam]
+        group, new, floor, after, label, prod = PLAN[seam]
         size = size_for(len(rows))
         if not new:
             was = by_name[group].get("size") or "S"
-            size = max(was, size, key=SIZE_ORDER.index)
+            size = max(was, size, floor or "S", key=SIZE_ORDER.index)
         sev = collections.Counter(r["severity"] for r in rows)
         ids = [r["id"] for r in rows]
         fns: dict = collections.defaultdict(list)
@@ -194,9 +201,10 @@ def main() -> int:
                                   "survivors; its register group is merged or in review, so the pins are one "
                                   "tests-only group.",
                 "brief": BRIEF.format(seam=label, n=len(rows), sha=JUDGE_SHA, reads=", ".join(PKG + p for p in prod), plan=PLAN_SHA,
-                                      edges=("After: " + ", ".join(after) + ", each of which rewrites a function "
-                                             "pinned here." if after else "No edge: no open pull request changes a "
-                                             "function pinned here.")),
+                                      edges=("After: " + ", ".join(after) + ", each an open pull request or a "
+                                             "not-started group chartered to rewrite a function pinned here; pins "
+                                             "are derived after it lands." if after else "No edge: no open pull "
+                                             "request or not-started group changes a function pinned here.")),
                 "resume": {"stage": "not-started", "branch": "handoff/" + group.lower(), "commit": None,
                            "last_step": "plan revision 5 (D3 wave fold) drafted on handoff/plan-r11-d3-amend",
                            "next_step": "plan review, then the owner; dispatch per the edges"},
@@ -229,6 +237,15 @@ def main() -> int:
                 carries += [text] * (len(rs) if a.per_finding_carries else 1)
             g["carry"] = list(g.get("carry") or []) + carries
             fold["carries"][group] = len(carries)
+            note = (" D3 wave fold (plan revision 5): this group also carries tests-only pins for "
+                    f"{len(rows)} surviving mutants (class I1, #3755), shaped by "
+                    f"dev/audit/rounds/round11/PLAN/ADR-011-survivor-pins.md (at {PLAN_SHA}) parts 2 to 7. "
+                    "ADR-011 part 1 (tests "
+                    "only) binds the R11-D3-PINS groups, not this one: this is a production group and its own "
+                    "carries edit production files. A pin in a function this group edits is derived after the "
+                    "group's own edits, at its own head, never against the code it is about to change.")
+            if note.strip() not in (g.get("brief") or ""):
+                g["brief"] = (g.get("brief") or "") + note
     t = by_name[TESTS_GROUP]
     strata = sorted({(v["site"].split(":")[0], v["gap_kind"]) for v in verdicts
                      if v["verdict"] in ("verified", "weakened")})

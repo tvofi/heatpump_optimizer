@@ -34,7 +34,10 @@ row.
 
 All are tests-only, class I1, issue #3755, fixer and reviewer on opus (none is
 an architectural change), shape fixed by `ADR-011-survivor-pins.md`, so no
-design is owed. Size is one rule, pins per pull request (`size_for`).
+design is owed, except that the two folds are production groups (below). Size
+is one rule, pins per pull request (`size_for`); a fold takes the larger of its
+roster size, that and a floor `PLAN` sets where its existing carries are work
+the rule does not count.
 
 | group | state | size | seam | reads | after (added) |
 |---|---|---|---|---|---|
@@ -44,8 +47,8 @@ design is owed. Size is one rule, pins per pull request (`size_for`).
 | `R11-D3-PINS-plant` | new | L | plant model | `thermal_model.py`, `defrost.py`, `flow_lift.py` | none |
 | `R11-D3-PINS-money` | new | L | money | `price_model.py`, `tariff.py`, `grid_fee.py` | none |
 | `R11-D3-PINS-actuation` | new | M | actuation | `coordinator.py`, the pump writes | `R11-SEAM-actuation-writes`, `R11-OWNER-FAULT-HOLD` |
-| `R11-D3-PINS-inputs` | new | M | input boundary | `coordinator.py`, the readers | none |
-| `R11-SEAM-cycle-reporting-p2` | fold, not started | S to M | cycle | `coordinator.py`, solve and payload | `R11-SEAM-actuation-writes`, `R11-SEAM-learners` |
+| `R11-D3-PINS-inputs` | new | M | input boundary | `coordinator.py`, the readers | `R11-SEAM-inputs-freshness` |
+| `R11-SEAM-cycle-reporting-p2` | fold, not started | M to L | cycle | `coordinator.py`, solve and payload | `R11-SEAM-actuation-writes`, `R11-SEAM-learners` |
 | `R11-SEAM-store-p2` | fold, not started | S | persisted store | `coordinator.py`, three loaders | none |
 | `R11-SEAM-tests` | three carries | L | test suite | none | none |
 
@@ -59,23 +62,35 @@ Why each cut is what it is:
 - **`R11-SEAM-cycle-reporting-p2`, not `R11-SEAM-cycle-solve`.** Both are the
   cycle seam. `R11-SEAM-cycle-solve` is first on the binding chain; the part-2
   group is not started, not on a coordinator slot and off the chain.
+- **`R11-SEAM-cycle-reporting-p2` is L.** Its 26 pins alone size M, but it
+  already holds 7 production carries, one of them a field design (the
+  debug-week and diagnostics-bundle design, carry 0); M prices the pins and
+  not those. Its brief states that ADR-011 part 1 (tests only) binds the
+  `R11-D3-PINS` groups and not this production group, and that a pin in a
+  function it edits is derived after its own edits. The same sentence goes to
+  `R11-SEAM-store-p2`, also a production group.
 - **`R11-D3-PINS-inputs` is new although `R11-SEAM-inputs-freshness` owns the
   seam and is not started.** That fold was built and projected: it moves
   closure later (`## Figures`, row "inputs folded"), because
   `R11-SEAM-inputs-freshness` holds a coordinator slot ahead of
-  `R11-SEAM-cycle-solve`. A tests-only group takes no coordinator slot. If the
-  owner prefers one group fewer at that cost, the fold is one row of `PLAN` in
-  `build_d3_fold.py`.
+  `R11-SEAM-cycle-solve`. A tests-only group takes no coordinator slot. It
+  waits on that group instead: its seven findings rewrite the functions these
+  pins hold (forecast staleness, the PV meter, row 0 read as now, the measured
+  outdoor value joined to the forecast: `_forecast_arrays`, `_pv_forecast`,
+  `_pv_measured_production`, `_update_current_state`,
+  `_plausible_forecast_rows`). If the owner prefers one group fewer at the
+  fold's cost, the fold is one row of `PLAN` in `build_d3_fold.py`.
 - **No fold into a group with an open pull request.** A handoff freezes the
   branch (`fixer.md`); the register groups of the solver, plant, money and
   actuation seams are merged or in review.
 
 ## Edges and the hot file
 
-An after-edge is added only where an open pull request rewrites the enclosing
-function of a survivor the group pins (`d3_fnstate.py --between`, per pull
-request in `## Figures`): the pin would otherwise be derived against code about
-to change. `R11-OUTSIDE-HONEST-DHW-RUNS` and `R11-SEAM-learners` reach
+An after-edge is added only where an open pull request or a not-started group
+chartered to rewrite a pinned function would change the enclosing function of
+a survivor the group pins (for a pull request, `d3_fnstate.py --between`, per
+pull request in `## Figures`; for `R11-SEAM-inputs-freshness`, its findings):
+the pin would otherwise be derived against code about to change. `R11-OUTSIDE-HONEST-DHW-RUNS` and `R11-SEAM-learners` reach
 `R11-D3-PINS-solver` and `R11-D3-PINS-fabric` through edges already on the
 roster.
 
@@ -83,11 +98,17 @@ Files against the open pull requests:
 
 - under `custom_components/`: none, by ADR-011 part 1;
 - `tests/mutation_ledger/`: one new file per key, no shared file;
-- `tests/guard_pins.py`: shared with three open pull requests (`## Figures`).
-  Hot-file order: those three land first and a D3 group rebases. The edges
-  above already put `R11-D3-PINS-solver`, `-sysid`, `-fabric` and `-actuation`
-  behind the groups of all three; `-plant`, `-money` and `-inputs` have no
-  edge and rebase if they open first. Full disjointness from the open pull
+- `tests/guard_pins.py`: shared with three open pull requests, 3835, 3897
+  and 3907 (`## Figures`). No D3 group sits behind all three. Ancestors on
+  the amended roster, by the edges above: `R11-D3-PINS-solver` and
+  `R11-D3-PINS-fabric` behind 3835 and 3907; `R11-D3-PINS-sysid` behind 3835
+  only; `R11-D3-PINS-actuation` behind 3897 only;
+  `R11-SEAM-cycle-reporting-p2` behind 3835 and 3897; `R11-D3-PINS-plant`,
+  `-money`, `-inputs` and `R11-SEAM-store-p2` behind none. Rebase order per
+  group: each starts from a base holding its ancestors, and any of the three
+  not among them that merges before it does is one rebase: solver and fabric
+  on 3897; sysid on 3897 and 3907; actuation on 3835 and 3907; cycle part 2
+  on 3907; plant, money, inputs and store part 2 on all three. Full disjointness from the open pull
   requests is not available to any group that adds a check: ADR-011 part 2
   states what a new script per group would cost instead.
 
@@ -135,15 +156,16 @@ model gives an XL of 131 pins the hours of any XL; **B** the option below.
 | B | same | same | same | 119.23 h |
 
 Closure and wall do not move in any of the three. The last D3 group
-(`R11-D3-PINS-solver`) finishes 2026-11-30T00:15Z in A and
-2026-12-01T09:42Z in A-count, against `R11-SEAM-docs` at 2026-12-04T20:01Z.
-What does move, in A: CI minutes 4162.5 to 5287.5, batches 27 to 35, stamps 10
-to 12, peak in flight 19 to 20 (the cap); seven new groups add 243.87 seat
-hours by size and 340.30 by count. Four existing groups finish later, none on
-the binding chain: `R11-SEAM-comments-tests` 24.75 h and
-`R11-PRE-TOKEN-LEDGER` 14.62 h (slot contention: the three edge-free D3
-groups take slots at the start), `R11-SEAM-cycle-reporting-p2` 14.60 h (its
-fold) and `R11-SEAM-store-p2` 0.83 h (its fold).
+(`R11-D3-PINS-inputs`, behind `R11-SEAM-inputs-freshness`) finishes
+2026-12-02T05:24Z in A and 2026-12-02T11:17Z in A-count, against
+`R11-SEAM-docs` at 2026-12-04T20:01Z. What does move, in A: CI minutes 4162.5
+to 5175, batches 27 to 34, stamps 10 to 12, peak in flight 19 to 20 (the cap);
+seven new groups add 243.87 seat hours by size and 340.30 by count. Three
+existing groups finish later, none on the binding chain:
+`R11-SEAM-comments-tests` 14.62 h (slot contention: the two edge-free D3
+groups take slots at the start), `R11-SEAM-cycle-reporting-p2` 15.47 h (its
+fold, at L; it finishes 2026-11-29T05:06Z) and `R11-SEAM-store-p2` 0.83 h (its
+fold). `R11-PRE-TOKEN-LEDGER` no longer moves.
 
 `replan.py` does not model the standing dispatch rule (new groups only while
 fewer than ten pull requests are open; deviation (c)). Fourteen are open, so
@@ -155,8 +177,11 @@ delays. Seven new groups are seven more pull requests against that rule.
 
 `--bug-only` keeps the high and medium survivors and defers the low and nit
 ones to round 12 as hygiene. The grammar allows it (only a verified `bug`
-deferred with no card is refused). Same closure; the D3 groups shrink
-(`## Figures`), the last finishing 2026-11-29T22:38Z. It leaves the deferred
+deferred with no card is refused). Same closure and critical path; the D3
+groups shrink (`## Figures`) to 197.48 seat hours against 243.87, the last
+finishing 2026-12-01T21:22Z against 2026-12-02T05:24Z (both
+`R11-D3-PINS-inputs`, held by its edge). CI minutes, batches and stamps equal
+A's; `R11-SEAM-cycle-reporting-p2` is delayed 13.22 h against 15.47 h. It leaves the deferred
 keys open under #3755 across the round's close. This revision plans A:
 nothing is shrunk without the owner choosing it.
 
@@ -201,7 +226,8 @@ Strata of the gate re-take (production file by gap kind, non-empty): 32, the
 `strata` key of `D3-FOLD.json`.
 
 Option B, the same command with `--bug-only`: placed 98, deferred 303; sizes
-solver M, plant M, the other five new groups S.
+solver M, plant M, the other five new groups S; `R11-SEAM-cycle-reporting-p2`
+L by its floor in both options.
 
 Functions against the baseline, `python3 -I dev/audit/rounds/round11/PLAN/d3_fnstate.py dev/audit/rounds/round11/PLAN/D3-FOLD.json origin/main`:
 same 328, changed 53, gone 0, at module level 20.
@@ -225,7 +251,8 @@ requests touching `tests/guard_pins.py`
 (`gh pr list --state open --json number,files`): 3835, 3897, 3907.
 
 Projections, `python3 -I tools/plan/replan.py --roster-file <roster> --start 2026-11-26T09:00:00Z --out <plan>`,
-reading `summary` and `binding`: the table above. Inputs folded (the `inputs`
+reading `summary` and `binding`: the table above; group finishes and delays
+from `groups.<name>.finish` against the live roster's. Inputs folded (the `inputs`
 row of `PLAN` pointed at `R11-SEAM-inputs-freshness`): closure
 2026-12-05T01:56Z, wall 208.93 h, 3.92 h later than live.
 
@@ -235,5 +262,5 @@ finished): 17 and 18.
 
 `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r11-groups.json`,
 run in a checkout of `694d2fad07` with the amended roster in place: the live
-roster reads 0 errors and 40 warnings; the amended one reads 0 errors and 40
-warnings.
+roster reads 0 errors and 40 warnings; the amended one reads 0 errors and 38
+warnings (the folds' briefs now cite the plan commit beside `PLAN.md`).

@@ -130,6 +130,10 @@ tradeoff point (T) a fix touches. Seams and groups are those of `COMPONENTS.md`.
   - Sensitivity S27: rows keyed on one spelling of the thing they count.
   - Tradeoff T27: a repaired row that reads higher is a budget raise, which waits for the owner's confirmation.
 
+- **Scenario.** A fixer changes one production line the full gate reaches (a flipped comparison, a shifted boundary, a dropped term); some check fails, so no mutant survives the gate. Added in revision 5 for the D3 wave fold (`ADR-011-survivor-pins.md`).
+  - Sensitivity S37: production lines whose one-line mutants the full gate did not kill (the D3 wave judge's survivors, class I1).
+  - Tradeoff T37: a pin per survivor adds checks to the scripts that reach the module, and a pin that restates the production expression pins nothing.
+
 ## Sensor truth and ordering (D8)
 
 - **Scenario.** A month has one settled interval, or the install has no hot water; a sensor that cannot yet know its value is unavailable or bounded, and its availability and its value come from one predicate.

@@ -4,7 +4,9 @@ Groups: `R11-D3-PINS-solver`, `R11-D3-PINS-sysid`, `R11-D3-PINS-fabric`,
 `R11-D3-PINS-plant`, `R11-D3-PINS-money`, `R11-D3-PINS-actuation`,
 `R11-D3-PINS-inputs`, and the D3 carries of `R11-SEAM-cycle-reporting-p2` and
 `R11-SEAM-store-p2`. This ADR fixes their shape, so no designer is dispatched
-for the L and XL ones (`architect-planner.md` step 5).
+for the L and XL ones (`architect-planner.md` step 5). Part 1 binds the
+`R11-D3-PINS` groups only: the two folds are production groups, and there a
+pin in a function the group edits is derived after the group's own edits.
 
 ## Context
 
@@ -83,5 +85,6 @@ Three facts constrain the fix.
 
 ## Scenarios served
 
-`SCENARIOS.md`, "Test-suite reach (D3)": a changed production line is noticed
-by a check.
+`SCENARIOS.md`, "Test-suite reach (D3)", the scenario of sensitivity S37: a
+one-line change to a production line the full gate reaches makes some check
+fail, so no mutant survives the gate.

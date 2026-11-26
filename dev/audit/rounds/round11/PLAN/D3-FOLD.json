@@ -229,7 +229,7 @@
   "R11-SEAM-cycle-reporting-p2": {
    "seam": "cycle",
    "new": false,
-   "size": "M",
+   "size": "L",
    "after_added": [
     "R11-SEAM-actuation-writes",
     "R11-SEAM-learners"
@@ -920,7 +920,9 @@
    "seam": "inputs",
    "new": true,
    "size": "M",
-   "after_added": [],
+   "after_added": [
+    "R11-SEAM-inputs-freshness"
+   ],
    "count": 23,
    "severity": {
     "medium": 9,
