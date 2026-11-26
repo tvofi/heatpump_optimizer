@@ -1,11 +1,11 @@
 """Why the plan does what it does at one step, as signed weights (R10-WHY-NOW-WIDGET).
 
 ``classify_space_steps`` names one ranked reason per step; this module says
-how much each of five inputs pushed that step towards running or idling.
-Each push is read from the solve's own inputs at the step, in [-1, 1],
-positive meaning run, and the five are normalised into signed percents of
-one push whose magnitudes sum to 100. They are read after the solve and
-never written back, so the plan cannot move.
+how much each of five inputs, six when a room lift is on the record, pushed
+that step towards running or idling. Each push is read from the solve's own
+inputs at the step, in [-1, 1], positive meaning run, and they are normalised
+into signed percents of one push whose magnitudes sum to 100. They are read
+after the solve and never written back, so the plan cannot move.
 
 Pure numpy and no Home Assistant import: the optimizer calls
 ``space_drivers`` once per result, and ``get_current_action`` reads step
@@ -24,8 +24,9 @@ if TYPE_CHECKING:
     from .optimizer import OptimizationConfig, OptimizationResult, _Horizon
     from .payload import CurrentAction, WhyNow, WhyNowDriver
 
-#: The five drivers, in the order a tie in weight is listed.
-DRIVER_CODES = ("price_rank", "comfort_floor", "mold_guard", "away", "forecast")
+#: The drivers, in the order a tie in weight is listed; ``room_lift`` only
+#: where the solve's record carries a room lift (#3616).
+DRIVER_CODES = ("price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast")
 #: The forecast window: the eight hours ``_anticipatory_weights`` looks ahead.
 FORECAST_LOOKAHEAD_H = 8.0
 #: One outdoor degree's share of a full forecast push: a 10 °C swing between
@@ -96,10 +97,15 @@ def _forecast_push(h: _Horizon, p_max_kw: float) -> np.ndarray:
     return np.clip(push, -1.0, 1.0)
 
 
-def space_drivers(
+def space_pushes(
     h: _Horizon, room_temps: np.ndarray, p_max_kw: float,
-) -> dict[str, list[float]]:
-    """Code -> one signed weight per step, percent of that step's push."""
+) -> dict[str, np.ndarray]:
+    """Code -> one push per step in [-1, 1], positive meaning run.
+
+    The room lift's share of the floor (``h.room_lifts``) is its own row and
+    the comfort push is read against the floor without it, so where nothing
+    clips the two sum to the one comfort push the lifted floor gives.
+    """
     n = h.n_steps
     room = np.asarray(room_temps[:n], dtype=float)
     ceiling = np.asarray(h.temp_max_bounds[:n], dtype=float)
@@ -113,20 +119,31 @@ def space_drivers(
         if h.mold_floors is not None else floor
     )
     drops = h.away_floor_drops[:n] if h.away_floor_drops is not None else np.zeros(n)
-    push = np.vstack([
-        _price_push(np.asarray(h.prices[:n], dtype=float)),
-        np.clip((floor + half - room) / half, -1.0, 1.0),
-        np.clip((mold - floor) / half, 0.0, 1.0),
-        -np.clip(drops / half, 0.0, 1.0),
-        _forecast_push(h, p_max_kw),
-    ])
+    lifts = None if h.room_lifts is None else np.asarray(h.room_lifts, dtype=float)[:n]
+    pushes = {
+        "price_rank": _price_push(np.asarray(h.prices[:n], dtype=float)),
+        "comfort_floor": np.clip((floor - (0.0 if lifts is None else lifts) + half - room) / half, -1.0, 1.0),
+        "room_lift": None if lifts is None else np.clip(lifts / half, 0.0, 1.0),
+        "mold_guard": np.clip((mold - floor) / half, 0.0, 1.0),
+        "away": -np.clip(drops / half, 0.0, 1.0),
+        "forecast": _forecast_push(h, p_max_kw),
+    }
+    return {code: pushes[code] for code in DRIVER_CODES if pushes[code] is not None}
+
+
+def space_drivers(
+    h: _Horizon, room_temps: np.ndarray, p_max_kw: float,
+) -> dict[str, list[float]]:
+    """Code -> one signed weight per step, percent of that step's push."""
+    pushes = space_pushes(h, room_temps, p_max_kw)
+    push = np.vstack(list(pushes.values()))
     total = np.abs(push).sum(axis=0)
     weights = np.divide(
         100.0 * push, total, out=np.zeros_like(push), where=total > 0
     )
     return {
         code: [round(float(w), 1) + 0.0 for w in row]  # + 0.0: no -0.0
-        for code, row in zip(DRIVER_CODES, weights)
+        for code, row in zip(pushes, weights)
     }
 
 

@@ -622,8 +622,8 @@ def push_range(ctx: dict, get, diff=None, ancestor=None,
                cwd: Path = HERE.parents[1]) -> "tuple[str, list[str]] | None":
     """(base, the files changed base..head) for a push to main, or None (graded in full).
     The base is the head of the newest EARLIER push run on main that completed, was not
-    cancelled and whose prelude succeeded, so its units ran: CI-5's `CI-main` group
-    replaces a pending run, so HEAD^1 would leave the replaced run's commits graded by no
+    cancelled and whose prelude succeeded, so its units ran: main-cancel.yml cancels a
+    superseded run, so HEAD^1 would leave the cancelled run's commits graded by no
     run, and a production commit among them must never fall into a light range. A run
     whose prelude failed graded nothing, and its range stays in ours. None when the
     listing is unreadable, no such run is on its first page, or its head is not an
