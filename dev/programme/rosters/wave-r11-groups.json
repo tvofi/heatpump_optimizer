@@ -7909,9 +7909,10 @@
    ],
    "brief": "Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on handoff/audit-r11-sweep-SW8 at 872510cd3e as dev/audit/rounds/round11/sweep/P2/D14-sweep-P2/probes_p2.py): the replay document's number filter in replay_doc.py keeps NaN, inf and minus inf, where the package's finite test refuses them. R11-SEAM-kernel-step (pull request 3728, merged) gave the finite test one owner; this reader is a sibling it did not reach. The filter takes the kernel's finite test; a failing test first; the P2 sweep reads it clean at this group's stamp. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them, so the fixer's failing test is the first independent measurement. Folded by the round-11 late-arrival fold under mandate 6893738184.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE): late P2 sweep seam, round-11 late-arrival fold; the finite-test owner is merged"
+    "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE): late P2 sweep seam, round-11 late-arrival fold; the finite-test owner is merged",
+    "pr": 3910
    }
   },
   {
