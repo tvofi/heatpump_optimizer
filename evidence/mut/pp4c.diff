@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 594c8301d0..e78341affc 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -4427,7 +4427,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
+ summary_end() { # head sha -> the result line on fd 3, naming the log
+   [ -n "$PREPR_LOG" ] || return 0
+   [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3
+-  echo "PRE-PR: $1 $digest rc=$rc elapsed=${SECONDS}s; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
++  echo "PRE-PR: $1 $digest rc=$rc elapsed=1000s; full log: $PREPR_LOG (PREPR_VERBOSE=1 prints it on stdout)" >&3
+ }
+ 
+ # --- 0. the body is not in a root other seats write to (`shared_root` above).

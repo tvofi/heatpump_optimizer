@@ -1,8 +1,8 @@
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index 82592045cf..368fe94d37 100755
+index 594c8301d0..5c420069fe 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
-@@ -5048,6 +5048,6 @@ fi
+@@ -5058,6 +5058,6 @@ fi
  rm -f "${UNPINNED_SITES:-}"
  receipt_write "$rc" "${BODY:-}" "$RUN_START"
  echo

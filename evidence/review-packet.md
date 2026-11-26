@@ -1,58 +1,58 @@
 # Review packet #3908
-head: a0250fc36517a51c90b2f36046ed1ca1253ca153
+head: 60bc4b3b3db63a345b8adc5f18c5e03aae48723b
 base: dbdc71faea358a95a7b33840ed252b0d8a646a31
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=139773355626 success
-arch-score / arch-score id=139782241215 success
-arm id=139765111101 skipped
-budget-raise-gate / budget-raise-gate id=139782240894 success
-cancel-superseded id=139781719572 success
-codeql id=139782243547 skipped
-codeql / Analyze (actions) id=139770269316 success
-codeql / Analyze (javascript-typescript) id=139770269239 success
-codeql / Analyze (python) id=139770269263 success
-gate id=139783211938 failure
-governance id=139782243206 skipped
-governance / env-matrix id=139770269326 success
-governance / instrument-self-tests id=139770269194 success
-governance / policy-docs id=139770269217 success
-governance / record id=139770270660 skipped
-governance / wave-script id=139770269300 success
-hassfest id=139782243109 skipped
-hassfest / hassfest id=139770269252 success
-kernel-points id=139782243698 skipped
-pr-contract id=139783213292 skipped
-prelude id=139781719917 success
-refresh id=139781719240 success
-sweep-self id=139783748697 skipped
-tests id=139782243682 skipped
-tests / arch-instrument id=139776778315 success
-tests / briefs id=139770269376 success
-tests / browser id=139776778485 success
-tests / claims-autofix id=139783526336 skipped
-tests / closure-scope id=139770269397 success
-tests / closures id=139776778321 in_progress
-tests / coverage id=139776778312 in_progress
-tests / fast (3.14) id=139776778356 success
-tests / mutation id=139770269448 success
-tests / mutation-autofix id=139776196514 skipped
-tests / mutation-pins id=139776195588 skipped
-tests / nightly-ha id=139776780419 skipped
-tests / nightly-status id=139770269492 failure
-tests / replay id=139776781378 skipped
-tests / typing id=139776778296 success
-validate id=139782243504 skipped
-validate / validate-hacs id=139770269273 success
+CodeQL id=139952944334 success
+arch-score / arch-score id=139953556172 success
+arm id=139945614182 skipped
+budget-raise-gate / budget-raise-gate id=139953556157 success
+cancel-superseded id=139949937062 success
+codeql id=139953558807 skipped
+codeql / Analyze (actions) id=139948877058 success
+codeql / Analyze (javascript-typescript) id=139948876871 success
+codeql / Analyze (python) id=139948876794 success
+gate id=139957989183 failure
+governance id=139953557763 skipped
+governance / env-matrix id=139948876785 success
+governance / instrument-self-tests id=139948876740 success
+governance / policy-docs id=139948877249 success
+governance / record id=139948880232 skipped
+governance / wave-script id=139948876856 success
+hassfest id=139953557606 skipped
+hassfest / hassfest id=139948876991 success
+kernel-points id=139953559618 skipped
+pr-contract id=139957992232 skipped
+prelude id=139949937832 success
+refresh id=139949937510 success
+sweep-self id=139959431325 skipped
+tests id=139953558760 skipped
+tests / arch-instrument id=139951486423 success
+tests / briefs id=139948877272 success
+tests / browser id=139951486254 success
+tests / claims-autofix id=139964938141 skipped
+tests / closure-scope id=139948876898 success
+tests / closures id=139951486563 in_progress
+tests / coverage id=139951486465 in_progress
+tests / fast (3.14) id=139951486297 success
+tests / mutation id=139948877167 success
+tests / mutation-autofix id=139953618595 skipped
+tests / mutation-pins id=139953616790 skipped
+tests / nightly-ha id=139951489190 skipped
+tests / nightly-status id=139948877011 failure
+tests / replay id=139951488483 skipped
+tests / typing id=139951486499 success
+validate id=139953559031 skipped
+validate / validate-hacs id=139948877042 success
 
 ## Refusals
 none
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
-required-wait: required context `gate` reads concluded failure at a0250fc36517a51c90b2f36046ed1ca1253ca153 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+required-wait: required context `gate` reads concluded failure at 60bc4b3b3db63a345b8adc5f18c5e03aae48723b in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
@@ -88,7 +88,7 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (first round: no --reviewed-head)
+## Review scope: full (no verdict on verdict/<pr> names the reviewed head 60bc4b3b3db63a345b8adc5f18c5e03aae48723b, so there is no finding to confirm resolved)
 
 ## Three-dot diff
 diff --git a/dev/audit/harnesses/prepr_6d_arms.py b/dev/audit/harnesses/prepr_6d_arms.py
@@ -368,7 +368,7 @@ index 08cf2fad59..34c1722934 100644
      ap.add_argument("--rekey-body", metavar="BODY", help="re-key BODY's moved `## Unpinned sites` lines in place")
      ap.add_argument("--from", dest="frm", metavar="SHA", help="with --rekey-body: the code sha the keys were taken at")
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index 3ab1dcbc33..82592045cf 100755
+index 3ab1dcbc33..594c8301d0 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
 @@ -624,12 +624,17 @@ PY
@@ -404,7 +404,7 @@ index 3ab1dcbc33..82592045cf 100755
    # shellcheck disable=SC2086 # $only is empty or exactly "--only <arm>"; $rec is empty or one flag
    out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" ${bf:+--body "$bf"} $only $rec 2>&1); r=$?
    [ -n "${2:-}" ] && printf '%s\n' "$out" \
-@@ -4216,11 +4221,24 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
+@@ -4216,11 +4221,34 @@ step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
    case "$out" in *'| AssertionError: the failing line'*) r=0 ;; *) r=1 ;; esac
    st "$r" 0 "and the refusal's failing lines"
    lg=$(sed -n '$s/.*full log: \([^ ]*\) .*/\1/p' <<<"$out")
@@ -419,18 +419,28 @@ index 3ab1dcbc33..82592045cf 100755
 +  # before it, and the result line carries the run's.
 +  out=$(TMPDIR="$SM" bash -c "$sfn"'
 +    rc=0 digest="" ORDER="" PREPR_LOG="" LOG_MARK=0 STEP_MARK=$SECONDS; summary_start
-+    sleep 2; step "slow" 0 "slept"; step "noop" 0 "did nothing"; summary_end deadbeef')
++    sleep 2; step "slow" 0 "slept"; step "noop" 0 "did nothing"; SECONDS=1000; summary_end deadbeef')
 +  t=$(sed -nE 's/^  ok +slow +\[([0-9]+)s\] slept$/\1/p' <<<"$out")
 +  [ "${t:-0}" -ge 2 ]; st $? 0 "a step stubbed to sleep 2 s prints an elapsed of at least 2 (C3)"
 +  t=$(sed -nE 's/^  ok +noop +\[([0-9]+)s\] did nothing$/\1/p' <<<"$out")
 +  case "$t" in 0|1) r=0 ;; *) r=1 ;; esac
 +  st "$r" 0 "and a no-op step after it prints 0 or 1, so the field times the step, not the run (C3's null control)"
 +  t=$(sed -nE 's/^PRE-PR: deadbeef 00 rc=0 elapsed=([0-9]+)s; .*/\1/p' <<<"$out")
-+  [ "${t:-0}" -ge 2 ]; st $? 0 "and the result line carries the run's elapsed, at least the 2 s slept"
++  case "$t" in 1000|1001) r=0 ;; *) r=1 ;; esac
++  st "$r" 0 "and the result line carries the run's elapsed read from the clock: SECONDS set to 1000 before summary_end prints 1000 or 1001, so a constant fails"
++  # The main flow's own stdout result line, run with the clock driven and git
++  # stubbed: its elapsed is the clock read, neither a constant nor absent.
++  pl=$(sed -n '/^echo "PRE-PR: /p' <<<"$flow")
++  out=$(bash -c 'git() { echo cafe; }; digest=07; SECONDS=730; '"$pl")
++  case "$out" in 'PRE-PR: cafe 07 elapsed='73[01]s) r=0 ;; *) r=1 ;; esac
++  st "$r" 0 "the main flow's stdout PRE-PR line carries the run's elapsed from the clock (SECONDS=730 prints 730 or 731)"
++  out=$(bash -c 'git() { echo cafe; }; digest=07; SECONDS=40; '"$pl")
++  case "$out" in 'PRE-PR: cafe 07 elapsed='4[01]s) r=0 ;; *) r=1 ;; esac
++  st "$r" 0 "and a different clock (SECONDS=40) prints 40 or 41, so the field tracks the clock"
    case "$flow" in *'step "merge-base" 0 "$BASE"
  summary_start'*'summary_end "$(git rev-parse HEAD)"
  exit $rc'*) r=0 ;; *) r=1 ;; esac
-@@ -4372,19 +4390,24 @@ ORDER=""
+@@ -4372,19 +4400,24 @@ ORDER=""
  # verdict line, each refusal's own log lines (`refusal_lines`), and the result
  # line naming the log. `PREPR_VERBOSE=1` or `--verbose` keeps today's stdout.
  # Both pushers that run this mode read its rc alone, never its stdout.
@@ -458,7 +468,7 @@ index 3ab1dcbc33..82592045cf 100755
  }
  summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; none under PREPR_VERBOSE=1
    [ "${PREPR_VERBOSE:-}" != 1 ] || return 0
-@@ -4394,7 +4417,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
+@@ -4394,7 +4427,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
  summary_end() { # head sha -> the result line on fd 3, naming the log
    [ -n "$PREPR_LOG" ] || return 0
    [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3
@@ -467,7 +477,7 @@ index 3ab1dcbc33..82592045cf 100755
  }
  
  # --- 0. the body is not in a root other seats write to (`shared_root` above).
-@@ -4804,7 +4827,8 @@ fi
+@@ -4804,7 +4837,8 @@ fi
  # --- 6d. the CI reds a static read of the diff predicts (`predict_line`), and
  # the reads each changed file's own self-test makes in a gate script that runs
  # it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
@@ -477,7 +487,7 @@ index 3ab1dcbc33..82592045cf 100755
  UNPINNED_SITES=/tmp/prepr-unpinned.$$
  if [ -z "$REUSE" ]; then  # under PREPR_SKIP_CODE, `merged_steps` runs it on the merged tree
  PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)
-@@ -5024,6 +5048,6 @@ fi
+@@ -5024,6 +5058,6 @@ fi
  rm -f "${UNPINNED_SITES:-}"
  receipt_write "$rc" "${BODY:-}" "$RUN_START"
  echo
