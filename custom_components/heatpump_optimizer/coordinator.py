@@ -7330,9 +7330,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     solar.append(irradiance)
                     humidity.append(rh)
 
-        outdoor = hold_current_hour(outdoor, step_starts, (
-            self._input_health.live(CONF_OUTDOOR_TEMP_ENTITY) if self._input_health else None
-        ))
+        health = getattr(self, "_input_health", None)
+        outdoor = hold_current_hour(
+            outdoor, step_starts, health.live(CONF_OUTDOOR_TEMP_ENTITY) if health else None
+        )
         return outdoor, wind, precipitation, solar, humidity
 
     def _apply_open_meteo(
