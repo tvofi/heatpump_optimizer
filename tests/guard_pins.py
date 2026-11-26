@@ -59,7 +59,7 @@ class _Learner(DhwProfileLearner):
             FakeHass(),
             "guard-pins",
             **_owned_params(ThermalParameters()),
-            frozen=lambda *_: None,
+            frozen=lambda *_, **_kw: None,
             heating_active=lambda: False,
             external_heat_active=lambda: False,
         )
@@ -255,7 +255,7 @@ def _draw_folded_only_without_external_heat() -> bool:
             FakeHass(),
             "guard-pins-draws",
             **_owned_params(params),
-            frozen=lambda *_: None,
+            frozen=lambda *_, **_kw: None,
             heating_active=lambda: False,
             external_heat_active=lambda external=external: external,
         )
