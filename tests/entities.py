@@ -22024,6 +22024,32 @@ R.check(
 )
 
 
+# Run 45663211757: the release step's tag pipeline ended `| head -n 1`, which closes the pipe
+# after one line; once the tag listing outgrew the pipe buffer, `git ls-remote` took SIGPIPE and
+# pipefail failed the step with exit 141. The step's own `tag=` line runs here against a stand-in
+# `git` listing 20000 tags; the plant restores the truncating `head` and must fail.
+def _pages_tag_run(text: str) -> "tuple[int, str]":
+    steps = (((_yaml.safe_load(text) or {}).get("jobs") or {}).get("pages-build") or {}).get("steps") or []
+    rel = next((str(s.get("run", "")) for s in steps if s.get("name") == "Check out the release"), "")
+    line = next((ln.strip() for ln in rel.splitlines() if ln.strip().startswith("tag=$(")), "")
+    if not line:
+        return -1, "no tag= line"
+    script = ("set -euo pipefail\n"
+              "git() { for ((i = 20000; i > 0; i--)); do printf '%040d\\trefs/tags/v%d.0.0\\n' 0 \"$i\"; done; }\n"
+              f"{line}\nprintf '%s' \"$tag\"\n")
+    r = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=60)
+    return r.returncode, r.stdout
+
+
+_PAGES_TAG_PLANT = _PAGES_TEXT.replace("| awk 'NR == 1 { sub(/.*refs\\/tags\\//, \"\"); print }')",
+                                       "| head -n 1 | sed 's#.*refs/tags/##')", 1)
+_PAGES_TAG_GOT, _PAGES_TAG_PLANT_GOT = _pages_tag_run(_PAGES_TEXT), _pages_tag_run(_PAGES_TAG_PLANT)
+R.check(
+    "pages.yml: the release step's tag pipeline reads its listing to the end under pipefail (run 45663211757)",
+    _PAGES_TAG_GOT == (0, "v20000.0.0") and _PAGES_TAG_PLANT != _PAGES_TEXT and _PAGES_TAG_PLANT_GOT[0] != 0,
+    f"got={_PAGES_TAG_GOT} plant={_PAGES_TAG_PLANT_GOT}",
+)
+
 # The stand-ins hold under a BASH_ENV that re-prepends a toolchain (#2835): a
 # cloud seat's profile there failed U0c and the delivery_status check at every
 # tree. The control proves the planted profile does shadow a stand-in it reaches.
