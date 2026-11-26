@@ -498,9 +498,10 @@ eq("C13", "README.md:### Buttons", "the button table names exactly the buttons t
    sorted(display("button", e) for e in CENSUS["button"]))
 
 eq("C14", "README.md:Switches", "Optimizer Active, Away, Block DHW, Block Space "
-   "Heating, DHW Boost and Boost Space Heating are the switches", CMD,
+   "Heating, DHW Boost, Boost Space Heating and External Heat Block Override "
+   "are the switches", CMD,
    ["Away", "Block DHW", "Block Space Heating", "Boost Space Heating",
-    "DHW Boost", "Optimizer Active"],
+    "DHW Boost", "External Heat Block Override", "Optimizer Active"],
    sorted(display("switch", e) for e in CENSUS["switch"]))
 
 # --- C15..C22 services -----------------------------------------------------
