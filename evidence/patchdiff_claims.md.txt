@@ -1,0 +1,6 @@
+1,2c1,2
+< -| C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=105 measured=105 | **true** |  |
+< -| C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | on disk=105, listed=105, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |
+---
+> -| C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=106 measured=106 | **true** |  |
+> -| C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | on disk=106, listed=106, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |

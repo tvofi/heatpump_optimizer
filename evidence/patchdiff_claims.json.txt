@@ -1,0 +1,8 @@
+3c3
+< -  "result": "documented=105 measured=105",
+---
+> -  "result": "documented=106 measured=106",
+5c5
+< -  "result": "on disk=105, listed=105, missing=[], phantom=[]",
+---
+> -  "result": "on disk=106, listed=106, missing=[], phantom=[]",

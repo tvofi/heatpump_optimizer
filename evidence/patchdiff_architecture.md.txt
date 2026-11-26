@@ -1,0 +1,12 @@
+1c1
+< -knows nothing about Home Assistant: 105 modules, of which 36 import the
+---
+> -knows nothing about Home Assistant: 106 modules, of which 36 import the
+3c3
+< -36 of the 105 modules import `homeassistant` at module level: `__init__`,
+---
+> -36 of the 106 modules import `homeassistant` at module level: `__init__`,
+5c5
+< -The other 68 modules are deliberately free of it, so each can be driven
+---
+> -The other 69 modules are deliberately free of it, so each can be driven
