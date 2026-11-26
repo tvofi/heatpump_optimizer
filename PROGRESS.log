@@ -7,3 +7,4 @@
 1795735699 HB alive
 1795736133 CKPT prepr clean rc=0 at 7df39f34; awaiting merged-tree rerun snapshot 4ba802eb1d54
 1795736303 HB alive
+1795736488 DONE returned: handoff/r11-selftests-shard 7df39f34 + handoff-body/r11-selftests-shard 0f8f664e; D5 s7 re-cut; #3869/#3883 need main merged after it lands
