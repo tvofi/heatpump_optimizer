@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import math
 from collections.abc import Awaitable, Callable, Iterable, Mapping
 from functools import partial
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
@@ -53,7 +54,6 @@ from .const import (
     DEFAULT_PRICE_VAT,
     DEFAULT_PRICE_SURCHARGE,
     PRICE_SOURCE_ENTITY,
-    PRICE_SOURCE_TIBBER,
     PRICE_SOURCES,
     CONF_WEATHER_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
@@ -218,7 +218,9 @@ from .const import (
     CONF_FLOW_HEAT_C,
     DEFAULT_FLOW_HEAT_C,
     FLOW_HEAT_C_MAX,
+    FLOW_LIMIT_C_MIN,
     CONF_FLOW_MIN_LIFT_K,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_C,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
@@ -440,7 +442,6 @@ from .const import (
     DEFAULT_PV_EFFICIENCY,
     DEFAULT_PV_EXPORT_PRICE,
     CONF_AWAY_PRESENCE_ENTITY,
-    CONF_AWAY_RETURN_ENTITY,
     CONF_AWAY_TEMPERATURE,
     CONF_AWAY_DHW_MIN_TEMP,
     DEFAULT_AWAY_TEMPERATURE,
@@ -663,11 +664,6 @@ def _number(
 ) -> selector.NumberSelector:
     """A numeric field.
 
-    The nested ``NumberSelector(NumberSelectorConfig(...))`` construction
-    appeared eighty-two times in this file; collapsing it makes each field one
-    readable line, so a form reads as a list of settings rather than as a wall
-    of constructor calls.
-
     A box field takes ``"any"`` as its step (#1679): its increment pinned the
     frontend's validity check, so a default or a derived value off that
     increment — eight shipped defaults and four ``presets.derive`` outputs,
@@ -819,10 +815,7 @@ def _widen_to_fit(
             number_value = float(value)
         except (TypeError, ValueError):
             continue
-        if number_value != number_value or number_value in (
-            float("inf"),
-            float("-inf"),
-        ):
+        if not math.isfinite(number_value):
             continue
         if fitted_low is not None and number_value < fitted_low:
             fitted_low = number_value
@@ -831,11 +824,30 @@ def _widen_to_fit(
     if fitted_low == low and fitted_high == high:
         return None
     config: selector.NumberSelectorConfig = {**number.config}
+    step = config.get("step")
     if fitted_low is not None:
-        config["min"] = fitted_low
+        config["min"] = _on_grid(low, fitted_low, low, step, math.floor)
     if fitted_high is not None:
-        config["max"] = fitted_high
+        config["max"] = _on_grid(low, fitted_high, high, step, math.ceil)
     return selector.NumberSelector(selector.NumberSelectorConfig(**config))
+
+
+def _on_grid(
+    base: Any, value: float, declared: Any, step: Any, rounding: Callable[[float], int]
+) -> float:
+    """A widened bound ``value`` moved outward onto the field's own ``base + k * step`` grid (D14-s1-01).
+
+    A slider's and a number box's grid starts at ``min``: a min widened to a
+    stored 14.7 on a 0.5 grid put every nominal value of the field, its
+    default included, off the reachable set. ``rounding`` is ``math.floor``
+    for a lower bound and ``math.ceil`` for an upper one. A bound left at its
+    ``declared`` value, a step of ``"any"`` and a field with no ``min`` keep
+    ``value``: only what the widening moved is snapped.
+    """
+    if value == declared or base is None or not isinstance(step, (int, float)) or step <= 0:
+        return value
+    low, grain = float(base), float(step)
+    return round(low + rounding(round((value - low) / grain, 9)) * grain, 9)
 
 
 def _fit_stored_values(schema: Any) -> tuple[Any, list[str]]:
@@ -1696,6 +1708,9 @@ def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
     )
 
 
+#: The heating ceiling and the manual high limit: one water set-point range, °C.
+_WATER_LIMIT_C: Final = _number(FLOW_LIMIT_C_MIN, FLOW_HEAT_C_MAX, 0.5, '°C')
+
 #: Every field the options flow presents, in the order each page renders them.
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
@@ -1722,14 +1737,15 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
-    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, FLOW_HEAT_C_MAX, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _WATER_LIMIT_C, when=_water_space_setpoint, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
-    # The controller's own limits on that set-point, where it publishes them
-    # (a Smart Home Interface's inputs 10104 and 10103): the loop stays inside them.
+    # The controller's limits on that set-point where it publishes them (a Smart Home Interface's
+    # inputs 10104 and 10103), and the upper one typed by hand: space writes stay inside (flow_limit).
     _F("entities", CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
     _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_C, _STORED, _WATER_LIMIT_C, when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),

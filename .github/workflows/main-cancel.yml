@@ -1,0 +1,47 @@
+# Capped cancel of a superseded main CI run (#3885). On a push to main, when
+# that push's `CI` run is graded in full (tools/ci/prelude.py's `scope`, read
+# here exactly as ci.yml's prelude derives it), cancel the older main push
+# runs of ci.yml still active -- through `cancel_superseded.py main`, which
+# keeps any run whose cancel would leave more than three consecutive main
+# runs with no concluded verdict, keeps everything while a job of the run has
+# sat queued past `pause_queued_min` (ci_pause's signal: GitHub is not
+# granting runners), and cancels nothing for a light push.
+#
+# Not a job of ci.yml: a canceller there runs only once its run starts, and
+# every main push run of ci.yml starts at once (a group per run; CI-5's
+# `CI-main` group is retired), so this workflow is the one place main
+# supersession is decided, independent of ci.yml's runners. No `concurrency:` here: two pushes' runs overlap, and the older
+# push's finds a newer run listed and cancels nothing. Fail-soft: the cancel
+# is an optimisation, never a gate -- the step always exits 0.
+
+name: Main cancel
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  main-cancel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Cancel the superseded main run when this push is graded in full
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          scope=$(python3 -I tools/ci/prelude.py | sed -n 's/^scope=//p') || true
+          echo "prelude scope for $HEAD_SHA: ${scope:-unknown}"
+          python3 -I tools/pr/cancel_superseded.py main --repo "$REPO" --workflow ci.yml \
+            --head-sha "$HEAD_SHA" --scope "${scope:-unknown}" || true

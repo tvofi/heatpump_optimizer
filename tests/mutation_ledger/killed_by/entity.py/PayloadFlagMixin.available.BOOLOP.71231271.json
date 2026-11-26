@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:PayloadFlagMixin.available BOOLOP 71231271",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(super().available and gate)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return bool(super().available or gate)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=12."
+}

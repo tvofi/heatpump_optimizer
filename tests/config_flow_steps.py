@@ -2949,8 +2949,9 @@ NO_DEFAULT = object()
 STORED_ARM_PAGES = ("entities", "comfort", "hot_water", "building")
 
 
-def entity_field_defaults(result):
-    """Every entity picker on a form, mapped to the value it presents.
+def entity_field_defaults(result, kinds=("EntitySelector",)):
+    """Every entity picker on a form (every field of a selector in ``kinds``),
+    mapped to the value it presents.
 
     A picker is pre-filled either from ``default`` or from
     ``description["suggested_value"]``, and the frontend shows and posts both
@@ -2965,7 +2966,7 @@ def entity_field_defaults(result):
     schema = result.get("data_schema")
     out = {}
     for key, value in _presented_fields(schema):
-        if type(value).__name__ != "EntitySelector":
+        if type(value).__name__ not in kinds:
             continue
         name = str(getattr(key, "schema", key))
         try:
@@ -3088,7 +3089,7 @@ async def entity_clear_survives_the_flow_manager():
     not_presented: dict[str, list[str]] = {}
     for step in pages:
         keys = [row.key for row in rows if row.step == step]
-        seed = {key: f"sensor.stored_{key}" for key in keys}
+        seed = {row.key: _stored_seed(row, row.key) for row in rows if row.step == step}
         # The wood block renders only with its gate on, and the gate is a
         # field of the same page: seeding it drives the gated slots too.
         seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
@@ -4578,6 +4579,13 @@ def offered_entity_fields(result):
     return entity_field_defaults(result)
 
 
+def offered_clearable_fields(result):
+    """:func:`offered_entity_fields` and every number field too: the one
+    offered undefaulted (``space_setpoint_high_limit_c``) is a ``_STORED`` row
+    and clears the same way; a number with a default is never ``NO_DEFAULT``."""
+    return entity_field_defaults(result, ("EntitySelector", "NumberSelector"))
+
+
 def rendered_keys(result):
     """Every option key a rendered page presents, section nesting included."""
     schema = result.get("data_schema")
@@ -4704,12 +4712,16 @@ async def registry_drives_every_page():
     # named ``away_return_entity`` -- a key no option page has ever offered --
     # and nothing failed, because its only reader is a seven-key hand list
     # that does not mention it.
+    # The one number on the roster (``space_setpoint_high_limit_c``) is read
+    # with the pickers; the other undefaulted numbers are model parameters a
+    # page suggests from the learned model, not ``_STORED`` rows.
     two_armed = {}
     for page in pages:
         flow = bare_options(REGISTRY_SEED)
-        offered = offered_entity_fields(await getattr(flow, f"async_step_{page}")(None))
-        for key, default in offered.items():
-            if default is NO_DEFAULT:
+        shown = await getattr(flow, f"async_step_{page}")(None)
+        pickers = offered_entity_fields(shown)
+        for key, default in offered_clearable_fields(shown).items():
+            if default is NO_DEFAULT and (key in pickers or key == const.CONF_SPACE_SETPOINT_HIGH_LIMIT_C):
                 two_armed.setdefault(key, []).append(page)
     roster = set(Flow._OPTIONAL_ENTITY_KEYS)
     check(
@@ -4727,11 +4739,12 @@ async def registry_drives_every_page():
     per_page = {}
     for key, owners in two_armed.items():
         for page in owners:
-            per_page.setdefault(page, {})[key] = f"sensor.registry_{key}"
+            per_page.setdefault(page, {})[key] = (
+                51.0 if key == const.CONF_SPACE_SETPOINT_HIGH_LIMIT_C else f"sensor.registry_{key}")
     not_carried = {}
     for page, stored in sorted(per_page.items()):
         flow = bare_options({**REGISTRY_SEED, **stored})
-        rendered = offered_entity_fields(
+        rendered = offered_clearable_fields(
             await getattr(flow, f"async_step_{page}")(None)
         )
         wrong = {k: rendered.get(k) for k, v in stored.items() if rendered.get(k) != v}
@@ -5011,6 +5024,77 @@ async def widening_refusals():
         and widened.config["max"] == 42.0
         and widened.config["min"] == 0,
         repr(None if widened is None else dict(widened.config)),
+    )
+
+    # D14-s1-01: a slider's grid starts at its min. A min widened to a stored
+    # 14.7 on a 0.5 grid put the field's default 21.0 off the reachable set.
+    # The widened bound now moves outward onto the grid. A step "any" field
+    # has no grid and widens to exactly the value.
+    def _on_grid(cfg, value):
+        steps = (value - cfg["min"]) / cfg["step"]
+        return abs(steps - round(steps)) < 1e-9
+
+    slider = selector.NumberSelector(selector.NumberSelectorConfig(
+        min=15.0, max=25.0, step=0.5, mode=selector.NumberSelectorMode.SLIDER))
+    low_w = config_flow._widen_to_fit(slider, [14.7])
+    high_w = config_flow._widen_to_fit(slider, [25.3])
+    any_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(
+        min=15.0, max=25.0, step="any", mode=selector.NumberSelectorMode.BOX)), [14.7])
+    check(
+        "schema_widening",
+        "happy",
+        "a widened slider keeps its grid: the default and the far bound stay reachable (D14-s1-01)",
+        low_w is not None and low_w.config["min"] == 14.5 and low_w.config["max"] == 25.0
+        and _on_grid(low_w.config, 21.0) and _on_grid(low_w.config, 25.0)
+        and high_w is not None and high_w.config["max"] == 25.5 and high_w.config["min"] == 15.0
+        and any_w is not None and any_w.config["min"] == 14.7,
+        f"low {None if low_w is None else dict(low_w.config)} high "
+        f"{None if high_w is None else dict(high_w.config)} any "
+        f"{None if any_w is None else dict(any_w.config)}",
+    )
+    # The grid's two edges. A step of 0 is no grid: the bound is the value, never
+    # a division by it. A stored value within float noise of a grid point
+    # (14.4999999998, a round-trip's residue) widens to that point, not one step past.
+    try:
+        zero_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(
+            min=15.0, max=25.0, step=0, mode=selector.NumberSelectorMode.BOX)), [14.7])
+        zero_min = None if zero_w is None else zero_w.config["min"]
+    except ZeroDivisionError as err:
+        zero_min = repr(err)
+    noise_w = config_flow._widen_to_fit(slider, [14.4999999998])
+    check(
+        "schema_widening",
+        "happy",
+        "a step-0 field widens to exactly the value; float noise below a grid point widens to that point (D14-s1-01)",
+        zero_min == 14.7 and noise_w is not None and noise_w.config["min"] == 14.5,
+        f"step 0 -> min {zero_min!r}; 14.4999999998 on 15/0.5 -> "
+        f"{None if noise_w is None else noise_w.config['min']!r}",
+    )
+    # The service surface (D14-s1-01's twelve seams): every number selector
+    # services.yaml declares reaches its own max and example, or has no grid.
+    import yaml as _svc_yaml
+    from pathlib import Path
+    _svc = _svc_yaml.safe_load(
+        (Path(config_flow.__file__).parent / "services.yaml").read_text(encoding="utf-8"))
+    _svc_fields, _svc_off = 0, []
+    for _svc_name, _svc_def in (_svc or {}).items():
+        for _f_name, _f in ((_svc_def or {}).get("fields") or {}).items():
+            _num = ((_f or {}).get("selector") or {}).get("number")
+            if not isinstance(_num, dict):
+                continue
+            _svc_fields += 1
+            if not isinstance(_num.get("step", 1), (int, float)) or _num.get("min") is None:
+                continue
+            _grid = {"min": float(_num["min"]), "step": float(_num.get("step", 1))}
+            for _what, _v in (("max", _num.get("max")), ("example", _f.get("example"))):
+                if isinstance(_v, (int, float)) and not _on_grid(_grid, float(_v)):
+                    _svc_off.append(f"{_svc_name}.{_f_name} {_what} {_v}")
+    check(
+        "schema_widening",
+        "error",
+        "every services.yaml number selector reaches its own max and example (D14-s1-01)",
+        _svc_fields > 20 and not _svc_off,
+        f"{_svc_fields} number fields; off grid: {_svc_off}",
     )
 
     # The whole-schema entry point: nothing to walk is not an error. The
@@ -8087,7 +8171,16 @@ def _page_stored_entities(step, base):
         )
         if row.default is config_flow._STORED
     ]
-    return {row.key: f"sensor.stored_{i}" for i, row in enumerate(rows)}
+    return {row.key: _stored_seed(row, i) for i, row in enumerate(rows)}
+
+
+def _stored_seed(row, tag):
+    """A distinct stored value for a ``_STORED`` row: an entity id for a
+    picker, an in-range number for the one optional number
+    (``space_setpoint_high_limit_c``), which clears the same way."""
+    if isinstance(row.widget, selector.NumberSelector):
+        return float(row.widget.config["min"]) + 1.0
+    return f"sensor.stored_{tag}"
 
 
 async def options_rejected_page_rerenders_the_clear():
