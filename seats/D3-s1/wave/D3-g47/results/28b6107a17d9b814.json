@@ -1,0 +1,28 @@
+{
+ "key": "28b6107a17d9b814",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2852 CLAMP_DROP",
+ "patch": "rh = min(max(indoor_rh_percent, 0.0), 100.0) / 100.0 -> rh = min((indoor_rh_percent), 100.0) / 100.0",
+ "function": "mold_safe_room_floor",
+ "cluster": "thermal_model.py:mold_safe_room_floor@2851-2856",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3444.3,
+  "load1_start": 1.09,
+  "load1_end": 0.95
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_28b6107a17d9b814.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_28b6107a17d9b814.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 2)",
+   "RESULT inputs_differing=0 count (of 11)"
+  ],
+  "inputs_tried": "RH {0,-0,-1,-50,-1e9,nan,inf,-inf} and RH -5 at room {-30,0,40}: 11 inputs, 0 differ"
+ },
+ "should_fail": "none: equivalent",
+ "note": "the 0 % lower RH clamp is dead: negative RH gives e<0 which takes the same -100.0 return as e==0; nan gives the same nan either way"
+}
