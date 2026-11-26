@@ -8628,6 +8628,24 @@ def stored_options_of_the_wrong_type() -> None:
     R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored max Hz scales the ceiling",
             hz is not None and abs(hz - 4.5) < 1e-9, f"{hz!r}")
 
+    # The thermal table's two raw reads (D1-s2-05's judged sites, past the migration).
+    from heatpump_optimizer import thermal_model
+
+    def tank(v):
+        return thermal_model.ThermalParameters.from_config(
+            {const.CONF_WOOD_FURNACE_ENABLED: True, const.CONF_WOOD_TANK_VOLUME: v}).wood_tank_volume
+    same(tank, thermal_model.ThermalParameters.from_config(
+        {const.CONF_WOOD_FURNACE_ENABLED: True}).wood_tank_volume,
+         "thermal_model.ThermalParameters.from_config")
+    R.check("R11-LATE-P1-OPTIONS: null -- from_config reads a well-typed tank volume",
+            tank(321.0) == 321.0, f"{tank(321.0)!r}")
+
+    def indoor(v):
+        return thermal_model._flow_curve_values({const.CONF_TARGET_TEMP: v}, False)
+    same(indoor, thermal_model._flow_curve_values({}, False), "thermal_model._flow_curve_values")
+    R.check("R11-LATE-P1-OPTIONS: null -- _flow_curve_values reads a well-typed target",
+            indoor(19.5)["flow_curve_indoor_target"] == 19.5, f"{indoor(19.5)!r}")
+
 
 async def main() -> int:
     if "--self-check" in sys.argv:

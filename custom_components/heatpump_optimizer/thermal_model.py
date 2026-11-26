@@ -188,8 +188,8 @@ def _flow_curve_values(config: Mapping[str, Any], cop_flow_carnot: bool) -> dict
     )
     return {
         "flow_curve_cop": enabled and not cop_flow_carnot,
-        "flow_curve_indoor_target": float(
-            config.get(const.CONF_TARGET_TEMP, const.DEFAULT_TARGET_TEMP)
+        "flow_curve_indoor_target": finite_float(
+            config.get(const.CONF_TARGET_TEMP), const.DEFAULT_TARGET_TEMP
         ),
     }
 
@@ -1083,8 +1083,8 @@ class ThermalParameters:
             values["wood_tank_volume"] = 0.0
             values["dhw_wood_coil_enabled"] = False
         else:
-            values["wood_tank_volume"] = float(
-                config.get(const.CONF_WOOD_TANK_VOLUME) or const.DEFAULT_WOOD_TANK_VOLUME)
+            values["wood_tank_volume"] = (
+                finite_float(config.get(const.CONF_WOOD_TANK_VOLUME)) or const.DEFAULT_WOOD_TANK_VOLUME)
             values["dhw_wood_coil_enabled"] = bool(config.get(
                 const.CONF_DHW_WOOD_COIL_ENABLED, const.DEFAULT_DHW_WOOD_COIL_ENABLED))
         # The stored layout choice (v3.16.0). An unknown string is dropped
