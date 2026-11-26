@@ -20,7 +20,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PREPR-STEP-TIMING (stage in-progress, branch `handoff/r11-prepr-step-timing`): `git fetch origin handoff/r11-prepr-step-timing && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-store (stage carries-open, branch `handoff/r11-seam-store`): `git fetch origin handoff/r11-seam-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-SEAM-learners (stage carries-open, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-writes (stage in-progress, branch `handoff/r11-seam-actuation-writes`): `git fetch origin handoff/r11-seam-actuation-writes && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage carries-open, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-reporting (stage in-progress, branch `handoff/r11-seam-cycle-reporting`): `git fetch origin handoff/r11-seam-cycle-reporting && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -38,6 +38,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-COOLING-GUARD (stage carries-open, branch `handoff/r11-owner-cooling-guard`): `git fetch origin handoff/r11-owner-cooling-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-TEXT (stage in-progress, branch `handoff/r11-owner-fault-text`): `git fetch origin handoff/r11-owner-fault-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COOLING-AUTORETURN (stage in-progress, branch `handoff/r11-owner-cooling-autoreturn`): `git fetch origin handoff/r11-owner-cooling-autoreturn && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-LATE-P1-OPTIONS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-START-APPROACH (stage in-progress, branch `handoff/r11-outside-start-approach`): `git fetch origin handoff/r11-outside-start-approach && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
 Ready next (after-edges satisfied; nothing open constrains them): R11-CLOSEOUT-CLEANUP, R11-D3-PINS-money, R11-D3-PINS-plant, R11-LATE-P1-OPTIONS, R11-LATE-P2-ZONE-GATE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-3B, R11-OWNER-CARD-EXTERNAL-HEAT, R11-OWNER-COOLING-GUARD, R11-OWNER-FROST-HOLD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-entity-service, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-store, R11-SEAM-tests, R11-SEAM-wallclock-dst
