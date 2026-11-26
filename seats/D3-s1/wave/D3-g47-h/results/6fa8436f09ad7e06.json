@@ -1,0 +1,36 @@
+{
+ "key": "6fa8436f09ad7e06",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2906 CLAMP_DROP",
+ "patch": "span = max(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp)",
+ "function": "thermal_model",
+ "cluster": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3264.8,
+  "load1_start": 0.95,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_json": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/gates/6fa8436f09ad7e06.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_6fa8436f09ad7e06.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_6fa8436f09ad7e06.py",
+  "output": [
+   "INPUT (30.0, 50.0, 40.0, 40.0) base 0.0 mut EXC ZeroDivisionError",
+   "INPUT (50.0, 50.0, 40.0, 40.0) base 1.0 mut 1.0",
+   "INPUT (30.0, 50.0, 40.0, 45.0) base 0.0 mut 0.0",
+   "INPUT (30.0, 50.0, 40.0, 20.0) base 0.25 mut 0.25",
+   "INPUT (39.0, 50.0, 40.0, 40.0) base 0.0 mut EXC ZeroDivisionError",
+   "RESULT wood_share_floor_eq_flow_base=0.0 mutant=EXC ZeroDivisionError"
+  ]
+ },
+ "should_fail": "tests/features.py executes line 2906; no check asserts wood_share when flow_set == floor_temp and hp_temp>flow_set (0.0 vs ZeroDivisionError)",
+ "provisional": true
+}
