@@ -1,0 +1,26 @@
+Fix review: merge 724cef08de0ca20c182f3ade904a2a02361e17c8
+
+bus-nonce: a6de5c7a9daa09d3ec52e6877f088b80
+pending-ci: gate
+
+## Scope
+
+Round: a delta round over the previous `merge` at 7748bdc269efb9758d85b4ee81130a4f60534948 (fix-review.md step 12), as dispatched. The packet's `## Review scope` line reads `full` only because it was rendered with `--reviewed-head` equal to the head. `review_carry.py 7748bdc269 724cef08de` prints `FRESH-REVIEW`: the branch's own diff changed. Delta read: `git diff 7748bdc269 724cef08de`. Comparing the branch's three-dot diff at each head, these files change: `custom_components/heatpump_optimizer/sysid.py` (the `arm_refusal` hunk), `tests/structure_budgets.json`, `tests/features.py` (line offsets only), `tests/deployment_shape.py`, `tests/closures.json`, `docs/architecture.md`, `dev/audit/rounds/round4/D6/claims.{py,md,json}`, and the mutation-ledger pin (2569c66f dropped, c8412494 added). Production delta: one line, `sysid.py` `arm_refusal`. It does not widen the scope (reasons under Evidence).
+
+## Evidence
+
+- RESULT arm_refusal-repair: behaviour preserved. On main (8f22a3b284 / dbdc71faea), `arm_from_config` assigns `ident.config.enabled = config.system_identification_enabled` before `arm`, so main's `arm_refusal` check `not ident.config.enabled` always equals `not config.system_identification_enabled` at that point. At the head, `arm_from_config` passes `enabled=config.system_identification_enabled` to `arm`, and `arm_refusal` reads the same `config.system_identification_enabled`. Return values and their order (None / ARM_REFUSED_DISABLED / already armed / result reason) are unchanged. No other caller writes the switch between the two reads.
+- RESULT no-reader: `git grep -nE 'SysIdConfig\([^)]*enabled|\.config\.enabled|config\.enabled *=' 724cef08de -- custom_components tests tools dev/audit/harnesses` prints nothing. The broader grep's production hits for `config.enabled` (`coordinator.py:9740`, `pv.py:68`) are the PV config (`peak_kw`), not `SysIdConfig`. The remaining `SysIdConfig(enabled=True)` constructions are frozen round evidence under `dev/audit/rounds/`, outside CI. The set of files holding one is the same at 7748bdc269 and at the head: no new one arrived with main.
+- RESULT mutant (own run, worktree at 724cef08de, `PYTHONPATH=tests/hastub python3 tests/features.py`): unmutated reads `ALL 6249 FEATURE CHECKS PASSED`, rc=0. GUARD_OFF of `if not config.system_identification_enabled:` -> `if False:` (ev/guardoff_mutant.diff) reads `2 of 6249 FEATURE CHECKS FAILED`, rc=1. The two failures are "a refused system-identification press raises a translated refusal ... (D10-s1-02)" and "arm_refusal answers a press on an armed experiment ... (null control: the switch off answers ARM_REFUSED_DISABLED)", as the body states. The re-keyed pin `tests/mutation_ledger/killed_by/sysid.py/arm_refusal.GUARD_OFF.c8412494.json` names that exact `old` text and `tests/features.py`; the stale 2569c66f pin is removed, not duplicated.
+- RESULT merges: `git merge-tree --write-tree origin/main 724cef08de` rc=0 (ev/merge_tree.txt). `c07720d573`'s remerge-diff: the `tests/features.py` conflict keeps both appended blocks whole, this branch's R11-SEAM-learners block and main's R11-OUTSIDE-ROOMS-3B block, with only the conflict markers removed. `claims.py` takes 105 with both `learning_freeze.py` and `comfort_floor.py` history clauses. `docs/architecture.md` reads 105 modules, 68 HA-free. `tests/closures.json` and `tests/structure_budgets.json` went through the ledger driver (`merged as a set`, budgets summed both deltas). Every resolution is a union. `724cef08de` and `4cc762f139` resolve nothing by hand.
+- RESULT figures: `ls custom_components/heatpump_optimizer/*.py | wc -l` = 105. `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` rc=0 prints `RESULT arch_modules_on_disk=105 modules` and `RESULT arch_map_listed=105 modules` (ev/claims_py.out). The `190 of 561` pair note was not re-derived here: `tests/deployment_shape.py` / `tests/entities.py` in CI pin it.
+- RESULT budgets: the branch's three-dot diff touches only `tests/structure_budgets.json` among `*_budgets.json`. Every row it changes moves down (`class_excess_loc` 17228->17227, `max_class_loc` 7821->7766, `module_excess_loc` 21753->21752) or is `recorded_at`. No budget rises.
+- RESULT version/claims: `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched in the three-dot diff, and both claim files are byte-identical to the merge base.
+- RESULT scope-widening: none. The production delta restores #3841's refusal semantics on this branch's switch. The risk it carries (a refusal wrongly reported) is exactly what #3841's two features checks drive, and my mutant shows CI detects it.
+- RESULT body head: the PR body's `## Head` names 724cef08de0ca20c182f3ade904a2a02361e17c8.
+- Red checks: the body's `## Red checks` answers `tests / fast (3.14)`, `tests / typing` and `tests / coverage-ratchet` at 1514480cfe, each with its cheaper detector.
+- RESULT ci: `merge_train.py classify 724cef08de0ca20c182f3ade904a2a02361e17c8 --pr 3835` polled from 07:34Z to past 08:24Z, every run rc=3: `WAIT 724cef08de0ca20c182f3ade904a2a02361e17c8 pending: gate red: none` (ev/classify_poll.log). No required check is red. Per the brief, the verdict carries `pending-ci: gate`.
+
+## Findings
+
+none

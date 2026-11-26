@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/sysid.py b/custom_components/heatpump_optimizer/sysid.py
+index e828e49e39..6b5b18a4cf 100644
+--- a/custom_components/heatpump_optimizer/sysid.py
++++ b/custom_components/heatpump_optimizer/sysid.py
+@@ -2505,7 +2505,7 @@ def arm_refusal(
+     """
+     if arm_from_config(ident, now, config, plant, learner_samples, draw):
+         return None
+-    if not config.system_identification_enabled:
++    if False:
+         return ARM_REFUSED_DISABLED
+     if ident.active:
+         return "an experiment is already armed or running"
