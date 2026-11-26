@@ -15,8 +15,9 @@ Not run here, by the brief: the judge, dedup and the class sweep (they wait for 
 | 3 | g40 | 4 | {'verify': 4} |
 | 4 | g43 | 2 | {'verify': 2} |
 | 5 | g45 | 11 | {'unresolved': 11} |
+| 6 | g44 | 7 | {'verify': 7} |
 
-Total: 412 findings; {'verify': 389, 'weaken': 9, 'unresolved': 14}.
+Total: 419 findings; {'verify': 396, 'weaken': 9, 'unresolved': 14}.
 
 ## Method
 
@@ -484,3 +485,10 @@ Carry: R11-D3-JUDGE
 | 5 | 98853a541b6b5d6a | D3-g45 | thermal_model.py:2581 | unresolved | medium |  | faithful by construction |
 | 5 | fdf5872fd576c405 | D3-g45 | thermal_model.py:2581 | unresolved | medium |  | faithful by construction |
 | 5 | 39041ccf21eedba6 | D3-g45 | thermal_model.py:2583 | unresolved | medium |  | faithful by construction |
+| 6 | 05b5a15efaaf70de | D3-g44 | thermal_model.py:677 | verify | medium | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
+| 6 | 36117bb3a189672b | D3-g44 | thermal_model.py:3576 | verify | low | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
+| 6 | 3d4899a05eb126c3 | D3-g44 | thermal_model.py:940 | verify | low | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
+| 6 | 78b7f2ebcf85c8a1 | D3-g44 | thermal_model.py:4822 | verify | high | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
+| 6 | 9362d5efbe6808c2 | D3-g44 | thermal_model.py:3569 | verify | medium | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
+| 6 | cde383447b865539 | D3-g44 | thermal_model.py:303 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('vol_100.0', ['True', 'False']) | faithful by construction |
+| 6 | f66c6e9cf9d1f84a | D3-g44 | thermal_model.py:3567 | verify | medium | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
