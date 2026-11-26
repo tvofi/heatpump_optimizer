@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/frost_hold.py:_freeze CMP_BOUND 0baa56fe",
+  "killed_by": "tests/features.py",
+  "old": "    return FREEZE_FROST if until is not None and now < until else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return FREEZE_FROST if until is not None and now <= until else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
