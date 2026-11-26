@@ -122,14 +122,15 @@ which grew that script's closure from 74 to 91 production files (75 to 92
 beside whatif.py): nine pairs joined at the 0.80 floor and one left, the
 count from 154 to 162; #3616's re-record moved it to 163, and
 R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164).
-Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
+Seventeen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
-(100 shared production modules each, 98 before R11-OWNER-FAULT-HOLD), doc_claims.py/harness_headers.py
-(88), structure.py/typing_ruler.py, finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (80 each), plan_view.py/solar_alignment.py,
-boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
-(62 each), the optimality.py/validate.py/edge.py/backtest.py four (22, six
-pairs), golden.py/env_drift.py (94), card.mjs/card_drift.mjs (61) -- and which
+(124 shared production files each, 105 of them .py; 123 before
+R11-OWNER-FAULT-HOLD's fault_hold.py), doc_claims.py/harness_headers.py
+(114), structure.py/typing_ruler.py, finite_boundary.py/structure.py,
+finite_boundary.py/typing_ruler.py and block_duty.py with each of the three
+(105 each, six pairs), the optimality.py/validate.py/edge.py/backtest.py four
+(28, six pairs) and golden.py/env_drift.py (122), all measured with
+tests/entities.py's _d308_pairs on this recording -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here

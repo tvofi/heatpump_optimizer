@@ -78,7 +78,7 @@ against a document that is CORRECT.
                                          R10-FACTORY-RESET's "What to reset",
                                          a select Default row on the Reset to
                                          factory defaults table)
-    RESULT config_ranges_compared=105    (102 until R10-COMBI-TANK's effectiveness
+    RESULT config_ranges_compared=104    (102 until R10-COMBI-TANK's effectiveness
                                          and potable-volume Range rows; 101 until R10-GENERIC-HEAT-CURVE's band row; 76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87
