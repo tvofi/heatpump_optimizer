@@ -1,64 +1,56 @@
 # Review packet #3905
-head: 7f4028cb65588d1dde4213e27f4e402b0bcf66fd
-base: 3ee06864daf26f75a1da135b437c4884a6aff341
+head: 2e3a13f00ce601de2880f395487893f9a892c427
+base: 70f410e9962c377c57ec46cf20a5c5a72d66aefa
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=139661104051 success
-arch-score / arch-score id=139660878701 success
-arm id=139660037218 skipped
-budget-raise-gate / budget-raise-gate id=139660878761 success
-cancel-superseded id=139660079929 success
-codeql id=139660880456 skipped
-codeql / Analyze (actions) id=139660546534 success
-codeql / Analyze (javascript-typescript) id=139660546619 success
-codeql / Analyze (python) id=139660546657 success
-gate id=139662243916 failure
-governance id=139660880752 skipped
-governance / env-matrix id=139660546600 success
-governance / instrument-self-tests id=139660546604 success
-governance / policy-docs id=139660546589 success
-governance / record id=139660548553 skipped
-governance / wave-script id=139660546627 success
-hassfest id=139660880825 skipped
-hassfest / hassfest id=139660546590 success
-kernel-points id=139660880205 skipped
-pr-contract id=139662245222 skipped
-pr-contract / pr-contract id=139678834559 queued
-prelude id=139660080329 success
-refresh id=139660080465 success
-sweep-self id=139663145219 skipped
-tests id=139660880123 skipped
-tests / arch-instrument id=139661070037 success
-tests / briefs id=139660546499 success
-tests / browser id=139661069956 success
-tests / ci-ratchet id=139676622928 skipped
-tests / claims-autofix id=139676621403 success
-tests / closure-scope id=139660546483 success
-tests / closures id=139661070014 success
-tests / closures-autofix id=139673587270 skipped
-tests / coverage id=139661070040 success
-tests / coverage-ratchet id=139671723952 success
-tests / fast (3.14) id=139661070068 failure
-tests / graders-head-copy id=139671723951 success
-tests / lane-proofs id=139676906759 success
-tests / mutation id=139660546484 success
-tests / mutation-autofix id=139661000431 skipped
-tests / mutation-pins id=139660999298 skipped
-tests / nightly-ha id=139661072153 skipped
-tests / nightly-status id=139660546497 failure
-tests / replay id=139661071364 skipped
-tests / typing id=139661070020 success
-validate id=139660880977 skipped
-validate / validate-hacs id=139660546479 success
+CodeQL id=139708805880 success
+arch-score / arch-score id=139707905044 success
+arm id=139706898508 skipped
+budget-raise-gate / budget-raise-gate id=139707905021 success
+cancel-superseded id=139706929542 success
+codeql id=139707906879 skipped
+codeql / Analyze (actions) id=139707519776 success
+codeql / Analyze (javascript-typescript) id=139707519775 success
+codeql / Analyze (python) id=139707519826 success
+gate id=139709277476 failure
+governance id=139707907122 skipped
+governance / env-matrix id=139707519673 in_progress
+governance / instrument-self-tests id=139707519690 in_progress
+governance / policy-docs id=139707519692 in_progress
+governance / record id=139707521360 skipped
+governance / wave-script id=139707519675 success
+hassfest id=139707907472 skipped
+hassfest / hassfest id=139707519818 success
+kernel-points id=139707906780 skipped
+pr-contract id=139709278330 skipped
+prelude id=139706929658 success
+refresh id=139706929291 success
+sweep-self id=139709746492 skipped
+tests id=139707906315 skipped
+tests / arch-instrument id=139708233768 in_progress
+tests / briefs id=139707519761 success
+tests / browser id=139708233848 in_progress
+tests / closure-scope id=139707519839 success
+tests / closures id=139708233845 in_progress
+tests / coverage id=139708233818 in_progress
+tests / fast (3.14) id=139708233869 in_progress
+tests / mutation id=139707519844 success
+tests / mutation-autofix id=139709100954 skipped
+tests / mutation-pins id=139709100237 skipped
+tests / nightly-ha id=139708236336 skipped
+tests / nightly-status id=139707519770 failure
+tests / replay id=139708235693 skipped
+tests / typing id=139708234026 success
+validate id=139707906491 skipped
+validate / validate-hacs id=139707519579 success
 
 ## Refusals
-structure: tests/structure.py refuses the head merged with main: head does not merge cleanly with origin/main: ['100644 452c2f17c4dadfe1f6092fe3821df401e7331d94 1\t.github/workflows/ci.yml', '100644 0c108be76d0f0899b469ebe56575e6d46f99b1b0 2\t.github/workflows/ci.yml']
-red-unanswered: concluded red check `tests / fast (3.14)` is not named in ## Red checks
+introduced-red: unreadable: head governance / instrument-self-tests job 139707519690: in_progress has not concluded: an introduced red cannot be ruled out (fail closed)
 
 ## Advisories
-required-wait: required context `gate` reads concluded failure at 7f4028cb65588d1dde4213e27f4e402b0bcf66fd in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+required-wait: required context `gate` reads concluded failure at 2e3a13f00ce601de2880f395487893f9a892c427 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
@@ -80,18 +72,23 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (no verdict on verdict/<pr> names the reviewed head 7f4028cb65588d1dde4213e27f4e402b0bcf66fd, so there is no finding to confirm resolved)
+## Review scope: full (no verdict on verdict/<pr> names the reviewed head 2e3a13f00ce601de2880f395487893f9a892c427, so there is no finding to confirm resolved)
 
 ## Three-dot diff
 diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
-index 452c2f17c4..e738de70a2 100644
+index 0c108be76d..df395b1f9a 100644
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
 @@ -66,15 +66,21 @@ permissions: {}
  
  # A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
  # and a re-run re-enters its run's group, so a group shared between runs would
--# let a re-run cancel a pending run. Supersession is cancel-superseded's alone.
+-# let a re-run cancel a pending run. A push to main's run is no exception
+-# (owner 2026-11-25, retiring CI-5's `CI-main` group): every main push run
+-# starts at once, and supersession is the cancellers' alone -- this file's
+-# cancel-superseded job for a pull request, and for main main-cancel.yml, which
+-# cancels the older active main push runs when the new push is graded in full,
+-# never past three main runs with no concluded verdict.
 +# let a re-run cancel a pending run. Except a `synchronize` run's first attempt
 +# sent by anyone but github-actions[bot] (#3885 L1): it joins its pull request's
 +# `CI-pr-<number>` group and cancels the older such run at creation, pending or
@@ -99,15 +96,15 @@ index 452c2f17c4..e738de70a2 100644
 +# cancelled; a re-run keeps its run-id group; a bot-sent run (an autofix push)
 +# never cancels the run doing the other autofix jobs. Every other superseded run
 +# (opened, reopened, dispatched, bot-sent) is the `cancel-superseded` job's.
- # Except a push to main's first attempt (CI-5, owner 2026-11-21): one `CI-main`
- # group, cancelling nothing in progress, so one push run executes at a time and
- # GitHub replaces a pending one with the newest before it starts; a burst of
- # merges is graded once, at its last tip, and no started run is cancelled. A
- # re-run (attempt 2+) keeps its run-id group, so it never displaces that tip.
++# A push to main's run is no exception to the run-id group (owner 2026-11-25,
++# retiring CI-5's `CI-main` group): every main push run starts at once, and
++# supersession is main-cancel.yml's, which cancels the older active main push
++# runs when the new push is graded in full, never past three main runs with no
++# concluded verdict.
  concurrency:
--  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || format('CI-{0}', github.run_id) }}
+-  group: ${{ format('CI-{0}', github.run_id) }}
 -  cancel-in-progress: false
-+  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}', github.event.pull_request.number) || format('CI-{0}', github.run_id) }}
++  group: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}', github.event.pull_request.number) || format('CI-{0}', github.run_id) }}
 +  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' }}
  
  jobs:
@@ -482,7 +479,7 @@ index 7ac8283787..2fee9a7ceb 100644
     "dev/audit/harnesses/claim_merge_census.py",
     "dev/audit/harnesses/claim_merge_mutants.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index 50b1b588fd..41523b0949 100644
+index a5678e6a4c..779da948fa 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
 @@ -21557,7 +21557,9 @@ R.check(
@@ -490,9 +487,9 @@ index 50b1b588fd..41523b0949 100644
  #     expression can cut from the queue ref), so a past run's kind, PR, base
  #     and `sha=` read back as the prelude derived them;
 -#   - one run per concurrency group, cancelling nothing (rev2, N1);
-+#   - one run per concurrency group (rev2, N1), but a push's first attempt
-+#     (CI-main, CI-5, cancelling nothing) and a non-bot `synchronize`'s first
-+#     attempt (CI-pr-<number>, #3885 L1, cancelling the PR's older one);
++#   - one run per concurrency group (rev2, N1), a push to main's included (no
++#     CI-main), but a non-bot `synchronize`'s first attempt (CI-pr-<number>,
++#     #3885 L1, cancelling the PR's older one);
  #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
  #     own stem (the naming rule), all inside the `# >>> units` block the
  #     coordinator cuts a probe from, each run exactly when the prelude's
@@ -508,31 +505,33 @@ index 50b1b588fd..41523b0949 100644
      flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
                   "github.repository": "o/r", "github.actor": actor})
      flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
-@@ -21726,17 +21729,27 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
+@@ -21725,18 +21728,28 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
+                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
      if doc.get("permissions") != {}:
          out.append(f"workflow permissions {doc.get('permissions')!r}")
-     # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
--    # push run is replaced by the newest and none in progress is cancelled; every other run and
--    # every re-run keeps its run-id group (N1). Rendered per event and attempt, not matched as text.
-+    # push run is replaced by the newest and none in progress is cancelled. #3885 L1: a
-+    # `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins its pull
-+    # request's CI-pr-<number> group and cancels the older run there at creation. Every other
-+    # run and every re-run keeps its run-id group (N1: a re-run never cancels a pending run), and
-+    # a bot-sent run never cancels the run doing the other autofix jobs (cancel_superseded.BOT).
-+    # Rendered per event, attempt and sender, not matched as text.
+-    # Every run and every re-run keeps its run-id group (N1), a push to main's included: no
+-    # group serialises main push runs (owner 2026-11-25, retiring CI-5's `CI-main` group);
+-    # main-cancel.yml cancels the superseded ones. Rendered per event and attempt, not as text.
++    # #3885 L1: a `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins
++    # its pull request's CI-pr-<number> group and cancels the older run there at creation. Every
++    # other run and every re-run keeps its run-id group (N1: a re-run never cancels a pending
++    # run), a push to main's included: no group serialises main push runs (owner 2026-11-25,
++    # retiring CI-5's `CI-main` group); main-cancel.yml cancels the superseded ones. A bot-sent
++    # run never cancels the run doing the other autofix jobs (cancel_superseded.BOT). Rendered per
++    # event, attempt and sender, not matched as text.
      cc = doc.get("concurrency") or {}
 -    if cc.get("cancel-in-progress") is not False:
 -        out.append(f"concurrency {cc} cancels in progress")
      for (ev, a), payload in _CI_EVENTS.items():
          for attempt in ("1", "2"):
--            want = "CI-main" if ev == "push" and attempt == "1" else "CI-99"
+-            want = "CI-99"
 -            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
 -            if got != want:
 -                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
 +            for sender in ("hpo-author[bot]", "tvofi", _SELF_ACTOR):
 +                ctx = {**_ci_ctx(ev, payload, actor=sender)[0], "github.run_attempt": attempt}
 +                pr_group = (ev, a, attempt) == ("pull_request", "synchronize", "1") and sender != _SELF_ACTOR
-+                want = "CI-main" if ev == "push" and attempt == "1" else "CI-pr-7" if pr_group else "CI-99"
++                want = "CI-pr-7" if pr_group else "CI-99"
 +                got = _ghx(cc.get("group", ""), ctx)
 +                if got != want:
 +                    out.append(f"concurrency group under {ev}/{a} attempt {attempt} sender {sender} "
@@ -544,15 +543,10 @@ index 50b1b588fd..41523b0949 100644
      jobs = doc.get("jobs") or {}
      callers = {j for j, b in jobs.items() if "uses" in (b or {})}
      if callers != set(_cig.UNITS) | {_cip.KP}:
-@@ -21847,9 +21860,23 @@ _CI_PLANTS = {
+@@ -21845,13 +21858,27 @@ _CI_PLANTS = {
+     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
+     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                         "format('CI-{0}', github.event.pull_request.number)", 1),
-     "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
-     "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
--    "the main group cancelling in progress": _CI_TEXT.replace(
--        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
--        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
-+    "the main group cancelling in progress": re.sub(
-+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
 +    # #3885 L1's own plants: each widens or narrows the CI-pr-<number> arm by one condition.
 +    "the PR group on every pull_request action": _CI_TEXT.replace(
 +        " && github.event.action == 'synchronize'", "", 2),
@@ -568,16 +562,27 @@ index 50b1b588fd..41523b0949 100644
 +        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: false", _CI_TEXT, count=1),
 +    "no PR group": _CI_TEXT.replace(
 +        "format('CI-pr-{0}', github.event.pull_request.number)", "format('CI-{0}', github.run_id)", 1),
+     "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
+-        "group: ${{ format('CI-{0}', github.run_id) }}",
++        "group: ${{ github.event_name == 'pull_request'",
+         "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
+-        " || format('CI-{0}', github.run_id) }}", 1),
+-    "a run-id group cancelling in progress": _CI_TEXT.replace(
+-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
+-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
++        " || github.event_name == 'pull_request'", 1),
++    "a run-id group cancelling in progress": re.sub(
++        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
      "gate skippable on merge_group": _CI_TEXT.replace(
          "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
      "gate skipped when the prelude fails": _CI_TEXT.replace(
-@@ -21895,7 +21922,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
+@@ -21897,7 +21924,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                            if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
  R.check(
      "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
--    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5), "
-+    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5) "
-+    "and a non-bot synchronize's first attempt (CI-pr-<number>, cancelling in progress, #3885 L1), "
+-    "run-name equal to prelude.title, one run per group, a push to main's included (no CI-main), "
++    "run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt "
++    "(CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), "
      "every unit called "
      "by its stem exactly when the prelude's workset names it, and a `gate` "
      "no event can skip, judging on the prelude's outputs (U0c)",
