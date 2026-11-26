@@ -1,0 +1,11 @@
+planted missed: []
+probe '18 at exactly 1.00': not refused
+probe 'among 435 comparable pairs': REFUSED
+probe '192 of 561 pairs': REFUSED
+probe 'a/b (41)': not refused
+probe 'one hundred and twenty-five production files': REFUSED
+probe '125 production modules': not refused
+probe 'the lane reaches all 125 production-module files': REFUSED
+probe '124 of them': not refused
+probe 'thirty-four scripts': not refused
+probe '(34 choose 2)': not refused

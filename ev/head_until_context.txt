@@ -1,0 +1,8 @@
+dev/audit/rca/RCA-BULK-2.md: 86:- Escapes: dead code ships (`identify()` from #1330 until b462a7c9); hygiene, but a mis-priced ratchet can b
+dev/audit/rounds/round8/D3/verify-v1.md: 73:does not move when disinfection becomes due. Clamped, the age sits at 0 until the clock passes last_cycle.
+dev/audit/rounds/round8/JUDGE-INPUT.json: 1340: later') is false for the due instant: with the clamp the age sits at 0 until the clock passes last_cycle, so disinfection becom
+dev/audit/rounds/round11/D5/s5/long_sentences.tsv: 274:qF -- <sha> /` hung the orchestrator's merge queue for 86 minutes on #1591 until it was killed by hand.
+tests/card_browser.mjs: 2011:  // for. The buttons sit at opacity 0 until .chartwrap:hover, which hides
+tools/pr/app_approve.sh: 620:  # on #1591 until it was killed by hand. POSIX ERE (`grep -E`) has n
+tests/entities.py: 18313:    "96 until R9 F2.2",
+tools/audit/seat/record_beat.py: 14:(#201 until its 2,500-comment cap; its continuation since). Th
