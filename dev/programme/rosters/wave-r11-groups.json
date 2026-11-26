@@ -5514,9 +5514,9 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-seam-learners",
-    "commit": null,
+    "commit": "d66452586467967848c7cd6012c43bc955f0f9dc",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-003, ADR-008, ADR-001)",
     "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
@@ -7813,9 +7813,10 @@
    ],
    "brief": "Late class sweep P1 (finder box SW7, landed on main by 5680abbb85 on 2026-11-21, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sweep/P1/REPORT.json`): a stored option of the wrong type raises in four readers instead of falling back to its default: the options flow's effective-value reader in config_flow.py, the setup description and the slot extras in topology.py, and the measured quiet-window ceiling in quiet_windows.py. Probe: `PYTHONPATH=tests/hastub:. python3 dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_probes.py` (config-effective and other-option arms; null 0, perturb 0); enumerator `dev/audit/rounds/round11/sweep/P1/D14/sweep-P1/p1_seams.py`. No live group owns this seam: R11-SEAM-inputs-guards (pull request 3734, merged) owned P1 at the input boundary and R11-SEAM-config (pull request 3742, merged) the options' placement. Each reader tests the stored value's type and domain before use and takes its default otherwise; a failing test per reader first; the P1 sweep reads none of the four left at this group's stamp. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them, so the fixer's failing test is the first independent measurement. Folded by the round-11 late-arrival fold under mandate 6893738184.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): late P1 sweep seams, round-11 late-arrival fold; no live group owns the stored-options readers"
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT): late P1 sweep seams, round-11 late-arrival fold; no live group owns the stored-options readers",
+    "pr": 3913
    }
   },
   {
