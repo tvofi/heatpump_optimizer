@@ -1,2 +1,0 @@
-  FAIL five fault-text entities are refused with their own error; null control, four save  [errors=None saved=['sensor.hp_alarm_bitmap_1', 'sensor.hp_alarm_bitmap_2', 'sensor.hp_alarm_bitmap_3', 'sensor.hp_alarm_bitmap_4', 'sensor.hp_alarm_bitmap_5']]
-1 of 697 checks FAILED

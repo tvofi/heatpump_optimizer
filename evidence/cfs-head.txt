@@ -1,2 +1,0 @@
-
-ALL 697 checks PASSED

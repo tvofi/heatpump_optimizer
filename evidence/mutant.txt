@@ -1,0 +1,5 @@
+clean rc=0
+  ok   a connect failure shows cannot_connect, not invalid_tibber_token
+  ok   a failed translation lookup still renders every menu label
+  FAIL five fault-text entities are refused with their own error; null control, four save  [errors={'heat_pump_fault_text_entities': 'too_many_fault_text_entities'} saved=None]
+mutant CMP_BOUND rc=1

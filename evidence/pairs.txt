@@ -1,11 +1,3 @@
-1a0d1351 scripts 34 total 561 pairs 181
-3ee06864 scripts 34 total 561 pairs 182
-2c1ab822 scripts 34 total 561 pairs 182
-origin/main scripts 34 total 561 pairs 182
-head-main []
-main-head [('tests/config_flow_steps.py', 'tests/wood_advisor.py')]
-head-prev []
-prev-head [('tests/config_flow_steps.py', 'tests/wood_advisor.py')]
-refs/scr/p3872 scripts 34 total 561 pairs 184
-scripts 34 non-union 0
-cfs/wood jaccard 87 109 0.7982 cfs-only ['custom_components/heatpump_optimizer/button.py', 'custom_components/heatpump_optimizer/climate.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/datetime.py', 'custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/device_prefill.py', 'custom_components/heatpump_optimizer/fault_log.py', 'custom_components/heatpump_optimizer/frontend.py', 'custom_components/heatpump_optimizer/icons.json', 'custom_components/heatpump_optimizer/name_match.py', 'custom_components/heatpump_optimizer/notifier.py', 'custom_components/heatpump_optimizer/prefill_offer.py', 'custom_components/heatpump_optimizer/process_worker.py', 'custom_components/heatpump_optimizer/quick_setup.py', 'custom_components/heatpump_optimizer/replay_doc.py', 'custom_components/heatpump_optimizer/services.py', 'custom_components/heatpump_optimizer/services.yaml', 'custom_components/heatpump_optimizer/strings.json', 'custom_components/heatpump_optimizer/switch.py', 'custom_components/heatpump_optimizer/translations/de.json', 'custom_components/heatpump_optimizer/translations/en.json', 'custom_components/heatpump_optimizer/translations/sv.json']
+5f8e2cdb5f scripts 34 pairs 561 nonempty-pairs 435 jaccard>=0.80 182
+8f22a3b284 scripts 34 pairs 561 nonempty-pairs 435 jaccard>=0.80 184
+1a0d135125 scripts 34 pairs 561 nonempty-pairs 435 jaccard>=0.80 181
