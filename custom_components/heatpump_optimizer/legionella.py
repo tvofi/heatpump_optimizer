@@ -165,8 +165,7 @@ class LegionellaGuard:
         self._switch_saved: tuple[tuple[str, ...], bool] = ((), False)
         self.last_cycle: datetime | None = None
         self.tank_c: float | None = None
-        #: Whether the follower ran since the last observe: a cycle that raised
-        #: before its step tail did not, and ``async_follow_missed`` runs it.
+        #: Whether the follower ran since the last observe (``async_follow_missed``).
         self.followed: bool = False
         self.store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
@@ -566,17 +565,7 @@ class LegionellaGuard:
         await self.async_track_cycle(self.tank_c)
 
     async def async_follow_missed(self, lock: asyncio.Lock) -> None:
-        """The follower for a cycle that raised before its step tail, under the tail's ``lock``.
-
-        The step tail follows after adoption. A cycle whose fetch or solve
-        raised never reaches it, and once the plan is stale the step tick runs
-        no tail either, so the boost bound, the OFF when disinfection is
-        disabled and the idle OFF retry would wait for a cycle that succeeds
-        (#3897). A cycle that reached its tail, or a tick since the observe,
-        followed already and is not followed twice.
-        """
-        if self.followed:
-            return
+        """Under the tail's ``lock``, the follower for a cycle that raised before its step tail (#3897)."""
         async with lock:
             if not self.followed:
                 await self.async_follow()
