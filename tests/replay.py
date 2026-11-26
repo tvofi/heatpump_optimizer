@@ -602,10 +602,21 @@ COST_CLASS_GAP_MS = 2.0
 #: is fixture-independent and stays on the fixtures not named here, which the
 #: driver requires to exist.
 COST_ARMS_SKIPPED: dict[str, str] = {
-    "owner-2026-10-30-away.json": "a real install's solve: 16 cycles, about 12 "
-    "CPU-minutes a replay, so four would overrun the replay job; the arms run on "
-    "the synthetic fixture",
+    "owner-2026-10-30-away.json": "a real install's solve: 16 cycles, most of the "
+    "lane's wall time (its own 'cycles over' line), so four would overrun the "
+    "replay job; the arms run on the synthetic fixture",
 }
+#: The pull-request ``replay`` job in this file, whose ``timeout-minutes`` the
+#: lane checks its own wall time against (``headroom_offenders``).
+REPLAY_WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"
+#: The job's seconds before ``tests/replay.py`` starts: checkout, Python and
+#: the pinned install (about 20 s on the runs P-R11-REPLAY-TIMEOUT measured).
+REPLAY_JOB_SETUP_S = 20.0
+#: The share of the job's remaining time the lane may use. The nightly
+#: ``slow`` job runs the same lane under a much larger cap, so the check goes
+#: red there while the pull-request arm still finishes, and names the cap to
+#: raise before that arm starts timing out.
+REPLAY_HEADROOM_SHARE = 0.8
 #: Fixtures that declare away coverage: their ``controls.away`` must hold an
 #: active command and their replay must carry it for at least one cycle
 #: (``away_offenders``'s ``expect_commanded``). A design choice: coverage is
@@ -965,6 +976,28 @@ def arms_skip_offenders(skipped: set[str], committed: set[str]) -> list[str]:
     return out
 
 
+def replay_timeout_minutes(workflow: str) -> int | None:
+    """The ``replay`` job's ``timeout-minutes`` in tests.yml's text, or None
+    when the job or its cap is not there (the caller reads None as red)."""
+    m = re.search(r"\n  replay:\n(?:    .*\n|[ \t]*\n)*?    timeout-minutes: (\d+)\n", workflow)
+    return int(m.group(1)) if m else None
+
+
+def headroom_offenders(wall_s: float, cap_minutes: int | None) -> list[str]:
+    """The lane's wall time over ``REPLAY_HEADROOM_SHARE`` of what the
+    pull-request job leaves it under ``cap_minutes``: the lane is growing
+    toward the cap, and the job will soon be cancelled with no verdict."""
+    if cap_minutes is None:
+        return [f"no replay timeout-minutes in {REPLAY_WORKFLOW.name}"]
+    limit = REPLAY_HEADROOM_SHARE * (cap_minutes * 60 - REPLAY_JOB_SETUP_S)
+    if wall_s <= limit:
+        return []
+    return [f"lane wall time {wall_s:.1f} s > {REPLAY_HEADROOM_SHARE} x "
+            f"({cap_minutes} min - {REPLAY_JOB_SETUP_S:.0f} s) = {limit:.1f} s; raise the "
+            f"replay job's timeout-minutes to at least "
+            f"{math.ceil((wall_s / REPLAY_HEADROOM_SHARE + REPLAY_JOB_SETUP_S) / 60)}"]
+
+
 def away_covered_offenders(covered: frozenset[str] | set[str],
                            committed: set[str]) -> list[str]:
     """``AWAY_COVERED`` naming a fixture that is not committed: a misspelt
@@ -1246,6 +1279,18 @@ def controls() -> list[tuple[str, bool, str]]:
     pair("cycle_cost:arms_skipped_committed_only",
          arms_skip_offenders({"gone.json"}, {"a.json"}),
          arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
+    # Nightly lane wall times (P-R11-REPLAY-TIMEOUT): 1798.0 s on 2026-11-25
+    # is over the 30-minute job's headroom and inside 45's; 836.1 s on
+    # 2026-11-16 is inside both. A cap the workflow does not carry is red.
+    pair("headroom:over_the_cap", headroom_offenders(1798.0, 30),
+         headroom_offenders(1798.0, 45) + headroom_offenders(836.1, 30))
+    pair("headroom:cap_unread", headroom_offenders(1.0, None), headroom_offenders(1.0, 30))
+    job = "\n  replay:\n    needs: [x]\n\n    timeout-minutes: 45\n  next:\n"
+    res.append(("control:headroom:reads_the_replay_job",
+                replay_timeout_minutes(job) == 45
+                and replay_timeout_minutes(job.replace("  replay:", "  other:")) is None
+                and replay_timeout_minutes(job.replace("    timeout", "      timeout")) is None,
+                f"read {replay_timeout_minutes(job)}"))
     pair("away:covered_names_are_committed",
          away_covered_offenders({"owner-2026-10-30-awya.json"},
                                 {"owner-2026-10-30-away.json"}),
@@ -3169,7 +3214,12 @@ def main(argv: list[str] | None = None) -> int:
     wrong = arms_skip_offenders(set(COST_ARMS_SKIPPED), committed)
     R.check("the doubled-cost arms are skipped on committed fixtures only, never all",
             not wrong, " | ".join(wrong) + f"; this run perturbed {perturbed}")
-    print(f"\nreplay lane wall time {time.monotonic() - began:.1f} s")
+    wall_s = time.monotonic() - began
+    print(f"\nreplay lane wall time {wall_s:.1f} s")
+    cap = replay_timeout_minutes(REPLAY_WORKFLOW.read_text())
+    wrong = headroom_offenders(wall_s, cap)
+    R.check("lane wall time within the pull-request replay job's headroom", not wrong,
+            " | ".join(wrong) or f"{wall_s:.1f} s under timeout-minutes {cap}")
     return R.close("replay checks")
 
 
