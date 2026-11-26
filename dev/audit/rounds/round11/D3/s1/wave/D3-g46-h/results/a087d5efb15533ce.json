@@ -1,0 +1,39 @@
+{
+ "key": "a087d5efb15533ce",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND",
+ "patch": "elif available <= 0.0: -> elif available < 0.0:",
+ "function": "_valve_two_zone_delivery",
+ "cluster": "thermal_model.py:_valve_two_zone_delivery@2554-2598",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2761.1,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_a087d5efb15533ce.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_a087d5efb15533ce.py",
+  "baseline": "delivered_kw=0.0",
+  "mutant": "delivered_kw=5.2333333333333325",
+  "inputs_tried": "available == 0.0 exactly (tp=0, q_buf_loss=stored energy, T_buf 40, floor 21, dt 0.25); null: available strictly <0 and >0 (delta 0.0)"
+ },
+ "should_fail": "tests/features.py (and tests/validate.py): no check of _valve_two_zone_delivery's single-tank branch at available == 0 exactly asserts that a store with zero available energy delivers zero heat to the emitters",
+ "title": "_valve_two_zone_delivery: `available <= 0.0` -> `<` survives the full gate; at zero available energy the emitters keep their full demand",
+ "claim": "At available == 0.0 (store holds exactly what it loses) with emitter demand drawn > 0, the baseline zeroes q_rad/q_floor (0.0 kW); with the line mutated to `<` the emitters are credited 5.2333 kW from an empty store, i.e. heat from nothing. Only an exact float tie reaches it; no suite check sits at that tie.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "metric_definition": "heat or share value returned by the production function on the tie input, baseline vs mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_a087d5efb15533ce.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_a087d5efb15533ce.py",
+ "perturbation": "elif available <= 0.0: -> elif available < 0.0: (in memory); direction: delivered_kw=0.0 -> delivered_kw=5.2333333333333325",
+ "null_control": "strictly-off-tie inputs: both arms equal (delta 0.0)"
+}

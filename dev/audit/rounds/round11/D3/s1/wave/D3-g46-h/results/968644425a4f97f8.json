@@ -1,0 +1,39 @@
+{
+ "key": "968644425a4f97f8",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2946 CLAMP_DROP",
+ "patch": "span = np.maximum(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp)",
+ "function": "_wood_share_vec",
+ "cluster": "thermal_model.py:_wood_share_vec@2939-2952",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2692.8,
+  "load1_start": 0.78,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_968644425a4f97f8.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_968644425a4f97f8.py",
+  "baseline": "share=0.0 (tie: floor_temp == flow_set)",
+  "mutant": "share=nan",
+  "inputs_tried": "wood 30, hp 40, flow_set 35, floor 35 -> mutant nan; floor 37 -> -0.0 (equal value); floor 30 (null) -> equal"
+ },
+ "should_fail": "tests/features.py / tests/env_drift.py: no scalar-vs-vector identity check of wood_share vs _wood_share_vec at floor_temp == flow_set (span 0), nor a finiteness check of the vector share",
+ "title": "_wood_share_vec: dropping the 1e-6 span clamp survives the full gate; floor_temp == flow_set gives a NaN share",
+ "claim": "For a region-2 element (wood < flow_set < hp) whose floor_temp equals flow_set, span is 0 and f_w*useful/span is 0/0: baseline share 0.0, mutant nan, which then poisons the draw split of the batched trajectory. The scalar wood_share keeps the clamp, so the #927 scalar/vector identity breaks at that tie.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "metric_definition": "heat or share value returned by the production function on the tie input, baseline vs mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_968644425a4f97f8.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_968644425a4f97f8.py",
+ "perturbation": "span = np.maximum(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp) (in memory); direction: share=0.0 (tie: floor_temp == flow_set) -> share=nan",
+ "null_control": "strictly-off-tie inputs: both arms equal (delta 0.0)"
+}

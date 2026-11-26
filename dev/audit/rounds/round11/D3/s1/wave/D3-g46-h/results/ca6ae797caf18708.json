@@ -1,0 +1,25 @@
+{
+ "key": "ca6ae797caf18708",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2827 CLAMP_DROP",
+ "patch": "ln = math.log(max(vapor_pressure_hpa, 1e-9) / 6.112) -> ln = math.log((vapor_pressure_hpa) / 6.112)",
+ "function": "dew_point_for_pressure",
+ "cluster": "thermal_model.py:dew_point_for_pressure@2827-2827",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2704.4,
+  "load1_start": 0.73,
+  "load1_end": 0.93,
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_ca6ae797caf18708.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_ca6ae797caf18708.py",
+  "baseline": "dew point -136.435 C at 0.0 hPa",
+  "mutant": "ValueError at 0.0 / negative hPa (direct call)",
+  "inputs_tried": "direct 0.0, -1.0, 1e-12, 10 hPa; via mold_safe_room_floor rh 0, 1e-9, 1e-6: identical (-100.0, -100.0, -169.82), because the caller returns early at e <= 1e-9 (line 2854) and the argument is then >= 1e-9"
+ },
+ "should_fail": "none through production; a direct dew_point_for_pressure(0.0) check would kill it"
+}
