@@ -1,0 +1,10 @@
+null rc=0 576 passed, 0 failed
+pp4b rc=2 575 passed, 1 failed
+  FAIL and the result line carries the run's elapsed read from the clock: SECONDS set to 1000 before summary_end prints 1000 or 1001, so a constant fails (got 1, wanted 0)
+pp5 rc=2 574 passed, 2 failed
+  FAIL the main flow's stdout PRE-PR line carries the run's elapsed from the clock (SECONDS=730 prints 730 or 731) (got 1, wanted 0)
+  FAIL and a different clock (SECONDS=40) prints 40 or 41, so the field tracks the clock (got 1, wanted 0)
+pp4c rc=0 576 passed, 0 failed
+pp5c rc=2 575 passed, 1 failed
+  FAIL and a different clock (SECONDS=40) prints 40 or 41, so the field tracks the clock (got 1, wanted 0)
+ALLDONE

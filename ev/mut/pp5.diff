@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 594c8301d0..5c420069fe 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -5058,6 +5058,6 @@ fi
+ rm -f "${UNPINNED_SITES:-}"
+ receipt_write "$rc" "${BODY:-}" "$RUN_START"
+ echo
+-echo "PRE-PR: $(git rev-parse HEAD) $digest elapsed=${SECONDS}s"
++echo "PRE-PR: $(git rev-parse HEAD) $digest"
+ summary_end "$(git rev-parse HEAD)"
+ exit $rc
