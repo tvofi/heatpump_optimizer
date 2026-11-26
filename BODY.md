@@ -51,7 +51,7 @@ These are pre-merge. The post-merge reading, the supersede arm on the first busy
 
 ## Red checks
 
-none
+`tests / fast (3.14)` on the prior head 7f4028cb: `python3 tests/doc_claims.py` failed one of 443 checks, the comment ratchet (`tests/entities.py` long units 406 -> 407, the new "CI-5 (owner 2026-11-21)..." comment). The merge with main rewrote that comment (CI-5's `CI-main` arm is retired), and `tests/doc_claims.py` on 5eb186caa2 reads ALL 443 checks PASSED. Cheaper detector: `doc_claims.py` alone, about 30 s, run whenever a diff adds a comment to `tests/` or production; the scoped prepr here skips it under PREPR_SKIP_CODE, so it was not run before the first push, and the standing cost is those 30 s per such diff. The local `tests/entities.py` failure ("a measured script's late-writing descendant is waited for, not recorded as nodata") is a different check: CI's fast run did not fail it, and it appeared only in my local run, which inherited HPO_CI_METRICS.
 
 ## Forward-carry
 
