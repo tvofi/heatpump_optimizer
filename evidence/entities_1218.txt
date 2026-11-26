@@ -1,0 +1,3 @@
+  ok   the deployment-shape lane's closure is the whole tracked package, so any production diff selects it (#1218)
+  FAIL and the lane's docstring records those measured numbers as the selection-cost note (#1218)  [the note cites numbers this tree derives: 123 production files; 184 of 561 pairs at >= 0.80; 435 pairs comparable; no production closure in ['tests/arch_score.py', 'tests/ha_contract.py', 'tests/layout.py', 'tests/md_tables.mjs']; missing markers -> ['184 of the 561']]
+  ok   the overlap predicate counts equal sets, skips empty ones and holds the 0.80 boundary (#1218)
