@@ -11,3 +11,4 @@
 1795637557 DONE blocked e60d25b9: mutation-vacuous ledger_unread window filter; verdict 41afbb25 on probe/rev-3898-8f5a11f8
 1795651381 INIT r11-rev-3898
 1795651480 HB alive
+1795652027 CKPT delta read; merge-tree clean; mutants running snapshot 550c68e0e767
