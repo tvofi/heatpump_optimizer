@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window BOOLOP e8eac339",
+  "killed_by": "tests/features.py",
+  "old": "    if windows and hour_in_windows(hour, windows):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if windows or hour_in_windows(hour, windows):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}
