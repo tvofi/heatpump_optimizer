@@ -6068,6 +6068,99 @@ R.check(
     not (set(_mon_req) & set(_sat_req)),
     f"mon {_mon_req} vs sat {_sat_req}",
 )
+# D17-s3-51, the planner's reader: `DhwPlan.next_window_in_hours`
+# (published as dhw_next_window_in_hours) is read in the day's windows,
+# today's and the next day's, exactly as `windows_in_force` answers for a
+# clock. It read the flat every-day union, so a Saturday 07:00 read 0.0
+# (inside the weekday window) where the weekend window opens in 1.0 h.
+# The census drives every weekday at hours before, inside, between and
+# after the windows, plus a holiday and a per-day override, and compares
+# each cell with the owner's answer. It asserts its own precondition: the
+# grid holds cells where the flat set disagrees with the day's.
+import dataclasses as _nw_dc
+import datetime as _nw_dt
+from heatpump_optimizer.dhw_schedule import (
+    hours_until_next_window as _nw_hunw, windows_in_force as _nw_wif,
+    parse_windows as _nw_parse,
+)
+
+_NW_SPEC = "weekdays 06:00-08:30, weekend 08:00-09:30"
+
+
+def _nw_cell(params, t0, holidays=frozenset()):
+    _o = _PvOpt(ThermalModel(params), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    _n = 96
+    _ts = [t0 + _nw_dt.timedelta(hours=i * 0.25) for i in range(_n)]
+    _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
+        _dhw_horizon(
+            prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0), n=_n, dt=0.25,
+            step_hours=np.array([t.hour + t.minute / 60.0 for t in _ts]),
+            step_weekdays=np.array(
+                [(t0 + _nw_dt.timedelta(hours=(i - 1) * 0.25)).weekday()
+                 for i in range(_n + 1)]),
+            holiday_flags=(np.array(
+                [False] + [t.date() in holidays for t in _ts])
+                if holidays else None),
+        ),
+        p_max=4.0,
+    )
+    _h = t0.hour + t0.minute / 60.0
+    _owner = _nw_hunw(_h, _nw_wif(params, None, t0, holidays),
+                      _nw_wif(params, None, t0, holidays, days=1))
+    _flat = _nw_hunw(_h, list(params.dhw_demand_windows))
+    return _plan.next_window_in_hours, _owner, _flat
+
+
+_nw_cfg = _grad_house(two_zone=False, dhw=True)
+_nw_cfg["dhw_windows"] = _NW_SPEC
+_nw_p = ThermalParameters.from_config(_nw_cfg)
+_nw_grid = {}
+for _nw_day in range(12, 19):  # Mon 2026-01-12 .. Sun 2026-01-18
+    for _nw_h in (0.0, 5.0, 7.0, 8.75, 9.0, 12.0, 23.5):
+        _nw_t = _WDT(2026, 1, _nw_day) + _nw_dt.timedelta(hours=_nw_h)
+        _nw_grid[("weekly", _nw_t.isoformat())] = _nw_cell(_nw_p, _nw_t)
+# A holiday Wednesday reads the holiday set; a Thursday override reads its own.
+_nw_hp = _nw_dc.replace(_nw_p, dhw_holiday_windows=_nw_parse("10:00-11:00"))
+for _nw_h in (7.0, 23.5):
+    _nw_t = _WDT(2026, 1, 13) + _nw_dt.timedelta(hours=_nw_h)
+    _nw_grid[("holiday", _nw_t.isoformat())] = _nw_cell(
+        _nw_hp, _nw_t, frozenset({_nw_dt.date(2026, 1, 14)}))
+    _nw_t = _WDT(2026, 1, 14) + _nw_dt.timedelta(hours=_nw_h)
+    _nw_grid[("holiday", _nw_t.isoformat())] = _nw_cell(
+        _nw_hp, _nw_t, frozenset({_nw_dt.date(2026, 1, 14)}))
+_nw_op = _nw_dc.replace(
+    _nw_p, dhw_day_windows=[None, None, None, _nw_parse("13:00-14:00"),
+                            None, None, None])
+for _nw_h in (7.0, 23.5):
+    for _nw_day in (14, 15):
+        _nw_t = _WDT(2026, 1, _nw_day) + _nw_dt.timedelta(hours=_nw_h)
+        _nw_grid[("override", _nw_t.isoformat())] = _nw_cell(_nw_op, _nw_t)
+# A horizon from midnight never wraps, so the next day is the weekday after;
+# a Saturday with no window reads Sunday's.
+_nw_ec = dict(_nw_cfg, dhw_windows="weekdays 06:00-08:30, Su 09:00-10:00")
+_nw_grid[("no-wrap", "2026-01-17T00:00:00")] = _nw_cell(
+    ThermalParameters.from_config(_nw_ec), _WDT(2026, 1, 17))
+_nw_wrong ={k: v for k, v in _nw_grid.items()
+             if v[0] is None or v[1] is None or abs(v[0] - v[1]) > 1e-9}
+_nw_separating = [k for k, v in _nw_grid.items()
+                  if v[2] is None or v[1] is None or abs(v[2] - v[1]) > 1e-9]
+R.check(
+    "the census grid holds cells where the flat every-day set and the day's "
+    "windows disagree on the next window (its own precondition)",
+    len(_nw_separating) >= 10 and any(k[0] == "holiday" for k in _nw_separating)
+    and any(k[0] == "override" for k in _nw_separating)
+    and _nw_grid[("no-wrap", "2026-01-17T00:00:00")][1] == 33.0,
+    f"{len(_nw_separating)} separating of {len(_nw_grid)}: {_nw_separating[:6]}",
+)
+R.check(
+    "the planner's published next window reads the day's windows, today's and "
+    "the next day's, in every census cell (D17-s3-51, windows_in_force's answer)",
+    not _nw_wrong,
+    f"{len(_nw_wrong)} of {len(_nw_grid)} wrong (planner, owner, flat): "
+    f"{list(_nw_wrong.items())[:4]}",
+)
 # The flat spec is byte-identical to before: the weekly path is entirely
 # gated on dhw_weekly_windows, which is None here. (The drift gate holds
 # this across every captured scenario; this is the local statement.)
@@ -20433,8 +20526,149 @@ R.check(
     "exact minutes the pre-heat exists for",
 )
 R.check(
-    "with no windows the loop is simply left on",
-    _ps.vvc_should_run(3.0, [], 20)[0],
+    "with no schedule the loop is simply left on",
+    _ps.vvc_should_run(3.0, None, 20)[0],
+)
+R.check(
+    "a schedule with no window today keeps the loop off (D17-s3-51)",
+    not _ps.vvc_should_run(3.0, [], 20)[0] and not _ps.vvc_should_run(7.0, [], 20)[0],
+    f"{_ps.vvc_should_run(3.0, [], 20)!r} -- an empty day of a day-aware spec "
+    "read as 'no schedule' ran the loop all day",
+)
+
+# D17-s3-51 and the P2 sweep's F14 seams: every reader asking "is a hot-water
+# window open now" resolves the day's windows (dhw_schedule.windows_in_force),
+# as the planner does per step. On "weekdays 06:00-08:30, weekend
+# 08:00-09:30" Saturday 07:00 is outside every window in force; the flat
+# union 06:00-09:30 read it open at the published flag, boost's release and
+# the draw learner. Monday 07:00 is the control: inside, at every reader.
+from unittest import mock as _d17_mock  # noqa: E402
+from harness import FakeEntry as _d17_entry  # noqa: E402
+from heatpump_optimizer import boost as _d17_boost, circulation as _d17_circ, dhw_schedule as _d17_sched  # noqa: E402
+from homeassistant.util import dt as _d17_dt_util  # noqa: E402
+
+_D17_MON = datetime(2026, 1, 12, 7, 0, tzinfo=UTC)
+_D17_SAT = _D17_MON + timedelta(days=5)
+_d17_c = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30"}))
+_d17_seen = {}
+for _d17_label, _d17_t in (("mon", _D17_MON), ("sat", _D17_SAT), ("mon_0845", _D17_MON.replace(hour=8, minute=45))):
+    _d17_labels = []
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda _t=_d17_t: _t), \
+            _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
+                                   lambda now, lab, e, charge=False, _l=_d17_labels: _l.append(lab)):
+        _asyncio.run(_d17_c._dhw_learner.async_fold_draw_stats(_d17_t, 50.0, 3.0, 0.25))
+        _d17_seen[_d17_label] = (
+            _d17_c._dhw_in_demand_window(),
+            _d17_boost._window_open(_d17_c.arbiter_inputs(), _d17_t),
+            _d17_labels,
+        )
+R.check(
+    "the hot-water window in force is the day's at every reader: flag, boost, draw learner (D17-s3-51)",
+    _d17_seen["sat"] == (False, False, [""])
+    and _d17_seen["mon"] == (True, True, ["06:00-09:30"]),
+    f"{_d17_seen} -- Saturday 07:00 lies in the flat union 06:00-09:30 and in "
+    "no window that day",
+)
+R.check(
+    "boost and the draw learner read the clock to the minute: Monday 08:45 is past the 08:30 close (D17-s3-51)",
+    _d17_seen["mon_0845"] == (False, False, [""]),
+    f"{_d17_seen['mon_0845']} -- an hour read at half the minutes (8.375) lands back inside 06:00-08:30",
+)
+_d17_params = _d17_c._thermal_params
+_d17_params.dhw_holiday_windows = [(10.0, 11.0)]
+R.check(
+    "windows_in_force takes the holiday tier on a holiday date and the day's own windows otherwise",
+    _d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()}) == [(10.0, 11.0)]
+    and _d17_sched.windows_in_force(_d17_params, None, _D17_SAT) == [(8.0, 9.5)]
+    and _d17_sched.windows_in_force(_d17_params, None, _D17_MON) == [(6.0, 8.5)],
+    f"{_d17_sched.windows_in_force(_d17_params, None, _D17_SAT, {_D17_SAT.date()})!r}",
+)
+_d17_params.dhw_holiday_windows = None
+# The learner reads the holiday tier through the coordinator's calendar,
+# its ``holidays`` callback. On a holiday whose windows cover Saturday 07:00,
+# the draw falls in a window. It takes the flat label the planner keys its
+# stats by. The same instant on an ordinary Saturday is out of window.
+_d17_params.dhw_holiday_windows = [(6.5, 7.5)]
+_d17_hol = {}
+for _d17_label, _d17_days in (("holiday", lambda now: {now.date()}), ("ordinary", lambda now: ())):
+    _d17_labels = []
+    _d17_c._dhw_learner._holidays = _d17_days
+    with _d17_mock.patch.object(_d17_c._dhw_learner.draw_stats, "fold",
+                                lambda now, lab, e, charge=False, _l=_d17_labels: _l.append(lab)):
+        _asyncio.run(_d17_c._dhw_learner.async_fold_draw_stats(_D17_SAT, 50.0, 3.0, 0.25))
+    _d17_hol[_d17_label] = _d17_labels
+R.check(
+    "the draw learner takes the holiday tier from the coordinator's calendar (D17-s3-51)",
+    _d17_hol == {"holiday": ["06:00-09:30"], "ordinary": [""]},
+    str(_d17_hol),
+)
+_d17_params.dhw_holiday_windows = None
+# The other three readers take the holiday tier from the configured holiday
+# calendar too: the published in-window flag (``_dhw_effective_windows``),
+# boost's tank release (``boost._window_open``) and the VVC pump. Holiday
+# windows 10:00-11:00 against Saturday's own 08:00-09:30: Saturday 10:30 is in
+# a window only while the calendar is on, so a reader dropping the tier reads
+# it out. The ordinary Saturday is the null control: out at every reader.
+_d17_hc = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True,
+    "dhw_windows": "weekdays 06:00-08:30, weekend 08:00-09:30",
+    "holiday_calendar_entity": "calendar.holiday",
+    "vvc_pump_entity": "switch.vvc", "vvc_lead_minutes": 20}))
+_d17_hc._thermal_params.dhw_holiday_windows = [(10.0, 11.0)]
+_D17_SAT1030 = _D17_SAT.replace(hour=10, minute=30)
+_d17_hcr = {}
+for _d17_label, _d17_cal in (("holiday", "on"), ("ordinary", "off")):
+    _d17_hc.hass.states.set("calendar.holiday", FakeState(_d17_cal))
+    _d17_vvc_on = []
+
+    # The VVC decision as the coordinator hands it to circulation.command,
+    # whose write and restore mechanics are not this check's subject.
+    async def _d17_cmd(hass, entry, config, pump, on, reason, _l=_d17_vvc_on):
+        if pump == _d17_circ.DHW:
+            _l.append(on)
+
+    with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_SAT1030), \
+            _d17_mock.patch.object(_d17_circ, "command", _d17_cmd):
+        _asyncio.run(_d17_hc._async_drive_pumps())
+        _d17_hcr[_d17_label] = (
+            _d17_hc._dhw_in_demand_window(),
+            _d17_boost._window_open(_d17_hc.arbiter_inputs(), _D17_SAT1030),
+            _d17_vvc_on,
+        )
+R.check(
+    "the in-window flag, boost and the VVC pump take the holiday tier from the holiday calendar (D17-s3-51)",
+    _d17_hcr == {"holiday": (True, True, [True]), "ordinary": (False, False, [False])},
+    f"{_d17_hcr} -- Saturday 10:30 is inside the holiday windows 10:00-11:00 and outside "
+    "Saturday's own 08:00-09:30",
+)
+
+# The lead across midnight reads TOMORROW's windows: the VVC pre-heat and the
+# published hours to the next window. "Tu 00:10-00:40": Monday 23:55 is 15
+# minutes before Tuesday's window; Tuesday 23:55 is before no window at all
+# (Wednesday has none), where the flat every-day union pre-heated.
+_d17_mid = Coord(FakeHass({}), _d17_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home",
+    "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+    "dhw_enabled": True, "dhw_schedule_enabled": True, "dhw_windows": "Tu 00:10-00:40"}))
+_D17_MON2355 = datetime(2026, 1, 12, 23, 55, tzinfo=UTC)
+_D17_TUE2355 = _D17_MON2355 + timedelta(days=1)
+_d17_vvc = {
+    _l: _ps.vvc_should_run_at(_t, _d17_mid._thermal_params, 20)[0]
+    for _l, _t in (("mon", _D17_MON2355), ("tue", _D17_TUE2355))
+}
+with _d17_mock.patch.object(_d17_dt_util, "now", lambda: _D17_MON2355):
+    _d17_next = _d17_mid._dhw_next_window_in_hours()
+R.check(
+    "the VVC lead and the next-window hours read tomorrow's windows across midnight (D17-s3-51)",
+    _d17_vvc == {"mon": True, "tue": False} and _d17_next == 0.25
+    and _ps.vvc_should_run_at(_D17_MON2355, None, 20)[0],
+    f"vvc {_d17_vvc} next window {_d17_next!r} h at Monday 23:55",
 )
 
 _SAFE = dict(
@@ -42100,6 +42334,9 @@ _ET_KEYS = {
     "manual_plan_invalid_expires_at": {"expires_at"},
     "manual_plan_invalid_slots": {"error"},
     "run_optimization_no_prices": {"entry_ids"},
+    # D10-s1-02: the system-identification press's two refusals.
+    "system_identification_disabled": {"entry_ids"},
+    "system_identification_not_armed": {"entry_ids", "reason"},
     "run_optimization_solve_failed": {"entry_ids"},
     "simulate_plan_no_plan": {"entry_ids"},
     "simulate_plan_no_prices": {"entry_ids"},
@@ -47866,16 +48103,23 @@ R.check(
     and _r11m_feb_rows == _r11m_jan_rows and not _r11m_jan_rows[0]["estimated"],
     repr(_r11m_feb_rows),
 )
-_r11m_sensor = _r11m_NS(_rows=lambda: _r11m_feb_rows)
+def _r11m_stand_in(rows):
+    """The sensor's two row readers on a stand-in: ``_rows`` and the one open saving."""
+    ns = _r11m_NS(_rows=rows)
+    ns._open_saving = lambda: _r11m_Sensor._open_saving(ns)
+    return ns
+
+
+_r11m_sensor = _r11m_stand_in(lambda: _r11m_feb_rows)
 _r11m_two_day = _SavLedger.from_dict(_r11m_two.as_dict())
 for _h in range(24):
     _r11m_two_day.observe_spot_and_settle_savings(
         datetime(2026, 2, 1, 0, 15) + timedelta(hours=_h), 1.0, {"baseline_kw": 2.0}, 1.0, 1.0)
-_r11m_ready = _r11m_NS(_rows=lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
+_r11m_ready = _r11m_stand_in(lambda: _r11m_two_day.savings_months(datetime(2026, 2, 2, 0, 30)))
 R.check(
     "R11-SEAM-money: MonthlySavingsSensor waits for open_month_coverage while only closed months have rows",
     _r11m_Sensor._waiting_for.fget(_r11m_sensor) == "open_month_coverage"
-    and _r11m_Sensor._waiting_for.fget(_r11m_NS(_rows=lambda: [])) == "settled_savings_month"
+    and _r11m_Sensor._waiting_for.fget(_r11m_stand_in(lambda: [])) == "settled_savings_month"
     and _r11m_Sensor._waiting_for.fget(_r11m_ready) is None,
     f"{_r11m_Sensor._waiting_for.fget(_r11m_sensor)!r} / {_r11m_Sensor._waiting_for.fget(_r11m_ready)!r}",
 )
@@ -51562,7 +51806,6 @@ _RC2_SETTERS = {
     "async_reset_comfort_weight": "row: the reset button",
     "async_reset_heat_loss_learners": "row: the heat-loss reset button",
     "async_restore_learned_snapshot": "restores from the store it reads",
-    "async_arm_system_identification": "in memory by design: arms tonight's run",
     "async_update_thermal_params": "the call's fields persist into entry "
         "options and reload the entry (D1-s2-53, F1.4); the learner anchors "
         "also persist through the thermal-learning store (#86)",
@@ -51687,6 +51930,99 @@ R.check(
     "every entity action's state survives a restart before any cycle completes",
     not _rc2_lost,
     f"lost at restart: {_rc2_lost}",
+)
+
+
+# D10-s1-02: a refused or failed press raises to the caller, as the action
+# and the optimize-now press do (action-exceptions, Silver). The sysid press
+# with the option off (the default) armed nothing and returned; the diagnose
+# press with the worker down returned while its background task raised.
+from homeassistant.exceptions import ServiceValidationError as _rc2_sve  # noqa: E402
+from heatpump_optimizer.coordinator import ProcessWorkerUnavailable as _rc2_pwu  # noqa: E402
+
+
+async def _rc2_press(cls, setup):
+    entry = FakeEntry(data=dict(_T1_DATA), entry_id=f"rc2_refuse_{cls.__name__}")
+    coord = await _rc2_boot(entry)
+
+    async def _refresh():
+        return None
+
+    coord.async_request_refresh = _refresh
+    setup(coord)
+    ent = cls(coord, entry)
+    ent.hass = _RC2Hass()
+    try:
+        await ent.async_press()
+    except Exception as err:  # noqa: BLE001 - an untranslated escape is the defect's shape
+        return type(err).__name__, getattr(err, "translation_key", None), coord
+    return None, None, coord
+
+
+def _rc2_sysid_off(coord):
+    with_config(coord, {"system_identification_enabled": False})
+
+
+def _rc2_sysid_on(coord):
+    with_config(coord, {"system_identification_enabled": True})
+    coord._thermal_params.slab_heat_transfer *= 100.0  # the #942 gate's fast slab
+
+
+def _rc2_sysid_recent(coord):
+    _rc2_sysid_on(coord)
+    coord._sysid.last_run = _rc2_dt_util.now()  # armable's minimum days between runs
+
+
+def _rc2_worker_down(coord):
+    async def _down():
+        raise _rc2_pwu("the process worker timed out")
+
+    coord.async_diagnose_interval = _down
+
+
+_rc2_off = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_off))
+_rc2_on = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_on))
+_rc2_recent = _asyncio.run(_rc2_press(_rc2_button.SystemIdentificationButton, _rc2_sysid_recent))
+_rc2_down = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_worker_down))
+R.check(
+    "a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)",
+    _rc2_off[:2] == (_rc2_sve.__name__, "system_identification_disabled")
+    and _rc2_off[2]._sysid.phase == "idle"
+    and _rc2_on[:2] == (None, None) and _rc2_on[2]._sysid.phase == "armed"
+    and _rc2_recent[:2] == (_rc2_sve.__name__, "system_identification_not_armed")
+    and _rc2_recent[2]._sysid.phase == "idle",
+    f"option off -> {_rc2_off[:2]} phase {_rc2_off[2]._sysid.phase!r}; "
+    f"ran just now -> {_rc2_recent[:2]}; "
+    f"option on -> {_rc2_on[:2]} phase {_rc2_on[2]._sysid.phase!r}",
+)
+R.check(
+    "a diagnose press whose worker is down raises the action's diagnose_interval_failed (D10-s1-02)",
+    _rc2_down[:2] == ("HomeAssistantError", "diagnose_interval_failed"),
+    f"{_rc2_down[:2]} -- the press returned while its background task raised",
+)
+
+
+_rc2_refreshes: list[str] = []
+
+
+def _rc2_diagnosed(coord):
+    async def _ran():
+        return None
+
+    def _refresh():  # counted when asked for: the press hands the coroutine off the action
+        _rc2_refreshes.append("refresh")
+        return _ran()
+
+    coord.async_diagnose_interval = _ran
+    coord.async_request_refresh = _refresh
+
+
+_rc2_ran = _asyncio.run(_rc2_press(_rc2_button.DiagnoseIntervalButton, _rc2_diagnosed))
+R.check(
+    "a diagnose press whose diagnosis ran returns and asks for no refresh: the diagnosis "
+    "publishes itself in place, so the press starts no solve (D10-s1-02, D9-s1-01)",
+    _rc2_ran[:2] == (None, None) and _rc2_refreshes == [],
+    f"{_rc2_ran[:2]}, refreshes asked {len(_rc2_refreshes)}",
 )
 
 
@@ -55102,17 +55438,15 @@ R.check(
 
 # The user-facing route: the item-18 button on a DEFAULT install (no k_s bump).
 _arm1329 = _t4_coord()
-_t4_count_refresh(_arm1329)
 with_config(_arm1329, {"system_identification_enabled": True})
-_t4_drive(_arm1329, "async_arm_system_identification")
+_arm1329_refused = _arm1329.arm_system_identification()
 R.check(
     "#1329: the item-18 button arms on a default install (was inert)",
     _arm1329._sysid.phase == "armed"
     and _arm1329._sysid.active
-    and _arm1329._t4_refreshes == 1
-    and _arm1329._t4_escaped is None,
+    and _arm1329_refused is None,
     f"phase {_arm1329._sysid.phase!r} active {_arm1329._sysid.active} "
-    f"refreshes {_arm1329._t4_refreshes} "
+    f"refused {_arm1329_refused!r} "
     f"reason {_arm1329._sysid.result.reason!r} -- before the fix every "
     "answers-based install refused here with 'slab mode too slow for the "
     "excitation window', so the button reported nothing at any plant the "
@@ -55872,11 +56206,11 @@ _t4_arm_on._thermal_params.slab_heat_transfer *= 100.0
 _t4_count_refresh(_t4_arm_on)
 _t4_arm_on_built = _t4_arm_on._sysid.config.enabled
 with_config(_t4_arm_on, {"system_identification_enabled": True})
-_t4_drive(_t4_arm_on, "async_arm_system_identification")
+_t4_arm_on.arm_system_identification()
 _t4_arm_off = _t4_coord(system_identification_enabled=True)
 _t4_count_refresh(_t4_arm_off)
 with_config(_t4_arm_off, {"system_identification_enabled": False})
-_t4_drive(_t4_arm_off, "async_arm_system_identification")
+_t4_arm_off.arm_system_identification()
 R.check(
     "arming re-reads the option at call time, so an edit needs no reload",
     _t4_arm_on_built is False
@@ -55891,15 +56225,35 @@ R.check(
     f"{_t4_arm_off._sysid.phase!r} -- both directions, because the push is "
     "invisible whenever the constructed value already agrees",
 )
+# The arm is a synchronous decision since D10-s1-02, so the press, not the
+# arm, schedules the refresh that publishes it: armed or refused alike.
+from heatpump_optimizer import button as _t4_button  # noqa: E402
+from unittest import mock as _t4_mock  # noqa: E402
+
+_t4_scheduled = []
+
+
+def _t4_off_action(entity, work):
+    _t4_scheduled.append(entity.coordinator)
+    work.close()
+
+
+_t4_press = {}
+for _t4_label, _t4_on in (("armed", True), ("refused", False)):
+    _t4_c = _t4_coord(system_identification_enabled=_t4_on)
+    _t4_c._thermal_params.slab_heat_transfer *= 100.0
+    _t4_ent = _t4_button.SystemIdentificationButton(_t4_c, _t4_c.entry)
+    with _t4_mock.patch.object(_t4_button, "off_the_action", _t4_off_action):
+        try:
+            _asyncio.run(_t4_ent.async_press())
+            _t4_press[_t4_label] = (None, _t4_scheduled.count(_t4_c))
+        except Exception as err:  # noqa: BLE001
+            _t4_press[_t4_label] = (type(err).__name__, _t4_scheduled.count(_t4_c))
 R.check(
-    "a refused arm still refreshes, which is what publishes the refusal",
-    _t4_arm_on._t4_refreshes == 1
-    and _t4_arm_off._t4_refreshes == 1
-    and _t4_arm_on._t4_escaped is None
-    and _t4_arm_off._t4_escaped is None,
-    f"armed -> {_t4_arm_on._t4_refreshes} refresh, refused -> "
-    f"{_t4_arm_off._t4_refreshes} -- returning early on a refusal leaves the "
-    "user's own button reporting nothing at all",
+    "a refused press still schedules the refresh, which is what publishes the refusal",
+    _t4_press == {"armed": (None, 1), "refused": ("ServiceValidationError", 1)},
+    f"{_t4_press} -- returning early on a refusal leaves the user's own "
+    "button reporting nothing at all",
 )
 
 _t4_reset = _t4_coord(comfort_learning_enabled=True)
@@ -70741,9 +71095,12 @@ R.check(
 
 # dhw_planner._dhw_windows_at: holiday flags shorter than the horizon.
 _sw_normal, _sw_holiday = [(6, 7)], [(10, 11)]
+_sw_wparams = SimpleNamespace(
+    dhw_weekly_windows=None, dhw_holiday_windows=_sw_holiday, dhw_day_windows=None,
+)
 _sw_win = [
     _sw_try(lambda k=k: _sw_windows_at(
-        None, None, k, _sw_normal, _sw_holiday, np.array([True, True]),
+        _sw_wparams, None, k, _sw_normal, np.array([True, True]),
     ))
     for k in range(_sw_n)
 ]
@@ -70752,6 +71109,33 @@ R.check(
     [w for w, _ in _sw_win]
     == [_sw_holiday, _sw_holiday, _sw_normal, _sw_normal],
     f"{_sw_win}",
+)
+
+# dhw_planner._dhw_next_window_hours: an empty horizon reads no day, and a
+# repeated hour is no midnight wrap. At 10:30 neither day's 06:00 window is open:
+# with no wrap tomorrow is entry 0's ordinary day (06:00, 19.5 h away); a step
+# read as a wrap would take entry 2's holiday-flagged day (10:00, 23.5 h away).
+from heatpump_optimizer.dhw_planner import _dhw_next_window_hours as _sw_next_window  # noqa: E402
+
+_sw_next_empty = _sw_try(lambda: _sw_next_window(
+    np.array([]), None, _sw_normal, _sw_wparams, None,
+))
+_sw_next_repeat = _sw_try(lambda: _sw_next_window(
+    np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
+    np.array([False, False, True]),
+))
+_sw_next_wrap = _sw_try(lambda: _sw_next_window(
+    np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
+    np.array([False, False, False, True]),
+))
+R.check(
+    "the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow "
+    "as the ordinary day, not the holiday-flagged step after it (null control: a real "
+    "midnight wrap does read that step's holiday windows)",
+    _sw_next_empty == (None, None)
+    and _sw_next_repeat == (19.5, None)
+    and _sw_next_wrap == (10.5, None),
+    f"{_sw_next_empty} {_sw_next_repeat} {_sw_next_wrap}",
 )
 
 # HeatPumpOptimizer._compute_baseline_power: comfort targets and external
@@ -91844,11 +92228,7 @@ def _cp_coord(samples=482, **config):
     c._house_heat_loss_samples = samples
     with_config(c, {"system_identification_enabled": True})
 
-    async def _no_refresh():
-        return None
-
-    c.async_request_refresh = _no_refresh
-    _cp_aio.run(c.async_arm_system_identification())
+    c.arm_system_identification()
     return c
 
 
@@ -92557,6 +92937,16 @@ R.check(
     and _cp_off_lines == [],
     f"{_cp_on_armed} {_cp_on.kind} {_cp_on_lines} {_cp_off_lines}",
 )
+R.check(
+    "arm_refusal answers a press on an armed experiment with 'already armed or running', "
+    "not the result's reason (null control: the switch off answers ARM_REFUSED_DISABLED)",
+    _cp_on.active is True
+    and _cp_sid.arm_refusal(_cp_on, _CP_T0, _CpOnCfg(_CP_PROBE_CFG), None, 482, _cp_dr.DrawRange())
+    == "an experiment is already armed or running"
+    and _cp_sid.arm_refusal(_cp_off, _CP_T0, _CpOffCfg(), None, 482, _cp_dr.DrawRange())
+    == _cp_sid.ARM_REFUSED_DISABLED,
+    f"{_cp_on.active} {_cp_on.result.reason!r}",
+)
 
 
 # R10-HOTFIX-AWAY-PRESENCE (tvofi, 2026-10-30; probe r10-live-away-heating): an
@@ -92963,12 +93353,13 @@ R.check(
     f"{_wn_why}",
 )
 R.check(
-    "R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0",
-    set(_wn_res.space_drivers) == set(_wn_sd.DRIVER_CODES)
+    "R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0; a solve with no "
+    "room lift publishes every code but room_lift (R11-OUTSIDE-ROOMS-3B)",
+    set(_wn_res.space_drivers) == set(_wn_sd.DRIVER_CODES) - {"room_lift"}
     and all(len(v) == len(_wn_res.timestamps) for v in _wn_res.space_drivers.values())
     and all(
-        abs(sum(abs(_wn_res.space_drivers[c][i]) for c in _wn_sd.DRIVER_CODES) - 100.0) < 0.3
-        or all(_wn_res.space_drivers[c][i] == 0.0 for c in _wn_sd.DRIVER_CODES)
+        abs(sum(abs(_wn_res.space_drivers[c][i]) for c in _wn_res.space_drivers) - 100.0) < 0.3
+        or all(_wn_res.space_drivers[c][i] == 0.0 for c in _wn_res.space_drivers)
         for i in range(len(_wn_res.timestamps))
     ),
     f"{ {c: v[:3] for c, v in _wn_res.space_drivers.items()} }",
@@ -93120,7 +93511,7 @@ def _wn_h(n, dt=1.0, outdoor=None, sun=None, floor=20.0, ceiling=22.0, drops=Non
         solar_gains=np.zeros(n) if sun is None else np.asarray(sun, float),
         temp_min_bounds=np.full(n, floor), temp_max_bounds=np.full(n, ceiling),
         comfort_floors=None, mold_floors=None,
-        away_floor_drops=None if drops is None else np.full(n, drops))
+        away_floor_drops=None if drops is None else np.full(n, drops), room_lifts=None)
 
 
 # Window 0..8 h: four steps at 0 C, four at -4 C -> mean -2 C, a 2 C swing
@@ -93272,8 +93663,8 @@ R.check(
 _wn_bopt = _WnOpt(ThermalModel(ThermalParameters()), _WnCfg(
     horizon_hours=6, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0))
 _wn_bh = np.array([(12.0 + 0.25 * i) % 24.0 for i in range(24)])
-_, _wn_b0, _, (_wn_cf0, _) = _wn_bopt._build_comfort_bounds(_wn_bh, 24, None, None)
-_, _wn_bm, _, (_wn_cfm, _wn_mfm) = _wn_bopt._build_comfort_bounds(
+_, _wn_b0, _, (_wn_cf0, _, _) = _wn_bopt._build_comfort_bounds(_wn_bh, 24, None, None)
+_, _wn_bm, _, (_wn_cfm, _wn_mfm, _) = _wn_bopt._build_comfort_bounds(
     _wn_bh, 24, np.full(24, 0.4), np.full(24, 20.0))
 R.check(
     "R10-WHY-NOW-WIDGET: the drivers' comfort floor is the margined floor, below the mold floor's raise",
@@ -101064,7 +101455,7 @@ R.check(
 
 R.section("#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor")
 
-# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.lifted add a lift to the
+# Phase 2 (design/R11-OUTSIDE-ROOMS-P2): rooms.resolve and rooms.floor_limits add a lift to the
 # floor-margin array the solver already takes. The fixture is the design
 # note's: rooms A 18.0 under a 21.0 target, B and C at or above theirs, D
 # colder than A but switched off; the house reads 19.6 under a 20.0 target on
@@ -101102,7 +101493,7 @@ def _rl_solve(readings=_RL_ROOMS, house=19.6, base=None, cfg=_rl_cfg, owner=None
     held = _rm.hold(owner, _rm.resolve(
         _rm.readings_of(owner), _rm.lift_of(owner), _rm.gate(**dict(_RL_OPEN, **signals)),
         cfg, house, start))
-    return _rm.lifted(held, base, cfg, start, n), owner
+    return _rm.floor_limits(held, base, cfg, start, n)["min_temp_margins"], owner
 
 
 _rl_ramped, _rl_ramped_owner = _rl_solve()
@@ -101309,11 +101700,11 @@ R.check(
 
 # -- The what-if: the baseline's held lift and anchor, its own configuration ----
 _rl_wi_base, _rl_wi = _rl_solve()
-_rl_wi_same = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_same = _rm.floor_limits(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)["min_temp_margins"]
 _rm.record(_rl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
-_rl_wi_after = _rm.lifted(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)
-_rl_wi_low = _rm.lifted(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)
-_rl_wi_fresh = _rm.lifted(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rl_wi_after = _rm.floor_limits(_rm.lift_of(_rl_wi), None, _rl_cfg, _RM_NOW, _RL_N)["min_temp_margins"]
+_rl_wi_low = _rm.floor_limits(_rm.lift_of(_rl_wi), None, replace(_rl_cfg, comfort_temp_day=19.75), _RM_NOW, _RL_N)["min_temp_margins"]
+_rl_wi_fresh = _rm.floor_limits(_rm.lift_of(_RlOwner()), _rl_base, _rl_cfg, _RM_NOW, _RL_N)["min_temp_margins"]
 _rl_wi_resolved, _ = _rl_solve(readings=(_rl_room("climate.a", 21.0, 21.0),) + _RL_REST, owner=_rl_wi)
 R.check(
     "a what-if's margins equal the baseline's after the readings change, and its clip is its own "
@@ -101360,12 +101751,13 @@ def _rl_coord(readings=_RL_COLD, arm=None, **config):
     _rm.record(c, readings)
     if arm is not None:
         arm(c)
-    c._rl_margins = []
+    c._rl_margins, c._rl_lifts = [], []
     inner = c._solve_record
 
     def spy(*args, **kwargs):
         record = inner(*args, **kwargs)
         c._rl_margins.append(record.inputs.limits.min_temp_margins)
+        c._rl_lifts.append(record.inputs.limits.room_lifts)
         return record
 
     c._solve_record = spy
@@ -101456,18 +101848,46 @@ R.check(
 )
 
 
-def _rl_whatif(c, overrides):
-    """The margins one what-if solve of ``overrides`` is given, at the baseline's instant."""
+def _rl_whatif(c, overrides, field="min_temp_margins"):
+    """The margins, or another ``SolveLimits`` field, one what-if solve of
+    ``overrides`` is given, at the baseline's instant."""
     dt_util.freeze(_T5_NOW)
     try:
         horizon = c._forecast_arrays(_T5_NOW)
         config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
-        return c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits.min_temp_margins
+        return getattr(c._whatif_solve(overrides, config, params, state, horizon, _T5_NOW, False)[1].limits, field)
     finally:
         dt_util.freeze(None)
 
 
+# #3616 3B: both coordinator builds splat ``rooms.floor_limits`` whole, so
+# ``SolveLimits.room_lifts`` reaches the solver's attribution. A build taking
+# only its ``min_temp_margins`` keeps the plan and drops every room_floor step
+# and room_lift row; this check and the what-if's below fail on that build.
+_rl_on_l = _rl_c_on._rl_lifts[0]
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the scheduled build hands the solve its room lifts, 1.0 K at the cap "
+    "and never above the margins; null control, the flag off or never stored hands None",
+    len(_rl_c_on._rl_lifts) == 1 and _rl_on_l is not None and float(np.max(_rl_on_l)) == 1.0
+    and bool(np.all(_rl_on_l >= 0.0)) and bool(np.all(_rl_on_m - _rl_on_l >= -1e-12))
+    and _rl_c_off._rl_lifts == [None] and _rl_c_default._rl_lifts == [None],
+    f"lifts={None if _rl_on_l is None else np.round(_rl_on_l[:6], 3).tolist()} "
+    f"off={_rl_c_off._rl_lifts}",
+)
+
+
 _rl_wi_c = _rl_whatif(_rl_c_on, {})
+_rl_wi_l = _rl_whatif(_rl_c_on, {}, "room_lifts")
+_rl_wi_l_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5}, "room_lifts")
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the what-if build hands its solve the baseline's room lifts, and a "
+    "19.5 day target clips them to its 0.5 K band; null control, the flag off hands None",
+    _rl_wi_l is not None and np.array_equal(_rl_wi_l, _rl_on_l)
+    and _rl_wi_l_target is not None and float(np.max(_rl_wi_l_target[:40])) == 0.5
+    and _rl_whatif(_rl_c_off, {}, "room_lifts") is None,
+    f"lifts={None if _rl_wi_l is None else np.round(_rl_wi_l[:6], 3).tolist()} "
+    f"target={None if _rl_wi_l_target is None else sorted(set(np.round(_rl_wi_l_target, 3).tolist()))}",
+)
 _rm.record(_rl_c_on, (_rl_room("climate.a", 21.0, 21.0), _rl_room("climate.b", 20.4, 20.0)))
 _rl_wi_c_after = _rl_whatif(_rl_c_on, {})
 _rl_wi_c_target = _rl_whatif(_rl_c_on, {"comfort_temp_day": 19.5})
@@ -103379,6 +103799,218 @@ R.check(
     _rh_ul_ok and not _rh_ul_before
     and _rh_ul_doc.get("data", _rh_ul_doc).get("times", "").split(",") == [str(_RH_M0), str(_RH_M0 + 30)],
     f"before={_rh_ul_before} after={_rh_ul_doc}",
+)
+
+
+R.section("#3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, the why-now row and the narrative")
+
+# design/R11-OUTSIDE-ROOMS-3B: the lift reaches the solve folded into
+# min_temp_margins. The solve records the part of the floor it held that the
+# lift raised (_Horizon.room_lifts), labels a step only that part holds
+# room_floor, and splits the why-now comfort push into a comfort row and a
+# room_lift row. The 4-step case is the note's: floor 19.5, a 0.5 K lift on
+# steps 1-3, next temperatures 19.6 / 19.95 / 20.0 / 21.0, every step heating.
+from heatpump_optimizer import narrative as _r3_nar, slot_drivers as _r3_sd  # noqa: E402
+from heatpump_optimizer import comfort_floor as _r3_cf, optimizer as _r3_opt, payload as _r3_pay  # noqa: E402
+
+_R3_LIFT = np.array([0.0, 0.5, 0.5, 0.5])
+_R3_ROOM = np.array([19.5, 19.6, 19.95, 20.0, 21.0])
+
+
+def _r3_classify(lifts):
+    return _r3_cf.mark_room_floor(_r3_opt.classify_space_steps(
+        np.full(4, 2.0), np.ones(4), _R3_ROOM, 19.5 + _R3_LIFT, np.ones(4), None, 4,
+    ), _R3_ROOM, 19.5 + _R3_LIFT, lifts)
+
+
+_r3_split, _r3_today = _r3_classify(_R3_LIFT), _r3_classify(None)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a heating step within 0.15 K of the lifted floor but above the floor less the lift "
+    "is room_floor (19.95 and 20.0 against 20.15 and 19.65); one within 0.15 K of both stays comfort_floor "
+    "(19.6), one above both keeps today's label; null control, no lift labels steps 0-2 comfort_floor",
+    _r3_split == [_r3_pay.REASON_COMFORT_FLOOR, "room_floor", "room_floor", _r3_today[3]]
+    and _r3_today[:3] == [_r3_pay.REASON_COMFORT_FLOOR] * 3 and _r3_pay.REASON_ROOM_FLOOR == "room_floor"
+    and _r3_pay.REASON_ROOM_FLOOR not in _r3_pay.IDLE_REASONS
+    and _r3_pay.REASON_ROOM_FLOOR not in _r3_opt._MANUAL_KEEP_REASONS,
+    f"split={_r3_split} today={_r3_today}",
+)
+
+# Step i reads room_temps[i + 1]. The last step reads the trajectory's last
+# temperature (20.1: room_floor), not the one before it (19.6), and step 0,
+# exactly at the floor plus 0.15 K (19.65), stays comfort_floor.
+_R3_ROOM2 = np.array([19.5, (20.0 - 0.5) + 0.15, 19.95, 19.6, 20.1])
+_r3_edge = _r3_cf.mark_room_floor(["comfort_floor"] * 4, _R3_ROOM2, 19.5 + _R3_LIFT, _R3_LIFT)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the last step is judged on the trajectory's last temperature and a step exactly at "
+    "the floor less the lift plus 0.15 K is not the lift's; null control, step 1 (19.95) is room_floor",
+    _r3_edge == ["comfort_floor", "room_floor", "comfort_floor", "room_floor"],
+    f"{_r3_edge}",
+)
+# A trajectory no longer than the steps (classify_space_steps' own fallback):
+# the last step reads the last temperature it has (20.1), as step 2 does.
+_r3_short = _r3_cf.mark_room_floor(["comfort_floor"] * 4, np.array([19.6, 19.95, 19.6, 20.1]),
+                                     19.5 + _R3_LIFT, _R3_LIFT)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: with a trajectory as long as the steps the last step reads its last temperature "
+    "(20.1: room_floor); null control, step 1 reads 19.6 and stays comfort_floor",
+    _r3_short == ["room_floor", "comfort_floor", "room_floor", "room_floor"],
+    f"{_r3_short}",
+)
+
+# Invariant (iv): a room_floor step is a step that is comfort_floor today, so
+# the narrative's two groups sum to today's one.
+_r3_ch = lambda reasons: {"powers": [2.0] * 4, "prices": [1.0, 2.0, 3.0, 4.0], "reasons": reasons}  # noqa: E731
+_r3_none = {"powers": [], "prices": [], "reasons": []}
+_r3_items = {i["reason"]: i for i in _r3_nar.build(_r3_ch(_r3_split), _r3_none, 0.25)}
+_r3_items0 = {i["reason"]: i for i in _r3_nar.build(_r3_ch(_r3_today), _r3_none, 0.25)}
+_r3_lines = {lang: _r3_nar.render([_r3_items["room_floor"]], lang, "SEK") for lang in ("en", "sv", "de")}
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the narrative groups room_floor apart and its kWh plus comfort_floor's equals "
+    "the unsplit run's comfort_floor (1.5 kWh = 0.5 + 1.0), one sentence per language naming the room lift; "
+    "null control, the unsplit run has no room_floor group",
+    "room_floor" not in _r3_items0
+    and abs(_r3_items["room_floor"]["kwh"] + _r3_items["comfort_floor"]["kwh"] - _r3_items0["comfort_floor"]["kwh"]) < 1e-9
+    and abs(_r3_items["room_floor"]["kwh"] - 1.0) < 1e-9
+    and all(len(v) == 1 for v in _r3_lines.values())
+    and "room" in _r3_lines["en"][0] and "rum" in _r3_lines["sv"][0] and "Raum" in _r3_lines["de"][0],
+    f"{_r3_items} {_r3_items0} {_r3_lines}",
+)
+
+
+def _r3_h(lifts, n=4, ceiling=23.0):
+    lift = None if lifts is None else np.asarray(lifts, float)
+    held = 19.5 + (np.zeros(n) if lift is None else lift)
+    return SimpleNamespace(
+        n_steps=n, dt=0.25, prices=np.arange(n, dtype=float), outdoor_temps=np.zeros(n),
+        heat_loss_factors=np.ones(n), solar_gains=np.zeros(n),
+        temp_min_bounds=held, temp_max_bounds=np.full(n, ceiling), comfort_floors=held,
+        mold_floors=None, away_floor_drops=None, room_lifts=lift)
+
+
+# Invariant (ii): where nothing clips, the comfort push plus the room-lift
+# push is today's comfort push (the same horizon with room_lifts None).
+_R3_DROOM = np.array([20.5, 20.5, 22.0, 21.0])
+_r3_push = _r3_sd.space_pushes(_r3_h(_R3_LIFT), _R3_DROOM, 5.0)
+_r3_push0 = _r3_sd.space_pushes(SimpleNamespace(**dict(vars(_r3_h(_R3_LIFT)), room_lifts=None)), _R3_DROOM, 5.0)
+_r3_drv = _r3_sd.space_drivers(_r3_h(_R3_LIFT), _R3_DROOM, 5.0)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: with a lift the drivers carry a room_lift row after comfort_floor, its push the "
+    "lift over the half band (0.5 / 1.5 on steps 1-3), and comfort plus room_lift equals today's comfort push "
+    "where nothing clips; null control, step 0 (no lift) has a zero room_lift push and today's comfort push",
+    tuple(_r3_drv) == ("price_rank", "comfort_floor", "room_lift", "mold_guard", "away", "forecast")
+    and tuple(_r3_drv) == _r3_sd.DRIVER_CODES
+    and np.allclose(_r3_push["room_lift"], [0.0, 1 / 3, 1 / 3, 1 / 3])
+    and np.allclose(_r3_push["comfort_floor"] + _r3_push["room_lift"], _r3_push0["comfort_floor"])
+    and _r3_push["comfort_floor"][0] == _r3_push0["comfort_floor"][0] and _r3_drv["room_lift"][1] > 0.0,
+    f"push={ {k: np.round(v, 4).tolist() for k, v in _r3_push.items()} } today={_r3_push0['comfort_floor']}",
+)
+
+# The clip bounds: a lift wider than the half band saturates at 1, and the
+# comfort push against the unlifted floor clips at 1 too.
+_r3_wide = _r3_sd.space_pushes(_r3_h([3.0] * 4, ceiling=23.5), np.full(4, 19.0), 5.0)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a 3 K lift under a 0.5 K half band reads a room_lift push of 1 (clipped), the "
+    "comfort push against the unlifted floor 1 (clipped); null control, the lift is 6 half bands unclipped",
+    np.allclose(_r3_wide["room_lift"], 1.0) and np.allclose(_r3_wide["comfort_floor"], 1.0),
+    f"{ {k: v.tolist() for k, v in _r3_wide.items()} }",
+)
+
+# Null control (i): no lift on the record is today's five rows; a zero lift
+# is the same push table with a zero sixth row, so the five weights match.
+_r3_d_none = _r3_sd.space_drivers(_r3_h(None), _R3_DROOM, 5.0)
+_r3_d_zero = _r3_sd.space_drivers(_r3_h(np.zeros(4)), _R3_DROOM, 5.0)
+_r3_fl_zero = _rm.floor_limits(_rm.HeldLift(0.0, "climate.a", None, 0.1), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_r3_fl_none = _rm.floor_limits(None, None, _rl_cfg, _RM_NOW, _RL_N)
+# A held 0.5 K lift over a base that already fills the 0.5 K day band and the
+# 1.0 K night band: every step's clip leaves nothing to lift.
+_r3_full = np.full(_RL_N, 1.0)
+_r3_fl_clipped = _rm.floor_limits(_rm.HeldLift(0.5, "climate.a", None, 1.1), _r3_full, _rl_cfg, _RM_NOW, _RL_N)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B null control: room_lifts None gives the five pre-3B codes and the room_lift row is "
+    "absent; a zero lift array gives the same five weights byte-equal and a 0.0 room_lift; floor_limits with "
+    "a zero or absent held lift, or a 0.5 K lift the band clips to zero at every step, hands back the base and no room lifts",
+    tuple(_r3_d_none) == ("price_rank", "comfort_floor", "mold_guard", "away", "forecast")
+    and all(_r3_d_none[c] == _r3_d_zero[c] for c in _r3_d_none) and _r3_d_zero["room_lift"] == [0.0] * 4
+    and _r3_fl_zero["min_temp_margins"] is _rl_base and _r3_fl_zero["room_lifts"] is None
+    and _r3_fl_none == {"min_temp_margins": None, "room_lifts": None}
+    and _r3_fl_clipped["min_temp_margins"] is _r3_full and _r3_fl_clipped["room_lifts"] is None,
+    f"none={_r3_d_none} zero={_r3_d_zero} fl={_r3_fl_zero['room_lifts']}",
+)
+
+# floor_limits: one computation, the margins half equal to P2's lifted array, the
+# lift half the margins less the base; the what-if reads the held lift (P2 r4).
+_r3_fl_wi_base, _r3_fl_wi = _rl_solve(base=_rl_base)
+_r3_fl = _rm.floor_limits(_rm.lift_of(_r3_fl_wi), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+_rm.record(_r3_fl_wi, (_rl_room("climate.a", 21.0, 21.0),) + _RL_REST)
+_r3_fl_after = _rm.floor_limits(_rm.lift_of(_r3_fl_wi), _rl_base, _rl_cfg, _RM_NOW, _RL_N)
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: floor_limits' margins are the P2 solve's array and its room lifts the margins "
+    "less the base, and a what-if's room lifts equal the baseline's after the readings change; null control, "
+    "the lift is 0.2 K (the 0.5 K day band less the 0.3 K base) once the ramp from 0 has caught up",
+    np.array_equal(_r3_fl["min_temp_margins"], _r3_fl_wi_base)
+    and np.allclose(_r3_fl["min_temp_margins"] - _rm._margins(_rl_base, _RL_N), _r3_fl["room_lifts"])
+    and np.array_equal(_r3_fl_after["room_lifts"], _r3_fl["room_lifts"])
+    and np.allclose(_r3_fl["room_lifts"][4:40], 0.2) and float(_r3_fl["room_lifts"][0]) == 0.0,
+    f"{None if _r3_fl['room_lifts'] is None else np.round(_r3_fl['room_lifts'][:6], 3).tolist()}",
+)
+
+# The solve's record: the floor less the floor without the lift, 0 under the
+# mold floor and the ceiling clip, None for no lift.
+_r3_cb_lift = np.array([0.5, 0.5])
+_, _r3_cb_min, _, _r3_cb_fl = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, None, room_lifts=_r3_cb_lift)
+_, _r3_cb_mold_min, _, _r3_cb_mold = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, np.array([22.0, -np.inf]), room_lifts=_r3_cb_lift)
+_, _r3_cb_clip_min, _, _r3_cb_clip = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, np.array([4.1, 0.5]), None, room_lifts=_r3_cb_lift)
+_, _r3_cb_none_min, _, _r3_cb_none = _cb_opt._build_comfort_bounds(_cb_hours, 2, _r3_cb_lift, None)
+# None for both adjustments is the configured band itself, unclipped: a 22.8
+# floor under a 23.0 ceiling stays 22.8, where a zero margin clips it to 22.5.
+_r3_tight = _MbOpt(ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
+                   _MbCfg(horizon_hours=1, min_temp=22.8, max_temp=23.0))
+_r3_tight_none = _r3_tight._build_comfort_bounds(_cb_hours, 2, None, None)[1]
+_r3_tight_zero = _r3_tight._build_comfort_bounds(_cb_hours, 2, np.zeros(2), None)[1]
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the solve's room lifts are the held floor less the floor without the lift (0.5 "
+    "on the open band), 0 where the mold floor (22.0) or the ceiling clip (19 + 4.1 and 19 + 3.6 both past 22.5) covers the lift, and "
+    "None without the input; the held floor is clipped to the ceiling less 0.5 (22.5) and raised to the mold floor, "
+    "and with no adjustment at all is the configured band unclipped (22.8 under 23.0); null control, the held "
+    "floor is the same array with and without room_lifts, and a zero margin clips the 22.8 floor to 22.5",
+    np.allclose(_r3_cb_fl[2], [0.5, 0.5]) and np.allclose(_r3_cb_mold[2], [0.0, 0.5])
+    and np.allclose(_r3_cb_clip[2], [0.0, 0.5]) and _r3_cb_none[2] is None
+    and np.array_equal(_r3_cb_min, _r3_cb_none_min) and bool(np.all(_r3_cb_mold[2] >= 0.0))
+    and np.allclose(_r3_cb_clip_min, [22.5, 19.0]) and np.allclose(_r3_cb_mold_min, [22.0, 19.0])
+    and np.allclose(_r3_tight_none, [22.8, 22.3]) and np.allclose(_r3_tight_zero, [22.5, 22.3]),
+    f"{_r3_cb_fl[2]} {_r3_cb_mold[2]} {_r3_cb_clip[2]} {_r3_cb_none[2]} clip={_r3_cb_clip_min} "
+    f"tight={_r3_tight_none} {_r3_tight_zero}",
+)
+# The margins less the lift are clipped at zero, so a lift the margins do not
+# carry is not attributed to the room (the residual review/3838 fc7ae551 found).
+_r3_cb_short = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.2, 0.0]), None, room_lifts=_r3_cb_lift)[3][2]
+_r3_cb_bare = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None, room_lifts=_r3_cb_lift)[3][2]
+# A lift array longer than the horizon is cut to it, as the margins are.
+_r3_cb_long = _cb_opt._build_comfort_bounds(
+    _cb_hours, 2, _r3_cb_lift, None, room_lifts=np.array([0.5, 0.5, 0.5]))[3][2]
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: the room lifts never exceed the margins that carry them (0.2 and 0 of a 0.5 K lift "
+    "over margins 0.2 and 0; 0 with no margins), and a lift longer than the horizon is cut to it; null "
+    "control, margins carrying the whole lift attribute 0.5",
+    np.allclose(_r3_cb_short, [0.2, 0.0]) and np.allclose(_r3_cb_bare, [0.0, 0.0])
+    and np.allclose(_r3_cb_long, [0.5, 0.5]) and np.allclose(_r3_cb_fl[2], [0.5, 0.5]),
+    f"short={_r3_cb_short} bare={_r3_cb_bare} long={_r3_cb_long} full={_r3_cb_fl[2]}",
+)
+# The margins are fitted to the horizon before the floor is raised: a forecast
+# shorter than the horizon pads with zeros and a negative margin lowers nothing.
+_r3_cb_base = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)[1]
+_r3_cb_pad = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.3]), None)[1] - _r3_cb_base
+_r3_cb_neg = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([-0.2, 0.3]), None)[1] - _r3_cb_base
+R.check(
+    "R11-OUTSIDE-ROOMS-3B: a margin series shorter than the horizon raises only its own steps, and a negative "
+    "margin raises nothing (0.3 then 0; 0 then 0.3); null control, the same margins at full length raise both",
+    np.allclose(_r3_cb_pad, [0.3, 0.0]) and np.allclose(_r3_cb_neg, [0.0, 0.3])
+    and np.allclose(_cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([0.3, 0.3]), None)[1] - _r3_cb_base,
+                    [0.3, 0.3]),
+    f"pad={_r3_cb_pad} neg={_r3_cb_neg}",
 )
 
 R.section("R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix")

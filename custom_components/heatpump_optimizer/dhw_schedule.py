@@ -55,7 +55,8 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
+from datetime import date, datetime, timedelta
 from typing import Any, Final
 
 from . import const
@@ -417,6 +418,43 @@ def windows_for_day(
     return weekly[max(0, min(6, int(weekday)))]
 
 
+def windows_in_force(
+    params: Any,
+    plan: Any,
+    when: datetime,
+    holiday_dates: Collection[date] = (),
+    days: int = 0,
+) -> list[Window]:
+    """The hot-water demand windows in force at ``when`` (D17-s3-51).
+
+    ``windows_for_day``'s chain over ``params``' day-aware fields -- the
+    resolution the planner applies to every step (``dhw_planner._dhw_windows_at``)
+    -- for a reader holding a clock instead of a step array. A clock tested
+    against the flat every-day union instead reads a weekend window open on a
+    weekday morning. The chain ends in the planned windows ``plan`` (the last
+    optimization result, or ``None``) published, learned ones included, where
+    they parse, else ``params.dhw_demand_windows``. ``days`` moves to a later
+    calendar day of ``when``'s date: date arithmetic, never wall-clock.
+    """
+    info = getattr(plan, "predictive_info", None) or {}
+    fallback = list(params.dhw_demand_windows)
+    if info.get("dhw_windows"):
+        try:
+            fallback = parse_windows(info["dhw_windows"])
+        except DHWWindowError:
+            pass
+    # The day-aware fields read as the planner reads them (None: no tier).
+    day = when.date() + timedelta(days=days)
+    return windows_for_day(
+        getattr(params, "dhw_weekly_windows", None),
+        day.weekday(),
+        fallback,
+        holiday_windows=getattr(params, "dhw_holiday_windows", None),
+        holiday=day in holiday_dates,
+        day_overrides=getattr(params, "dhw_day_windows", None),
+    )
+
+
 def _split_wrapping(windows: list[Window]) -> list[Window]:
     """Split midnight-wrapping windows into non-wrapping segments."""
     flat: list[Window] = []
@@ -512,22 +550,23 @@ def overlap_fraction(
     return max(0.0, min(1.0, covered / length))
 
 
-def hours_until_next_window(hour: float, windows: list[Window]) -> float | None:
+def hours_until_next_window(
+    hour: float, windows: list[Window], tomorrow: list[Window] | None = None
+) -> float | None:
     """Hours from ``hour`` until the next window starts (0.0 when inside one).
 
-    Returns None when no windows are configured.
+    ``windows`` are today's; a start already passed reads in ``tomorrow``'s,
+    the next day's windows in force (``windows_in_force``), or today's again
+    when ``None`` -- the every-day schedule. Returns None when neither day
+    has a window.
     """
-    if not windows:
-        return None
-    if hour_in_windows(hour, windows):
+    if windows and hour_in_windows(hour, windows):
         return 0.0
     h = hour % 24.0
-    best: float | None = None
-    for start, _ in windows:
-        delta = (start - h) % 24.0
-        if best is None or delta < best:
-            best = delta
-    return best
+    starts = [start - h for start, _ in windows if start > h] + [
+        start + 24.0 - h for start, _ in (windows if tomorrow is None else tomorrow)
+    ]
+    return min(starts, default=None)
 
 
 def is_valid_spec(spec: str) -> bool:
