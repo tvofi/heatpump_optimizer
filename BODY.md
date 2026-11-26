@@ -6,7 +6,7 @@ Base: worktree cut from `origin/main` 0e1eba2b4aafb5dbabbac7e0b0dc31b6ca1ad83e, 
 
 ## Head
 
-18849164a8da98e53ea605e9ca642331094aa302, measured on its tree (stamped: `origin/main` at 0e1eba2b4aafb5dbabbac7e0b0dc31b6ca1ad83e, 2026-11-25T19:07Z).
+b0313f213a merges `origin/main` 7aa6020f2a into the authored code head 18849164a8da98e53ea605e9ca642331094aa302. Four record-text conflicts, resolved by hand, all counting the package's files after main's R11-OWNER-FLOWCAP `flow_limit.py`: `docs/architecture.md` (106 modules, 36 importing `homeassistant`, the other 69 free of it), `dev/audit/rounds/round4/D6/claims.py` and `claims.md` (106 on disk and listed, `flow_limit.py` added to each chain), and `tests/deployment_shape.py` (125 package files; 195 of the 561 script pairs at 0.80 or more, read by `pairnote_check.py` at b0313f213a). At b0313f213a `tests/doc_claims.py` (443 checks) and `tests/deployment_shape.py` pass, and the scoped gate is below (Red checks). The figures below are 18849164a8's, measured on its tree (stamped: `origin/main` at 0e1eba2b4aafb5dbabbac7e0b0dc31b6ca1ad83e, 2026-11-25T19:07Z).
 
 ## Mutation proof
 
