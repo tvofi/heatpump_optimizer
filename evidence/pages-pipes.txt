@@ -1,0 +1,9 @@
+77:          set -uo pipefail
+98:          set -uo pipefail
+111:          set -euo pipefail
+112:          # awk reads to the end: `| head -n 1` closed the pipe early, and the listing's
+113:          # SIGPIPE failed the step under pipefail (exit 141, run 45663211757).
+134:          set -euo pipefail
+150:          set -euo pipefail
+159:          set -euo pipefail
+167:          set -euo pipefail
