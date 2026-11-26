@@ -4933,6 +4933,7 @@
    "dev/audit/harnesses/r11_fast_shards_balance.py",
    "dev/audit/harnesses/r11_fast_shards_mutants.py",
    "dev/audit/harnesses/r11_fast_shards_random.sh",
+   "dev/audit/harnesses/r11_fast_shards_readers.py",
    "dev/audit/harnesses/r11_honest_starts_runs.py",
    "dev/audit/harnesses/r11_kernel_step_agree.py",
    "dev/audit/harnesses/r11_main_cancel_mutants.py",
