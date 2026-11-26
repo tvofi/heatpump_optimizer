@@ -181,6 +181,8 @@ custom_components/heatpump_optimizer/
 │
 │   # Learning, evidence and self-checks
 ├── accuracy.py           # Predicted versus realised, recorded per interval
+├── learning_freeze.py    # The one freeze predicate: which interval a learner
+│                         #   may ingest, by the kind of sample it folds
 ├── draw_range.py         # The metered running draw, and the range it clamps a plan to
 ├── diagnosis.py          # One-input-at-a-time attribution of the last interval's error
 ├── drift.py              # The CUSUM primitive shared by every drift detector

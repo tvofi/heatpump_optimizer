@@ -297,6 +297,7 @@ class Sweep:
         16 STALE-PIN dispatches ended green (#3885). A body unit re-reads the PR, and a pinned grader is read
         afresh, so their reds are left to the dispatch. Unreadable workflows: none, so the dispatch stands."""
         from gate import REQUIRED        # the gate's own list, never restated here
+        import shards                    # a `tests / fast (3.14, K/N)` shard is the fast unit's job
         pinned = pinned_graders(workflows)
         if pinned is None:
             return []
@@ -304,7 +305,7 @@ class Sweep:
         for r in runs:
             for j in self.jobs_of(r["id"]):
                 n = j.get("name") or ""
-                if (n in REQUIRED["no-pr"] and not n.startswith(pinned)
+                if ((n in REQUIRED["no-pr"] or shards.is_fast(n)) and not n.startswith(pinned)
                         and j.get("status", "completed") == "completed"):
                     k = (j.get("started_at") or "", r["id"])
                     if j["name"] not in newest or k > newest[j["name"]][0]:
