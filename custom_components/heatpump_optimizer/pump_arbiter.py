@@ -166,9 +166,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import (
-    boost, draw_range, duty_ledger, duty_switch, flow_anchor, flow_limit, issues, off_restore, pump_mode, quiet_windows,
-)
+from . import boost, draw_range, duty_ledger, duty_switch, flow_anchor, flow_limit, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
