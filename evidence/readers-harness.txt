@@ -1,0 +1,10 @@
+BASELINE gate=green prelude=green probe=green replan=green shards=green sweep=green
+KILLED   review: run.sh compares the shard count, not the index
+KILLED   prelude: the fast lane owes the unsharded name only
+KILLED   gate.status: the listed shards only, whatever their count
+KILLED   sweep.code_red: the required names only
+KILLED   probe_bridge: the unsharded lane only
+KILLED   replan: the shards are not folded
+KILLED   census: a reader dropped from READERS
+READERS MUTANTS: 7 of 7 killed
+HARNESS-EXIT rc=0
