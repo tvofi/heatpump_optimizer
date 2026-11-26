@@ -70,3 +70,4 @@
 1795735577 HB alive
 1795735896 CKPT carry 1 (duty-switch re-solve) reproduced at main fd93aa3e by the sweep probe; carry 0 dismissed at #3738 merge; worktree cut snapshot 92508b25ad5a
 1795736180 HB alive
+1795736521 CKPT fix committed 0fc6dd3e, pushed to handoff-wip; failing-first + 7 hand mutants killed; companion probe base 2 solves -> head 0 snapshot 7fcee76c511f
