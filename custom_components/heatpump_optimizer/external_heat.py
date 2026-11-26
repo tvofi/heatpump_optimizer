@@ -34,7 +34,7 @@ from .const import (
     WATER_SPECIFIC_HEAT,
     WOOD_TANK_MIN_MARGIN,
 )
-from .payload import ExternalHeat
+from .payload import ExternalHeat, ExternalHeatView
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -150,8 +150,10 @@ class ExternalHeatState:
         calibrates a wood house from the intervals this reads False."""
         return self.active or self.fading or self.displacement > 0.0 or self.free_heat_kw > 0.0
 
-    def as_dict(self) -> ExternalHeat:
-        return {
+    def as_dict(self, block_ignored: bool | None = None) -> ExternalHeat:
+        """``block_ignored`` is published only when given (the #3862 switch on),
+        so an install that never touches the switch publishes what it did."""
+        out: ExternalHeat = {
             "active": self.active,
             "confidence": round(self.confidence, 2),
             "fading": self.fading,
@@ -169,6 +171,9 @@ class ExternalHeatState:
                 else None
             ),
         } | self._displacement_dict()
+        if block_ignored is not None:
+            out["block_ignored"] = block_ignored
+        return out
 
     def _displacement_dict(self) -> ExternalHeat:
         """The item-28 fields, present only when the topology produces them.
@@ -458,11 +463,8 @@ class ExternalHeatDetector:
         """
         state = self.state
         cfg = self.config
-        if state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0:
-            state.confidence = 0.0
-            state.fading = False
-            return
-        if state.last_active is None or cfg.decay_minutes <= 0:
+        spent = state.wood_energy_kwh is not None and state.wood_energy_kwh <= 0.0
+        if spent or state.last_active is None or cfg.decay_minutes <= 0:
             state.confidence = 0.0
             state.fading = False
             return
@@ -495,3 +497,24 @@ class ExternalHeatDetector:
         exists to prevent.
         """
         return self.state.active or self.state.fading
+
+
+
+def ignore_effective(detector: ExternalHeatDetector, ignored: bool) -> bool:
+    """Whether the #3862 switch lifts the block: on, with detection enabled."""
+    return ignored and detector.config.enabled
+
+
+def blocking(detector: ExternalHeatDetector, ignored: bool) -> bool:
+    """``suppressing`` unless the switch lifts it; the learning freeze reads the raw one."""
+    return detector.suppressing and not ignore_effective(detector, ignored)
+
+
+def view(detector: ExternalHeatDetector, ignored: bool) -> ExternalHeatView:
+    """The published detection; ``block_ignored`` only while the switch is on."""
+    effective = ignore_effective(detector, ignored) if ignored else None
+    return {
+        "external_heat_active": detector.state.active,
+        "external_heat_suppressing": blocking(detector, ignored),
+        "external_heat": detector.state.as_dict(effective),
+    }
