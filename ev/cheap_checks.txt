@@ -1,0 +1,22 @@
+merge-base d9100de781ec174960655fdab1a5af48c303d7bd
+version-files diff lines: 0
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 08152a9fb9..906a6f5967 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -75,6 +75,7 @@ valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
+ wood_coil  # baseline_cost LOWER (144.781 -> 144.082)
+ wood_two_tank  # baseline_cost LOWER (129.949 -> 129.251)
+ wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
++config_flow # R11-OWNER-FROST-HOLD (#3855): the entities page gains the frost_hold toggle and the frost_hold_below_c threshold, shown where a power switch is configured, so the seed gains frost_hold and the seeded render gains both rows; every leaf that moves is "present on one side only", ADDED at this head (19 insertions, 0 deletions). Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No solve fixture actuates a power switch, so every other fixture is byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+VERSION 10.1.4
+_served.RETURN_DEL.416d90ef.json
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_served RETURN_DEL 416d90ef",
+  "killed_by": "tests/structure.py",
+  "old": "    return \"space\" if state_for(coord).frost_holding else _without_block(coord, _share(coord, inp, duty, now), now)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1. Re-keyed by R11-OWNER-FROST-HOLD: `_served` now serves a frost hold as space itself, so its return gained the `\"space\" if state_for(coord).frost_holding else` arm; the same RETURN_DEL re-run on the merged tree took tests/structure.py from rc=0 failed=0 to rc=1 failed=1 (dead_top_level_symbols)."
+}

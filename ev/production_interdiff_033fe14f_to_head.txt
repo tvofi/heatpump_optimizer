@@ -1,0 +1,88 @@
+57,68c57,60
+< -        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+< -            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
+< +        value = frost_hold.gate(held, self.arbiter_inputs, supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+< +            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)))
+< -            _LOGGER.debug(
+< -                "Not switching %s off: mode %s is cooling or blocks both "
+< -                "channels, so an empty plan is this integration's doing "
+< -                "rather than a decision to stop the pump",
+< -                switch_entity,
+< -                self._pump_signals.mode.label,
+< -            )
+< +            frost_hold.log_skip(held, switch_entity, self._pump_signals.mode.label)
+---
+> -        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), supply_hold.supply_write(
+> -            held, self.arbiter_inputs(), early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
+> +        value = frost_hold.gate(held, self.arbiter_inputs, supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), supply_hold.supply_write(
+> +            held, self.arbiter_inputs(), early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)))
+187,189c179,181
+< +    latch is held: ``None`` leaves a running switch alone, and ``True``
+< +    switches one that reads off back on. ``inputs`` is the coordinator's
+< +    ``arbiter_inputs`` builder, called only for an OFF.
+---
+> +    latch is held: ``None`` leaves a running switch alone, logged as the
+> +    hold, and ``True`` switches one that reads off back on. ``inputs`` is
+> +    the coordinator's ``arbiter_inputs`` builder, called only for an OFF.
+201c193,198
+< +    return True if getattr(supply_switch(inp), "state", None) == "off" else None
+---
+> +    switch = supply_switch(inp)
+> +    if getattr(switch, "state", None) == "off":
+> +        return True
+> +    if switch is not None:
+> +        _LOGGER.debug("Not switching %s off: frost hold", EntryConfig.from_mapping(inp.config).heat_pump_switch_entity)
+> +    return None
+250,261d246
+< +def log_skip(held: ArbiterState, entity: str, mode_label: str) -> None:
+< +    """Say why the supply gate wrote nothing to ``entity``: a hold, or the pump's mode."""
+< +    if held.frost_holding:
+< +        _LOGGER.debug("Not switching %s off: frost hold", entity)
+< +        return
+< +    _LOGGER.debug(
+< +        "Not switching %s off: mode %s is cooling or blocks both channels, so "
+< +        "an empty plan is this integration's doing rather than a decision to "
+< +        "stop the pump", entity, mode_label,
+< +    )
+< +
+< +
+294,312d278
+< -    plan booked. This used to take the threshold from its caller, which handed
+< -    it the METER's threshold -- half the pump's modulation floor -- and split
+< -    the two circuits on two different numbers (R9 D12-s2-01, #1644 P2): on a
+< -    fixed-speed pump a step the plan priced as 1.0 kW of delivered heat read as
+< -    no space duty at all, so the arbiter wrote the pump's hot-water mode over
+< -    it. A caller-supplied threshold is the shape that let them diverge, so the
+< -    parameter is gone rather than defaulted.
+< -
+< -    The plan's own floor travels as that rule's ``modulation_floor`` ARGUMENT
+< -    (D7-arch3-04). It used to travel through an attribute on the function
+< -    object, set here and cleared by a decorator's ``finally`` so a later
+< -    floorless caller did not inherit it: one module-level slot for a per-plan
+< -    value, read by every caller that passed none. No production reader runs off
+< -    the loop, so the harm was the channel and the second piece of state that
+< -    kept it clean, not a live race.
+< +    plan booked. No caller supplies a threshold: one that did handed it the
+< +    meter's and split the two circuits on two numbers (R9 D12-s2-01, #1644 P2).
+< +    The plan's own floor travels as that rule's ``modulation_floor`` argument,
+< +    never as module state (D7-arch3-04).
+336,340d301
+< -    sent. It used to be held until the controller read anything else, which
+< -    on an upgrade held every space write, a boost's included, with the pump
+< -    left on the optimizer's last gate (R10-HOTFIX-FLOW-SETPOINT-STUCK).
+< +    sent, never held: holding it froze every space write on an upgrade
+< +    (R10-HOTFIX-FLOW-SETPOINT-STUCK).
+348,349c309
+< +    # A frost hold is served as space past a block (it protects the unit) and records no heating.
+< +    served = "space" if held.frost_holding else _served(coord, inp, duty, now)
+---
+> +    served = _served(coord, inp, duty, now)  # a frost hold records no heating
+353,354c313,317
+< -        await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
+< +        await _write(coord, inp, "mode", _mode_for(inp, "space" if held.frost_holding else _served(coord, inp, duty, now)), now)
+---
+> -    """The duty this pass serves: a both step's share, its block dropped again."""
+> -    return _without_block(coord, _share(coord, inp, duty, now), now)
+> +    """The duty this pass serves: a both step's share, its block dropped again; a frost
+> +    hold is space past any block (it protects the unit)."""
+> +    return "space" if state_for(coord).frost_holding else _without_block(coord, _share(coord, inp, duty, now), now)
