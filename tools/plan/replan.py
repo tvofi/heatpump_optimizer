@@ -103,6 +103,9 @@ import roster_lib  # noqa: E402 -- the one owner of which roster a tool reads
 sys.path.insert(0, str(Path(roster_lib.__file__).resolve().parents[2] / "release"))
 import stamp  # noqa: E402 -- the one owner of the version a stamp assigns
 
+sys.path.insert(0, str(Path(roster_lib.__file__).resolve().parents[2] / "ci"))
+import shards  # noqa: E402 -- the one owner of the fast lane's job names, sharded or not
+
 SELF = "tools/plan/replan.py"
 
 # Production lanes cut a stamp. Instrument, Replay and Docs work does not, on
@@ -2316,6 +2319,17 @@ def selftest() -> int:
     expect("a rerun does not replace the first attempt (earliest started_at)",
            ing.get("closures", {}).get("job") == 1
            and ing["closures"]["minutes"] == 20.0, str(ing))
+    sharded = [  # #3902 review: a sharded fast lane, two shards, the second re-run once
+        "fast (3.14, 2/2)\t13\t2026-01-05T02:00:00Z\t2026-01-05T02:10:00Z\tsuccess",
+        "fast (3.14, 2/2)\t12\t2026-01-05T00:01:00Z\t2026-01-05T00:40:00Z\tfailure",
+        "fast (3.14, 1/2)\t11\t2026-01-05T00:00:00Z\t2026-01-05T00:30:00Z\tsuccess",
+    ]
+    ing = _ingest_check_runs(sharded, ("fast (3.14)",))
+    expect("#3902: a sharded fast lane is one row, first shard start to last shard end, red when one is",
+           ing == {"fast (3.14)": {"job": 11, "minutes": 40.0, "conclusion": "failure",
+                                   "started": dt.datetime(2026, 1, 5, tzinfo=dt.timezone.utc)}}, str(ing))
+    ing = _ingest_check_runs(sharded[2:], ("fast (3.14)",))
+    expect("#3902: a commit missing one shard of its count has no fast row (its null)", ing == {}, str(ing))
 
     coord3 = {"groups": [
         {"group": f"K{i}", "size": "S", "lane": "Core model", "kind": "defect",
@@ -3348,6 +3362,9 @@ def _ingest_check_runs(lines, want) -> dict:
     earliest `started_at` is the invariant: a median over gates counts each
     tree's first attempt once, and a cancelled first attempt stays cancelled
     (its rerun is what `cancelled_rate` prices, not a replacement result).
+
+    A sharded fast lane lists one `fast (3.14, K/N)` run per shard: each shard
+    keeps its own earliest attempt, and the lane is their fold (_fold_fast).
     """
     best = {}
     for line in lines:
@@ -3357,7 +3374,8 @@ def _ingest_check_runs(lines, want) -> dict:
         if len(parts) != 5:
             continue
         name, job, began, ended, concl = parts
-        if name not in want or began in ("", "null") or ended in ("", "null"):
+        lane = shards.FAST if shards.is_fast(name) and not name.startswith("tests / ") else name
+        if lane not in want or began in ("", "null") or ended in ("", "null"):
             continue
         started = dt.datetime.fromisoformat(began.replace("Z", "+00:00"))
         finished = dt.datetime.fromisoformat(ended.replace("Z", "+00:00"))
@@ -3368,8 +3386,25 @@ def _ingest_check_runs(lines, want) -> dict:
                 "minutes": round((finished - started).total_seconds() / 60.0, 1),
                 "conclusion": concl,
                 "started": started,
+                "finished": finished,
             }
-    return best
+    return _fold_fast(best)
+
+
+def _fold_fast(best: dict) -> dict:
+    """The rows without their end, the fast lane's shards folded into one `fast (3.14)` row: from
+    the first shard's start to the last one's end, green only when every shard is. A commit missing
+    any shard of the count it lists has no fast row, as an unfinished unsharded job has none."""
+    sh = {n: r for n, r in best.items() if n != shards.FAST and shards.is_fast(n)}
+    out = {n: {k: v for k, v in r.items() if k != "finished"} for n, r in best.items() if n not in sh}
+    if sh and sorted(shards.owed_fast(list(sh), prefix="")) == sorted(sh):
+        first = min(sh.values(), key=lambda r: r["started"])
+        end = max(r["finished"] for r in sh.values())
+        bad = [sh[n]["conclusion"] for n in sorted(sh) if sh[n]["conclusion"] != "success"]
+        out.setdefault(shards.FAST, {"job": first["job"],
+                                     "minutes": round((end - first["started"]).total_seconds() / 60.0, 1),
+                                     "conclusion": bad[0] if bad else "success", "started": first["started"]})
+    return out
 
 
 def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
