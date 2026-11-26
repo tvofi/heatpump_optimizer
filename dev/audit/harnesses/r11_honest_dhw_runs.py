@@ -128,24 +128,25 @@ class Watch:
                 return None
             return got if watch.tails is None else got._replace(clamped=not watch.tails)
 
-        def stage(planner, plan, store, limits, forced_off, start_below, space_demand):
+        def stage(planner, plan, store, limits, forced_off, start_below, space_demand, *running):
             if planner.charge_runs is None:
-                return watch.kept["stage"](planner, plan, store, limits, forced_off, start_below, space_demand)
+                return watch.kept["stage"](planner, plan, store, limits, forced_off, start_below, space_demand, *running)
             build = {"space": space_demand is not None, "rounds": 0, "verdicts": [], "plan": np.array(plan)}
             watch.builds.append(build)
             ctx = store[0]
             build["temps_of"] = lambda x: planner._ctx_temps(ctx, store[1], store[2], np.asarray(x, float))
             build["start_below"], build["requirement"], build["store"] = start_below, limits[0], store
+            build["running"] = running
             floor = runs.floor_kw(planner.model.params.min_electrical_power)
             space = np.zeros(ctx.n_steps) if space_demand is None else np.clip(space_demand, 0.0, None)
             build["cost"] = lambda x: float(np.sum(ctx.prices * x) * ctx.dt) + planner.charge_runs.start_cost * (
                 runs.start_count(space + x, floor, planner.charge_runs.running))
-            out = watch.kept["stage"](planner, plan, store, limits, forced_off, start_below, space_demand)
+            out = watch.kept["stage"](planner, plan, store, limits, forced_off, start_below, space_demand, *running)
             build["out"] = np.array(out)
             return out
 
-        def refusal(candidate, start_below, temps_of, held):
-            got = watch.kept["refusal"](candidate, start_below, temps_of, held)
+        def refusal(candidate, start_below, temps_of, held, *running):
+            got = watch.kept["refusal"](candidate, start_below, temps_of, held, *running)
             if watch.builds:
                 watch.builds[-1]["verdicts"].append((np.array(candidate), got))
             return got
@@ -245,7 +246,7 @@ def hysteresis() -> int:
                     continue
                 lost = 0
                 if b["start_below"] is not None:
-                    kept = dc.drop_unstartable(b["out"], b["start_below"], b["temps_of"])
+                    kept = dc.drop_unstartable(b["out"], b["start_below"], b["temps_of"], *b["running"])
                     lost = charges(b["out"]) - charges(kept)
                 verdicts = ", ".join("accepted" if v is None else f"{v[0]}@{v[1]}" for _c, v in b["verdicts"])
                 shipped = "uncommitted" if np.array_equal(b["out"], b["plan"]) else "committed"

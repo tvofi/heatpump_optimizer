@@ -5,8 +5,8 @@ repair under the pump's start condition (``dhw_start.place_startable``).
 The commit (:func:`commit_charges`), on a solve that plans runs
 (:class:`ChargeRuns`): the plan as charges that run at the pump's floor or
 above, chosen between the store program's plan (:class:`_StoreProgram`)
-and the lifted one, each kept only where the pump would start its charges
-under the same start condition.
+and the lifted one. Each is kept only where the pump would start its
+charges under the same start condition.
 
 Pure computation over arrays and the planner's own tank walk; the planner
 is passed in, never imported at run time.
