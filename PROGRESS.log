@@ -44,3 +44,4 @@
 1795698028 HB alive
 1795698631 HB alive
 1795699116 CKPT BLOCKED: prepr refuses on verdict-bus step replay not caused by diff; BLOCKED.md pushed f66434de snapshot c423819b0d1e
+1795699124 DONE BLOCKED: fix complete at e1d91dee (18/18 mutants, scoped gate green); prepr refuses only on a verdict-bus step replay the diff does not cause; question in BLOCKED.md on handoff-wip/r11-late-p1-options
