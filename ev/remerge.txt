@@ -1,9 +1,0 @@
-== bf6c487691 remerge
-LEDGER-MERGE: resolved tests/structure_budgets.json
-  module_excess_loc: 21763 + both deltas = 21745
-  re-run the gate that owns this file before pushing
-LEDGER-MERGE: resolved tests/closures.json
-bf6c487691
-== 4ab51be439 remerge
-LEDGER-MERGE: resolved tests/closures.json
-4ab51be439

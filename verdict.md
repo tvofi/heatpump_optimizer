@@ -1,64 +1,25 @@
-Fix review: merge 4ab51be4391657b622ad008c6fb4629846bf39c4
+Fix review: blocked 4ab51be4391657b622ad008c6fb4629846bf39c4 ci-red: required gate red on tests / mutation, 9 added production sites survive with no killing check or survivor_triage
 
 bus-nonce: 7f6d23a1ebc7e2efbf8f4d492667714c
-pending-ci: tests / mutation-pins (1), tests / mutation-pins (2), tests / mutation-pins (3)
 
-## Scope
+## Block
 
-Round 4 of #3869's review, a delta over the previous verdict's head 392fe0b7 (blocked metric-gamed). The PR's own commits in 392fe0b7..4ab51be4 are 08ade1c115 (code) and 6e1c645f65 (budget re-record). The rest of the range is two merges of origin/main: bf6c487691 (70f410e996 via bdcfee6dcc) and 4ab51be439 (8f22a3b284). `git show --remerge-diff` of both shows only ledger-driver resolutions (`tests/structure_budgets.json`, `tests/closures.json`) and no hand resolution (ev/remerge.txt). The delta touches `duty_legs.py`, `duty_switch.py` and `optimizer.py` only through entry_rule. CI already covers the rule it shares, so the scope is not widened. The review packet rendered `Review scope: full` only because it was given the same SHA for head and reviewed-head; the dispatch names 392fe0b7.
+- Required `gate` is red at 4ab51be4 (classify: `RED 4ab51be4391657b622ad008c6fb4629846bf39c4 pending: none red: gate`). The gate fails on `tests / mutation`, which is in the owed-reds set. The table refuses 14 unpinned sites this diff adds. `tests / mutation-autofix` (job 139793015722) pinned the kills and reports 9 sites still alive: duty_legs.py:160 CLAMP_DROP; duty_legs.py:168 CLAMP_DROP; duty_legs.py:169 CMP_BOUND; duty_legs.py:196 CMP_BOUND; duty_legs.py:201 GUARD_OFF; duty_legs.py:370 CLAMP_DROP; duty_switch.py:616 GUARD_OFF; duty_switch.py:621 CMP_BOUND; duty_switch.py:631 CLAMP_DROP (all under custom_components/heatpump_optimizer/). Each needs a killing check or a `survivor_triage` verdict written by a seat (ci-autofix.md). A red head takes no merge verdict (C8). None of the nine is on the round-3 payment: both of the delta's own sites, duty_legs.py:98 and duty_switch.py:569 RETURN_DEL, are killed. The bot pinned them in 39771d9c33, which is the PR's head now.
 
-## Verdict on the previous block (metric-gamed)
+## Delta review (392fe0b7..4ab51be4)
 
-Resolved. 08ade1c115 deletes ec6be8dbdf's re-wrap together with the call it wrapped. `duty_legs.entry_rule(split, cfg, before)` is now the only place that reads `cfg.mode_leg_heat_min_minutes`, `cfg.mode_leg_dhw_min_minutes` and the entry leg. Before, there were two spellings of that reading:
-- the planner passed the values as three extra `leg_rule` parameters;
-- the arbiter (`duty_switch.leg_rule`) called `split._replace(...)` over two lines.
-
-Both now call entry_rule. `leg_rule` returns to main's three-parameter signature, and `optimizer._leg_rule`'s call is back to main's three-line layout with one nested call. The line that `module_excess_loc` gives back comes from the two minimum-leg arguments the call no longer lists. A re-wrap of an unchanged call would not produce it.
-
-Step 14 control:
-- Mechanism present (the extra-argument call): `module_excess_loc` measures 21756 at both 392fe0b7eb and ec6be8dbdf.
-- Mechanism replaced by the shared rule: it measures 21755 at 6e1c645f65.
-- The diff's only change in that range is the sharing. Packing the old call onto fewer lines would be the shape blocked in round 3, and this diff is not that shape.
-- archscore over the payment alone, `score.py --diff c51360d13b` run on 08ade1c115's tree, reads `dS +0.0000 NULL`. This reproduces the body's figure, so the payment is not read as worse (ev/archscore_c51360_to_08ade1.txt).
+- Round: this is the third round on this PR. The packet printed `Review scope: full` because the dispatch rendered it with `--reviewed-head` equal to the head. I reviewed the delta and the previous verdict's finding, as dispatched.
+- Previous block, metric-gamed (re-wrap of optimizer._leg_rule): resolved. At the head, `_leg_rule`'s call has main's three-line layout (main optimizer.py:270-272), wrapped in `duty_legs.entry_rule(...)`. The payment is real sharing, not a re-spelling. Before, the minimum legs and `before` were read twice: the arbiter `_replace`d them in duty_switch.leg_rule, and the planner passed them through three extra `duty_legs.leg_rule` parameters. Now `duty_legs.entry_rule` is the single reading, and `leg_rule`'s signature is back to main's. Without the mechanism, optimizer.py's line comes back. This is not a layout move that leaves the code no better.
+- Previous block 2 (the neighbour unchecked through the planner): resolved. The added features.py check drives `optimizer._leg_rule` with `duty_leg_before` DHW and SPACE, and the m3 and m6 mutants show it kills a dropped neighbour at either site.
+- Re-record is downward: 6e1c645f65 moves module_excess_loc 21756 -> 21755. Against main (three-dot, merge base 8f22a3b2), the PR's budget moves 21753 -> 21745. At the head, structure.py measures `module_excess_loc 21745 <= 21745`, and no other key rises.
+- Merges after 392fe0b7: bf6c487691, 2dec079b9e and 4ab51be439 have trees identical to `git merge-tree --write-tree` of their parents, so none has a hand resolution. c51360d13b hand-resolves only tests/golden/claimed_drift.txt (the driver printed `MERGE-CLAIM: refused`, both sides changed claims). The resolution keeps main's side and adds the branch's own config_flow claim and comment. The branch claims config_flow alone, three-dot.
+- `git merge-tree --write-tree origin/main 4ab51be4` exits 0, so it merges cleanly. VERSION, the manifest and RELEASE_NOTES.md are untouched (three-dot).
 
 ## Evidence
 
-- RESULT mutants (step 1): driver ev/mutant_driver.sh runs the whole of `tests/features.py` from a scratch worktree at the head. Baseline is `1 of 6243 FEATURE CHECKS FAILED`, the `_bootstrap` check, which fails outside run.sh's interpreter path as the body records. All 7 mutants on the shared rule are killed, each adding failures beyond that baseline (ev/mutant_summary.txt, ev/mutants.txt):
-
-  | Mutant | Change | Checks failing |
-  |---|---|---|
-  | M1 | entry_rule heat_min -> 0 | 4 of 6243 (T9, T11, availability) |
-  | M2 | dhw_min -> 0 | 8 |
-  | M3 | before= dropped | 3 (T9, the solve's leg rule) |
-  | M4 | planner before -> IDLE | 2 (the solve's leg rule) |
-  | M5 | arbiter before -> IDLE | 2 (T9) |
-  | M6 | planner bypasses entry_rule | 4 |
-  | M7 | arbiter bypasses entry_rule | 7 |
-
-  No survivors.
-- RESULT re-record downward (`module_excess_loc`):
-  - 6e1c645f65 records 21756 -> 21755, matching that SHA's measured 21755.
-  - At the head the budget is 21745 and `tests/structure.py` reads `ok module_excess_loc 21745 <= 21745`, `STRUCTURE RATCHET PASSED` (ev/structure_head.txt).
-  - origin/main 8f22a3b284's budget and measurement are both 21753, so the head is below main and no `*_budgets.json` row moves up (ev/budget_values.txt, ev/measure_structure_archscore.txt).
-- RESULT merge: `git merge-tree --write-tree origin/main 4ab51be4` exits rc 0 with origin/main at 8f22a3b284, which the head already contains (ev/merge_tree.txt).
-- RESULT step 5: the PR touches no VERSION, manifest version or notes heading. The own-commit delta is 4 code/test files plus `tests/structure_budgets.json`.
-- RESULT CI at the head, read ~07:40Z (ev/checks_0740Z.txt, ev/classify_log.txt):
-  - `merge_train.py classify` printed `WAIT ... pending: gate red: none` on every run from 06:03Z to 07:51Z, naming no context.
-  - The only runs still in progress are `tests / mutation-pins (1)`, `(2)` and `(3)`, the pinning shards. The pending-ci line above names them.
-  - `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / coverage-ratchet`, `tests / typing` and `governance / instrument-self-tests` are green, along with the rest of the owed set apart from the two listed next.
-- RESULT owed reds:
-  - `tests / mutation` is the predicted unpinned-sites red, which shards into the pin jobs. The body's `## Red checks` answers it as `mutation-autofix`'s normal state, with `ci_predict.py` named as the cheaper detector that already runs.
-  - `gate`'s red jobs log `FAIL run(s) [45764677926] at this head are still being judged; their gate decides`. That is a pending aggregate, not a defect of the diff.
-- RESULT body figures checked at this head:
-  - The round-3 mutant claims are re-derived by M3 and M4.
-  - The archscore NULL for the payment is re-derived.
-  - `module_excess_loc` 21756 -> 21755 is re-derived.
-  - One figure does not re-derive; see Notes.
-
-## Notes
-
-- Note: figure: the body's `## Head` says the ledger driver resolved `module_excess_loc` "21763 + both deltas = 21754" at bf6c487691. The driver's own line (`git show --remerge-diff bf6c487691`) and the file at bf6c487691 both read 21745, which is 21763 - 8 - 10, and the head measures 21745. The tree is correct; only the body's figure is transposed. Carry: dismissed: body paperwork, the tree's figure is right and measured; the next body edit corrects it
-
-## Findings
-
-none
+- Mutants on the shared rule (features.py at 4ab51be4; the m0 control adds no failure beyond the host-path `_bootstrap` FAIL also seen at the unmutated head). m1 entry_rule heat_min=0: 3 checks fail. m2 dhw_min=0: 7 fail. m3 drop before=: 2 fail. m4 duty_switch.leg_rule returns split: 6 fail. m5 arbiter before=IDLE: 1 fails (T9). m6 planner before=IDLE: 1 fails (the new solve-rule check). m7 planner drops entry_rule: 3 fail. m8 leg_rule returns DEFAULT_RULE: 5+ fail, and the run aborts with a TypeError. m9 swapped minimums: 3 fail. All are killed. Diffs and logs: ev/mut-*.diff, ev/mut-*.log.
+- archscore (ev/archscore.txt): c51360d13b..6e1c645f65 gives dS +0.0000 NULL, matching the body's NULL across the payment. 8f22a3b2..4ab51be4 gives dS +0.0006 IMPROVES (coord_footprint 2526 -> 2525), matching the body's +0.0006 against main. 392fe0b7..6e1c645f65 reads +1.5850 because that range carries main's own commits, so I do not use it.
+- Baseline features.py at the head: 1 of 6243 checks fails (`_bootstrap drops the package directory so datetime is stdlib`, a /tmp worktree path artifact). It is the same at the m0 control (ev/features-head-tail.txt).
+- Head moved during review: PR head is now 39771d9c333d5af4c94f3625c7e6e91362d07f8f (github-actions[bot] `ci: pin killed mutants`; it adds only two killed_by pins). Everything above was measured at 4ab51be4. The nine survivors are not pinned by that commit.
+- Live checks at 4ab51be4: also red are nightly-ha (stable, 2025.2.0) and nightly-status, which are not in owed-reds. `tests / replay` was cancelled.
+- This verdict supersedes 9b9842e3a6 on this probe ref, a `Fix review: merge` at the same head and nonce pushed at 07:53 UTC by an earlier fire of this seat. That was before `gate` concluded RED (classify first read RED at 08:52:35 UTC, ev/classify-polls.txt). A red head takes no merge (C8). This commit is its child, so the earlier one stays on the ref's history.

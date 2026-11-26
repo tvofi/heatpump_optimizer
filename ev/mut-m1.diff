@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/duty_legs.py b/custom_components/heatpump_optimizer/duty_legs.py
+index 896b499d32..e397736346 100644
+--- a/custom_components/heatpump_optimizer/duty_legs.py
++++ b/custom_components/heatpump_optimizer/duty_legs.py
+@@ -106,7 +106,7 @@ def entry_rule(split: LegRule, cfg: Any, before: int) -> LegRule:
+     and the planner (``optimizer._leg_rule``) share, so the legs a solve
+     prices are the legs the arbiter serves.
+     """
+-    return split._replace(heat_min=leg_minimum(cfg.mode_leg_heat_min_minutes),
++    return split._replace(heat_min=0.0,
+                           dhw_min=leg_minimum(cfg.mode_leg_dhw_min_minutes), before=before)
+ 
+ 

@@ -1,1 +1,1 @@
-WAIT 4ab51be4391657b622ad008c6fb4629846bf39c4 pending: gate red: none
+RED 4ab51be4391657b622ad008c6fb4629846bf39c4 pending: none red: gate
