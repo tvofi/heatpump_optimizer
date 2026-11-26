@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_anchor.py:note GUARD_OFF f5bc6aa8",
+  "killed_by": "tests/features.py",
+  "old": "    if duty in SPACE_DUTIES and prev is not None and prev.duty == \"dhw\" and _within(prev.at, now, settle):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}

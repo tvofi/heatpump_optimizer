@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_anchor.py:_within CMP_BOUND 99d7cfd2",
+  "killed_by": "tests/features.py",
+  "old": "    return 0.0 <= age < span.total_seconds()",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return 0.0 < age < span.total_seconds()`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7. Each of the 2 sites under this anchor was killed."
+}
