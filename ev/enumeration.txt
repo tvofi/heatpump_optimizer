@@ -1,0 +1,20 @@
+== dbdc71faea
+191:        return math.isfinite(float(state))
+198:    if isinstance(value, (int, float)):
+202:            float(value)
+205:        dumped = value if "." in value else json.dumps(float(value))
+222:        float(value)
+242:            if _is_coordinate(key) and isinstance(value, (int, float, str)) \
+245:                    out[key] = round(float(value), MAX_COORDINATE_DECIMALS)
+269:    if isinstance(value, (int, float)) and not isinstance(value, bool):
+709:    if isinstance(node, (int, float)) and not isinstance(node, bool):
+== ea316e99
+191:        return math.isfinite(float(state))
+198:    if isinstance(value, (int, float)):
+202:            float(value)
+205:        dumped = value if "." in value else json.dumps(float(value))
+222:        float(value)
+242:            if _is_coordinate(key) and isinstance(value, (int, float, str)) \
+245:                    out[key] = round(float(value), MAX_COORDINATE_DECIMALS)
+271:    if isinstance(value, (int, float)) and numeric(value):
+711:    if isinstance(node, (int, float)) and not isinstance(node, bool):
