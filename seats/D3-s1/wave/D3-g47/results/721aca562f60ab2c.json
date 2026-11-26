@@ -1,0 +1,44 @@
+{
+ "key": "721aca562f60ab2c",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3080 GUARD_OFF",
+ "patch": "if not np.isfinite(target): -> if False:",
+ "function": "learner_newton_step",
+ "cluster": "thermal_model.py:learner_newton_step@3073-3080",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3418.6,
+  "load1_start": 0.85,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_721aca562f60ab2c.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_721aca562f60ab2c.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 3)",
+   "RESULT inputs_differing=6 count (of 8)",
+   "RESULT baseline_value=None",
+   "RESULT mutant_value=(nan, nan)"
+  ],
+  "inputs_tried": "residual nan/inf/-inf, delta_t 0/nan/-0, capacity inf/nan (callers guard residual finiteness and delta_t>=6, not capacity/base_u)"
+ },
+ "should_fail": "tests/boost_drift_replay.py, features.py, entities.py: learner_newton_step(residual=nan or capacity=nan) is None",
+ "title": "learner_newton_step: the np.isfinite(target) guard is untested; with a non-finite residual or capacity the bas",
+ "claim": "learner_newton_step: the np.isfinite(target) guard is untested; with a non-finite residual or capacity the baseline returns None but the mutant returns (nan, nan), which the callers would store as the learner state",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "returned value of learner_newton_step for non-finite residual/delta_t/capacity inputs (baseline None, mutant a non-finite step or an exception)",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_721aca562f60ab2c.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_721aca562f60ab2c.py",
+ "perturbation": "line 3080: if not np.isfinite(target): -> if False:; the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green; the probe's number moves under it",
+ "null_control": "probe controls (inputs where the edit cannot matter) show null_control_differing=0"
+}
