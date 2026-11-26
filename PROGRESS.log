@@ -100,3 +100,4 @@
 1795660566 DONE blocked: handoff already landed at 2aa2169254 by a concurrent seat; BLOCKED.md at 99cc51b777 offers window-bound pins 035ae800d6
 1795735565 HB alive
 1795736169 HB alive
+1795736195 CKPT lower-bound arm committed snapshot 8c095223dd2a
