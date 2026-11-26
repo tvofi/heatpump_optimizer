@@ -57,7 +57,7 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-of their production-module closure (184 on the merge joining main's 182 to this branch's 186, the union of the two histories that follow: this branch's, 184 on each side before the merge joining
+of their production-module closure (184 of the 561 pairs on the merge joining main's 182 to this branch's 186, the union of the two histories that follow: this branch's, 184 on each side before the merge joining
 R11-OWNER-FLOWCAP's flow_limit.py and R11-OWNER-FAULT-HOLD's fault_hold.py, which put
 card_drift.mjs and wood_advisor.py each with features.py at the 0.80 floor; 182
 before flow_limit.py on main and fault_hold.py on its branch each lifted
