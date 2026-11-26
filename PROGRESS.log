@@ -1,2 +1,3 @@
 1795654508 INIT r11-rev-3902
 1795654520 HB alive
+1795654839 CKPT review complete: blocked class-open (judging fast-name axis) + run.sh routing mutant survives snapshot 5ccccddb6736
