@@ -87,6 +87,7 @@ def _sibling(name: str):
 ref_privacy = _sibling("ref_privacy")
 roster_lib = _sibling("roster_lib")
 proof_watch = _sibling("proof_watch")  # the bus-nonce line's one Python reader
+token_ledger = _sibling("token_ledger")  # the seat-key line every payload carries
 HOME = re.compile(ref_privacy.HOME_DIR)
 LOWER_HEX = frozenset("0123456789abcdef")
 
@@ -384,9 +385,13 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
            topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
-           design: str = "", pin: str = "", reviewed_head: str = "", verdict: tuple = ()) -> dict:
+           design: str = "", pin: str = "", reviewed_head: str = "", verdict: tuple = (),
+           group: str = "") -> dict:
     """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
-    `pin` of that ref (`publish_seat`)."""
+    `pin` of that ref (`publish_seat`). The event's first line, the stub's or the whole
+    prompt's, ends with the seat key (`token_ledger.header`: `group`, the role, the model,
+    the seat's dispatch name), which the token ledger keys the seat's usage by: every cloud
+    seat is fired with a `render` event, so no cloud dispatch path writes an unkeyed one."""
     if role not in ROLES:
         raise Refusal(f"role must be one of {', '.join(ROLES)}")
     if not is_head(head or ""):
@@ -413,6 +418,14 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
         raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
             else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head, verdict))
+    # The key ends the first line of the event, stub or whole prompt alike: the event is the
+    # seat's first user message, the one line token_ledger.read_transcript reads it from.
+    try:
+        key = token_ledger.header(group=group, role=role, model=model, seat=f"{role}-{topic or 'rev-' + pr}")
+    except token_ledger.Refusal as e:
+        raise Refusal(str(e))
+    first, _, rest = text.partition("\n")  # the first line's end: line 2 stays the setup line
+    text = f"{first} {key}\n{rest}"
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -558,6 +571,29 @@ def part_line(group_id: str, pending: list[int], part: int) -> str:
             "dispatched at this part's handoff; answer none of them")
 
 
+PART_LINE = re.compile(r"^Part \d+ of \d+: build carries [0-9+-]+;.*$", re.M)
+
+
+def inherit_part(prev_prompt: str, brief: str) -> str:
+    """`brief`, plus the generated part line of the prompt it re-dispatches when it holds
+    none. A repair of a split part is dispatched on the flag path with a hand brief: without
+    the line, review_packet's `part_carries` read no part and its handoff demanded every
+    roster carry (R11-PRE-TOOLCHAIN-PIN's repair, a546de28d0, against f0c093cebc's part 1)."""
+    m = PART_LINE.search(prev_prompt or "")
+    if not m or PART_LINE.search(brief):
+        return brief
+    return brief.rstrip("\n") + "\n\n" + m.group(0) + "\n"
+
+
+def _prev_prompt(repo_dir: str, ref: str) -> str:
+    """PROMPT.md at the tip of `ref` on origin, or "" when the ref holds none."""
+    tip = _tip(repo_dir, ref)
+    if not tip:
+        return ""
+    r = subprocess.run(["git", "-C", repo_dir, "show", f"{tip}:PROMPT.md"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else ""
+
+
 def dispatch_ref(role: str, topic: str, pr: str) -> str:
     """`dispatch/<role>-<topic>`, or `dispatch/<role>-rev-<PR>` for a seat with no topic."""
     key = topic or (f"rev-{pr}" if pr.isdigit() else "")
@@ -696,7 +732,7 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
             verdict = (vtip[0], _git(repo_dir, "show", f"{vtip[0]}:verdict.md").split("\n", 1)[0],
                        int(_git(repo_dir, "rev-list", "--count", vtip[0]).strip()))
     args = dict(design=design, verdict=verdict, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
-                pr=pr, topic=topic,
+                pr=pr, topic=topic, group=group_id,
                 brief=group_brief(group, roster, fixer=role == "fixer")
                 + "".join(f"\n{ln}\n" for ln in (dline, pline) if ln),
                 reviewed_head=reviewed_head)
@@ -933,8 +969,10 @@ def _group_checks(check) -> None:
         check("the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt",
               ptr.startswith("CLOUD FIXER seat for owner/name, topic r10-x, at head " + tip + ".")
               and FOOTER_BAN in ptr and msg.startswith("CLOUD FIXER") and msg not in ptr)
-        check("the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present",
-              len(fetched(line, "PAYLOAD.json")) < 1024 < len(msg) and "Fix the thing" not in ptr and pin in ptr)
+        check("the stub payload is far smaller than the prompt: under 1 KB whole less its seat key, the brief absent, "
+              "the SHA present",
+              len(fetched(line, "PAYLOAD.json")) - len(" " + (token_ledger.HEADER.search(ptr) or re.search("$", ptr)).group(0))
+              < 1024 < len(msg) and "Fix the thing" not in ptr and pin in ptr)
         check("without --publish the flag path is unchanged: the whole prompt in its event, nothing published",
               rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
@@ -944,6 +982,13 @@ def _group_checks(check) -> None:
                                                               "Legacy.\n\nAfter: none\n"))
         # CARRY 4 (tvofi 2026-11-01 card 2): the live consumers and the class enumeration, generated.
         ptext = fetched(dispatch("R10-PROD"), "PROMPT.md")
+        pkey = token_ledger.parse_header(ptext.splitlines()[0])
+        pstub = content(fetched("dispatch/fixer-r10-prod", "PAYLOAD.json"))
+        check("a group seat's prompt keys it, on its first line, by group, role, model and dispatch name, and its "
+              "stub, the seat's first user message, ends its first line with the same key (R11-PRE-TOKEN-LEDGER; "
+              "review/3898: the stub carried none)",
+              pkey is not None and (pkey["group"], pkey["role"], pkey["seat"]) == ("R10-PROD", "fixer", "fixer-r10-prod")
+              and token_ledger.parse_header(pstub.splitlines()[0]) == pkey)
         check("a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one",
               "Valid `Carry:` targets (live consumers of R10-PROD: groups after it or sharing its files): R10-CONS, R10-SHARE\n" in ptext
               and "R10-DONEC" not in ptext.split("Valid `Carry:` targets")[1])
@@ -976,6 +1021,14 @@ def _group_checks(check) -> None:
             check("--part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9",
                   p2 == "dispatch/fixer-r10-split-p2" and "topic r10-split-p2, at head" in p2text
                   and sum(ln == pline for ln in p2text.splitlines()) == 1 and p2text.endswith(pline + "\n"))
+            (work / "repair.txt").write_text("Repair of the part's red head.\n")
+            with contextlib.chdir(work), contextlib.redirect_stdout(io.StringIO()):
+                rrc = main(["--role", "fixer", "--head", tip, "--topic", "r10-split-p2", "--brief", str(work / "repair.txt"),
+                            "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name", "--publish"])
+            rtext = fetched(p2, "PROMPT.md")
+            check("a flag-path repair of part 2 on its own ref keeps the part's line, after its hand brief (carry: "
+                  "R11-PRE-TOOLCHAIN-PIN's repair held none)",
+                  rrc == 0 and "Repair of the part's red head." in rtext and rtext.endswith("\n\n" + pline + "\n"))
             cwhy = why_any("R10-CLASH", part=2)
             awhy = why_any("R10-CLASH", part=3)
             check("a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; "
@@ -1426,6 +1479,16 @@ def self_test() -> int:
           and "role_pack.py" not in prompts["probe"])
     check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
           "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
+    check("every role's prompt ends its first line with its seat key: the role, the model, the dispatch name",
+          all(token_ledger.parse_header(t.splitlines()[0]) == {"group": "-", "role": r, "dimension": "-", "model": "m-1",
+                                                                 "seat": f"{r}-t-1"} for r, t in prompts.items()))
+    gen = "Part 1 of 2: build carries 0-4; the others are later parts dispatched at this part's handoff; answer none of them"
+    check("a hand brief re-dispatching a split part inherits the part line its ref's prompt held (R11-PRE-TOOLCHAIN-PIN "
+          "repair a546de28d0), once",
+          inherit_part(f"x\n\n{gen}\n", "Repair.\n") == f"Repair.\n\n{gen}\n"
+          and inherit_part(f"x\n{gen}\n", f"Repair.\n\n{gen}\n") == f"Repair.\n\n{gen}\n")
+    check("and nothing is added when the previous prompt held no part line, or there was none (null control)",
+          inherit_part("Carry 0: a\n", "Repair.\n") == "Repair.\n" == inherit_part("", "Repair.\n"))
     check("every role's setup line runs the toolchain check and stops on its REFUSE (#2709)",
           all(f"`{SETUP_CHECK}`, and on REFUSE stop" in t.splitlines()[1] for t in prompts.values()))
     rv = prompts["reviewer"]
@@ -1500,6 +1563,10 @@ def self_test() -> int:
               ptr.startswith(_seat_line(role, "owner/name", a["pr"], head, a["topic"], a["nonce"]))
               and f"git fetch origin {pin} && git show {pin}:PROMPT.md" in ptr and f"of {ref} " in ptr
               and sum(FOOTER_BAN in x for x in ptr.splitlines()) == 1 and len(ptr) < len(prompts[role]))
+        whole = render(role, head, **base, **a)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+        check(f"a published {role}'s stub ends its first line with the seat key its whole prompt carries",
+              token_ledger.parse_header(ptr.splitlines()[0]) == token_ledger.parse_header(whole.splitlines()[0])
+              is not None)
         check(f"a published {role} with no 40-hex pin is refused", refused(role, publish_ref=ref, pin="")
               and refused(role, publish_ref=ref, pin=ref) and not refused(role, publish_ref=ref, pin=pin))
     check("a reviewer's stub carries its nonce", "abc123" in render(
@@ -1628,8 +1695,10 @@ def main(argv: list[str]) -> int:
         known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, design=args.design,
                      reviewed_head=args.reviewed_head, **_config(args))
         if args.publish:
-            payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
-                                   **known)
+            ref = dispatch_ref(args.role, args.topic, args.pr)
+            if args.role == "fixer":  # a hand brief re-dispatching a split part keeps the part's line
+                known["brief"] = inherit_part(_prev_prompt(".", ref), brief)
+            payload = publish_seat(".", ref, args.role, args.head, **known)
         else:
             payload = render(args.role, args.head, **known)
     except Refusal as e:
