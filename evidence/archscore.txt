@@ -1,0 +1,8 @@
+=== 392fe0b7 6e1c645f65
+Architecture score: dS +1.5850 IMPROVES
+  coordinator_private_reach 2 -> 0  +1.5850
+=== c51360d13b 6e1c645f65
+Architecture score: dS +0.0000 NULL
+=== 8f22a3b2842987bf6da13dedb08c4b99b7447f1f 4ab51be4391657b622ad008c6fb4629846bf39c4
+Architecture score: dS +0.0006 IMPROVES
+  coord_footprint 2526 -> 2525  +0.0006
