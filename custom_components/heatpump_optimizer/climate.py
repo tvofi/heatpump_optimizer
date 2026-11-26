@@ -33,7 +33,7 @@ from .const import (
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
 from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
-from .entity import dhw_split_attributes
+from .entity import PayloadFlagMixin, dhw_split_attributes
 from .entry_config import EntryConfig
 
 _LOGGER = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ async def async_setup_entry(
     async_add_entities([HeatPumpOptimizerClimate(coordinator, entry)])
 
 
-class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
+class HeatPumpOptimizerClimate(PayloadFlagMixin, HeatPumpOptimizerEntity, ClimateEntity):
     """Climate entity for the Heat Pump Optimizer."""
 
     # The device's main feature: a device-named entity (name None) takes the
@@ -123,17 +123,12 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         self._attr_min_temp = config.min_temperature
         self._attr_max_temp = config.max_temperature
 
-    @property
-    def available(self) -> bool:
-        """Unavailable while the indoor thermometer has not read.
-
-        ``native_current_temperature`` used to return ``ThermalState.room_temperature``
-        (21.0 °C) on a default install with no indoor entity, and the climate
-        entity stayed available, so the thermostat card published that
-        constructor default as a measurement (A3(e)).
-        """
-        flags = (self._data()).get("reading_ok") or {}
-        return bool(super().available and flags.get("upper_floor_temperature"))
+    # Unavailable while the indoor thermometer has not read.
+    # ``native_current_temperature`` used to return ``ThermalState.room_temperature``
+    # (21.0 °C) on a default install with no indoor entity, and the climate
+    # entity stayed available, so the thermostat card published that
+    # constructor default as a measurement (A3(e)).
+    _available_flag = ("reading_ok", "upper_floor_temperature")
 
     @property
     def native_current_temperature(self) -> float | None:
