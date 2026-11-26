@@ -8,9 +8,11 @@ The pull-request `tests / replay` job is cancelled at its 30-minute cap on most 
 
 ## Head
 
-`bbb99796c9b249495ac3b45484713a3af0924f45` is this PR's code head: the repair commit over `8e0391b08fa316937564766964e3e13c3a1fb97d`, which raises the cap to 60 and adds `control:headroom:cap_covers_the_budget` after the replay job's red on run 45821055133.
+`cf2f9472222180288f6149fe717b0992fe565db4` is this PR's code head (`handoff/r11-flow-fg4-replay-timeout`): one commit over the previous head `aa0f922192` that splits the `REPLAY_SIZING_DRAW` comment in `tests/replay.py` into four sentences, after `tests / fast (3.14)` went red on the comment ratchet (see `## Red checks`). No code line moved.
 
-Merge base with `origin/main` 1d3077736d, measured 2026-11-26T13:52Z.
+`bbb99796c9b249495ac3b45484713a3af0924f45` is the repair commit over `8e0391b08fa316937564766964e3e13c3a1fb97d`, which raises the cap to 60 and adds `control:headroom:cap_covers_the_budget` after the replay job's red on run 45821055133.
+
+Merge base with `origin/main` d664525864, measured 2026-11-26T17:10Z.
 
 ## Mutation proof
 
@@ -19,6 +21,7 @@ Merge base with `origin/main` 1d3077736d, measured 2026-11-26T13:52Z.
 - The check in `main()`, driven end to end (`main(["--fixture", "tests/replay/synthetic-dhw-only.json"])`) with `REPLAY_HEADROOM_SHARE` set to 0.0001: `FAIL lane wall time within the pull-request replay job's headroom [lane wall time 614.0 s > 0.0001 x (45 min - 20 s) = 0.3 s; raise the replay job's timeout-minutes to at least 102328]`. At 0.8: `ok   lane wall time within the pull-request replay job's headroom` (749.1 s).
 
 - Repair (commit `bbb99796c9`), controls run by `MUTANT_CMD` (`controls()` with exit 1 on any failing control), 8 of 8 hand mutants killed, each restored: cap 60 -> 45 (the base of this repair) and 60 -> 58; `budget_wall_s` without the budget scaling and without `rest_s`; `owner_s` 2424.3 -> 2224.3; `rest_s` -> 0.0; `owner_cpu_ratio` -> the budget; the control's bad cap 57 -> 60. Before the cap moved, the new control failed at 45 (`good=["lane wall time 2768.1 s > 0.8 x (45 min - 20 s) = 2144.0 s; ... at least 59"]`).
+- Comment repair (`cf2f947222`): hand mutant `replay` `timeout-minutes` 60 -> 45 in tests.yml, `MUTANT_CMD` = `python3 ctl.py` (`controls()` under `tests/hastub`, exit 1 on any failing control): `controls failing: ['control:headroom:cap_covers_the_budget']`, rc 1. Restored.
 - `diff mutants`: `tools/audit/seat/mutant_run.py --diff ... --max-mutants 40 --report-only` lists no site and exits 0: its `SKIP_PREFIXES` excludes `tests/`, and the diff touches no other Python. The hand mutants above are the measured proof.
 
 ## Null control
@@ -39,7 +42,7 @@ At 60 the check also holds on the slow-runner draw: 2505.3 s is under the 2864.0
 ## Figures
 
 - Controls 41, 0 failing: `PYTHONPATH=tests/hastub python3 -c "import sys; sys.path[:0]=['tests']; import replay as r; c=r.controls(); print(len(c), sum(not x[1] for x in c))"`
-- Cap read at head 45 and at base 30, the two agreeing with PyYAML at the head: `python3 -c "import sys,yaml; sys.path[:0]=['tests']; import replay as r; t=open('.github/workflows/tests.yml').read(); print(r.replay_timeout_minutes(t), yaml.safe_load(t)['jobs']['replay']['timeout-minutes'])"`
+- Cap read at head 60 and at base 30 (head re-read at `cf2f947222`: `60 60`), the two agreeing with PyYAML at the head: `python3 -c "import sys,yaml; sys.path[:0]=['tests']; import replay as r; t=open('.github/workflows/tests.yml').read(); print(r.replay_timeout_minutes(t), yaml.safe_load(t)['jobs']['replay']['timeout-minutes'])"`
 - Null-control table above: `python3 -c "import sys,subprocess; sys.path[:0]=['tests']; import replay as r; b=r.replay_timeout_minutes(subprocess.run(['git','show','origin/main:.github/workflows/tests.yml'],capture_output=True,text=True).stdout); h=r.replay_timeout_minutes(open('.github/workflows/tests.yml').read()); [print(w, b, r.headroom_offenders(w,b) or 'ok', h, r.headroom_offenders(w,h) or 'ok') for w in (772.0,836.1,1518.1,1476.4,1798.0,1751.8)]"`. The wall times are the `replay lane wall time` lines of nightly `slow` runs 42542424086, 43783271327, 44432094532, 45300031206, 45521325964 and 45731557683.
 - Gate scope `MODE: FULL` (tests.yml changes the gate itself): `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`. CI runs the full suite.
 - Instrument self-test scope `MODE: SCOPED -- 31 step(s) run`: `python3 -I tools/ci/selftest_scope.py select --base $(git merge-base origin/main HEAD)`. Each named step's `run:` text from governance.yml ran at the head on this macOS host, which carried a load average of 30-54 from other seats. 25 were green, and `beatd` and `self-tests-outside-seat` were green on a direct run. Four steps fail with the same FAIL lines at the head and at `origin/main` dbdc71faea, so the host causes them, not this diff: `verdict-bus` (`bash tools/audit/seat/bus.sh --self-test`, 28 of 245, case-insensitive filesystem among them), `app-push` (`bash tools/pr/app_push.sh --self-test`, 2 of 235), `ci-predictor` (`python3 -I tools/pr/ci_predict.py --self-test`, 5) and `owner-only-channel` (`python3 -I dev/audit/harnesses/owner_only_channel.py`, the SCOPES arm's 120 s subprocess timeout). `prepr` (`bash tools/pr/prepr.sh --self-test`) is 569 passed, 2 failed at the head, both in the ancestry-reds fixture ("an ancestry no commit of which carries any check run skips, never refuses" and its skip line). A tree without this diff, 03697934d5, fails the same two plus two more of the same fixture's arms, and prepr.sh reads nothing this diff changes. CI's governance job is the authority for all of them.
@@ -49,7 +52,9 @@ At 60 the check also holds on the slow-runner draw: 2505.3 s is under the 2864.0
 
 ## Red checks
 
+- `tests / fast (3.14)`, run 45848723133, job 140010320473: caused by this PR, and repaired. 442 of 443 `tests/doc_claims.py` checks passed; the red was the comment ratchet, `REFUSE tests/replay.py: long units 21 -> 22; new: "The slowest pull-request replay job on record, the cap's sizing draw: job ..."`. The `REPLAY_SIZING_DRAW` comment the repair commit added ran as one sentence over 40 words. Reproduced locally at `aa0f922192` (`python3 tests/comment_ratchet.py`: `long_units_base=2295 long_units_head=2296`, FAIL); at `cf2f947222` it reads `long_units_head=2295`, `comment_ratchet: OK`. The cheaper detector exists: `tests/comment_ratchet.py` alone, 28 s user CPU (3m22s wall on this loaded host), against the 27 s `doc_claims.py` step inside the roughly 35-minute `fast` job. The repair commit was handed off without running it.
 - `tests / replay`, run 45821055133, job 139918878679, red after 42m10s: caused by this PR, and repaired. 201 of 202 checks passed; the one red was this PR's own `lane wall time within the pull-request replay job's headroom` (`lane wall time 2505.3 s > 0.8 x (45 min - 20 s) = 2144.0 s; raise the replay job's timeout-minutes to at least 53`). The job landed on a `ref47` runner (`ref_ms` 46.75 against the nightly's 30.9), where the owner fixture costs 4.56 s per `cpu_ratio` unit; the 45 was sized from `ref31` nightlies only. The owner fixture's `cpu_ratio` was 532.0, inside its 589.7 budget, so no cost regression. The null control is main: no `tests / replay` ran on main (each main CI run skips it, it is pull-request only), and on other pull requests the job is cancelled at main's 30-minute cap. The repair raises the cap to 60, sized on this draw at budget, and adds `control:headroom:cap_covers_the_budget`, which refuses 45 and 58.
+- `tests / nightly-status`, run 45848723133, job 140009748932: not this PR's. It reports main's last scheduled nightly, run 45731557683 at main `d9100de`, whose `nightly-ha (2025.2.0)`, `nightly-ha (stable)` and `slow` jobs failed (`NIGHTLY FAILED: ... failed last night.`); that run predates this head and ran main's tree, so the same check is red on any pull request until the next nightly. Not a required check.
 
 ## Forward-carry
 
@@ -58,4 +63,5 @@ none
 ## Friction
 
 none
+
 
