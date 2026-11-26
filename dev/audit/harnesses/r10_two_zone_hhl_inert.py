@@ -89,7 +89,7 @@ def _sysid_steps(mode: str, extra: dict | None = None) -> list[float | None]:
     steps = []
     for hhl in SWEEP:
         params = _params(mode, hhl, extra)
-        ident = SystemIdentification(SysIdConfig(enabled=True))
+        ident = SystemIdentification(SysIdConfig())
         if not ident.arm(ARM_AT, plant=params):
             raise SystemExit(f"not armed: {ident.result}")
         kw = ident._size_step_power(5.0, 3.0, 20.0, 5.0, HousePlant.of_params(params))
