@@ -16,3 +16,4 @@
 1795655814 HB alive
 1795656295 CKPT setup done; delta read; mutants+env_drift running; CI polling snapshot d33b8e3bfcd8
 1795656418 HB alive
+1795656624 CKPT mutants 41/0, env_drift clean, structure ok; drafting verdict, CI WAIT snapshot c9198f89cd33
