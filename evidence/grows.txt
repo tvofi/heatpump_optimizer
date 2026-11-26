@@ -1,0 +1,2 @@
+selftest_scope grows: 0 read(s) of the old table the new one drops
+rc=0
