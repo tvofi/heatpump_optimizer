@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 98 modules, of which 34 import the
+knows nothing about Home Assistant: 104 modules, of which 36 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -124,6 +124,8 @@ custom_components/heatpump_optimizer/
 ├── notifier.py           # The documented events, fired from the payload on each update
 ├── thermal_model.py      # Two-zone house + slab + buffer + DHW tank physics
 ├── optimizer.py          # The MPC solve: DHW by LP, space by L-BFGS-B, reason codes
+├── comfort_floor.py      # The comfort floor a solve holds, and the steps the
+│                         #   room lift holds on it
 ├── plan_step.py          # The plan step: its width, and which step an instant
 │                         #   falls in, for the solve and the pump arbiter
 ├── duty_legs.py          # The legs a step is served in, the switches between
@@ -199,21 +201,29 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── duty_ledger.py        # The arbiter's step verdicts: what the pump did
+│                         #   over one step against the plan
 ├── supply_hold.py        # The supply switch's minimum run and pause, held
 │                         #   across a re-solve, a cycle or a restart
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
-│                         #   the running compressor; a latched direction's
-│                         #   estimate is what the solve prices that switch by
-│                         #   and what orders the legs of a both step the
-│                         #   arbiter serves
+│                         #   the running compressor; its estimate, shrunk
+│                         #   until a direction latches, is what the solve
+│                         #   prices that switch by; a latched one also orders
+│                         #   the legs of a both step the arbiter serves
 ├── heat_curve.py         # The heat-curve displace's outputs: the MQTT topics
 │                         #   and a number entity, kind offset or persistent
 ├── off_restore.py        # The one owner of the off and unload restore: what
 │                         #   a writer restores when the optimizer lets go
+├── circulation.py        # The circulation pumps' one owner: the write, its
+│                         #   record and the off restore (ADR-004)
+├── number_restore.py     # The off restore of the compressor frequency and
+│                         #   the mixing valve's target (ADR-004)
 ├── early_cutoff.py       # Switches a space-heating pump off inside the
 │                         #   interval once the room passes its threshold
 ├── flow_lift.py          # Supply and return water: how far the real supply
 │                         #   sits from the model's own weather curve
+├── flow_limit.py         # The space water set-point's high limit: the lower
+│                         #   of the maximum set-point sensor and option
 ├── flow_meter.py         # The water flow sensor: thermal output from flow,
 │                         #   supply and return, when no power or frequency
 │                         #   signal exists
@@ -271,6 +281,7 @@ custom_components/heatpump_optimizer/
 │                         #   copy for that bundle and the repository's export
 ├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included
 ├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
+├── solve_gate.py         # When a solve runs: the one in-flight guard, the trailing refresh, the background budget, the user slot, the run-now path
 │
 ├── www/                  # The dashboard card, one self-contained file
 ├── brand/                # Icon and logo
@@ -286,16 +297,16 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-34 of the 98 modules import `homeassistant` at module level: `__init__`,
+36 of the 104 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
-and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
+and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
+`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
 `store`, `supply_hold`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 63 modules are deliberately free of it, so each can be driven
+The other 67 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output

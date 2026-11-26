@@ -46,22 +46,29 @@ Legs = tuple[tuple[str, float], ...]
 DEFAULT_RULE: LegRule = ("dhw", None)
 
 
-def leg_rule(stop_probability: tuple[float, float], off_seconds: tuple[float, float]) -> LegRule:
+def leg_rule(
+    stop_probability: tuple[float, float],
+    off_seconds: tuple[float, float],
+    unlatched: tuple[bool, bool] = (False, False),
+) -> LegRule:
     """The leg order and whole-step rule of a both step, from the per-direction pairs.
 
     One rule for the arbiter, which serves the legs (``duty_switch``, fed by
-    the learner's latched pairs), and the planner, which prices them (fed by
-    the same pairs through its configuration). Space goes first only where
-    hot water to heating alone stops the compressor. Where the switch into
-    the second duty stops it, a second share shorter than
+    the learner's pairs), and the planner, which prices them (fed by the
+    same pairs through its configuration). A direction ``unlatched`` names
+    is priced before its learner latches and moves neither the order nor the
+    merge: the legs move on a latch only. Space goes first only where hot
+    water to heating alone stops the compressor. Where the switch into the
+    second duty stops it, a second share shorter than
     :data:`SPLIT_MIN_MINUTES` plus that direction's off time goes to the
     first duty when the next step serves the second. Its delivery then moves
-    one step and is not dropped. With no stop priced this is
+    one step and is not dropped. With no latched stop this is
     :data:`DEFAULT_RULE`.
     """
-    first = "space" if stop_probability[0] > 0 and not stop_probability[1] > 0 else "dhw"
+    stops = [p > 0 and not free for p, free in zip(stop_probability, unlatched)]
+    first = "space" if stops[0] and not stops[1] else "dhw"
     into = 0 if first == "dhw" else 1
-    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)
+    return first, (off_seconds[into] / 60.0 if stops[into] else None)
 
 
 def both_step_legs(
