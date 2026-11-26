@@ -51,6 +51,8 @@ Code-owned paths: `.github/workflows/ci.yml` and `tests.yml`. The owner's approv
 
 ## Head
 
+`fa4ea28e9b1e5dcb80119964feb409954df9b2ad` is this PR head: the fixer fast-forwarded handoff/r11-ci-fast-shards from `fe2b516c71` with three fixes: the tests.yml fast job literal name, the prelude outputs and the pr-contract closure read. tests/closures.json is not re-recorded here; closures-autofix on Linux should record tools/ci/shards.py.
+
 `4c267409f8badb005ac49e5de3142d6d464cf40f`: the ci-shards step's measured `tools/ci/selftest_closures.json` entry, on `5f068649ae921257a4725846fd0fc4d0ec0b75be`. Review delta from 791d83e7 (5f068649 merged): `git diff 5f068649 4c267409`, that one file. 5f068649 itself is the reviewed head `f03b95f36ebcb0cc4481ca138c953a96f951f269` plus two commits, the fast-job readers and run.sh routing (fc14b732) and the readers harness's inert read (5f068649), `git diff f03b95f3 5f068649`, 10 files. Everything else below was measured at `a486d863340304d6f6a37d2deaa28380fa0cd70f`, the code head before the delta. The readers figures were measured at this head on 2026-11-26.
 
 ## Mutation proof
@@ -124,6 +126,7 @@ Both reds are inherited from #3896's own history, at its delivery-row commit `37
 
 - `tests / fast (3.14)` was red at `3797b416d9`: `tests/doc_claims.py`'s comment ratchet refused four sentences of over 40 words in `tests/entities.py` and `tests/case_select.py`. #3896 fixed it at `58c73880ee`, which this branch is built on. Cheaper detector: `python3 tests/comment_ratchet.py --base origin/main`, which runs in seconds and which `prepr.sh` already runs. No new detector is owed here.
 - `tests / closures` was red at `3797b416d9` with `UNDER-SCOPED`: `tests/doc_claims.py` and `tests/entities.py` read `tests/case_select.py`, which their committed closures did not list. #3896 fixed it at `58c73880ee` by adding that path to both closures. Cheaper detector: `tools/ci/ci_predict.py`, which the body push and `prepr.sh` already run. No new detector is owed here.
+- Head `fa4ea28e9b` fixes the tests.yml fast job literal name, the prelude outputs and the pr-contract closure read. The closures.json entry for `tools/ci/shards.py` is left to closures-autofix on Linux.
 - At this PR's merge head `6c222ef249`, the only failure is `tests / nightly-status`, which is not required.
 - `governance / instrument-self-tests` would be red at `791d83e7` (the #3902 review there). Its selftest-scope step runs `python3 -I tools/ci/selftest_scope.py static`, which exits 1 at 5f068649 with `STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing ['ci-shards'], extra []` and `129 gated step(s), 1 problem(s)`. Fixed at 4c267409 by the step's Linux `record`: `static` now reads `129 gated step(s), 0 problem(s)`, rc 0. Cheaper detector: `selftest_scope.py static` runs in under a second, and `ci_predict.py`'s `selftest-scope` arm did not refuse a new gated step with no entry. I predicted the step would read stale and run every step until main absorbed it. `static` refuses that instead, so the entry is owed before the merge. I did not run `static` before the handoff, and running it is the countermeasure.
 
@@ -134,3 +137,4 @@ Both reds are inherited from #3896's own history, at its delivery-row commit `37
 ## Friction
 
 none
+
