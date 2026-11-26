@@ -1,0 +1,48 @@
+{
+ "key": "db984e8d4acfa08b",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 GUARD_OFF",
+ "patch": "if drawn > available > 0.0: -> if False:",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3625.8,
+  "load1_start": 0.85,
+  "load1_end": 1.0
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 3390,
+  "null_n_differing": 0,
+  "n_inputs": 34560,
+  "first_difference": "w_setpoint_grid=None, ecl110_displace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=None), 0.0, 0.0, 0.0, None, 0.0, 0.2, 0.25, False), ('0.3248', '0.0', '0.0', '0.0', '0.0'), ('0.9333333333333333', '0.0', '0.0', '0.0', '0.0'))",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "single-tank branch: deleting the proportional `drawn > available > 0.0` scale lets emitters take more energy than the buffer can supply",
+ "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+ "finding": {
+  "title": "single-tank valve delivery: the proportional starvation scale can be deleted unseen",
+  "claim": "single-tank branch: deleting the proportional `drawn > available > 0.0` scale lets emitters take more energy than the buffer can supply; probe moves 3390 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+  "perturbation": {
+   "change": "if drawn > available > 0.0: -> if False:",
+   "expected_direction": "up",
+   "observed_value": "0 -> 3390"
+  },
+  "null_control": "unmutated module compared with itself: n_differing_null=0"
+ }
+}
