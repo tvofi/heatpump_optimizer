@@ -6,3 +6,4 @@
 1795695393 DONE blocked head-moved 454abc83 -> ea316e99 (ledger-pin delta, review_carry CARRY); code review clean; verdict 8552b73d
 1795698113 HB alive
 1795698289 CKPT mutants run, enumeration re-run; waiting CI snapshot e5c080f7249a
+1795698339 DONE verdict merge ea316e99 pushed to probe/rev-3910-dee2af28 at 440289b8
