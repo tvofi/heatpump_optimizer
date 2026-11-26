@@ -17,8 +17,8 @@
  "methods_over_150": 14,
  "methods_over_200": 7,
  "module_excess_loc": 21639,
- "name_kept_members": 39,
- "recorded_at": "dbdc71faea358a95a7b33840ed252b0d8a646a31",
+ "name_kept_members": 38,
+ "recorded_at": "1d3077736d4a7ced6ec15d9aec29f6bcf40fbae8",
  "seam_cut_total": 413,
  "unloaded_package_imports": 5
 }
