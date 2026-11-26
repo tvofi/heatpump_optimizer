@@ -958,6 +958,7 @@
    "custom_components/heatpump_optimizer/runs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
+   "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/slab_seed.py",
@@ -1591,6 +1592,7 @@
    "tests/card_browser.mjs",
    "tests/card_drift.mjs",
    "tests/card_rig.mjs",
+   "tests/case_select.py",
    "tests/ci_ratchet.py",
    "tests/closures.json",
    "tests/comment_ratchet.py",
@@ -2015,6 +2017,7 @@
    "tests/backtest.py",
    "tests/block_duty.py",
    "tests/boost_drift_replay.py",
+   "tests/case_select.py",
    "tests/ci_budgets.json",
    "tests/ci_ratchet.py",
    "tests/closures.json",
@@ -4968,6 +4971,7 @@
    "dev/audit/harnesses/r11_selftest_static_edge.py",
    "dev/audit/harnesses/r11_shared_files_p2_mutants.sh",
    "dev/audit/harnesses/r11_toolchain_mutants.py",
+   "dev/audit/harnesses/r11_two_zone_slab.py",
    "dev/audit/harnesses/r11_why_hover_fit.mjs",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
@@ -6333,7 +6337,7 @@
   },
   "tests/finite_boundary.py": {
    "rc": 0,
-   "seconds": 193.8
+   "seconds": 96.8
   },
   "tests/frontend.py": {
    "rc": 0,
@@ -6341,7 +6345,7 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 1.1
+   "seconds": 0.5
   },
   "tests/guard_pins.py": {
    "rc": 0,
@@ -6349,7 +6353,7 @@
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 0.2
   },
   "tests/harness_headers.py": {
    "rc": 0,
@@ -6377,7 +6381,7 @@
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.8
+   "seconds": 0.8
   },
   "tests/solar_alignment.py": {
    "rc": 0,
@@ -6385,7 +6389,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 928.7
+   "seconds": 434.9
   },
   "tests/structure.py": {
    "rc": 0,

@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -38,6 +38,7 @@ from .const import (
     DHW_DAYTYPE_BLEND_K,
     DOMAIN,
 )
+from .dhw_schedule import hour_in_windows, windows_in_force
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .inputs import plausible_c
 from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
@@ -153,7 +154,8 @@ class DhwProfileLearner:
     no snapshot is ever edited in place (D7-s1-82). ``frozen`` answers why learning should be skipped this
     interval, ``heating_active`` whether the plan is heating the tank now, and
     ``external_heat_active`` whether a wood burn is driving the tank — the
-    three coordinator facts the learner observes and never owns.
+    three coordinator facts the learner observes and never owns. ``holidays``
+    names the holiday dates around an instant, for the window in force.
     """
 
     def __init__(
@@ -166,8 +168,10 @@ class DhwProfileLearner:
         frozen: Callable[[str], str | None],
         heating_active: Callable[[], bool],
         external_heat_active: Callable[[], bool],
+        holidays: Callable[[datetime], Collection[date]] = lambda _now: (),
     ) -> None:
         self._params = params
+        self._holidays = holidays
         self._publish = publish
         self._frozen = frozen
         self._heating_active = heating_active
@@ -499,10 +503,13 @@ class DhwProfileLearner:
         cap = params.dhw_store.capacity_kwh_per_c
         intensity = max(0.0, temp_drop / dt_h - self._standby_rate(previous_temp))
         energy_kwh = intensity * dt_h * cap  # beyond standby
+        # The stats table is keyed by the flat windows, as the planner reads
+        # it; whether the draw fell in a window is the day's own answer
+        # (dhw_schedule.windows_in_force, D17-s3-51).
         windows = params.dhw_demand_windows
-        label = draw_window_label(
-            now.hour + now.minute / 60.0, windows
-        )
+        hour = now.hour + now.minute / 60.0
+        in_force = hour_in_windows(hour, windows_in_force(params, None, now, self._holidays(now)))
+        label = draw_window_label(hour, windows) if in_force else ""
         self.draw_stats.prune(labels_for(windows))
         before = {k: len(v) for k, v in self.draw_stats.reservoirs.items()}
         taken_kwh = self.draw_stats.take_back(recovered_k * cap)
