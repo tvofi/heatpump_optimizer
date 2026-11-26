@@ -16191,11 +16191,10 @@ def _mig_raw_reads(entry):
 _mig_raw_before = _mig_raw_reads(_mig_raw)
 _mig_raw_ok, _ = _mig_warnings(_mig_raw)
 # Before R11-LATE-P1-OPTIONS the comfort band raised on the text hour until the
-# migration repaired it, and this check required that raise as its control. The
-# band now reads a non-number as the key's default itself (``comfort_band.effective``
-# through ``finite_float``), so a value written past the migration cannot raise
-# either: the unmigrated read is required clean, and the migration is still
-# required to repair what is stored.
+# migration repaired it, and this check required that raise as its control.
+# The band now reads a non-number as the key's default (``comfort_band.effective``
+# through ``finite_float``). So the unmigrated read is required clean, and the
+# migration is still required to repair what is stored.
 R.check(
     "an old entry's text hour and null tank volume raise in neither the thermal table nor the "
     "comfort band, before or after the migration, and the migration repairs what is stored",
