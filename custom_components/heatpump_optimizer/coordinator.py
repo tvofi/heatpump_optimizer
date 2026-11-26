@@ -287,7 +287,7 @@ from .price_model import (
 from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
-from .plan_step import PLAN_STEP_MINUTES, covering_index, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, covering_index, hold_current_hour, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -545,10 +545,9 @@ def _parse_ecl110_state(
         if displace_raw is None and isinstance(data.get("command"), dict):
             displace_raw = data["command"].get("displace")
         effective_raw = data.get("effective_displace")
-    elif isinstance(data, (int, float)) and not isinstance(data, bool):
+    elif type(data) in (int, float):  # a JSON bool is a flag (D1-s3-02)
         displace_raw = data
-    # A JSON bool is a flag, never a displacement (D1-s3-02; finite_float's rule).
-    parsed = [None if raw is None or isinstance(raw, bool) else float(raw)
+    parsed = [None if isinstance(raw, (bool, type(None))) else float(raw)
               for raw in (displace_raw, effective_raw)]
     if not all(v is None or math.isfinite(v) for v in parsed):
         raise ValueError(f"non-finite value in {parsed!r}")
@@ -7331,16 +7330,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     solar.append(irradiance)
                     humidity.append(rh)
 
-        measured = getattr(self, "_input_health", None)
-        reading = measured.readings.get(CONF_OUTDOOR_TEMP_ENTITY) if measured else None
-        if reading is not None and reading.ok and step_starts:
-            # D17-s2-02: a live outdoor sensor beats the forecast for the
-            # current hour, as the option documents; later hours stay forecast.
-            hour_end = step_starts[0].replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-            for i, step_start in enumerate(step_starts[: len(outdoor)]):
-                if step_start >= hour_end:
-                    break
-                outdoor[i] = reading.value
+        outdoor = hold_current_hour(outdoor, step_starts, (
+            self._input_health.live(CONF_OUTDOOR_TEMP_ENTITY) if self._input_health else None
+        ))
         return outdoor, wind, precipitation, solar, humidity
 
     def _apply_open_meteo(
@@ -9102,16 +9094,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return margins if bool(np.any(margins > 1e-9)) else None
     def _indoor_humidity_value(self) -> float | None:
         """The measured indoor relative humidity, %, or None."""
-        config = getattr(self, "_ctx", self)._config
-        entity_id = config.indoor_humidity_entity
+        entity_id = getattr(self, "_ctx", self)._config.indoor_humidity_entity
         if not entity_id:
             return None
         # A frozen sensor holds a raised mold floor forever; with no live
         # reading the floor vanishes instead — the fail-safe direction the
         # inputs module prescribes for every optional sensor.
-        reading = entry_reader(self.hass, config, now=dt_util.utcnow).read(
-            CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id
-        )
+        reading = entry_reader(
+            self.hass, getattr(self, "_ctx", self)._config, now=dt_util.utcnow
+        ).read(CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id)
         value = reading.value if reading.ok else None
         return value if value is not None and 0.0 < value <= 100.0 else None
 
@@ -9753,10 +9744,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return None
         # The age gate first (D1-s2-02): a silent or future-stamped meter is
         # no measurement of step 0, whatever value it last held.
-        reading = entry_reader(
+        if not entry_reader(
             self.hass, getattr(self, "_ctx", self)._config, now=dt_util.utcnow
-        ).read(CONF_PV_PRODUCTION_ENTITY, entity_id=entity_id)
-        if not reading.ok:
+        ).read(CONF_PV_PRODUCTION_ENTITY, entity_id=entity_id).ok:
             return None
         return state_power_kw(self.hass.states.get(entity_id), sign="clamp")
 

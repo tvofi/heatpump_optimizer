@@ -47,6 +47,12 @@ from weakref import WeakKeyDictionary
 
 from .const import (
     ENERGY_UNIT_TO_KWH,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
     FLOW_UNIT_TO_KG_S,
     INPUT_MAX_AGE_MINUTES,
     INPUT_ON_CHANGE_MAX_AGE_MINUTES,
@@ -118,6 +124,9 @@ class InputReading:
     max_age_minutes: float | None = None
     #: ``None`` when the read succeeded, otherwise why it did not.
     problem: str | None = None
+    #: Stale for control, but no Input Problem: a pushed pump flag past its
+    #: limit (:data:`PUSHED_FLAG_KEYS`).
+    quiet: bool = False
 
     @property
     def ok(self) -> bool:
@@ -159,7 +168,12 @@ class InputHealth:
 
     @property
     def stale_keys(self) -> list[str]:
-        return sorted(k for k, r in self.readings.items() if r.stale)
+        return sorted(k for k, r in self.readings.items() if r.stale and not r.quiet)
+
+    def live(self, key: str) -> float | None:
+        """The value ``key`` read this cycle, or ``None`` unless that read is ok."""
+        reading = self.readings.get(key)
+        return reading.value if reading is not None and reading.ok else None
 
     @property
     def missing_keys(self) -> list[str]:
@@ -182,7 +196,7 @@ class InputHealth:
         out: list[InputProblem] = []
         for key in sorted(self.readings):
             reading = self.readings[key]
-            if reading.entity_id is None or reading.ok:
+            if reading.entity_id is None or reading.ok or reading.quiet:
                 continue
             out.append(
                 {
@@ -292,6 +306,18 @@ def _scaled(base_minutes: float, scale: float) -> float:
 #: precedent, so an entity whose value changed on its last write keeps the
 #: polling limit it earned on an earlier one.
 _POLLING_SOURCES: WeakKeyDictionary[Any, set[str]] = WeakKeyDictionary()
+
+
+#: Pump flags a source pushes on change, which legitimately hold for days
+#: (defrost off through a mild day, online on). Past their limit such a flag
+#: stays stale, the safe direction for control (a flag latched on yesterday
+#: excludes no COP sample today), but is no Input Problem: publishing it
+#: turned the sensor on for a healthy pump (D14-s2-01).
+PUSHED_FLAG_KEYS: frozenset[str] = frozenset({
+    CONF_HEAT_PUMP_FAULT_ENTITY, CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY, CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY, CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+})
 
 
 def source_polls(owner: Any, entity_id: str, state: Any) -> bool:
@@ -1128,6 +1154,9 @@ class InputReader:
             # last known value can still degrade gracefully, but mark it so the
             # default path treats it as absent.
             reading.problem = "stale"
+            reading.quiet = reading.key in PUSHED_FLAG_KEYS and not source_polls(
+                self.hass, reading.entity_id or "", state
+            )
             _LOGGER.debug(
                 "Input %s (%s) is %.0f min old, over its %.0f min limit; "
                 "treating as missing",

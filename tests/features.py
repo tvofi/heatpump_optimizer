@@ -903,12 +903,16 @@ _np_wire = Coord(
     FakeHass(), _np_entry(data={"tibber_token": "x", "weather_entity": "weather.home"})
 )
 
-async def _np_forecast_payload(call):
+async # Rows reaching now: an all-past reply is a failed fetch (D1-s2-03).
+_np_t0 = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+
+
+def _np_forecast_payload(call):
     return {"weather.home": {"forecast": [
-        {"datetime": "2026-01-15T12:00:00+01:00", "temperature": 1e308,
+        {"datetime": _np_t0.isoformat(), "temperature": 1e308,
          "wind_speed": 3.0, "precipitation": 0.0, "humidity": 80.0},
         "x",
-        {"datetime": "2026-01-15T13:00:00+01:00", "temperature": -5.0,
+        {"datetime": (_np_t0 + timedelta(hours=1)).isoformat(), "temperature": -5.0,
          "wind_speed": 3.0, "precipitation": 0.0, "humidity": 80.0},
     ]}}
 
@@ -24580,7 +24584,9 @@ _r10st_same = {
     # Outdoor air moves within its 3 h bound.
     "outdoor_temp_entity": "moves within the bound",
     # Stale is the safe direction: a pump signal demotes to silence, a wood-side
-    # probe or flue reads as no free heat, solar falls back to Open-Meteo.
+    # probe or flue reads as no free heat, solar falls back to Open-Meteo. A
+    # pushed pump flag past its limit is stale but no Input Problem
+    # (inputs.PUSHED_FLAG_KEYS, D14-s2-01).
     "heat_pump_fault_entity": "fails safe",
     "heat_pump_defrost_entity": "fails safe",
     "heat_pump_online_entity": "fails safe",
@@ -24592,8 +24598,8 @@ _r10st_same = {
     "wood_tank_bottom_entity": "fails safe",
     "external_heat_entity": "fails safe",
     "solar_radiation_entity": "fails safe",
-    # No read applies its limit (class P6, not this one).
-    "pv_production_entity": "no reader",
+    # A silent meter leaves step 0 on the PV forecast (D1-s2-02): fails safe.
+    "pv_production_entity": "fails safe",
 }
 _r10st_poll = _r9f41_const.INPUT_MAX_AGE_MINUTES
 _r10st_change = getattr(_r9f41_const, "INPUT_ON_CHANGE_MAX_AGE_MINUTES", {})
@@ -42095,6 +42101,8 @@ R.check(
 # --- M2: a weather outage is surfaced, never silently papered over ---------
 R.section("Weather staleness is surfaced (M2)")
 
+# Rows reaching now: an all-past reply is a failed fetch (D1-s2-03).
+_wx_t0 = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
 _WX_ENTITY = "weather.home"
 _wx_cfg = dict(_LC_DATA)
 _wx_cfg["weather_entity"] = _WX_ENTITY
@@ -42162,7 +42170,7 @@ _wx_ok = Coord(_FakeHass(), _FakeEntry(data=_wx_cfg))
 
 async def _wx_good_call(domain, service, data=None, **kwargs):
     return {_WX_ENTITY: {"forecast": [
-        {"datetime": "2026-03-28T%02d:00:00Z" % h, "temperature": 1.5,
+        {"datetime": (_wx_t0 + timedelta(hours=h)).isoformat(), "temperature": 1.5,
          "wind_speed": 2.0, "precipitation": 0.0, "solar_irradiance": 10.0}
         for h in range(24)
     ]}}
@@ -42255,7 +42263,7 @@ def _wx_hostile_call(irradiance_key):
         rows = []
         for h in range(24):
             row = {
-                "datetime": "2026-03-28T%02d:00:00Z" % h,
+                "datetime": (_wx_t0 + timedelta(hours=h)).isoformat(),
                 "temperature": 4.0 - 0.2 * h,
                 "wind_speed": 3.0,
                 "precipitation": 0.0,
@@ -104111,6 +104119,184 @@ R.check(
     all(card and card == want for _, card, want in _oc_rows)
     and all(want and card[:-1] != want for _, card, want in _oc_rows),
     str(_oc_rows),
+)
+
+# --- R11-SEAM-inputs-freshness: age and expiry of live inputs ---
+R.section("R11-SEAM-inputs-freshness: the entry's reader, its clock, and live-input expiry")
+import ast as _ifr_ast  # noqa: E402
+import asyncio as _ifr_asyncio  # noqa: E402
+from heatpump_optimizer import coordinator as _ifr_cm  # noqa: E402
+from heatpump_optimizer import inputs as _ifr_in  # noqa: E402
+
+from harness import FakeEntry as _ifr_entry  # noqa: E402
+
+_ifr_now = datetime.now(timezone.utc)
+_IFR_PV_ENTITY = "sensor.pv_now"
+_ifr_pv_cfg = pv.PVConfig(production_entity=_IFR_PV_ENTITY)
+
+
+def _ifr_coord(**config):
+    """A live coordinator over the fake bus, with config overrides applied."""
+    return Coord(FakeHass(), _ifr_entry(
+        data=dict({"tibber_token": "x", "weather_entity": "weather.home"}, **config)))
+
+# ADR-002 part 2: inputs.py imports nothing from Home Assistant, and a reader
+# built with no clock reads the standard library's UTC now.
+_ifr_tree = _ifr_ast.parse(open(_ifr_in.__file__, encoding="utf-8").read())
+_ifr_ha = sorted(
+    {a.name for n in _ifr_ast.walk(_ifr_tree) if isinstance(n, _ifr_ast.Import) for a in n.names}
+    | {n.module or "" for n in _ifr_ast.walk(_ifr_tree) if isinstance(n, _ifr_ast.ImportFrom)}
+)
+_ifr_ha = [m for m in _ifr_ha if m.split(".")[0] == "homeassistant"]
+_ifr_clock = _ifr_in.InputReader(FakeHass(), {})._utcnow()
+R.check(
+    "inputs.py imports nothing from Home Assistant; a reader with no clock "
+    "reads the standard library's UTC now (ADR-002 part 2)",
+    not _ifr_ha and abs((_ifr_clock - datetime.now(timezone.utc)).total_seconds()) < 60,
+    f"imports {_ifr_ha}, clock {_ifr_clock}",
+)
+
+
+# D1-s2-52: the humidity read takes the entry's staleness settings, as the
+# other readers do. Aged 10 h: withheld under the default watchdog, delivered
+# with the watchdog off.
+def _ifr_humidity(**cfg):
+    c = _ifr_coord(indoor_humidity_entity="sensor.rh", **cfg)
+    stamp = _ifr_now - timedelta(hours=10)
+    c.hass.states.set("sensor.rh", FakeState("55.0", last_updated=stamp, last_reported=stamp))
+    return c._indoor_humidity_value()
+
+
+_ifr_rh = (_ifr_humidity(), _ifr_humidity(staleness_watchdog_enabled=False))
+R.check(
+    "the humidity read obeys the entry's watchdog switch (D1-s2-52)",
+    _ifr_rh == (None, 55.0),
+    f"default, watchdog off: {_ifr_rh}",
+)
+
+
+# D1-s2-02: the PV meter is read under its age limit; a future stamp is no age.
+def _ifr_pv(age_min):
+    c = _ifr_coord()
+    stamp = _ifr_now - timedelta(minutes=age_min)
+    c.hass.states.set(_IFR_PV_ENTITY, FakeState(
+        "5000", attributes={"unit_of_measurement": "W"},
+        last_updated=stamp, last_reported=stamp))
+    return c._pv_measured_production(_ifr_pv_cfg)
+
+
+_ifr_pv_cells = {age: _ifr_pv(age) for age in (5, 20, 31, 180, 1440, -90)}
+R.check(
+    "a PV meter silent past its limit, or stamped ahead of now, is no "
+    "measurement; a live one still is (D1-s2-02)",
+    _ifr_pv_cells[5] == 5.0 and _ifr_pv_cells[20] == 5.0
+    and all(_ifr_pv_cells[a] is None for a in (31, 180, 1440, -90)),
+    f"{_ifr_pv_cells}",
+)
+
+
+# Hourly rows starting ``start_h`` hours from now; the wind is the row index.
+def _ifr_rows(start_h, n=48):
+    base = _ifr_now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=start_h)
+    return [{"datetime": (base + timedelta(hours=i)).isoformat(),
+             "temperature": 0.7, "wind_speed": float(i), "precipitation": 0.0}
+            for i in range(n)]
+
+
+# D14-s2-02: the row booked as now is the covering one, and none past the end.
+_ifr_wx = _ifr_coord()
+_ifr_wx._weather_forecast = _ifr_rows(-30)
+_ifr_wind_held = _ifr_wx._current_weather()
+_ifr_wx._weather_forecast = _ifr_rows(-60)
+_ifr_wind_past = _ifr_wx._current_weather()
+R.check(
+    "a held forecast books the row covering now, and no wind past its last "
+    "row (D14-s2-02)",
+    _ifr_wind_held == (30.0, 0.0) and _ifr_wind_past == (0.0, 0.0),
+    f"30 h held {_ifr_wind_held}, past the end {_ifr_wind_past}",
+)
+
+
+# D1-s2-03: a reply whose rows all lie in the past is a failed fetch, not a
+# recovery; one reaching now still recovers (the null control).
+def _ifr_fetch(start_h):
+    c = _ifr_coord(weather_entity="weather.home")
+    c.hass.states.set("weather.home", FakeState("cloudy"))
+    rows = _ifr_rows(start_h)
+
+    async def _call(domain, service, data=None, **kwargs):
+        return {"weather.home": {"forecast": [dict(r) for r in rows]}}
+
+    c.hass.services.async_call = _call
+    _ifr_asyncio.run(c._fetch_weather_forecast())
+    return c._weather_stale_since is not None
+
+
+_ifr_stuck = {h: _ifr_fetch(h) for h in (-49, -72, -47, 0)}
+R.check(
+    "a forecast that stopped advancing marks the data stale; one reaching now "
+    "does not (D1-s2-03)",
+    _ifr_stuck == {-49: True, -72: True, -47: False, 0: False},
+    f"start hour -> stale: {_ifr_stuck}",
+)
+
+# D14-s2-01: a pushed pump flag quiet for 255 min stays stale for control (a
+# flag latched on yesterday is no evidence today) but is no Input Problem;
+# the same flag polled and silent is one (the null control).
+_ifr_quiet_health = []
+_ifr_polled_health = []
+for _ifr_key in sorted(_ifr_in.PUSHED_FLAG_KEYS):
+    for _ifr_rep, _ifr_out in ((None, _ifr_quiet_health), (254, _ifr_polled_health)):
+        _ifr_r = InputReader(
+            FakeHass({"sensor.x": FakeState(
+                "off", last_updated=minutes_ago(255, _ifr_now),
+                last_reported=None if _ifr_rep is None else minutes_ago(_ifr_rep, _ifr_now))}),
+            {_ifr_key: "sensor.x"}, now=lambda: _ifr_now,
+        )
+        _ifr_reading = _ifr_r.read_bool(_ifr_key)
+        _ifr_out.append((_ifr_reading.stale, _ifr_r.health.stale_keys, len(_ifr_r.health.details())))
+R.check(
+    "the six pushed pump flags quiet 255 min stay stale for control but "
+    "publish no stale input or problem; polled and silent they still do (D14-s2-01)",
+    len(_ifr_quiet_health) == 6
+    and all(st and not keys and not n for st, keys, n in _ifr_quiet_health)
+    and all(st and keys and n for st, keys, n in _ifr_polled_health),
+    f"quiet {_ifr_quiet_health}, polled {_ifr_polled_health}",
+)
+
+
+# D17-s2-02: a live outdoor sensor plans the current hour; later hours stay
+# forecast, and with no live reading the forecast is the whole series.
+def _ifr_outdoor(reading):
+    c = _ifr_coord()
+    c._weather_forecast = [dict(r, temperature=-5.0) for r in _ifr_rows(-1)]
+    if reading is not None:
+        rd = InputReader(FakeHass({"sensor.o": FakeState(
+            reading, last_updated=_ifr_now, last_reported=_ifr_now)}),
+            {"outdoor_temp_entity": "sensor.o"}, now=lambda: _ifr_now)
+        rd.read("outdoor_temp_entity")
+        c._input_health = rd.health
+    hour = _ifr_now.astimezone().replace(minute=0, second=0, microsecond=0)
+    out = c._weather_series(96, hour.replace(hour=0), hour.hour * 4)[0]
+    return out[0], out[3], out[4]
+
+
+_ifr_out_live = _ifr_outdoor("-25.0")
+_ifr_out_none = _ifr_outdoor(None)
+R.check(
+    "a live outdoor sensor plans the current hour, the next hour stays "
+    "forecast (D17-s2-02)",
+    _ifr_out_live == (-25.0, -25.0, -5.0) and _ifr_out_none == (-5.0, -5.0, -5.0),
+    f"live {_ifr_out_live}, none {_ifr_out_none}",
+)
+
+# D1-s3-02: a JSON bool is never an ECL110 displacement; a number still is.
+_ifr_ecl = [_ifr_cm._parse_ecl110_state(p, None)[0]
+            for p in ("true", "false", '{"displace": true}', "7", '{"displace": "3"}')]
+R.check(
+    "the ECL110 parser refuses a JSON bool and keeps a number (D1-s3-02)",
+    _ifr_ecl == [None, None, None, 7.0, 3.0],
+    f"{_ifr_ecl}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))
