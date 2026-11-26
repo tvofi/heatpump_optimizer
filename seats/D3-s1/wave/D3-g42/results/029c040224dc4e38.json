@@ -1,0 +1,55 @@
+{
+ "key": "029c040224dc4e38",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3483 CLAMP_DROP",
+ "patch": "rain_intensity = min(precipitation / 2.0, 1.0) -> rain_intensity = (precipitation / 2.0)",
+ "function": "ThermalModel.effective_heat_loss_coefficient",
+ "cluster": "thermal_model.py:ThermalModel.effective_heat_loss_coefficient@3479-3483",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3548.3,
+  "load1_start": 0.37,
+  "load1_end": 0.93
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_029c040224dc4e38.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_029c040224dc4e38.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_029c040224dc4e38.out",
+  "metrics_moved": "3",
+  "numbers": {
+   "u_0.0_baseline": "'0.1'",
+   "u_0.0_mutant": "'0.1'",
+   "u_1.0_baseline": "'0.1075'",
+   "u_1.0_mutant": "'0.1075'",
+   "u_10.0_baseline": "'0.11499999999999999'",
+   "u_10.0_mutant": "'0.17499999999999996'",
+   "u_2.0_baseline": "'0.11499999999999999'",
+   "u_2.0_mutant": "'0.11499999999999999'",
+   "u_4.0_baseline": "'0.11499999999999999'",
+   "u_4.0_mutant": "'0.12999999999999998'",
+   "u_50.0_baseline": "'0.11499999999999999'",
+   "u_50.0_mutant": "'0.47499999999999987'",
+   "metrics_moved": "3"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "tests/features.py: effective_heat_loss_coefficient(precip=10) == effective(precip=2)",
+ "note": "precipitation 4/10/50 mm/h: baseline saturates at rain_heat_loss_multiplier (1.15); the mutant scales the loss linearly (x1.30 at 4, x1.75 at 10 mm/h) with no ceiling. Forecast rain is clamped only to >=0 and <=1000 (coordinator.py:2980, 7334).",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json",
+ "title": "Heavy-rain heat-loss multiplier is uncapped without the min(.., 1.0): no test has rain above 2 mm/h",
+ "claim": "precipitation 4/10/50 mm/h: baseline saturates at rain_heat_loss_multiplier (1.15); the mutant scales the loss linearly (x1.30 at 4, x1.75 at 10 mm/h) with no ceiling. Forecast rain is clamped only to >=0 and <=1000 (coordinator.py:2980, 7334).",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-boundary-test",
+ "severity_claimed": "medium",
+ "metric_definition": "probe_029c040224dc4e38.py RESULT metrics_moved: count of probed outputs that differ between the baseline and the one-line mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_029c040224dc4e38.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_029c040224dc4e38.py",
+ "perturbation": "rain_intensity = min(precipitation / 2.0, 1.0) -> rain_intensity = (precipitation / 2.0) (thermal_model.py:3483); numbers move baseline -> mutant as listed in probe output",
+ "null_control": "fullgate.py null (comment-only marker) is red only on the artefact scripts; inputs the line cannot distinguish in the same probe give no movement"
+}
