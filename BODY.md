@@ -11,6 +11,10 @@ The brief's three instances are fixed, plus `simulate_trajectory_with_dhw`, whic
 
 ## Head
 
+`3cc17d3993eafc175d8e8569f6f5c82ba9102296` merges the authored code head `b05510fc75837c7e26877bf2f6dc349e0128b77a`.
+
+`f771d1c8c457aebe5c958e8708442b17ebfb271a` merges the authored code head `b05510fc75837c7e26877bf2f6dc349e0128b77a`.
+
 4edae55888adc266403a5d2325d62daa2de79cf8, measured on origin/main dbdc71faea358a95a7b33840ed252b0d8a646a31 (the merge base), 2026-11-26T10:26:54Z.
 
 ## Mutation proof
@@ -67,10 +71,12 @@ Each site below is in `custom_components/`, so `mutation-autofix` pins it. The c
 
 ## Red checks
 
-- `mutation`: predicted red on the six added `custom_components/` sites listed under `## Unpinned sites`. `mutation-autofix` pins them (`ci: pin killed mutants`, ci-autofix.md); this pin is `unmeasured` until it runs on this head. The cheaper detector already ran: `tools/pr/ci_predict.py` named each site locally before the push, at a standing cost of one predictor run per handoff. No further detector is owed.
-- `budget-raise-gate`: predicted red, because this diff raises `name_kept_members` 38 -> 39 in `tests/structure_budgets.json` (see `## Raise justification`). The gate is the approval mechanism itself, and it clears on an approving review that cites mandate 6893738184. No cheaper detector exists: `tests/structure.py` already refused the breach locally, before any push.
+- `tests / mutation`: predicted red on the six added `custom_components/` sites listed under `## Unpinned sites`. `mutation-autofix` pins them (`ci: pin killed mutants`, ci-autofix.md); this pin is `unmeasured` until it runs on this head. The cheaper detector already ran: `tools/pr/ci_predict.py` named each site locally before the push, at a standing cost of one predictor run per handoff. No further detector is owed.
+- `budget-raise-gate / budget-raise-gate`: predicted red, because this diff raises `name_kept_members` 38 -> 39 in `tests/structure_budgets.json` (see `## Raise justification`). The gate is the approval mechanism itself, and it clears on an approving review that cites mandate 6893738184. No cheaper detector exists: `tests/structure.py` already refused the breach locally, before any push.
 - `prepr self-test`: `tools/pr/prepr.sh --self-test` reads 569 passed, 2 failed (`an ancestry no commit of which carries any check run skips, never refuses`, `and the skip line names the boundary`). The same two fail on origin/main, reported by the #3908 fixer; this diff does not touch `tools/pr/`. Cheaper detector: none beyond the self-test itself.
 - `governance / wave-script`: `ci_predict.py` printed `AGREEMENT UNMERGED: HEAD does not merge into d66452586467`. `git merge-tree --write-tree origin/main HEAD` exits 0, resolving `tests/structure_budgets.json` and `tests/closures.json` through the `ledgermerge` driver, which the predictor's plain merge does not apply; `prepr.sh` read `wave-script 298 passed, 0 failed` at this head. The cheaper detector is that merge-tree run.
+- `tests / nightly-status`: its step "Report the last scheduled run's conclusion" reads the last scheduled nightly run, not this diff; it is red while that nightly run is red and clears on the next green nightly. Cheaper detector: none, the check reports a scheduled run this branch cannot move.
+- `tests / replay`: the job is cancelled at its 30-minute cap on most runs, returning no verdict; this diff changes no replay input. #3912 (R11 replay timeout) is open and unmerged; it proposes raising that cap to 60 minutes, and this branch does not depend on it. Cheaper detector: none beyond the lane itself, whose cost the owner fixture sets.
 
 ## Forward-carry
 
