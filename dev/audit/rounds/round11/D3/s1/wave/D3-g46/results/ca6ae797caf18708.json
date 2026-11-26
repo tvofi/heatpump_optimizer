@@ -1,0 +1,27 @@
+{
+ "key": "ca6ae797caf18708",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2827 CLAMP_DROP",
+ "patch": "ln = math.log(max(vapor_pressure_hpa, 1e-9) / 6.112) -> ln = math.log((vapor_pressure_hpa) / 6.112)",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 4015.8,
+  "load1_start": 0.86,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_ca6ae797caf18708.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_ca6ae797caf18708.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 3,
+  "null_n_differing": 0,
+  "n_inputs": 10,
+  "first_difference": "((-1.0,), '-136.43509636360082', ('EXC', 'ValueError'))",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "the only caller (thermal_model.py:2856 mold_safe_room_floor) returns at 2854 `if e <= 1e-9` before the call, so the argument is >1e-9 and the max(.,1e-9) floor never binds; the probe moves only at e<=1e-9, unreachable from it"
+}

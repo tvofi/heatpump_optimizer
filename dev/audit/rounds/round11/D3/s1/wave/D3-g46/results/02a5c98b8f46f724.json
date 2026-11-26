@@ -1,0 +1,27 @@
+{
+ "key": "02a5c98b8f46f724",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND",
+ "patch": "if drawn > available > 0.0: -> if drawn > available >= 0.0:",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3382.5,
+  "load1_start": 0.93,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_02a5c98b8f46f724.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_02a5c98b8f46f724.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 0,
+  "null_n_differing": 0,
+  "n_inputs": 34560,
+  "first_difference": "None",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "available==0 scales by 0.0, identical to the elif zeroing"
+}

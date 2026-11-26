@@ -1,0 +1,48 @@
+{
+ "key": "b341873adae0cf3c",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2587 GUARD_OFF",
+ "patch": "elif delivered <= 0.0: -> elif False:",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3586.7,
+  "load1_start": 0.87,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 264,
+  "null_n_differing": 0,
+  "n_inputs": 34560,
+  "first_difference": "lace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=15.0), 0.0, 0.0, 0.1, None, 0.0, 0.2, 1.0, True), ('0.0', '0.0', '0.0', '-0.018925791165993237', '0.58'), ('0.9333333333333333', '0.0', '0.0', '-0.018925791165993237', '0.58'))",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "two-tank branch: deleting the `elif delivered <= 0.0` zeroing leaves emitters drawing heat from tanks that deliver nothing",
+ "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+ "finding": {
+  "title": "two-tank valve delivery: the empty-tank emitter zeroing branch can be deleted unseen",
+  "claim": "two-tank branch: deleting the `elif delivered <= 0.0` zeroing leaves emitters drawing heat from tanks that deliver nothing; probe moves 264 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+  "step": "D3.M3",
+  "scope": "D3-s1",
+  "class_guess": "new",
+  "severity_claimed": "medium",
+  "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+  "harness_paths": [
+   "dev/audit/rounds/round11/D3/s1/fullgate.py",
+   "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py"
+  ],
+  "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+  "perturbation": {
+   "change": "elif delivered <= 0.0: -> elif False:",
+   "expected_direction": "up",
+   "observed_value": "0 -> 264"
+  },
+  "null_control": "unmutated module compared with itself: n_differing_null=0"
+ }
+}

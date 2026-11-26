@@ -1,0 +1,8 @@
+4
+               total        used        free      shared  buff/cache   available
+Mem:           16087         887       13905          12        1566       15199
+Swap:              0           0           0
+model name	: Intel(R) Xeon(R) Processor @ 2.10GHz
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda        252G   12G   58G  17% /
+0.88 0.40 0.15 1/144 737

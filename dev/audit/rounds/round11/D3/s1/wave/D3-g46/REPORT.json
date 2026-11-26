@@ -1,0 +1,962 @@
+{
+ "dimension": "D3",
+ "baseline_sha": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "box": "D3-g46",
+ "report_path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/REPORT.md",
+ "exposure": "No gh, no register, no round11/J, no verifier report read. Stripped worktree of the baseline; D3-s1 evidence from main. Two operational notes: a container restart left the detached driver and heartbeat loop with a dead proxy port (comms push failures, stale mkdir lock removed by hand, loop restarted; checkpoints were retried after, the gate itself was never interrupted).",
+ "coverage": [
+  {
+   "step": "D3.M1",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 1260,
+   "not_reached": [],
+   "redispatched": [
+    {
+     "item": "C8",
+     "state": "examined"
+    }
+   ],
+   "evidence": "carried from box D3R (not re-driven here): PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned | wc -l -> 1260 unpinned inventory sites of 3437 in the 12 cell files (tests/mutation_table.py inventory at the baseline); cat dev/audit/rounds/round11/D3/s1/c2_mutants.json dev/audit/rounds/round11/D3/s1/c3c6_mutants.json -> C8: R10 seed-10 sample re-drawn at this baseline: M25-M36 (C2) and M01,M03,M04,M07,M08,M19,M21,M22,M26,M35 (C3/C6)",
+   "carried": true
+  },
+  {
+   "step": "D3.M2",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --unpinned",
+   "universe": 1260,
+   "examined": 343,
+   "not_reached": [
+    "assigned to box D3-u1a: coordinator.py: 99 sites (lines 490-11008)",
+    "assigned to box D3-u1a: defrost.py: 10 sites (lines 111-642)",
+    "assigned to box D3-u1a: dhw_planner.py: 26 sites (lines 626-2285)",
+    "assigned to box D3-u1a: flow_lift.py: 2 sites (lines 51-232)",
+    "assigned to box D3-u1a: grid_fee.py: 5 sites (lines 219-445)",
+    "assigned to box D3-u1a: optimizer.py: 70 sites (lines 1567-6661)",
+    "assigned to box D3-u1a: price_model.py: 15 sites (lines 57-896)",
+    "assigned to box D3-u1a: sysid.py: 31 sites (lines 129-2325)",
+    "assigned to box D3-u1a: tariff.py: 17 sites (lines 128-1225)",
+    "assigned to box D3-u1a: thermal_model.py: 33 sites (lines 270-5045)",
+    "assigned to box D3-u1c: coordinator.py: 90 sites (lines 467-11291)",
+    "assigned to box D3-u1c: defrost.py: 11 sites (lines 106-808)",
+    "assigned to box D3-u1c: dhw_planner.py: 31 sites (lines 470-2236)",
+    "assigned to box D3-u1c: flow_lift.py: 2 sites (lines 171-176)",
+    "assigned to box D3-u1c: grid_fee.py: 10 sites (lines 162-496)",
+    "assigned to box D3-u1c: optimizer.py: 67 sites (lines 1560-6648)",
+    "assigned to box D3-u1c: price_model.py: 14 sites (lines 72-825)",
+    "assigned to box D3-u1c: sysid.py: 42 sites (lines 549-2376)",
+    "assigned to box D3-u1c: tariff.py: 10 sites (lines 148-1109)",
+    "assigned to box D3-u1c: thermal_model.py: 29 sites (lines 404-4881)",
+    "assigned to box D3-u1d: coordinator.py: 84 sites (lines 467-11214)",
+    "assigned to box D3-u1d: defrost.py: 10 sites (lines 115-741)",
+    "assigned to box D3-u1d: dhw_planner.py: 28 sites (lines 91-2303)",
+    "assigned to box D3-u1d: grid_fee.py: 5 sites (lines 187-488)",
+    "assigned to box D3-u1d: optimizer.py: 68 sites (lines 1577-6653)",
+    "assigned to box D3-u1d: price_model.py: 18 sites (lines 85-893)",
+    "assigned to box D3-u1d: sysid.py: 28 sites (lines 139-2381)",
+    "assigned to box D3-u1d: tariff.py: 15 sites (lines 148-1227)",
+    "assigned to box D3-u1d: thermal_model.py: 47 sites (lines 287-5034)"
+   ],
+   "redispatched": [
+    {
+     "item": "C2",
+     "state": "examined"
+    },
+    {
+     "item": "C6",
+     "state": "examined"
+    }
+   ],
+   "evidence": "box D3-u1b slice: state/keys-D3-u1b.txt, 309 keys (sha256 64a2b349a1a11196...), lo=3daa55123b452546 <= key < 8206a42b98c8dd86; prescreen.py run --sub pre --workers 4: driven 309, KILLED 76, SURVIVED 233, TIMEOUT 0; tabulate.py; examined 343 = carried runs + this slice",
+   "carried": true
+  },
+  {
+   "step": "D3.M4",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/tabulate.py --tsv | grep -P '\\tSURVIVED\\t'",
+   "universe": 268,
+   "examined": 225,
+   "not_reached": [
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:820 GUARD_OFF dae1661e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10315 CLAMP_DROP 02ce7259",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2223 GUARD_OFF 1c5445b4",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1790 GUARD_OFF 489080ca",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4748 GUARD_OFF 64f3736a#2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8740 GUARD_OFF 24dbc1db",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7794 GUARD_OFF 0aa06ef6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10441 CMP_BOUND 5e7784ff",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2303 GUARD_OFF 1c5dbe8e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4838 CMP_BOUND 78e14196",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7366 GUARD_OFF a1268b1c",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF 882f6ce6",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9500 GUARD_OFF 950f898d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10766 GUARD_OFF 0c9c87c1",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:2058 RETURN_DEL c4692fb8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:1461 GUARD_OFF 35be40f7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:4774 GUARD_OFF f644eb41",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/grid_fee.py:350 GUARD_OFF dc551b4d",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:3981 GUARD_OFF f3280827",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7495 CLAMP_DROP efe8ddb5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:9486 GUARD_OFF 70038ecd",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2309 CMP_BOUND ac8bdc86",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6853 GUARD_OFF d7b50097",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1491 CMP_BOUND 6b97e738",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:7165 GUARD_OFF 8dd05ba8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2920 CLAMP_DROP 3ecb904e",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:3628 RETURN_DEL 81b870b5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:2792 GUARD_OFF 9f1b1acf",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/sysid.py:2246 CMP_BOUND 0eeb79b8",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:10030 GUARD_OFF 93370855",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF ff55e496",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND c3fdf6fc",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:5161 GUARD_OFF 4322fab5",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:4986 GUARD_OFF 606479fb",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:2907 RETURN_DEL c44bae08",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/thermal_model.py:3330 GUARD_OFF fb33d02b",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:6598 GUARD_OFF fbe7d8a7",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:6667 GUARD_OFF 065079e2",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND 94663f39",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/optimizer.py:1816 GUARD_OFF 58d599ba",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/dhw_planner.py:1838 GUARD_OFF a3bd9297",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/defrost.py:127 CONST e8abb73a",
+    "killed by the full net (no step-4 answer owed): custom_components/heatpump_optimizer/coordinator.py:11214 GUARD_OFF 72ec9149"
+   ],
+   "redispatched": [],
+   "evidence": "m4_answers.json (carried, 35) + m4_answers_u1b.json (190 full-net survivors of this slice, built from state/baselines.json reach)",
+   "carried": true
+  },
+  {
+   "step": "D3.M5",
+   "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/enumerate.py --scripts",
+   "universe": 27,
+   "examined": 23,
+   "not_reached": [
+    "assigned to box D3-m5: tests/card.mjs",
+    "assigned to box D3-m5: tests/card_drift.mjs",
+    "assigned to box D3-m5: tests/golden.py",
+    "assigned to box D3-m5: tests/stress.py"
+   ],
+   "redispatched": [
+    {
+     "item": "C1",
+     "state": "examined"
+    },
+    {
+     "item": "C4",
+     "state": "not_reached"
+    },
+    {
+     "item": "C7",
+     "state": "not_reached"
+    },
+    {
+     "item": "C9",
+     "state": "not_reached"
+    }
+   ],
+   "evidence": "carried from box D3R (not re-driven here; (a)-(e) are box D3-m5's): cat dev/audit/rounds/round11/D3/s1/state/solves.jsonl -> 16 scripts measured for checks/solves/CPU (provisional): checks per solve boost_drift_replay 0.058 (46 checks / 789 solves), edge 0.95, backtest 2.27, optimality 3.65, manual_plan 4.26, features 12.0, block_duty 25.5, entities 82.5; entities 1123 s CPU and features 1068 s CPU are the two dominant scripts. Provisional wall/CPU: another D3 seat (D3-s3), verifier seats and the orchestrator's beat jobs ran on this machine (load1 30-300); counts and verdicts are contention-immune, seconds are not.; PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_envdrift_reach.py -> 681 of 1260 unpinned cell sites lie on lines env_drift's --capture --all child never executes, yet 0 are reach-skippable (finding D3-s1-01); PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/m5_closure_reach.py | grep REACH-REFUSED -> traced baselines of 21 drivers; entities red 1/2722 and optimality red 1/84 on this box (platform BLAS), kill threshold set >1; cat dev/audit/rounds/round11/D3/s1/state/box-m5er.out dev/audit/rounds/round11/D3/s1/state/box-m5er--as-if-fixed.out -> box D3R: m5_envdrift_reach.py on traced baselines re-taken here: capture_never_executes=681, gate_skippable 0 -> 681 under --as-if-fixed, null 0 of 579; identical to the local run. Linux baseline walls (one 4-worker pass, provisional, not quiet-table numbers): features 1009 s, entities 688 s, boost_drift_replay 282 s, env_drift 278 s, harness_headers 206 s, optimality 156 s. box D3R: Linux x86_64, nproc 4, Intel Xeon @ 2.10GHz, venv-ci CPython 3.14 (numpy 2.5.4, scipy 1.18.1), alone on the box, load1 0.2-4.2",
+   "carried": true
+  },
+  {
+   "step": "D3.M3",
+   "enumerator": "awk -F'\\t' '$6==\"gate\"' SURVIVORS.tsv",
+   "universe": 742,
+   "examined": 15,
+   "not_reached": [
+    "assigned to box D3-g01",
+    "assigned to box D3-g02",
+    "assigned to box D3-g03",
+    "assigned to box D3-g04",
+    "assigned to box D3-g05",
+    "assigned to box D3-g06",
+    "assigned to box D3-g07",
+    "assigned to box D3-g08",
+    "assigned to box D3-g09",
+    "assigned to box D3-g10",
+    "assigned to box D3-g11",
+    "assigned to box D3-g12",
+    "assigned to box D3-g13",
+    "assigned to box D3-g14",
+    "assigned to box D3-g15",
+    "assigned to box D3-g16",
+    "assigned to box D3-g17",
+    "assigned to box D3-g18",
+    "assigned to box D3-g19",
+    "assigned to box D3-g20",
+    "assigned to box D3-g21",
+    "assigned to box D3-g22",
+    "assigned to box D3-g23",
+    "assigned to box D3-g24",
+    "assigned to box D3-g25",
+    "assigned to box D3-g26",
+    "assigned to box D3-g27",
+    "assigned to box D3-g28",
+    "assigned to box D3-g29",
+    "assigned to box D3-g30",
+    "assigned to box D3-g31",
+    "assigned to box D3-g32",
+    "assigned to box D3-g33",
+    "assigned to box D3-g34",
+    "assigned to box D3-g35",
+    "assigned to box D3-g36",
+    "assigned to box D3-g37",
+    "assigned to box D3-g38",
+    "assigned to box D3-g39",
+    "assigned to box D3-g40",
+    "assigned to box D3-g41",
+    "assigned to box D3-g42",
+    "assigned to box D3-g43",
+    "assigned to box D3-g44",
+    "assigned to box D3-g45",
+    "assigned to box D3-g47"
+   ],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
+   "evidence": "fullgate.py run --src complete --key <key> via gate_wave.sh run (GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1); wave/D3-g46/gates/c0800afec99d22fc.json, wave/D3-g46/gates/e18fa878eae99111.json, wave/D3-g46/gates/2288dfa73cab6c1a.json, wave/D3-g46/gates/b341873adae0cf3c.json, wave/D3-g46/gates/c4e25319de746716.json, wave/D3-g46/gates/02a5c98b8f46f724.json, wave/D3-g46/gates/3b989943cc05b614.json, wave/D3-g46/gates/db984e8d4acfa08b.json, wave/D3-g46/gates/884d2aba2bbd5409.json, wave/D3-g46/gates/a087d5efb15533ce.json, wave/D3-g46/gates/efd15cba428cdcf2.json, wave/D3-g46/gates/968644425a4f97f8.json, wave/D3-g46/gates/c9a7d4d29d08c3b4.json, wave/D3-g46/gates/ca6ae797caf18708.json, wave/D3-g46/gates/449caa49315447b2.json"
+  }
+ ],
+ "unfinished": [],
+ "findings": [],
+ "non_findings": [
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND (if drawn > delivered > 0.0: -> if drawn >= delivered > 0.0:) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
+   "value": "n_differing=0 of 34560 swept; drawn==delivered gives scale 1.0 (identity); delivered==0 gives scale 0.0 and the emitters are zeroed exactly as the elif branch does",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND (if drawn > delivered > 0.0: -> if drawn > delivered >= 0.0:) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_e18fa878eae99111.py",
+   "value": "n_differing=0 of 34560 swept; delivered==0 enters the scale branch with scale 0.0 and zeroes the emitters exactly as the elif does",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND (if drawn > available > 0.0: -> if drawn > available >= 0.0:) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_02a5c98b8f46f724.py",
+   "value": "n_differing=0 of 34560 swept; available==0 scales by 0.0, identical to the elif zeroing",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND (if drawn > available > 0.0: -> if drawn >= available > 0.0:) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_3b989943cc05b614.py",
+   "value": "n_differing=0 of 34560 swept; drawn==available scales by 1.0, identity",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND (elif available <= 0.0: -> elif available < 0.0:) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_a087d5efb15533ce.py",
+   "value": "n_differing=0 of 34560 swept; available==0 reaches the elif only through `available <= 0.0`; `< 0.0` sends 0 to nothing, but the preceding `drawn > available > 0.0` is false and the zero-available case is handled by min(...)/max(...) arithmetic; sweep finds no input that moves",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2939 CMP_BOUND (r2 = (~r1) & (hp_temp > flow_set) -> r2 = (~r1) & (hp_temp >= flow_set)) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_efd15cba428cdcf2.py",
+   "value": "n_differing=0 of 2205 swept; hp_temp==flow_set gives f_w==0 in region 2, the same 0.0 as region 3 reaches at that tie",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2952 CLAMP_DROP (m = max(margin, 1e-6) -> m = (margin)) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c9a7d4d29d08c3b4.py",
+   "value": "n_differing=60 of 2205 swept; margin==0.0 is unreachable: both callers (thermal_model.py:2570, 4685) use the default WOOD_TANK_MIN_MARGIN=2.0 (const.py:362); the probe moves only at margin 0.0",
+   "gate": "RED-AS-NULL"
+  },
+  {
+   "claim": "custom_components/heatpump_optimizer/thermal_model.py:2827 CLAMP_DROP (ln = math.log(max(vapor_pressure_hpa, 1e-9) / 6.112) -> ln = math.log((vapor_pressure_hpa) / 6.112)) is behaviourally equivalent or unreachable",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_ca6ae797caf18708.py",
+   "value": "n_differing=3 of 10 swept; the only caller (thermal_model.py:2856 mold_safe_room_floor) returns at 2854 `if e <= 1e-9` before the call, so the argument is >1e-9 and the max(.,1e-9) floor never binds; the probe moves only at e<=1e-9, unreachable from it",
+   "gate": "RED-AS-NULL"
+  }
+ ],
+ "harnesses": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py (run --src complete --key K; null)",
+  "gate_wave.sh procedure: null once, then run: one fullgate per key, GATE_JOBS=1, 4 h cap, checkpoint per gate",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_e18fa878eae99111.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_2288dfa73cab6c1a.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c4e25319de746716.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_02a5c98b8f46f724.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_3b989943cc05b614.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_884d2aba2bbd5409.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_a087d5efb15533ce.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_efd15cba428cdcf2.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_968644425a4f97f8.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c9a7d4d29d08c3b4.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_ca6ae797caf18708.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_449caa49315447b2.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/_mut.py"
+ ],
+ "leads": [],
+ "gated": [
+  {
+   "key": "c0800afec99d22fc",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "e18fa878eae99111",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "2288dfa73cab6c1a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2587 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "b341873adae0cf3c",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2587 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "c4e25319de746716",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2593 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "02a5c98b8f46f724",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "3b989943cc05b614",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "db984e8d4acfa08b",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "884d2aba2bbd5409",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "a087d5efb15533ce",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "efd15cba428cdcf2",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2939 CMP_BOUND",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "968644425a4f97f8",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2946 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  },
+  {
+   "key": "c9a7d4d29d08c3b4",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2952 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "ca6ae797caf18708",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2827 CLAMP_DROP",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "equivalent-candidate"
+  },
+  {
+   "key": "449caa49315447b2",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2998 GUARD_OFF",
+   "verdict": "RED-AS-NULL",
+   "killed_by": [],
+   "class": "candidate"
+  }
+ ],
+ "gate_survivors": [
+  {
+   "key": "2288dfa73cab6c1a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2587 CMP_BOUND",
+   "patch": "elif delivered <= 0.0: -> elif delivered < 0.0:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3852.2,
+    "load1_start": 0.84,
+    "load1_end": 0.92
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_2288dfa73cab6c1a.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_2288dfa73cab6c1a.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 264,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "lace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=15.0), 0.0, 0.0, 0.1, None, 0.0, 0.2, 1.0, True), ('0.0', '0.0', '0.0', '-0.018925791165993237', '0.58'), ('0.9333333333333333', '0.0', '0.0', '-0.018925791165993237', '0.58'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "two-tank branch: `delivered <= 0.0` -> `< 0.0` leaves the emitters drawing full q_rad/q_floor from a buffer that delivers exactly 0 (empty tanks): free heat",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "two-tank valve delivery: the delivered==0 zeroing of emitter draw is unpinned",
+    "claim": "two-tank branch: `delivered <= 0.0` -> `< 0.0` leaves the emitters drawing full q_rad/q_floor from a buffer that delivers exactly 0 (empty tanks): free heat; probe moves 264 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_2288dfa73cab6c1a.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_2288dfa73cab6c1a.py",
+    "perturbation": {
+     "change": "elif delivered <= 0.0: -> elif delivered < 0.0:",
+     "expected_direction": "up",
+     "observed_value": "0 -> 264"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  },
+  {
+   "key": "b341873adae0cf3c",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2587 GUARD_OFF",
+   "patch": "elif delivered <= 0.0: -> elif False:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3586.7,
+    "load1_start": 0.87,
+    "load1_end": 0.92
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 264,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "lace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=15.0), 0.0, 0.0, 0.1, None, 0.0, 0.2, 1.0, True), ('0.0', '0.0', '0.0', '-0.018925791165993237', '0.58'), ('0.9333333333333333', '0.0', '0.0', '-0.018925791165993237', '0.58'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "two-tank branch: deleting the `elif delivered <= 0.0` zeroing leaves emitters drawing heat from tanks that deliver nothing",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "two-tank valve delivery: the empty-tank emitter zeroing branch can be deleted unseen",
+    "claim": "two-tank branch: deleting the `elif delivered <= 0.0` zeroing leaves emitters drawing heat from tanks that deliver nothing; probe moves 264 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_b341873adae0cf3c.py",
+    "perturbation": {
+     "change": "elif delivered <= 0.0: -> elif False:",
+     "expected_direction": "up",
+     "observed_value": "0 -> 264"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  },
+  {
+   "key": "c4e25319de746716",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2593 CLAMP_DROP",
+   "patch": ") / max(dt_hours, 1e-6) -> ) / (dt_hours)",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3566.7,
+    "load1_start": 0.94,
+    "load1_end": 1.0
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c4e25319de746716.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c4e25319de746716.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 4800,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "tart_hysteresis_k=None, dhw_setpoint_grid=None, ecl110_displace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=None), 0.0, 0.0, 0.0, None, 0.0, 0.2, 0.0, False), ('0.0', '0.0', '0.0', '0.0', '0.0'), ('EXC', 'ZeroDivisionError'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "dropping the max(dt_hours,1e-6) floor raises ZeroDivisionError at dt_hours==0.0 (sole moved input class; non-zero dt identical); upstream origin of dt_hours not traced for a zero floor, so reachability is unverified",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "single-tank valve delivery: the dt_hours division guard is unpinned",
+    "claim": "dropping the max(dt_hours,1e-6) floor raises ZeroDivisionError at dt_hours==0.0 (sole moved input class; non-zero dt identical); upstream origin of dt_hours not traced for a zero floor, so reachability is unverified; probe moves 4800 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c4e25319de746716.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c4e25319de746716.py",
+    "perturbation": {
+     "change": ") / max(dt_hours, 1e-6) -> ) / (dt_hours)",
+     "expected_direction": "up",
+     "observed_value": "0 -> 4800"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  },
+  {
+   "key": "db984e8d4acfa08b",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 GUARD_OFF",
+   "patch": "if drawn > available > 0.0: -> if False:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3625.8,
+    "load1_start": 0.85,
+    "load1_end": 1.0
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 3390,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "w_setpoint_grid=None, ecl110_displace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=None), 0.0, 0.0, 0.0, None, 0.0, 0.2, 0.25, False), ('0.3248', '0.0', '0.0', '0.0', '0.0'), ('0.9333333333333333', '0.0', '0.0', '0.0', '0.0'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "single-tank branch: deleting the proportional `drawn > available > 0.0` scale lets emitters take more energy than the buffer can supply",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "single-tank valve delivery: the proportional starvation scale can be deleted unseen",
+    "claim": "single-tank branch: deleting the proportional `drawn > available > 0.0` scale lets emitters take more energy than the buffer can supply; probe moves 3390 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_db984e8d4acfa08b.py",
+    "perturbation": {
+     "change": "if drawn > available > 0.0: -> if False:",
+     "expected_direction": "up",
+     "observed_value": "0 -> 3390"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  },
+  {
+   "key": "884d2aba2bbd5409",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 GUARD_OFF",
+   "patch": "elif available <= 0.0: -> elif False:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3513.8,
+    "load1_start": 0.92,
+    "load1_end": 0.92
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_884d2aba2bbd5409.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_884d2aba2bbd5409.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 1320,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": ", dhw_setpoint_grid=None, ecl110_displace_command=0.0, ecl110_effective_displace=0.0, external_heat_active=False, peak_guard_active=False, wood_tank_temperature=None), 0.0, 0.0, 0.1, None, 0.0, 0.2, 1.0, False), ('0.0', '0.0', '0.0', '0.0', '0.0'), ('0.9333333333333333', '0.0', '0.0', '0.0', '0.0'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "single-tank branch: deleting `elif available <= 0.0` leaves emitters at full draw from a buffer with no available energy",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "single-tank valve delivery: the no-available-energy emitter zeroing can be deleted unseen",
+    "claim": "single-tank branch: deleting `elif available <= 0.0` leaves emitters at full draw from a buffer with no available energy; probe moves 1320 of 34560 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "medium",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_884d2aba2bbd5409.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_884d2aba2bbd5409.py",
+    "perturbation": {
+     "change": "elif available <= 0.0: -> elif False:",
+     "expected_direction": "up",
+     "observed_value": "0 -> 1320"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  },
+  {
+   "key": "968644425a4f97f8",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2946 CLAMP_DROP",
+   "patch": "span = np.maximum(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp)",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3600.1,
+    "load1_start": 0.85,
+    "load1_end": 1.0
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_968644425a4f97f8.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_968644425a4f97f8.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 138,
+    "null_n_differing": 0,
+    "n_inputs": 2205,
+    "first_difference": "((array([10.]), array([30.]), 25.0, array([25.])), ('0.0',), ('nan',))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "vector wood share: dropping the 1e-6 span floor gives nan (or -0.0) when flow_set==floor_temp (0/0 in region 2 since useful==0); the vector caller thermal_model.py:4685 can meet equality when the slab/upper-floor minimum equals the flow setpoint",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "_wood_share_vec: the span floor against flow_set==floor_temp is unpinned",
+    "claim": "vector wood share: dropping the 1e-6 span floor gives nan (or -0.0) when flow_set==floor_temp (0/0 in region 2 since useful==0); the vector caller thermal_model.py:4685 can meet equality when the slab/upper-floor minimum equals the flow setpoint; probe moves 138 of 2205 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_968644425a4f97f8.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_968644425a4f97f8.py",
+    "perturbation": {
+     "change": "span = np.maximum(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp)",
+     "expected_direction": "up",
+     "observed_value": "0 -> 138"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  },
+  {
+   "key": "449caa49315447b2",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2998 GUARD_OFF",
+   "patch": "if draw_kw <= 0.0: -> if False:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 4056.4,
+    "load1_start": 0.92,
+    "load1_end": 0.93
+   },
+   "provisional": true,
+   "class": "candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_449caa49315447b2.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_449caa49315447b2.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 66,
+    "null_n_differing": 0,
+    "n_inputs": 270,
+    "first_difference": "((-2.0, 5.0, 45.0, 55.0), ('-2.0', '0.0'), ('-0.0', '-2.0'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "dropping the `draw_kw <= 0.0` early return changes the (reduced, coil) split for non-positive draws (reduced+coil==draw still holds but sign/partition move); upstream sign of draw_kw at dhw_planner.py:926 / thermal_model.py:5009 not traced, so reachability is unverified",
+   "should_fail": "tests/edge.py (closest closure script whose traced baseline executes thermal_model.py's valve/two-tank path; closure membership per tests/closures.json); it lacks an assertion that emitter heat delivered is zero when the buffer/tank can deliver none (resp. the named guard value)",
+   "finding": {
+    "title": "dhw_coil_draw_reduction: the non-positive draw early return is unpinned",
+    "claim": "dropping the `draw_kw <= 0.0` early return changes the (reduced, coil) split for non-positive draws (reduced+coil==draw still holds but sign/partition move); upstream sign of draw_kw at dhw_planner.py:926 / thermal_model.py:5009 not traced, so reachability is unverified; probe moves 66 of 270 swept inputs, null 0; the full gate (GATE_SCOPE=full GOLDEN_MODE=drift) did not fail beyond the null",
+    "step": "D3.M3",
+    "scope": "D3-s1",
+    "class_guess": "new",
+    "severity_claimed": "low",
+    "metric_definition": "swept inputs on which the function output differs between baseline and the one-line mutant",
+    "harness_paths": [
+     "dev/audit/rounds/round11/D3/s1/fullgate.py",
+     "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_449caa49315447b2.py"
+    ],
+    "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_449caa49315447b2.py",
+    "perturbation": {
+     "change": "if draw_kw <= 0.0: -> if False:",
+     "expected_direction": "up",
+     "observed_value": "0 -> 66"
+    },
+    "null_control": "unmutated module compared with itself: n_differing_null=0"
+   }
+  }
+ ],
+ "equivalent_candidates": [
+  {
+   "key": "c0800afec99d22fc",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND",
+   "patch": "if drawn > delivered > 0.0: -> if drawn >= delivered > 0.0:",
+   "function": "_valve_two_zone_delivery",
+   "cluster": "thermal_model.py:_valve_two_zone_delivery@2554-2598",
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3384.7,
+    "load1_start": 0.85,
+    "load1_end": 0.92
+   },
+   "m4_carried": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json",
+   "provisional": true,
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c0800afec99d22fc.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 0,
+    "n_inputs": 34560,
+    "null_n_differing": 0,
+    "first_difference": "None",
+    "inputs_tried": "grid in probes/_mut.py (see generator for the function), ties and zero/non-finite-adjacent values included"
+   },
+   "class": "equivalent-candidate",
+   "why": "drawn==delivered gives scale 1.0 (identity); delivered==0 gives scale 0.0 and the emitters are zeroed exactly as the elif branch does"
+  },
+  {
+   "key": "e18fa878eae99111",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND",
+   "patch": "if drawn > delivered > 0.0: -> if drawn > delivered >= 0.0:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3626.5,
+    "load1_start": 0.85,
+    "load1_end": 0.9
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_e18fa878eae99111.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_e18fa878eae99111.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 0,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "None",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "delivered==0 enters the scale branch with scale 0.0 and zeroes the emitters exactly as the elif does"
+  },
+  {
+   "key": "02a5c98b8f46f724",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND",
+   "patch": "if drawn > available > 0.0: -> if drawn > available >= 0.0:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3382.5,
+    "load1_start": 0.93,
+    "load1_end": 0.92
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_02a5c98b8f46f724.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_02a5c98b8f46f724.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 0,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "None",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "available==0 scales by 0.0, identical to the elif zeroing"
+  },
+  {
+   "key": "3b989943cc05b614",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2594 CMP_BOUND",
+   "patch": "if drawn > available > 0.0: -> if drawn >= available > 0.0:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3389.7,
+    "load1_start": 0.94,
+    "load1_end": 1.0
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_3b989943cc05b614.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_3b989943cc05b614.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 0,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "None",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "drawn==available scales by 1.0, identity"
+  },
+  {
+   "key": "a087d5efb15533ce",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2598 CMP_BOUND",
+   "patch": "elif available <= 0.0: -> elif available < 0.0:",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3783.1,
+    "load1_start": 0.86,
+    "load1_end": 0.94
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_a087d5efb15533ce.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_a087d5efb15533ce.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 0,
+    "null_n_differing": 0,
+    "n_inputs": 34560,
+    "first_difference": "None",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "available==0 reaches the elif only through `available <= 0.0`; `< 0.0` sends 0 to nothing, but the preceding `drawn > available > 0.0` is false and the zero-available case is handled by min(...)/max(...) arithmetic; sweep finds no input that moves"
+  },
+  {
+   "key": "efd15cba428cdcf2",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2939 CMP_BOUND",
+   "patch": "r2 = (~r1) & (hp_temp > flow_set) -> r2 = (~r1) & (hp_temp >= flow_set)",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3564.7,
+    "load1_start": 0.96,
+    "load1_end": 1.01
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_efd15cba428cdcf2.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_efd15cba428cdcf2.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 0,
+    "null_n_differing": 0,
+    "n_inputs": 2205,
+    "first_difference": "None",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "hp_temp==flow_set gives f_w==0 in region 2, the same 0.0 as region 3 reaches at that tie"
+  },
+  {
+   "key": "c9a7d4d29d08c3b4",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2952 CLAMP_DROP",
+   "patch": "m = max(margin, 1e-6) -> m = (margin)",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 3825.0,
+    "load1_start": 0.93,
+    "load1_end": 0.93
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c9a7d4d29d08c3b4.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_c9a7d4d29d08c3b4.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 60,
+    "null_n_differing": 0,
+    "n_inputs": 2205,
+    "first_difference": "((array([10.]), array([10.]), 25.0, array([10.]), 0.0), ('0.0',), ('nan',))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "margin==0.0 is unreachable: both callers (thermal_model.py:2570, 4685) use the default WOOD_TANK_MIN_MARGIN=2.0 (const.py:362); the probe moves only at margin 0.0"
+  },
+  {
+   "key": "ca6ae797caf18708",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2827 CLAMP_DROP",
+   "patch": "ln = math.log(max(vapor_pressure_hpa, 1e-9) / 6.112) -> ln = math.log((vapor_pressure_hpa) / 6.112)",
+   "function": null,
+   "gate": {
+    "verdict": "RED-AS-NULL",
+    "killed_by": [],
+    "gate_rc": 1,
+    "wall_s": 4015.8,
+    "load1_start": 0.86,
+    "load1_end": 0.92
+   },
+   "provisional": true,
+   "class": "equivalent-candidate",
+   "probe": {
+    "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_ca6ae797caf18708.py",
+    "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_ca6ae797caf18708.py",
+    "baseline_n_differing": 0,
+    "mutant_n_differing": 3,
+    "null_n_differing": 0,
+    "n_inputs": 10,
+    "first_difference": "((-1.0,), '-136.43509636360082', ('EXC', 'ValueError'))",
+    "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+   },
+   "why": "the only caller (thermal_model.py:2856 mold_safe_room_floor) returns at 2854 `if e <= 1e-9` before the call, so the argument is >1e-9 and the max(.,1e-9) floor never binds; the probe moves only at e<=1e-9, unreachable from it"
+  }
+ ]
+}

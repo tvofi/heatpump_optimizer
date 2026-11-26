@@ -1,0 +1,27 @@
+{
+ "key": "e18fa878eae99111",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2583 CMP_BOUND",
+ "patch": "if drawn > delivered > 0.0: -> if drawn > delivered >= 0.0:",
+ "function": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3626.5,
+  "load1_start": 0.85,
+  "load1_end": 0.9
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_e18fa878eae99111.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46/probes/probe_e18fa878eae99111.py",
+  "baseline_n_differing": 0,
+  "mutant_n_differing": 0,
+  "null_n_differing": 0,
+  "n_inputs": 34560,
+  "first_difference": "None",
+  "inputs_tried": "grid in probes/_mut.py (see generator), boundary/tie/zero values included"
+ },
+ "why": "delivered==0 enters the scale branch with scale 0.0 and zeroes the emitters exactly as the elif does"
+}
