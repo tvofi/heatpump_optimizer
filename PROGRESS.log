@@ -4,3 +4,4 @@
 1795696430 HB alive
 1795696590 DONE blocked bff0cd0 class-open: h9_batch_cost_loop.py:72 until-chain; verdict on probe/rev-3911-751dd133 @5b66a100
 1795733386 HB alive
+1795733681 CKPT delta reviewed, CI GREEN, entities.py run pending snapshot 6e21774ba75f
