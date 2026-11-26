@@ -1,4 +1,0 @@
-  ok   frost hold options: a label and a description in strings.json and the en, sv and de translations
-
-ALL 55 FEATURES BLOCK PASSED
-  figure: frost hold replay: turn_off while latched 0 (main 34), latched minutes 1020 of 1440, turn_off in all 14 (main 48); opted out == main: True

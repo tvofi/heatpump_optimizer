@@ -1,3 +1,0 @@
-MUTANT M12_served_frost_off: rc=1 4 of 55 FEATURES BLOCK FAILED | first fail:   FAIL frost hold, control on Tuya: an idle step held writes Heating and the space floor; null control: the same idle step not held writes no mode  [{'number.dhw_set': 48, 'number.water_set': 25} | {'number.dhw_set': 48, 'number.water_set': 25}]
-MUTANT M18_gate_passthrough: rc=1 9 of 55 FEATURES BLOCK FAILED | first fail:   FAIL frost hold, real coordinator: an idle step at -3 °C leaves the switch on  [[(0, 'turn_on'), (15, 'turn_off')]]
-MUTANT Mlog_gate_frost_log_dropped: rc=1 1 of 55 FEATURES BLOCK FAILED | first fail:   FAIL frost hold: a held OFF is logged as the frost hold; null control: at +4 °C nothing is  [[] | []]
