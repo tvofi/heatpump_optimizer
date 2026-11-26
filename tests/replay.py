@@ -617,6 +617,13 @@ REPLAY_JOB_SETUP_S = 20.0
 #: red there while the pull-request arm still finishes, and names the cap to
 #: raise before that arm starts timing out.
 REPLAY_HEADROOM_SHARE = 0.8
+#: The slowest pull-request replay job on record, the cap's sizing draw: job
+#: 139918878679 (run 45821055133) landed on a ``ref47`` runner (``ref_ms``
+#: 46.75) and its owner fixture read 16 cycles in 2424.3 s at ``cpu_ratio``
+#: 532.0, 4.56 s a unit against the nightly ``ref31`` runs' 3.4-3.8; the rest
+#: of the lane took 81.0 s. ``budget_wall_s`` scales that draw to the owner
+#: fixture's ``cpu_ratio`` budget.
+REPLAY_SIZING_DRAW = {"owner_s": 2424.3, "owner_cpu_ratio": 532.0176, "rest_s": 81.0}
 #: Fixtures that declare away coverage: their ``controls.away`` must hold an
 #: active command and their replay must carry it for at least one cycle
 #: (``away_offenders``'s ``expect_commanded``). A design choice: coverage is
@@ -983,6 +990,14 @@ def replay_timeout_minutes(workflow: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def budget_wall_s(draw: dict[str, float] = REPLAY_SIZING_DRAW) -> float:
+    """The lane's wall time on the sizing draw's runner with the owner fixture
+    at its ``COST_BUDGETS`` ``cpu_ratio``: the most the lane may take before
+    its cost check goes red, so the job's cap must leave headroom over it."""
+    budget = COST_BUDGETS["owner-2026-10-30-away.json"]["cpu_ratio"]
+    return draw["owner_s"] * budget / draw["owner_cpu_ratio"] + draw["rest_s"]
+
+
 def headroom_offenders(wall_s: float, cap_minutes: int | None) -> list[str]:
     """The lane's wall time over ``REPLAY_HEADROOM_SHARE`` of what the
     pull-request job leaves it under ``cap_minutes``: the lane is growing
@@ -1284,6 +1299,12 @@ def controls() -> list[tuple[str, bool, str]]:
     # 2026-11-16 is inside both. A cap the workflow does not carry is red.
     pair("headroom:over_the_cap", headroom_offenders(1798.0, 30),
          headroom_offenders(1798.0, 45) + headroom_offenders(836.1, 30))
+    # The cap covers the lane at its cost budget on the slowest runner on
+    # record; 57, which covers that draw's own wall time and not the rest of
+    # the lane at budget, does not.
+    pair("headroom:cap_covers_the_budget", headroom_offenders(budget_wall_s(), 57),
+         headroom_offenders(budget_wall_s(),
+                            replay_timeout_minutes(REPLAY_WORKFLOW.read_text())))
     pair("headroom:cap_unread", headroom_offenders(1.0, None), headroom_offenders(1.0, 30))
     job = "\n  replay:\n    needs: [x]\n\n    timeout-minutes: 45\n  next:\n"
     res.append(("control:headroom:reads_the_replay_job",
