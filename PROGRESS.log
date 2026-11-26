@@ -28,3 +28,4 @@
 1795678640 HB alive
 1795678690 CKPT review complete: m3 killed by T6b, gates green locally; waiting on classify snapshot ddf700c843f5
 1795679237 HB alive
+1795679535 DONE verdict merge 2b85f002 (pending-ci: gate) pushed to probe/rev-3883-03dced48 b8e2327c
