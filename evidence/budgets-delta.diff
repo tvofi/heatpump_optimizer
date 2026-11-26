@@ -1,0 +1,230 @@
+diff --git a/tests/ci_budgets.json b/tests/ci_budgets.json
+index 82c10dd687..ef895f036c 100644
+--- a/tests/ci_budgets.json
++++ b/tests/ci_budgets.json
+@@ -7,7 +7,7 @@
+  "archscore.coord_footprint": 2592,
+  "archscore.coordinator_multiassigned_attrs": 120,
+  "archscore.coordinator_private_reach": 2,
+- "archscore.dead_members": 1,
++ "archscore.dead_members": 0,
+  "archscore.duplication_copies": 68,
+  "archscore.family_orphan_overrides": 0,
+  "archscore.family_splits": 0,
+@@ -17,7 +17,7 @@
+  "archscore.literal_clone_copies": 123,
+  "archscore.params_over_10": 12,
+  "archscore.private_cross_module": 17,
+- "archscore.public_unused": 1,
++ "archscore.public_unused": 0,
+  "archscore.reflective_writes": 17,
+  "archscore.shape_copies": 66,
+  "archscore.shared_inplace_writes": 3,
+@@ -25,8 +25,8 @@
+  "archscore.untyped_payload_keys": 0,
+  "archscore.unused_boundary_imports": 0,
+  "critical_path_minutes": 23.574,
+- "reason": "critical_path_minutes made report-only and critical_path_minutes_band deleted (R10-CI-SLIM card C2, owner ruling 2026-11-05): the ratchet prints it against this reference and never grades it; no value re-recorded. Previous reason: critical_path_minutes re-recorded 21.983 -> 23.574, the value CI printed at 8bf45e5dc (run 42038071453; also 23.351 at 788e8ceed, 23.43 at 7af0c2a79, 23.574 at b707d8932). No job's work grew in the diff: the 0ae75bf31 window already read at the band edge (23.287 against 21.983+1.3=23.283 when replayed from its job timings), and the chain prelude -> tests / closures -> tests / ci-ratchet is priced on `closures` at a 1318 s probed median (1191..1455 over the window) with ci-ratchet at 77 s. The same change runs the ratchet job's two independent fetches concurrently (a real cut of the chain's tail). Band 1.3 unchanged. Previous reason: critical_path_minutes re-recorded at 21.983 under a new statistic (R10-HOTFIX-CI-CRITPATH-3): main went red from 8f286293b, a diff of seven delivery-row .md files, at GREW 40.817 on 34.267+1.3. No job's work grew and no runner queue moved it: each heavy tests lane draws hosted runners of different speed on the same work (per-script ratios 1.6-2.9, one reference solve 45.0 ms against 18.8 ms), so the median of per-run critical paths read the host draw. The metric is now window_work_minutes over the newest 16 push runs: every job priced at its fastest success run in the window (a run under a third of the job's window median did other work and never prices it), summed along each run's own critical chain, the longest kept. 21.983 is critical_path_minutes(stat=record) over the 40 completed ci.yml push runs 41363452534..41577822624 (dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json), the largest of its 25 sixteen-run windows (19.967..21.983). critical_path_minutes_band stays 1.3: the most any window read past the record of every window before it is 0.55 (replay.py beside that runs.json); every other row is unchanged and at zero tolerance (previous reason: band added at 1.3, R10-HOTFIX-CI-CRITPATH-2, owner ruling 2026-10-31 under mandate 6329234399).",
+- "recorded_at": "8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc",
++ "reason": "Merge of origin/main 3210fcd7 into R11-SEAM-entity-service: each row takes the lower side, script_runs_per_push takes main's 56, and every archscore row re-measured on the merged tree by ci_ratchet.archscore_metrics is at or under it (dead_members 0, public_unused 0). The two rows' reasons: Two rows lowered (R11-SEAM-entity-service), each at the value tools/audit/archscore's vector.measure derives at 96d8a05b2159 (score.py --diff a8efe1d1c2a8 reads dead_members 1 -> 0 and public_unused 1 -> 0): the D7-s1-05 avail arm and the window-in-force owner leave no dead member and no unused public symbol, so a planted one is refused (field_coverage's census rows). No other row moves. Previous reason: script_runs_per_push 54 -> 56 (R11-SEAM-tests): tests/cycle_lane.py, the coordinator-cycle lane (D9-s3-02), is a new script measured once by the closures instrument and once by the coverage fast stage, the every-script-once count tests/entities.py derives (34+20 -> 35+21); no other row re-recorded. Previous reason: critical_path_minutes made report-only and critical_path_minutes_band deleted (R10-CI-SLIM card C2, owner ruling 2026-11-05): the ratchet prints it against this reference and never grades it; no value re-recorded. Previous reason: critical_path_minutes re-recorded 21.983 -> 23.574, the value CI printed at 8bf45e5dc (run 42038071453; also 23.351 at 788e8ceed, 23.43 at 7af0c2a79, 23.574 at b707d8932). No job's work grew in the diff: the 0ae75bf31 window already read at the band edge (23.287 against 21.983+1.3=23.283 when replayed from its job timings), and the chain prelude -> tests / closures -> tests / ci-ratchet is priced on `closures` at a 1318 s probed median (1191..1455 over the window) with ci-ratchet at 77 s. The same change runs the ratchet job's two independent fetches concurrently (a real cut of the chain's tail). Band 1.3 unchanged. Previous reason: critical_path_minutes re-recorded at 21.983 under a new statistic (R10-HOTFIX-CI-CRITPATH-3): main went red from 8f286293b, a diff of seven delivery-row .md files, at GREW 40.817 on 34.267+1.3. No job's work grew and no runner queue moved it: each heavy tests lane draws hosted runners of different speed on the same work (per-script ratios 1.6-2.9, one reference solve 45.0 ms against 18.8 ms), so the median of per-run critical paths read the host draw. The metric is now window_work_minutes over the newest 16 push runs: every job priced at its fastest success run in the window (a run under a third of the job's window median did other work and never prices it), summed along each run's own critical chain, the longest kept. 21.983 is critical_path_minutes(stat=record) over the 40 completed ci.yml push runs 41363452534..41577822624 (dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json), the largest of its 25 sixteen-run windows (19.967..21.983). critical_path_minutes_band stays 1.3: the most any window read past the record of every window before it is 0.55 (replay.py beside that runs.json); every other row is unchanged and at zero tolerance (previous reason: band added at 1.3, R10-HOTFIX-CI-CRITPATH-2, owner ruling 2026-10-31 under mandate 6329234399).",
++ "recorded_at": "96d8a05b21594b9df107588a80b46a9d245c0e17",
+  "script_runs_full_case_pr": 68,
+- "script_runs_per_push": 54
++ "script_runs_per_push": 56
+ }
+diff --git a/tests/cycle_budgets.json b/tests/cycle_budgets.json
+new file mode 100644
+index 0000000000..ed5854bc97
+--- /dev/null
++++ b/tests/cycle_budgets.json
+@@ -0,0 +1,38 @@
++{
++ "heavy_old/shoulder": {
++  "loop_calls": 2447,
++  "payload_b": 89274,
++  "retained_b_per_cycle": 2203,
++  "solves": 1,
++  "yields": 360
++ },
++ "recorded_at": "4504dd9856",
++ "winter/1z/dhw": {
++  "loop_calls": 2448,
++  "payload_b": 88678,
++  "retained_b_per_cycle": 2122,
++  "solves": 2,
++  "yields": 495
++ },
++ "winter/1z/space": {
++  "loop_calls": 2436,
++  "payload_b": 86417,
++  "retained_b_per_cycle": 2636,
++  "solves": 1,
++  "yields": 429
++ },
++ "winter/2z/dhw": {
++  "loop_calls": 2448,
++  "payload_b": 90360,
++  "retained_b_per_cycle": 2985,
++  "solves": 1,
++  "yields": 380
++ },
++ "winter/cycle": {
++  "loop_calls": 2448,
++  "payload_b": 90360,
++  "retained_b_per_cycle": 2043,
++  "solves": 1,
++  "yields": 380
++ }
++}
+diff --git a/tests/stress_budgets.json b/tests/stress_budgets.json
+index 11c01c1578..10dfade183 100644
+--- a/tests/stress_budgets.json
++++ b/tests/stress_budgets.json
+@@ -9,7 +9,7 @@
+     "ratio": 18.18,
+     "rss_attrib_mb": 3.1,
+     "rss_peak_mb": 78.9,
+-    "traced_peak_mb": 0.91
++    "traced_peak_mb": 1.7
+   },
+   "flat/2z/dhw": {
+     "ratio": 41.96,
+@@ -21,7 +21,7 @@
+     "ratio": 63.25,
+     "rss_attrib_mb": 3.2,
+     "rss_peak_mb": 79.0,
+-    "traced_peak_mb": 0.93
++    "traced_peak_mb": 2.2
+   },
+   "heavy_old/shoulder": {
+     "ratio": 22.69,
+@@ -57,7 +57,7 @@
+     "ratio": 12.36,
+     "rss_attrib_mb": 2.9,
+     "rss_peak_mb": 78.7,
+-    "traced_peak_mb": 0.89
++    "traced_peak_mb": 1.5
+   },
+   "shoulder/2z/dhw": {
+     "ratio": 47.34,
+@@ -69,7 +69,7 @@
+     "ratio": 47.7,
+     "rss_attrib_mb": 2.2,
+     "rss_peak_mb": 78.0,
+-    "traced_peak_mb": 0.91
++    "traced_peak_mb": 2.2
+   },
+   "shoulder/cycle": {
+     "ratio": 66.03,
+@@ -153,13 +153,13 @@
+     "ratio": 2.4,
+     "rss_attrib_mb": 1.4,
+     "rss_peak_mb": 77.2,
+-    "traced_peak_mb": 0.87
++    "traced_peak_mb": 1.3
+   },
+   "summer/2z/space/valve-direct-slab": {
+     "ratio": 9.15,
+     "rss_attrib_mb": 3.4,
+     "rss_peak_mb": 79.5,
+-    "traced_peak_mb": 0.85
++    "traced_peak_mb": 1.3
+   },
+   "summer/2z/space/wood-two-tank": {
+     "ratio": 7.46,
+@@ -169,7 +169,7 @@
+       "baseline_below": 68093,
+       "factor": 3.25
+     },
+-    "traced_peak_mb": 0.91
++    "traced_peak_mb": 1.4
+   },
+   "summer_negative/1z/dhw": {
+     "ratio": 2.96,
+@@ -193,7 +193,7 @@
+     "ratio": 2.43,
+     "rss_attrib_mb": 2.9,
+     "rss_peak_mb": 78.7,
+-    "traced_peak_mb": 0.87
++    "traced_peak_mb": 1.3
+   },
+   "typical_slab/shoulder": {
+     "ratio": 26.18,
+@@ -235,7 +235,7 @@
+     "ratio": 48.84,
+     "rss_attrib_mb": 2.8,
+     "rss_peak_mb": 78.6,
+-    "traced_peak_mb": 0.92
++    "traced_peak_mb": 2.0
+   },
+   "winter/cycle": {
+     "ratio": 60.73,
+@@ -301,7 +301,7 @@
+     "ratio": 63.41,
+     "rss_attrib_mb": 2.2,
+     "rss_peak_mb": 78.0,
+-    "traced_peak_mb": 0.94
++    "traced_peak_mb": 2.2
+   },
+   "winter_mild/1z/dhw": {
+     "ratio": 21.5,
+@@ -313,18 +313,18 @@
+     "ratio": 16.43,
+     "rss_attrib_mb": 2.6,
+     "rss_peak_mb": 78.4,
+-    "traced_peak_mb": 0.91
++    "traced_peak_mb": 1.8
+   },
+   "winter_mild/2z/dhw": {
+     "ratio": 42.54,
+     "rss_attrib_mb": 8.9,
+     "rss_peak_mb": 84.7,
+-    "traced_peak_mb": 1.82
++    "traced_peak_mb": 3.3
+   },
+   "winter_mild/2z/space": {
+     "ratio": 54.03,
+     "rss_attrib_mb": 0.8,
+     "rss_peak_mb": 76.6,
+-    "traced_peak_mb": 0.91
++    "traced_peak_mb": 2.2
+   }
+ }
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index dd4e7bbff8..c0cddde41a 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,24 +1,24 @@
+ {
+- "class_excess_loc": 17313,
++ "class_excess_loc": 17224,
+  "const_modules_over_50": 4,
+- "coordinator_attrs": 136,
+- "coordinator_multiassigned_attrs": 104,
++ "coordinator_attrs": 134,
++ "coordinator_multiassigned_attrs": 101,
+  "coordinator_private_reach": 0,
+  "dead_methods": 0,
+- "dead_top_level_symbols": 1,
+- "duplication_copies": 5,
++ "dead_top_level_symbols": 0,
++ "duplication_copies": 3,
+  "functions_cc_over_15": 26,
+  "functions_cc_over_25": 7,
+  "import_cycle_modules": 0,
+  "in_function_copies": 11,
+  "max_cc": 44,
+- "max_class_loc": 7860,
++ "max_class_loc": 7813,
+  "max_method_loc": 373,
+  "methods_over_150": 14,
+  "methods_over_200": 7,
+- "module_excess_loc": 21767,
++ "module_excess_loc": 21741,
+  "name_kept_members": 38,
+- "recorded_at": "608c95decc94a8240565aba68fa8f0e1dece8c3d",
++ "recorded_at": "d2128054dbf666460418e5489ad1bfbdeea99e45",
+  "seam_cut_total": 413,
+- "unloaded_package_imports": 14
++ "unloaded_package_imports": 5
+ }
