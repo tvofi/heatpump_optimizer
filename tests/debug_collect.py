@@ -1192,6 +1192,26 @@ R.check(
     and not any(replay_doc.numeric(v) for v in (True, "nan", "inf", float("nan"))),
     f"{[(v, a, b) for v, a, b in _numeric_split if a != b]}",
 )
+# R11-LATE-P2-REPLAY-FINITE: _number, the attribute shape every number and
+# every price-series value passes, is the same fact: it keeps a real number
+# exactly when replay_doc.numeric does, so NaN and an infinity are cut, as a
+# bare value and as a series row's value alike. Its text and bool refusals are
+# its own shape's, so the probes compare on the real numbers only.
+_number_split = [(v, replay_doc._number(v) is not _D,
+                  isinstance(v, (int, float)) and replay_doc.numeric(v))
+                 for v in _numeric_probes if v is not None]
+_nan_rows = [{"start": "2026-10-18T00:00:00+00:00", "value": v}
+             for v in (float("nan"), float("inf"), float("-inf"), 1.5)]
+R.check(
+    "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric "
+    "admits, so a NaN or infinite attribute or series value is cut",
+    all(a == b for _, a, b in _number_split)
+    and replay_doc._number(None) is None
+    and [replay_doc._number(v) for v in (float("nan"), float("inf"), float("-inf"))]
+    == [_D, _D, _D]
+    and replay_doc._series(_nan_rows) == [{"start": "2026-10-18T00:00:00+00:00", "value": 1.5}],
+    f"{[(v, a, b) for v, a, b in _number_split if a != b]} {replay_doc._series(_nan_rows)}",
+)
 R.check(
     "replay_doc.json_decimal_places counts the JSON spelling's decimals, a string's as "
     "written, and answers None for a bool, a word or a non-number",

@@ -264,9 +264,10 @@ def clean_value(node: object, dropped: list[str]) -> object:
 
 
 def _number(value: object) -> object:
+    """A real number ``numeric`` admits: NaN and an infinity are cut."""
     if value is None:
         return None
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, (int, float)) and numeric(value):
         return value
     return _DROP
 
