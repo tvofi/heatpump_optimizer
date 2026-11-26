@@ -1,0 +1,44 @@
+{
+ "key": "6fa8436f09ad7e06",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2906 CLAMP_DROP",
+ "patch": "span = max(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp)",
+ "function": "wood_share",
+ "cluster": "thermal_model.py:wood_share@2903-2906",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3936.9,
+  "load1_start": 1.0,
+  "load1_end": 1.0
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_6fa8436f09ad7e06.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_6fa8436f09ad7e06.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 2)",
+   "RESULT inputs_differing=1 count (of 4)",
+   "RESULT baseline_value=0.0",
+   "RESULT mutant_value='RAISES ZeroDivisionError'"
+  ],
+  "inputs_tried": "floor_temp in {45, 45+1e-9, 46, 60} at flow_set 45"
+ },
+ "should_fail": "tests/features.py: wood_share(wood 40, hp 60, flow_set 45, floor_temp 45) == 0.0",
+ "title": "wood_share: the 1e-6 span floor is untested; at floor_temp == flow_set (region 2) the unclamped span raises Ze",
+ "claim": "wood_share: the 1e-6 span floor is untested; at floor_temp == flow_set (region 2) the unclamped span raises ZeroDivisionError where the baseline returns 0.0 (floor_temp is min(T_upper,T_slab), so a bit-exact tie is measure-zero)",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "wood_share when floor_temp >= flow_set in region 2 (`max(flow_set-floor,1e-6)` clamp dropped): baseline 0.0, mutant ZeroDivisionError at floor == flow_set",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_6fa8436f09ad7e06.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_6fa8436f09ad7e06.py",
+ "perturbation": "line 2906: span = max(flow_set - floor_temp, 1e-6) -> span = (flow_set - floor_temp); the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green; the probe's number moves under it",
+ "null_control": "probe controls (inputs where the edit cannot matter) show null_control_differing=0"
+}
