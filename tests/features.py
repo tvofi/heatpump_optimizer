@@ -903,11 +903,11 @@ _np_wire = Coord(
     FakeHass(), _np_entry(data={"tibber_token": "x", "weather_entity": "weather.home"})
 )
 
-async # Rows reaching now: an all-past reply is a failed fetch (D1-s2-03).
+# Rows reaching now: an all-past reply is a failed fetch (D1-s2-03).
 _np_t0 = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
 
 
-def _np_forecast_payload(call):
+async def _np_forecast_payload(call):
     return {"weather.home": {"forecast": [
         {"datetime": _np_t0.isoformat(), "temperature": 1e308,
          "wind_speed": 3.0, "precipitation": 0.0, "humidity": 80.0},
