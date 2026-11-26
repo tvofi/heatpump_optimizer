@@ -28,15 +28,7 @@ from scipy.optimize import linprog
 
 from . import pv
 from .const import DHW_QUANTILE_MIN_EVENTS
-from .dhw_charges import (
-    SHORTFALL_K,
-    ChargeRuns,
-    commit_charges,
-    dhw_start_temps,
-    place_startable,
-    startable_steps,
-    whole_charges,
-)
+from .dhw_charges import SHORTFALL_K, ChargeRuns, commit_charges, whole_charges
 from .dhw_draws import window_label as draw_window_label
 from .dhw_schedule import (
     FULL_DAY,
@@ -48,6 +40,7 @@ from .dhw_schedule import (
     parse_windows,
     windows_for_day,
 )
+from .dhw_start import dhw_start_temps, place_startable, startable_steps
 from .manual_plan import _pin_is_free
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
@@ -1202,7 +1195,7 @@ class DhwPlanner:
         # before each breach until the simulated trajectory honours the
         # requirement, then re-apply the rating, which always wins.
         start_below = dhw_start_temps(params, initial_state, n_steps, legionella_step)
-        tank = (ctx, initial_state.dhw_temperature, draw_rates)
+        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), initial_state.dhw_charge_under_way
         schedule = place_startable(schedule, start_below, partial(self._ctx_temps, *tank), partial(
             self._repair_dhw_floor,
             ctx,
@@ -1211,8 +1204,9 @@ class DhwPlanner:
             requirement=requirement,
             max_temp=max_temp,
             forced_off=forced_off,
-        ))
-        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand)
+        ), running)
+        schedule = commit_charges(
+            self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand, running)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
