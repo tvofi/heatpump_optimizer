@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learning_freeze.py:_shared RETURN_DEL e3a2add1",
+  "killed_by": "tests/features.py",
+  "old": "    return facts.tail",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}
