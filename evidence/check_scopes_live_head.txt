@@ -1,0 +1,23 @@
+ref=46cdd1f9191180fc1f420a0d5eedd0f758b947ad seats=70
+ok D0 mode=cells seats=3 universe=3 [s1:3f/23210loc, s2:3f/23210loc, s3:3f/23210loc]
+ok D1 mode=cells seats=3 universe=107 [s1:107f/79450loc, s2:107f/79450loc, s3:107f/79450loc]
+ok D2 mode=cells seats=3 universe=107 [s1:107f/79450loc, s2:107f/79450loc, s3:107f/79450loc]
+ok D3 mode=cells seats=3 universe=181 [s1:12f/31830loc, s2:18f/17074loc, s3:151f/47146loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/21157loc, s2:15f/21157loc, s3:15f/21157loc]
+FAIL D5 mode=cells seats=10 universe=940 [s1:16f/0loc/0u, s2:16f/0loc/76u, s3:51f/39527loc/3078u, s4:57f/56523loc/3619u, s5:79f/0loc/3934u, s6:266f/0loc/4151u, s7:3f/0loc/4541u, s8:47f/0loc/3809u, s9:69f/0loc/3894u, s10:352f/0loc/1931u]
+   over ledger.max_units 4500: s7 holds 4541 units
+ok D6 mode=files seats=7 universe=392 [s1:15f/0loc/4245u, s2:112f/0loc/4165u, s3:108f/79450loc/3431u, s4:2f/16600loc/3995u, s5:152f/0loc/3708u, s6:1f/0loc/2360u, s7:2f/0loc/2664u]
+ok D7 mode=cells seats=3 universe=107 [s1:107f/79450loc, s2:107f/79450loc, s3:107f/79450loc]
+ok D8 mode=cells seats=3 universe=6 [s1:6f/4902loc, s2:6f/4902loc, s3:6f/4902loc]
+ok D9 mode=cells seats=3 universe=108 [s1:108f/96050loc, s2:108f/96050loc, s3:108f/96050loc]
+ok D10 mode=cells seats=3 universe=126 [s1:126f/96050loc, s2:126f/96050loc, s3:126f/96050loc]
+ok D11 mode=cells seats=3 universe=1492 [s1:1492f/0loc, s2:1492f/0loc, s3:1492f/0loc]
+ok D12 mode=cells seats=3 universe=107 [s1:107f/79450loc, s2:107f/79450loc, s3:107f/79450loc]
+ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok D16 mode=cells seats=3 universe=107 [s1:107f/79450loc, s2:107f/79450loc, s3:107f/79450loc]
+ok D17 mode=cells seats=3 universe=114 [s1:114f/79450loc, s2:114f/79450loc, s3:114f/79450loc]
+ok DX0 mode=cells seats=5 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc, s4:1f/0loc, s5:1f/0loc]
+ok coverage tracked=17535 in_universe=1761 excluded=15774 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite

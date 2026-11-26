@@ -1,0 +1,29 @@
+features_block: prelude of 4 statement(s) written to P
+
+=== features block ===
+
+-- R11-OUTSIDE-START-APPROACH: a run's first steps draw what the pump draws (Bankaifan, comment 6944433306 on #3670)
+  ok   approach learner: zero evidence and two runs (bins under MIN_COUNT) read no approach; five series-D runs read an entry whose energy over the floor is series D's within one bin, and series H's ramp
+  ok   approach learner folds nothing from a frozen, a distorted or a defrost interval, nor an entry asked above the floor (a higher ask draws more by asking more)
+  ok   a stored approach round-trips, a bad cell costs only that cell, and a changed configured range drops it
+  ok   after a gap the live run's age is unknown and no entry sample is folded across it
+  ok   approach learner boundaries: three runs read a profile; an ask at the tolerance's edge is an entry sample; a draw at standby is no ramp sample; an interval one interval after the last is no gap; a gap in a live run reads its age unknown; the last covered bin is inside and the next is not
+  ok   the first pause interval after a space run folds a ramp sample and no idle reading; after a pause (null control) the same interval is an idle reading and no ramp sample
+  FAIL runs.received: a 15-minute run from off takes the mean of the first three bins, the pause after it the ramp's share; unknown age books nothing; no approach is the shipped array itself  [[0.         1.717      0.26166667 0.        ] unknown [0.53 0.   0.  ]]
+  FAIL a charge before a space run leaves the run an entry while the combined draw starts once  [[0.    1.717 1.528]]
+  FAIL runs.received of a batch is the one-row answer per row, bit for bit, the live age continued at step 0  [[[0.26166667 1.717      0.26166667 0.        ]
+ [1.339      0.96433333 0.26166667 1.717     ]]]
+  ok   the true objective's received draw is runs.received of the shipped plan; a descent and no approach receive the shipped array itself
+  ok   the published trajectory simulates runs.received of the shipped plan; with no approach, the shipped plan (space-only solve)
+  ok   the published trajectory simulates runs.received of the shipped plan; with no approach, the shipped plan (hot-water solve)
+  ok   the coordinator files the expected draw as the interval's predicted power, above the shipped floor on an entry, and the promise costed on the received schedule; with no learned approach the shipped total and the shipped schedule
+  ok   the COP fold refuses the interval filed inside the approach as off its ask, and not with none learned; a charge between two space runs leaves the second an entry
+  ok   the fabric interval of an entry inside the learned approach keeps its metered space figure; with none learned the tracking gate skips it (spike s3)
+  ok   the solve band stamps the learned entry energy above the floor and pump_min_power shows it; none learned stamps None
+  ok   under a priced stop the received draw is the stop's share of the approach's draw; with no approach, of the shipped plan
+  ok   runs.commit: no entry energy leaves the masks equal; with the learned entry the tightest mask's floor steps plus one entry per run out of a pause meet the relaxed energy within half a floor step
+  FAIL the expected draw of an entry step is the received total and flags the step inside the approach; the COP judge refuses it as off its ask; its sample adds no window pair. Null: no profile expects the shipped total, flags nothing, and the judge reads the floor as before  [expected 1.717 null 0.53 pairs 87->87]
+
+4 of 19 FEATURES BLOCK FAILED
+
+RC=1
