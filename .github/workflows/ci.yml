@@ -66,15 +66,21 @@ permissions: {}
 
 # A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
-# let a re-run cancel a pending run. Supersession is cancel-superseded's alone.
+# let a re-run cancel a pending run. Except a `synchronize` run's first attempt
+# sent by anyone but github-actions[bot] (#3885 L1): it joins its pull request's
+# `CI-pr-<number>` group and cancels the older such run at creation, pending or
+# in progress. A synchronize always heads a new SHA, so no same-head twin is
+# cancelled; a re-run keeps its run-id group; a bot-sent run (an autofix push)
+# never cancels the run doing the other autofix jobs. Every other superseded run
+# (opened, reopened, dispatched, bot-sent) is the `cancel-superseded` job's.
 # Except a push to main's first attempt (CI-5, owner 2026-11-21): one `CI-main`
 # group, cancelling nothing in progress, so one push run executes at a time and
 # GitHub replaces a pending one with the newest before it starts; a burst of
 # merges is graded once, at its last tip, and no started run is cancelled. A
 # re-run (attempt 2+) keeps its run-id group, so it never displaces that tip.
 concurrency:
-  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || format('CI-{0}', github.run_id) }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}', github.event.pull_request.number) || format('CI-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   prelude:
