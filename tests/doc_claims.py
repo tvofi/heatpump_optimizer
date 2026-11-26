@@ -1277,6 +1277,23 @@ _PROSE_COUNT_SHAPES: tuple[tuple[str, re.Pattern[str], tuple[tuple[str, str], ..
      (("n", "modules"),)),
 )
 
+# FG-1 (2026-11-26): the shapes whose count the reader corpus must NOT state.
+# A module count moved with every module-adding pull request. Two branches
+# each re-derived it, and git merged their sentences as text into a number
+# neither derived. tests/entities.py's #939 block and claims.py derive and
+# print the counts. The shapes stay above, so a module count written back is
+# still claimed and compared, and is refused besides.
+_ABSENT_COUNT_SHAPES = frozenset({
+    "the Home-Assistant-free module count",
+    "the module-level importer count",
+    "the opening module total and its importer count",
+    "the module total",
+})
+_ABSENT_QUANTITIES = frozenset({
+    template for name, _pattern, quantities in _PROSE_COUNT_SHAPES
+    if name in _ABSENT_COUNT_SHAPES for _group, template in quantities
+})
+
 
 def _imports_homeassistant(node: ast.AST) -> bool:
     """Is this statement an import of the ``homeassistant`` package?"""
@@ -1388,7 +1405,7 @@ def prose_count_scan(
                         )
     unread = [
         name for index, (name, _pattern, _quantities) in enumerate(_PROSE_COUNT_SHAPES)
-        if not seen[index]
+        if not seen[index] and name not in _ABSENT_COUNT_SHAPES
     ]
     return rows, unread
 
@@ -1412,6 +1429,7 @@ def check_prose_tree_counts() -> None:
     tree_wide = ("modules", "modules_importing_homeassistant",
                  "modules_free_of_homeassistant", "services",
                  "options_pages", "editable_options_pages")
+    print("  derived: " + ", ".join(f"{key}={facts[key]}" for key in tree_wide))
     R.check(
         "every tree-wide quantity a count shape names measured positive "
         "(anchor: a measurement that read nothing cannot pass a census)",
@@ -1435,6 +1453,25 @@ def check_prose_tree_counts() -> None:
         "document deleted from it refuses instead of passing",
         not unread,
         f"no occurrence of: {unread}",
+    )
+    carried = [row for row in claims if row[2] in _ABSENT_QUANTITIES]
+    R.check(
+        "the reader corpus states no module count; entities.py and claims.py "
+        "derive and print it (FG-1)",
+        bool(_ABSENT_QUANTITIES) and not carried,
+        "; ".join(f"{document}:{line} {quantity}={stated}"
+                  for document, line, quantity, stated, _measured in carried),
+    )
+    # Null control: a module count planted in a reader document is read by its
+    # shape and refused, true or not -- the refusal is keyed on the shape, so
+    # a count that happens to equal the tree still lands red.
+    planted, _ = prose_count_census(
+        {"probe.md": f"The package holds {facts['modules']} modules."}, facts)
+    R.check(
+        "a true module count planted in a reader document is refused "
+        "(null control)",
+        [row[2] for row in planted if row[2] in _ABSENT_QUANTITIES] == ["modules"],
+        repr(planted),
     )
     wrong = [row for row in claims if row[4] != row[3]]
     R.check(
@@ -1479,12 +1516,13 @@ def check_prose_tree_counts() -> None:
         repr(named),
     )
     # Null control: deleting a reader document refuses the shapes only it
-    # states. The arm cannot go green by reading less.
+    # states. The arm cannot go green by reading less. README.md is the one
+    # document stating the editable-page and named-field shapes.
     _, lost = prose_count_census(
-        {name: text for name, text in CORPUS.items() if name != "architecture.md"}, facts
+        {name: text for name, text in CORPUS.items() if name != "README.md"}, facts
     )
     R.check(
-        "deleting architecture.md refuses the module shapes only it states "
+        "deleting README.md refuses the shapes only it states "
         "(null control: failure-closed, not silent)",
         bool(lost),
         f"unread after the deletion: {lost}",
