@@ -1,0 +1,22 @@
+31c31
+< index e9b256c945..1ab76468d3 100644
+---
+> index 244e2086d3..68b29d6c61 100644
+34c34
+< @@ -4589,6 +4589,7 @@
+---
+> @@ -4614,6 +4614,7 @@
+43c43
+< index 612e044bdb..56f172a1ea 100644
+---
+> index 612e044bdb..f05ac810da 100644
+127c127
+< @@ -1318,5 +1348,88 @@ def main():
+---
+> @@ -1318,5 +1348,93 @@ def main():
+165a166,170
+> +        # tokens.tsv is cumulative: a class's row from before the window is no row in it (review/3898 round 2).
+> +        old_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")],
+> +                        classes=whole[:1] + [("2025-12-31T12:00:00Z", "cloud-x", "cloud")])
+> +        arms["--round: a seat class whose only row predates the window prints unread"] = (
+> +            old_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in old_cloud[1])
