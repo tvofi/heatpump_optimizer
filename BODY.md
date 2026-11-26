@@ -9,7 +9,7 @@ This PR leaves #3885 open. It repairs one failing step, pages `Check out the rel
 
 ## Head
 
-`bcf4ac059096da7ccd4b32ac6e9e1e98e2953308` is the code head: the fixer's single commit, with origin/main merged in at open. The change is two files: `.github/workflows/pages.yml` and `tests/entities.py`.
+`f8decf8b4f48d84c975e483ea958ddd33905f001` is the code head. It adds one commit to `bcf4ac059096da7ccd4b32ac6e9e1e98e2953308` (the fixer's commit), repairing `tests / fast (3.14)` at 455e9b09: `_pages_tag_run` ran its stand-in under a bare `bash -c`, which `tests/entities.py` countermeasure B refuses; it now runs under `_GHA_RUN`. Delta for review: `git diff bcf4ac0590 f8decf8b4f` (one line in `tests/entities.py`). origin/main is merged in at open. The change is two files: `.github/workflows/pages.yml` and `tests/entities.py`.
 
 ## Mutation proof
 
@@ -25,7 +25,7 @@ none
 
 ## Red checks
 
-none
+`tests / fast (3.14)` at 455e9b09 (run 45719342344): `tests/entities.py` countermeasure B, "every `bash -c` / `sh -c` a check runs carries errexit", listed `tests/entities.py:_pages_tag_run`. Repaired at f8decf8b. Cheaper detector: none; that check is inside `tests/entities.py`, the script the PR's own test lives in,.
 
 ## Forward-carry
 
