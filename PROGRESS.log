@@ -1,3 +1,4 @@
 1795733745 INIT r11-selftests-3869-3883
 1795733842 HB alive
 1795734446 HB alive
+1795734631 CKPT cause: D5 s7 ledger cap; re-cut committed 7df39f349a, wip pushed snapshot 832a0597378b
