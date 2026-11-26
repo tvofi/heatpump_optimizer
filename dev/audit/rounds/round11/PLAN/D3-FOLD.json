@@ -482,7 +482,8 @@
    "size": "L",
    "after_added": [
     "R11-ARCH-fabric-learner",
-    "R11-SEAM-cycle-reporting"
+    "R11-SEAM-cycle-reporting",
+    "R11-OUTSIDE-START-APPROACH"
    ],
    "count": 47,
    "severity": {

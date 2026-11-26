@@ -24,8 +24,8 @@ import subprocess
 
 BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 JUDGE_SHA = "a826f55f8c"
-# the commit that carries d3_fnstate.py and D3-FOLD.json, for a brief to cite before the plan lands on main
-PLAN_SHA = "@PLAN_SHA@"
+# the commit that carries d3_fnstate.py, D3-FOLD.json and ADR-011, for a brief to cite before the plan lands on main
+PLAN_SHA = "3222bb016d"
 PKG = "custom_components/heatpump_optimizer/"
 SEAM_OF_FILE = {"optimizer.py": "solver", "dhw_planner.py": "solver", "sysid.py": "sysid",
                 "thermal_model.py": "plant", "defrost.py": "plant", "flow_lift.py": "plant",
@@ -54,7 +54,8 @@ PLAN = {
     "solver": ("R11-D3-PINS-solver", True, "XL", ["R11-OUTSIDE-START-APPROACH", "R11-SEAM-cycle-reporting"],
                "solver", ["optimizer.py", "dhw_planner.py"]),
     "sysid": ("R11-D3-PINS-sysid", True, "L", ["R11-SEAM-learners"], "learners", ["sysid.py"]),
-    "fabric": ("R11-D3-PINS-fabric", True, "L", ["R11-ARCH-fabric-learner", "R11-SEAM-cycle-reporting"],
+    "fabric": ("R11-D3-PINS-fabric", True, "L",
+               ["R11-ARCH-fabric-learner", "R11-SEAM-cycle-reporting", "R11-OUTSIDE-START-APPROACH"],
                "learners", ["coordinator.py"]),
     "plant": ("R11-D3-PINS-plant", True, "L", [], "plant model", ["thermal_model.py", "defrost.py", "flow_lift.py"]),
     "money": ("R11-D3-PINS-money", True, "L", [], "money", ["price_model.py", "tariff.py", "grid_fee.py"]),
@@ -131,7 +132,7 @@ BRIEF = (
     "production defect: stop, and carry it to the seam's owning group; it is not fixed here. "
     "A kill is claimed from the pin under the patch on Linux CI; the wave's survivor claim rests on gate logs "
     "compared with a red null, and its re-take is a carry of R11-SEAM-tests that this group does not wait for. "
-    "Pin home and proof are fixed by dev/audit/rounds/round11/PLAN/ADR-011-survivor-pins.md on the plan branch: no "
+    "Pin home and proof are fixed by dev/audit/rounds/round11/PLAN/ADR-011-survivor-pins.md (at {plan}): no "
     "design is owed. tests/guard_pins.py is a hot file: an open pull request that touches it lands first and this "
     "group rebases. {edges}"
 )

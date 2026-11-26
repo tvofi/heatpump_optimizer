@@ -9,8 +9,13 @@ functions are byte-identical to the baseline (same), differ (changed), are no
 longer defined under that name in that file (gone), or sit at module level
 (module: compare the patch text by hand). --ids lists the changed and gone ids.
 A fixer runs it at its own merge base: a changed or gone survivor is re-located
-by its patch text, never by its line. With two refs (a pull request's merge
-base and its head) the difference is what that pull request rewrites.
+by its patch text, never by its line.
+
+    python3 -I dev/audit/rounds/round11/PLAN/d3_fnstate.py D3-FOLD.json --between A B
+
+prints, per group, the survivors whose enclosing function text differs between
+A and B: with A a pull request's merge base with main and B its head, what
+that pull request rewrites (the after-edges of CHANGES-R5.md).
 """
 from __future__ import annotations
 
@@ -59,6 +64,17 @@ def main(argv: list[str]) -> int:
     only = argv[argv.index("--group") + 1] if "--group" in argv else None
     args = [a for i, a in enumerate(argv) if not a.startswith("--") and (i == 0 or argv[i - 1] != "--group")]
     fold = json.load(open(args[0]))
+    if "--between" in argv:
+        a, b = args[1], args[2]
+        total = 0
+        for group, entry in sorted(fold["groups"].items()):
+            hit = [r for r in entry["findings"] if r["fn"] != "<module>"
+                   and functions(a, r["file"]).get(r["fn"]) != functions(b, r["file"]).get(r["fn"])]
+            total += len(hit)
+            if hit:
+                print(f"{group}: {len(hit)} " + " ".join(sorted({r['fn'].split('.')[-1] for r in hit})))
+        print(f"total: {total}")
+        return 0
     for ref in args[1:]:
         total: collections.Counter = collections.Counter()
         for group, entry in sorted(fold["groups"].items()):
