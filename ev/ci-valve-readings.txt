@@ -1,0 +1,9 @@
+== mcp-github-get_job_logs-1795695998527-jz7u0y.txt
+2026-11-26T07:52:47.8822192Z   summer/1z/space/valve              RSS peak   124.0 MiB, attributable   0.4 MiB, traced   1.1 MiB (recorded 76 / 0 / 0.8)
+2026-11-26T07:52:47.8837330Z   FAIL the probed scenarios' memory peaks stay within their recorded budgets  [summer/1z/space/valve attributable RSS 0.4 MiB vs recorded 0.2 MiB (x1.5 headroom; probe 124.0 MiB over a 123.6 MiB baseline)]
+== mcp-github-get_job_logs-1795696018757-ey0cgp.txt
+2026-11-25T09:09:31.7686659Z   summer/1z/space/valve              RSS peak   120.3 MiB, attributable   0.1 MiB, traced   1.1 MiB (recorded 76 / 0 / 0.8)
+2026-11-25T09:09:31.7709222Z   FAIL the probed scenarios' memory peaks stay within their recorded budgets  [flat/1z/space traced peak 1.7 MiB vs recorded 0.9 MiB (x1.5); flat/2z/space traced peak 2.2 MiB vs recorded 0.9 MiB (x1.5); shoulder/1z/space traced peak 1.5 MiB vs recorded 0.9 MiB (x1.5); shoulder/2z/space traced peak 2.2 MiB vs recorded 0.9 MiB (x1.5); summer/2z/space/wood-two-tank traced
+== mcp-github-get_job_logs-1795696019528-ghr7nm.txt
+2026-11-26T06:29:34.0428825Z   summer/1z/space/valve              RSS peak   123.0 MiB, attributable   0.0 MiB, traced   1.1 MiB (recorded 76 / 0 / 0.8)
+2026-11-26T06:29:34.0443088Z   ok   the probed scenarios' memory peaks stay within their recorded budgets

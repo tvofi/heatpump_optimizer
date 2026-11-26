@@ -1,0 +1,7 @@
+functions extracted verbatim from tests/stress.py at head (AST), constants at their defaults 1.5/3.5
+e91329c2c27c record 0.2 threshold 0.3 {0.1: 'pass', 0.0: 'pass', 0.4: 'FAIL', 0.5: 'FAIL'}
+   stale-axes at probe peak 124.0 vs recorded 76.3: {0.1: [], 0.2: []}
+   stale-axes at probe peak 76.0 vs recorded 76.3: {0.1: [], 0.2: []}
+8d38554ab611 record 0.4 threshold 0.6 {0.1: 'pass', 0.0: 'pass', 0.4: 'pass', 0.5: 'pass'}
+   stale-axes at probe peak 124.0 vs recorded 76.3: {0.1: [], 0.2: []}
+   stale-axes at probe peak 76.0 vs recorded 76.3: {0.1: [('attributable RSS', 0.1, 0.4)], 0.2: []}
