@@ -10,3 +10,4 @@
 1795607224 DONE merge 033fe14f (round 2, pending-ci: gate) on probe/rev-3882-7e8df53a 7e2a50cf
 1795651788 INIT r11-rev-3882
 1795651876 HB alive
+1795652015 CKPT setup ok; delta review 033fe14f->49658957 FRESH-REVIEW snapshot d9a03f243b8c
