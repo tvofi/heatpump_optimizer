@@ -1,2 +1,3 @@
 1795735569 HB alive
 1795735593 CKPT found group delivered on main via #3871 (34c7a3f610) incl. block_ignored carry snapshot f420e556fc31
+1795735605 DONE blocked: group already delivered on main by #3871 (34c7a3f610); BLOCKED.md at handoff-wip c861fe62b1
