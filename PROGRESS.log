@@ -7,3 +7,4 @@
 1795671015 HB alive
 1795671171 CKPT mutants m1-m4 killed; twin+main-cancel checks ok at head snapshot 4749c48c4ab8
 1795671619 HB alive
+1795671943 CKPT full entities.py at head: 2779 pass; awaiting CI snapshot 802605979d67
