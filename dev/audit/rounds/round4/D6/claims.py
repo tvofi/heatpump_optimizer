@@ -51,99 +51,20 @@ against a document that is CORRECT.
     RESULT claims_false=0
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=97   (94 until R10-COMBI-TANK's combi rows on
-                                         the building table; 93 until R10-GENERIC-HEAT-CURVE's offset rows; 76 until #937's rows landed; 82
-                                         until #1067's solver half documented
-                                         the flow-curve lift option's default;
-                                         83 until #1067's silent-mode half
-                                         documented the derate's default; 84
-                                         until its frequency half documented
-                                         the two compressor Hz bounds, 86 as
-                                         further rows of that chain landed
-                                         unrecorded, 87 with the pre-fill
-                                         page's "Offer this pre-fill at
-                                         setup" -- a Boolean Default row and
-                                         the only one the diff between the
-                                         frequency merge and this re-record
-                                         adds; 88 with #1260's "Customize by
-                                         weekday" toggle -- an on/off Default
-                                         row whose seven hidden per-day
-                                         fields document no defaults; 89 with
-                                         #1495's mold-floor breach warning
-                                         margin, a NumberSelector Default row
-                                         on the Comfort and temperatures table;
-                                         92 with R10-USER-DOCS-FINAL, which
-                                         gives every options field a row of
-                                         its own under its page; 93 with
-                                         R10-FACTORY-RESET's "What to reset",
-                                         a select Default row on the Reset to
-                                         factory defaults table)
-    RESULT config_ranges_compared=104    (102 until R10-COMBI-TANK's effectiveness
-                                         and potable-volume Range rows; 101 until R10-GENERIC-HEAT-CURVE's band row; 76 until #937's rows landed; 86
-                                         until #1067's silent-mode half
-                                         documented the derate's range; 87
-                                         until its frequency half documented
-                                         the two compressor Hz bounds; 90 with
-                                         #1495's same mold-floor breach warning
-                                         margin, whose 0-5 °C Range row is the
-                                         only one this re-record adds; 92 with
-                                         R10-COP-PARTLOAD's part-load derate
-                                         Range row on the expert thermal-model
-                                         table; 101 with R10-USER-DOCS-FINAL's
-                                         per-field rows on the options pages)
-    RESULT arch_modules_on_disk=104      (103 until R11-OUTSIDE-ROOMS-3B's comfort_floor.py; 102 until R11-OWNER-FLOWCAP's flow_limit.py; 101 until R11-SEAM-cycle-solve's solve_gate.py; 99 until R11-SEAM-actuation-release's duty_ledger.py and number_restore.py; 98 until R11-SEAM-actuation-release's circulation.py; 96 until R11-OUTSIDE-ROOMS-P3's room_history.py and room_record.py; 95 until R11-OUTSIDE-ROOMS-P1's rooms.py; 94 until R11-OUTSIDE-HONEST-STARTS-RUNS's runs.py; 93 until #3616's slab_seed.py; 92 until R10-START-COUNTER-EDGES's running_signal.py; 91 until R10-ADVISOR-STEADY-START's whatif.py; 90 until R10-DUTY-SWITCH-PLANNER-PRICE's duty_legs.py; 89 until the supply-hold PR's supply_hold.py; 88 until R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py; 86 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 85 until R10-WHY-NOW-WIDGET's slot_drivers.py; 84 until R10-GRADE-DRIVERS's driving_grade.py; 83 until R10-ADVISOR-WHATIF's plan_slots.py; 82 until R10-HEAT-METER's heat_energy.py; 81 until R10-LEARNER-ETA's learner_progress.py; 80 until R10-ADVISOR's price_tiles.py; 79 until R10-DIAG-REPLAY's replay_doc.py; 78 until R10-PUMP-MODEL's plan_step.py; 77 until R10-N-log-flood's log_latch.py; 76 until R10-FAHRENHEIT's issues.py; 75 until the live-fix wave's early_cutoff.py; 74 until the live power clamp's draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
-                                         66 until R9 F2.5's batchmath.py;
-                                         65 until #1588's pump_arbiter.py; 64
-                                         until #1408's store.py;
-                                         architecture.md said 45; 56 until
-                                         #1067's learner half added
-                                         flow_lift.py, 57 until its
-                                         silent-mode half added silent_mode.py,
-                                         58 until its disinfection half added
-                                         disinfection.py, 59 until its
-                                         pre-fill half added
-                                         modbus_prefill.py and
-                                         device_prefill.py, 61 until
-                                         name_match.py, 62 until
-                                         prefill_offer.py, each of which the
-                                         module map
-                                         and the opening counts gained in the
-                                         same commit -- this header is an
-                                         ASSERTION tests/harness_headers.py
-                                         executes on every pull request, which
-                                         is true again only since #1148: the
-                                         marker sits at byte 5224 of a file
-                                         the discovery read its first 4000
-                                         bytes of, so nothing compared these
-                                         numbers to a run between 2026-09-17
-                                         and then)
-    RESULT arch_map_listed=104           (103 until R11-OUTSIDE-ROOMS-3B's comfort_floor.py; 102 until R11-OWNER-FLOWCAP's flow_limit.py; 101 until R11-SEAM-cycle-solve's solve_gate.py; 99 until R11-SEAM-actuation-release's duty_ledger.py and number_restore.py; 98 until R11-SEAM-actuation-release's circulation.py; 96 until R11-OUTSIDE-ROOMS-P3's room_history.py and room_record.py; 95 until R11-OUTSIDE-ROOMS-P1's rooms.py; 94 until R11-OUTSIDE-HONEST-STARTS-RUNS's runs.py; 93 until #3616's slab_seed.py; 92 until R10-START-COUNTER-EDGES's running_signal.py; 91 until R10-ADVISOR-STEADY-START's whatif.py; 90 until R10-DUTY-SWITCH-PLANNER-PRICE's duty_legs.py; 89 until the supply-hold PR's supply_hold.py; 88 until R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py; 86 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 84 until R10-GRADE-DRIVERS's driving_grade.py; 83 until R10-ADVISOR-WHATIF's plan_slots.py; 82 until R10-HEAT-METER's heat_energy.py; 81 until R10-LEARNER-ETA's learner_progress.py; 80 until R10-ADVISOR's price_tiles.py; 79 until R10-DIAG-REPLAY's replay_doc.py; 78 until R10-PUMP-MODEL's plan_step.py; 77 until R10-N-log-flood's log_latch.py; 76 until R10-FAHRENHEIT's issues.py; 75 until the live-fix wave's early_cutoff.py; 74 until the live power clamp's draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
-                                         66 until R9 F2.5's batchmath.py;
-                                         was 45; 11 were missing; 66 with
-                                         #1588's pump_arbiter.py added to
-                                         architecture.md's module map)
-    RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=36  (35 until R11-SEAM-actuation-release's number_restore.py; 34 until its circulation.py; 33 until R11-OUTSIDE-ROOMS-P3's room_record.py; 32 until R10-START-COUNTER-EDGES's running_signal.py; 31 until the supply-hold PR's supply_hold.py; 30 until R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py; 28 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 27 until the live-fix wave's early_cutoff.py imports
-                                         homeassistant.core at module level;
-                                         26 until R9-DBG-1's debugger.py imports
-                                         homeassistant.core at module level;
-                                         25 until R9-UX-4's notifier.py; was 21; 22 until #1588's
-                                         pump_arbiter.py imports
-                                         homeassistant.helpers.event at
-                                         module level; #1299's defrost
-                                         normalisation imports
-                                         homeassistant.util.dt at module
-                                         level, and architecture.md moved
-                                         with the census in the same
-                                         commit; 24 since round 9's F3.1:
-                                         away.py reads a typed return time
-                                         in homeassistant.util.dt's zone;
-                                         25 since round 9's F1.6:
-                                         accuracy.py reads
-                                         homeassistant.util.dt's
-                                         DEFAULT_TIME_ZONE for the
-                                         stored-instant rule's zone
-                                         argument)
+    RESULT config_defaults_compared=97
+    RESULT config_ranges_compared=104
+    RESULT arch_map_missing=0
+    RESULT arch_map_phantom=0
+    RESULT ha_importers_unnamed=0
+
+    The run also prints arch_modules_on_disk, arch_map_listed and
+    ha_module_level_importers, derived from the package on every run; this
+    header pins none of them (FG-1, 2026-11-26). Each moved with every
+    module-adding pull request, two such branches re-recorded it each from its
+    own tree, and git merged the two lines as text. What those counts guarded
+    is pinned as the three zeros above, and a derivation that read nothing
+    turns C32, C33 or C35 false, which claims_false=0 refuses. The history of
+    each line is in `git log -L` on this header, not in it.
 
 INSTRUMENTED SYMBOLS (driven, not read):
     heatpump_optimizer.{sensor,binary_sensor,button,climate,switch,datetime}
@@ -791,18 +712,6 @@ claim("C31", "docs/configuration.md",
 _disk = sorted(p.name for p in PKG.glob("*.py"))
 _map = re.search(r"## The module map\n\n```text\n(.*?)\n```", DOCS["architecture.md"], re.S).group(1)
 _listed = sorted(set(re.findall(r"([a-z_0-9]+\.py)", _map)))
-eq("C32", "docs/architecture.md", "45 modules", CMD,
-   int(re.search(r"(\d+) modules, of which", DOCS["architecture.md"]).group(1)),
-   len(_disk),
-   "the package holds {m} Python modules")
-claim("C33", "docs/architecture.md",
-      "the module map is the package's module list", CMD,
-      f"on disk={len(_disk)}, listed={len(_listed)}, "
-      f"missing={sorted(set(_disk) - set(_listed))}, "
-      f"phantom={sorted(set(_listed) - set(_disk))}",
-      "true" if set(_disk) == set(_listed) else "false",
-      f"{len(set(_disk) - set(_listed))} modules are absent from the map: "
-      + ", ".join(sorted(set(_disk) - set(_listed))))
 
 
 def _toplevel(body):
@@ -829,27 +738,46 @@ for _p in sorted(PKG.glob("*.py")):
             _hit |= bool(_n.module) and _n.module.split(".")[0] == "homeassistant"
     if _hit:
         _ha_importers.append(_p.name)
-# #939 re-truthed the boundary sentence ("Exactly ten modules import ..." ->
-# "21 of the 56 modules import ..."), so C34 reads the count the document
-# now states instead of the carried 10 the old sentence spelled out, and
-# C35's named set ends at the list's own full stop -- the `inputs` sentence
-# that follows is a different claim (the one function-level toucher), and
-# sweeping it in counts 22 names against 21 importers. The METRIC is
-# unchanged: the set of modules that import homeassistant at module level.
-_doc_n = re.search(
-    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level",
-    DOCS["architecture.md"])
+# FG-1 (2026-11-26) took the module counts out of architecture.md: they
+# moved with every module-adding pull request and merged as text into a
+# number neither branch derived. C32 reads the opening sentence's share
+# ("fewer than half of the modules"), C33 the map, C34 the boundary list's
+# own names, and no result carries a count. C35's named set ends at the
+# list's own full stop -- the `inputs` sentence that follows is a different
+# claim (the one function-level toucher). The METRIC is unchanged: the set
+# of modules that import homeassistant at module level.
 _doc_span = re.search(
-    r"\d+ of the \d+ modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    r"These modules\s+import `homeassistant` at module level:\s+(.*?)\.",
     DOCS["architecture.md"], re.S)
-_doc_named = sorted(
-    {f"{n}.py" for n in re.findall(r"`([a-z_]+)`", _doc_span.group(1))}
-)
-eq("C34", "docs/architecture.md:The Home Assistant boundary",
-   "the boundary sentence's count of modules importing `homeassistant` at "
-   "module level", CMD,
-   int(_doc_n.group(1)) if _doc_n else -1, len(_ha_importers),
-   "{m} modules import homeassistant at module level")
+_bound_names = re.findall(r"`([a-z_]+)`", _doc_span.group(1)) if _doc_span else []
+_doc_named = sorted({f"{n}.py" for n in _bound_names})
+_ha_minority = bool(_ha_importers) and 2 * len(_ha_importers) < len(_disk)
+_open_says = bool(re.search(
+    r"fewer than half of the modules import the\s+`homeassistant` package at "
+    r"module level", DOCS["architecture.md"]))
+claim("C32", "docs/architecture.md",
+      "fewer than half of the modules import the `homeassistant` package at "
+      "module level", CMD,
+      f"sentence present={_open_says}, the module-level importers are fewer "
+      f"than half the package={_ha_minority}",
+      "true" if _open_says and _ha_minority else "false",
+      "" if _ha_minority else "the module-level importers are not a minority "
+      "of the package's modules")
+claim("C33", "docs/architecture.md",
+      "the module map is the package's module list", CMD,
+      f"missing={sorted(set(_disk) - set(_listed))}, "
+      f"phantom={sorted(set(_listed) - set(_disk))}",
+      "true" if _disk and set(_disk) == set(_listed) else "false",
+      f"{len(set(_disk) - set(_listed))} modules are absent from the map: "
+      + ", ".join(sorted(set(_disk) - set(_listed))))
+_doc_dups = sorted({n for n in _bound_names if _bound_names.count(n) > 1})
+_doc_off_disk = sorted(set(_doc_named) - set(_disk))
+claim("C34", "docs/architecture.md:The Home Assistant boundary",
+      "the boundary sentence names each module once, and only modules on disk",
+      CMD, f"named twice={_doc_dups}, not on disk={_doc_off_disk}",
+      "true" if _bound_names and not _doc_dups and not _doc_off_disk else "false",
+      "" if not _doc_dups and not _doc_off_disk
+      else "the boundary list repeats or invents module names")
 claim("C35", "docs/architecture.md:The Home Assistant boundary",
       "the named modules are the complete set of module-level importers",
       CMD, f"named={_doc_named}, measured={_ha_importers}, "
@@ -1448,6 +1376,8 @@ print(f"RESULT claims_unverifiable={counts['unverifiable']} claims")
 print(f"RESULT arch_modules_on_disk={len(_disk)} modules")
 print(f"RESULT arch_map_listed={len(_listed)} modules")
 print(f"RESULT arch_map_missing={len(set(_disk) - set(_listed))} modules")
+print(f"RESULT arch_map_phantom={len(set(_listed) - set(_disk))} modules")
+print(f"RESULT ha_importers_unnamed={len(set(_ha_importers) - set(_doc_named))} modules")
 print(f"RESULT ha_module_level_importers={len(_ha_importers)} modules")
 print(f"RESULT config_defaults_compared={_def_n} rows")
 print(f"RESULT config_ranges_compared={_rng_n} rows")
