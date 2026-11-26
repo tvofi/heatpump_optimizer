@@ -56,6 +56,7 @@ from .const import (
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
     DEFAULT_TARGET_TEMP,
+    finite_float,
 )
 
 
@@ -81,8 +82,13 @@ def effective(
     one page over existing data, a service call carries one field, the climate
     slider carries one number — so a write that only touches one half of a pair
     can still create a contradiction with the stored other half.
+
+    A value that is not a finite number reads as ``default``, through the
+    entry's own numeric parse (``finite_float``): the migration repairs such a
+    stored value only when it stamps the version, so one written past it
+    (R11-LATE-P1-OPTIONS) would otherwise raise out of the rule judging it.
     """
-    return float(candidate.get(key, current.get(key, default)))
+    return finite_float(candidate.get(key, current.get(key, default)), float(default))
 
 
 def _pair_violations(
