@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/external_heat.py:blocking BOOLOP e613ca18",
+  "killed_by": "tests/features.py",
+  "old": "    return detector.suppressing and not ignore_effective(detector, ignored)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return detector.suppressing or not ignore_effective(detector, ignored)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

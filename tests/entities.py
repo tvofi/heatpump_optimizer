@@ -7376,6 +7376,27 @@ R.check(
     "suppression is reported separately from detection",
     heat.extra_state_attributes["suppressing_electric_dhw"] is True,
 )
+R.check(
+    "with the override switch off the sensor publishes no block_ignored key (#3862)",
+    "block_ignored" not in heat.extra_state_attributes,
+    str(sorted(heat.extra_state_attributes)),
+)
+# #3862: the switch on lifts the block; detection stays on and says so.
+_xh_ignored = next(
+    b for b in collect(binary_sensor, data={
+        **DATA,
+        "external_heat_suppressing": False,
+        "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if display_name("binary_sensor", b) == "External Heat Source"
+)
+R.check(
+    "with the override effective the sensor stays on, block_ignored true, nothing suppressed (#3862)",
+    _xh_ignored.is_on
+    and _xh_ignored.extra_state_attributes["block_ignored"] is True
+    and _xh_ignored.extra_state_attributes["suppressing_electric_dhw"] is False,
+    str(_xh_ignored.extra_state_attributes),
+)
 
 away = b_by_name["Away Mode"]
 R.check("away mode is reflected", away.is_on)
@@ -12040,7 +12061,50 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
+R.check(
+    "the switch platform adds the optimizer, away, boost, block and external-heat override switches",
+    len(switches) == 7,
+    str(len(switches)),
+)
+# #3862: the owner's external-heat block override; identity pinned, and its
+# state is boost's held flag, not a payload field.
+_xh_sw = next(
+    s for s in switches if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch keeps its unique id and object id (#3862)",
+    _xh_sw._attr_unique_id == f"{ENTRY.entry_id}_external_heat_ignore_block"
+    and _xh_sw.entity_id == "switch.heat_pump_optimizer_external_heat_ignore_block"
+    and display_name("switch", _xh_sw) == "External Heat Block Override",
+    f"{_xh_sw._attr_unique_id} {getattr(_xh_sw, 'entity_id', None)} {display_name('switch', _xh_sw)}",
+)
+R.check(
+    "the external-heat override switch is off and not effective on a fresh coordinator (#3862)",
+    _xh_sw.is_on is False
+    and _xh_sw.extra_state_attributes == {"block_ignored": False},
+    str(_xh_sw.extra_state_attributes),
+)
+asyncio.run(_xh_sw.async_turn_on())
+_xh_sw_on = _xh_sw.is_on
+asyncio.run(_xh_sw.async_turn_off())
+R.check(
+    "turning the external-heat override on and off moves boost's held flag (#3862)",
+    _xh_sw_on is True and _xh_sw.is_on is False
+    and _boost_mod.extheat_block_ignored(_xh_sw.coordinator) is False,
+    f"on={_xh_sw_on} off={_xh_sw.is_on}",
+)
+# The attribute reads the published flag, so an effective override reads True.
+_xh_sw_eff = next(
+    s for s in collect(switch_mod, data={
+        **DATA, "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)",
+    _xh_sw_eff.extra_state_attributes == {"block_ignored": True},
+    str(_xh_sw_eff.extra_state_attributes),
+)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -12269,10 +12333,12 @@ _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
                 switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
-                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch,
+                switch_mod.ExternalHeatIgnoreBlockSwitch)
 }
 for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
-                 "BlockDhwSwitch", "BlockSpaceSwitch"):
+                 "BlockDhwSwitch", "BlockSpaceSwitch",
+                 "ExternalHeatIgnoreBlockSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -13637,6 +13703,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "weather_forecast_available"
     }),
     "OptimizerEnableSwitch": frozenset({"mode", "optimization_status"}),
+    "ExternalHeatIgnoreBlockSwitch": frozenset({"block_ignored"}),
     "OutdoorTempSensor": frozenset({"source"}),
     "PVSurplusSensor": frozenset({
         "forecast_production_kwh", "forecast_surplus_kwh",
@@ -42874,6 +42941,8 @@ _egb3_resolve = {
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
     "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
+    # #3862: a producer that returns its owner's view whole (a listed source only).
+    "extheat.view(self._external_heat, boost.extheat_block_ignored(self))": ("external_heat", "view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
 
@@ -42888,6 +42957,8 @@ def _egb3_energy():
 
 def _egb3_enumerate(fn, unresolved):
     keys, merges = _egb3_top(fn)
+    merges += [n.value for n in ast.walk(fn) if isinstance(n, ast.Return)
+               and isinstance(n.value, ast.Call) and ast.unparse(n.value) in _egb3_resolve]
     for m in merges:
         src = ast.unparse(m)
         if src in _egb3_resolve:
