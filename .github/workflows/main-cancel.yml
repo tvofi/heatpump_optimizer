@@ -7,9 +7,10 @@
 # sat queued past `pause_queued_min` (ci_pause's signal: GitHub is not
 # granting runners), and cancels nothing for a light push.
 #
-# Not a job of ci.yml: its workflow-level `CI-main` group holds this push's
-# run pending until the older one finishes, so no job of it could cancel
-# that run. No `concurrency:` here: two pushes' runs overlap, and the older
+# Not a job of ci.yml: a canceller there runs only once its run starts, and
+# every main push run of ci.yml starts at once (a group per run; CI-5's
+# `CI-main` group is retired), so this workflow is the one place main
+# supersession is decided, independent of ci.yml's runners. No `concurrency:` here: two pushes' runs overlap, and the older
 # push's finds a newer run listed and cancels nothing. Fail-soft: the cancel
 # is an optimisation, never a gate -- the step always exits 0.
 

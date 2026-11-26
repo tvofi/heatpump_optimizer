@@ -866,7 +866,7 @@ jobs:
             BASE=$(git rev-parse HEAD)
             # The range base (#3885) where the prelude read one: the head of the
             # last push run whose units ran, so the entry it saved. HEAD^1's run
-            # may have been replaced while pending (CI-5) and saved none.
+            # may have been cancelled as superseded (main-cancel.yml) and saved none.
             RESTORE_BASE=$(git rev-parse "${RANGE_BASE:-HEAD^1}")
           else
             BASE=$(git merge-base origin/main HEAD)
