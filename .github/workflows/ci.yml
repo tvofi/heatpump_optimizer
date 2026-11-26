@@ -110,6 +110,10 @@ jobs:
       light: ${{ steps.derive.outputs.light }}
       stand_down: ${{ steps.derive.outputs.stand_down }}
       range_base: ${{ steps.derive.outputs.range_base }}
+      # R11-CI-CASE-SELECT P2 (#3885): the fast lane's shards and the plan assigning every script
+      # to one of them (tools/ci/shards.py); both empty: one unsharded `fast (3.14)` job.
+      fast_shards: ${{ steps.derive.outputs.fast_shards }}
+      fast_plan: ${{ steps.derive.outputs.fast_plan }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -212,6 +216,8 @@ jobs:
       light: ${{ needs.prelude.outputs.light }}
       stand_down: ${{ needs.prelude.outputs.stand_down }}
       range_base: ${{ needs.prelude.outputs.range_base }}
+      fast_shards: ${{ needs.prelude.outputs.fast_shards }}
+      fast_plan: ${{ needs.prelude.outputs.fast_plan }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
@@ -382,6 +388,8 @@ jobs:
           # What the prelude ran here: an edit run beside an unfinished code run
           # runs no pr-contract (prelude.defer_to, R10-CI-SLIM C3).
           WORKSET: ${{ needs.prelude.outputs.workset }}
+          # The shards the prelude planned: each `tests / fast (3.14, K/N)` is owed (gate.fast_names).
+          FAST_SHARDS: ${{ needs.prelude.outputs.fast_shards }}
         run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
 
   # gate-sweep.yml's `workflow_run` never fires for a run whose actor is the bot:

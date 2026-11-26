@@ -2344,6 +2344,7 @@
    "tools/ci/prelude.py",
    "tools/ci/ruleset_cutover.py",
    "tools/ci/selftest_scope.py",
+   "tools/ci/shards.py",
    "tools/ci/sweep.py",
    "tools/ci/sweep_selftest.py",
    "tools/coverage/coverage_tree.sh",
@@ -5012,6 +5013,10 @@
    "dev/audit/harnesses/r11_comments_ratchet_mutants.py",
    "dev/audit/harnesses/r11_comments_ratchet_reconcile.py",
    "dev/audit/harnesses/r11_denominator_planted.py",
+   "dev/audit/harnesses/r11_fast_shards_balance.py",
+   "dev/audit/harnesses/r11_fast_shards_mutants.py",
+   "dev/audit/harnesses/r11_fast_shards_random.sh",
+   "dev/audit/harnesses/r11_fast_shards_readers.py",
    "dev/audit/harnesses/r11_honest_starts_runs.py",
    "dev/audit/harnesses/r11_kernel_step_agree.py",
    "dev/audit/harnesses/r11_main_cancel_mutants.py",
@@ -6334,7 +6339,7 @@
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 8.3
+   "seconds": 19.8
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
@@ -6378,7 +6383,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 1338.1
+   "seconds": 2691.9
   },
   "tests/env_drift.py": {
    "rc": 0,
@@ -6410,7 +6415,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 159.7
+   "seconds": 320.0
   },
   "tests/layout.py": {
    "rc": 0,
