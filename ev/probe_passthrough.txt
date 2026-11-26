@@ -1,0 +1,4 @@
+entry {'min_temp': nan, 'max_temp': inf}
+attr {}
+bigint _number True coord {'lat': None}
+base coord bigint raises OverflowError('int too large to convert to float')
