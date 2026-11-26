@@ -25,3 +25,4 @@
 1795665985 HB alive
 1795666180 DONE blocked 3ec83def merge-resolution: deployment_shape.py lost '184 of the 561' marker; verdict e676163b on probe/rev-3872-268d1e25
 1795677615 HB alive
+1795677769 CKPT delta read; 190 re-measured; entities runs started snapshot 46deb07d2da8
