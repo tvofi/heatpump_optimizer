@@ -13,3 +13,4 @@
 1795673551 HB alive
 1795673669 CKPT static/grows/mutants/merge-tree done; polling classify snapshot fcd25e22f073
 1795674155 HB alive
+1795674572 DONE blocked fe2b516c ci-red: tests/closures UNDER-SCOPED entities.py over tools/ci/shards.py; verdict 17af4c65 on probe/rev-3902-575416be
