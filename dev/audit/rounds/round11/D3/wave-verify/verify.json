@@ -190,6 +190,15 @@
    ],
    "findings": 0,
    "votes": {}
+  },
+  {
+   "stage": 17,
+   "boxes": [
+    "D3-g46-h",
+    "D3-g47-h"
+   ],
+   "findings": 0,
+   "votes": {}
   }
  ],
  "votes": [
