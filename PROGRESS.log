@@ -54,3 +54,4 @@
 1795686714 DONE blocked 724cef08 main-conflict (claims.py, deployment_shape.py vs origin/main e91329c2); probe ref holds an earlier fire's merge verdict d7a47553, overwrite refused
 1795699082 HB alive
 1795699273 CKPT delta reviewed: unions confirmed, no SysIdConfig.enabled reader, no budget rise; running claims/structure/deployment_shape snapshot 0f3dcc023d19
+1795699342 CKPT verdict pushed: merge 60076fe6 at probe/rev-3835-e3ce36c5 3ca3bb1a snapshot 792826552819
