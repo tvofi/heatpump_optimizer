@@ -1,0 +1,47 @@
+diff --git a/tests/closures.json b/tests/closures.json
+index 10d2df2faa..c84cf9bf5b 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -951,6 +951,7 @@
+    "custom_components/heatpump_optimizer/runs.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/services.py",
++   "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "custom_components/heatpump_optimizer/silent_mode.py",
+    "custom_components/heatpump_optimizer/slab_seed.py",
+@@ -2306,6 +2307,7 @@
+    "tools/ci/prelude.py",
+    "tools/ci/ruleset_cutover.py",
+    "tools/ci/selftest_scope.py",
++   "tools/ci/shards.py",
+    "tools/ci/sweep.py",
+    "tools/ci/sweep_selftest.py",
+    "tools/coverage/coverage_tree.sh",
+@@ -6256,7 +6258,7 @@
+   },
+   "tests/block_duty.py": {
+    "rc": 0,
+-   "seconds": 8.3
++   "seconds": 19.8
+   },
+   "tests/boost_drift_replay.py": {
+    "rc": 0,
+@@ -6300,7 +6302,7 @@
+   },
+   "tests/entities.py": {
+    "rc": 0,
+-   "seconds": 1338.1
++   "seconds": 2691.9
+   },
+   "tests/env_drift.py": {
+    "rc": 0,
+@@ -6332,7 +6334,7 @@
+   },
+   "tests/harness_headers.py": {
+    "rc": 0,
+-   "seconds": 159.7
++   "seconds": 320.0
+   },
+   "tests/layout.py": {
+    "rc": 0,

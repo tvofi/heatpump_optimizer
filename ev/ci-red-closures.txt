@@ -1,0 +1,6 @@
+tests / closures, job 139896056658 (run 45813808385) at eead33b0ac600ce4f6ef250ba47166fefe8e0402, tail:
+2026-11-26T13:07:05.2902039Z 1 closure(s) are stale. Re-derive the named script:
+2026-11-26T13:07:05.2902689Z     ./tests/derive_closures.sh --single <script>
+2026-11-26T13:07:05.2977833Z ##[error]Process completed with exit code 1.
+classify at 13:2x UTC: RED eead33b0ac600ce4f6ef250ba47166fefe8e0402 pending: none red: gate (rc 1)
+Bot repair: 98c1e9dff262a71ce3c5285c790b4b6173dd16a9 (github-actions[bot], 13:07:33Z, "ci: re-record closures"), parent eead33b0; adds tools/ci/shards.py to tests/entities.py's closure (see autofix-closures.diff).
