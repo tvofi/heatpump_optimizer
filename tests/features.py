@@ -92150,6 +92150,49 @@ R.check(
     _ml_fut_duty == "space" and _ml_now_duty == "dhw",
     f"{_ml_fut_duty} {_ml_now_duty}",
 )
+# The minimum legs keep only a single duty: idle and an unknown duty pass a young
+# hot-water leg through (#3869 review, round 4: each bound below was unpinned).
+_ml_young = _ds_mod._Record(None, None, leg=(_ML_D, _DS_T0, _ML_H))
+_ml_space_plan = _ds_legs.plan_legs([1.0, 1.0], [0.0, 0.0])
+_ml_pass = [_ds_mod._kept_leg(_ml_young, wanted, _DS_T0 + timedelta(minutes=2), _ml_rule(10, 10), _ml_space_plan,
+                              _DS_T0) for wanted in ("idle", None, "space")]
+R.check(
+    "a 2-min hot-water leg under a 10-min minimum passes idle and an unknown duty through unchanged; "
+    "null control, it holds against heating",
+    _ml_pass == ["idle", None, "dhw"],
+    str(_ml_pass),
+)
+# The hot-water minimum's two ends: a leg entered this instant is held, and one
+# exactly the minimum old is not.
+_ml_ends = [_ds_mod._kept_leg(_ml_young, "space", _DS_T0 + timedelta(minutes=m), _ml_rule(0, 10), _ml_space_plan,
+                              _DS_T0) for m in (0, 10)]
+R.check(
+    "a hot-water leg is held from the instant it starts (age 0) and released when exactly its 10-min minimum old",
+    _ml_ends == ["dhw", "space"],
+    str(_ml_ends),
+)
+# Entering heating needs the plan to keep it at least the heating minimum: a
+# space-first step of 10 min heating keeps exactly 10 and is entered; one of 9 is not.
+_ml_old = _ds_mod._Record(None, None, leg=(_ML_D, _DS_T0 - timedelta(minutes=30), _ML_H))
+_ml_enter = [_ds_mod._kept_leg(_ml_old, "space", _DS_T0, _ml_rule(10, 10),
+                               _ds_legs.plan_legs([space], [1.0], rule=_ds_legs.LegRule("space", None)), _DS_T0)
+             for space in (2.0, 1.5)]
+R.check(
+    "a heating leg the plan keeps exactly the 10-min heating minimum is entered; null control, one kept 9 min is "
+    "not, and the 30-min-old hot-water leg stays",
+    _ml_enter == ["space", "dhw"],
+    str(_ml_enter),
+)
+# Heating's share of a step never goes below 0: a step whose heating leg the
+# hot-water minimum shortened from 10 to 5 min (1/3 of it moved) and that is
+# charged a stop's lost time of 0.8 of a step keeps 0, not -0.13.
+_ml_avail = [float(_ds_legs.availability([2.0], [1.0], lost, rule=_ml_rule(0, 10))[0]) for lost in (0.8, 0.2)]
+R.check(
+    "a step that loses 1/3 to the hot-water minimum and 0.8 to a stop leaves heating a share of 0, never negative; "
+    "null control, a 0.2 stop leaves 1 - 1/3 - 0.2",
+    _ml_avail[0] == 0.0 and abs(_ml_avail[1] - (1.0 - 5.0 / 15.0 - 0.2)) < 1e-12,
+    str(_ml_avail),
+)
 
 
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
