@@ -1,0 +1,12 @@
+{
+ "key": "473508040d23cc21",
+ "box": "D3-g02",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_473508040d23cc21.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT step5_heat_only_4_7_baseline=turn_on\nRESULT step5_heat_only_4_7_mutant=turn_off\nRESULT step5_heat_only_4_7_moved=1 count\nRESULT step6_heat_only_4_7_baseline=turn_on\nRESULT step6_heat_only_4_7_mutant=turn_off\nRESULT step6_heat_only_4_7_moved=1 count\nRESULT step10_heat_only_step0_baseline=turn_off\nRESULT step10_heat_only_step0_mutant=turn_on\nRESULT step10_heat_only_step0_moved=1 count\nRESULT step0_null_baseline=turn_off\nRESULT step0_null_mutant=turn_off\nRESULT step0_null_moved=0 count\nRESULT plan_in_future_clamp_baseline=turn_on\nRESULT plan_in_future_clamp_mutant=turn_on\nRESULT plan_in_future_clamp_moved=0 count\nRESULT all_off_null_baseline=turn_off\nRESULT all_off_null_mutant=turn_off\nRESULT all_off_null_moved=0 count\nRESULT cold_rail_null_baseline=turn_on\nRESULT cold_rail_null_mutant=turn_on\nRESULT cold_rail_null_moved=0 count\nRESULT inputs_moved=3 count of 7\nRESULT thread_factor=1.000\nRESULT load1=96.12\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 10.1,
+  "load1": 96.11669921875
+ }
+}

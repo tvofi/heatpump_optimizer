@@ -1,0 +1,12 @@
+{
+ "key": "a1576c7241b67401",
+ "box": "D3-g14",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_a1576c7241b67401.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT suppressed_baseline=1\nRESULT suppressed_mutant=0\nRESULT step0_kw_baseline=0.000000 kW\nRESULT step0_kw_mutant=3.200000 kW\nRESULT null_delta_kw=0.000000 kW\n",
+  "stderr": "",
+  "wall_s": 9.7,
+  "load1": 89.3896484375
+ }
+}

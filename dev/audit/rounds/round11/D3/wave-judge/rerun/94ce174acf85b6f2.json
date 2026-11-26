@@ -1,0 +1,12 @@
+{
+ "key": "94ce174acf85b6f2",
+ "box": "D3-g41",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_94ce174acf85b6f2.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT amb90_cop_m2_baseline=np.float64(1.6275000000000002)\nRESULT amb90_cop_m2_mutant=np.float64(2.44125)\nRESULT amb90_cop_m2_scalar=1.6275000000000002\nRESULT amb90_moved=11 count (of 12)\nRESULT amb90_parity_breaks_baseline=0 count\nRESULT amb90_parity_breaks_mutant=11 count\nRESULT amb90_finite_hum_null_moved=0 count\nRESULT amb_none_cop_m2_baseline=np.float64(2.44125)\nRESULT amb_none_cop_m2_mutant=np.float64(2.44125)\nRESULT amb_none_cop_m2_scalar=2.44125\nRESULT amb_none_moved=0 count (of 12)\nRESULT amb_none_parity_breaks_baseline=0 count\nRESULT amb_none_parity_breaks_mutant=0 count\nRESULT amb_none_finite_hum_null_moved=0 count\nRESULT thread_factor=0.119 ratio\nRESULT load1=57.44\nRESULT swapins=na count\n",
+  "stderr": "",
+  "wall_s": 3.1,
+  "load1": 56.84765625
+ }
+}

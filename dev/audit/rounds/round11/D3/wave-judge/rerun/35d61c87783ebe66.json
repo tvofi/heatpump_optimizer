@@ -1,0 +1,12 @@
+{
+ "key": "35d61c87783ebe66",
+ "box": "D3-g16",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_35d61c87783ebe66.py",
+ "run": {
+  "rc": 0,
+  "stdout": "# headline: baseline (due, hour, step)=(False, None, None) mutant=(True, 20.0, 20)\nRESULT cycle_placed_baseline=0 count\nRESULT cycle_placed_mutant=1 count\nRESULT mutant_step_price_known=0\n# input all_known: baseline=(True, 20.0, 20) mutant=(True, 20.0, 20)\n# input known_None_fresh_optimizer: baseline=(True, 20.0, 20) mutant=(True, 20.0, 20)\n# input cheap_step_in_known_half: baseline=(True, 5.0, 5) mutant=(True, 5.0, 5)\nRESULT null_inputs_moved=0 of 3 (-)\nRESULT thread_factor=1.000\nRESULT load1=88.70\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 7.9,
+  "load1": 88.69580078125
+ }
+}

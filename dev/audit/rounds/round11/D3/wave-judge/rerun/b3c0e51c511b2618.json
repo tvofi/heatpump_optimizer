@@ -1,0 +1,12 @@
+{
+ "key": "b3c0e51c511b2618",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_b3c0e51c511b2618.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_kw=0.2 kW\nRESULT mutant_kw=0.1 kW\nRESULT baseline_kw_cop0=0.2 kW\nRESULT mutant_kw_cop0=0 kW\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=64.51\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 4.0,
+  "load1": 64.51171875
+ }
+}

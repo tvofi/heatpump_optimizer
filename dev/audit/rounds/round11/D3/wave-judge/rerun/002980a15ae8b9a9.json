@@ -1,0 +1,12 @@
+{
+ "key": "002980a15ae8b9a9",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_002980a15ae8b9a9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT surplus0_meter_baseline=2.6000 kW  surplus_sum=11.3200 forecast_production_kwh=3.63\nRESULT surplus0_meter_mutant=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88\nRESULT surplus0_meter_over_peak_baseline=5.6000 kW  surplus_sum=14.3200 forecast_production_kwh=4.38\nRESULT surplus0_meter_over_peak_mutant=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88\nRESULT surplus0_nometer_baseline=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88\nRESULT surplus0_nometer_mutant=0.0000 kW  surplus_sum=8.7200 forecast_production_kwh=2.88\nRESULT thread_factor=1.000\nRESULT load1=137.17\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 7.8,
+  "load1": 137.1748046875
+ }
+}

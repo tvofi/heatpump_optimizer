@@ -1,0 +1,12 @@
+{
+ "key": "104db258fed59c2d",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_104db258fed59c2d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_prices=[5e-07, 1.5e-06] mean=1e-06 ratio=1.0000\nRESULT calls_tie_baseline=0 evidence_delta=0.0\nRESULT calls_tie_mutant=1 evidence_delta=-0.007292\nRESULT calls_ordinary_baseline=1 evidence_delta=-0.007292\nRESULT calls_ordinary_mutant=1 evidence_delta=-0.007292\nRESULT calls_zero_baseline=0 evidence_delta=0.0\nRESULT calls_zero_mutant=0 evidence_delta=0.0\nRESULT thread_factor=1.000\nRESULT load1=135.96\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 9.8,
+  "load1": 134.76123046875
+ }
+}

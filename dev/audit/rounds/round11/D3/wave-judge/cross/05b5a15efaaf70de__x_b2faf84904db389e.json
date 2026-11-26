@@ -1,0 +1,9 @@
+{
+ "a": "b2faf84904db389e",
+ "b": "05b5a15efaaf70de",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:677",
+ "a_new": "rate = min((float(rate)), high)",
+ "b_new": "rate = (max(float(rate), low))",
+ "replacements": 0,
+ "status": "not expressible"
+}

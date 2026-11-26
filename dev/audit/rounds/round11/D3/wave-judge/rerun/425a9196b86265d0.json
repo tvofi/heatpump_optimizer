@@ -1,0 +1,12 @@
+{
+ "key": "425a9196b86265d0",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_425a9196b86265d0.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT behaviour_differs_default_idle=0\nRESULT offloop_jobs_default_idle_baseline=0 offloop_jobs_default_idle_mutant=0\nRESULT behaviour_differs_default_done=0\nRESULT offloop_jobs_default_done_baseline=0 offloop_jobs_default_done_mutant=0\nRESULT behaviour_differs_default_aborted=0\nRESULT offloop_jobs_default_aborted_baseline=0 offloop_jobs_default_aborted_mutant=0\nRESULT behaviour_differs_default_armed=0\nRESULT offloop_jobs_default_armed_baseline=0 offloop_jobs_default_armed_mutant=0\nRESULT behaviour_differs_rooms_idle=0\nRESULT offloop_jobs_rooms_idle_baseline=0 offloop_jobs_rooms_idle_mutant=1\nRESULT behaviour_differs_rooms_done=0\nRESULT offloop_jobs_rooms_done_baseline=0 offloop_jobs_rooms_done_mutant=1\nRESULT behaviour_differs_rooms_aborted=0\nRESULT offloop_jobs_rooms_aborted_baseline=0 offloop_jobs_rooms_aborted_mutant=1\nRESULT behaviour_differs_rooms_armed=0\nRESULT offloop_jobs_rooms_armed_baseline=1 offloop_jobs_rooms_armed_mutant=1\nRESULT inputs_tried=default_idle default_done default_aborted default_armed rooms_idle rooms_done rooms_aborted rooms_armed\nRESULT thread_factor=1.000\nRESULT load1=132.46\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 9.9,
+  "load1": 132.4580078125
+ }
+}

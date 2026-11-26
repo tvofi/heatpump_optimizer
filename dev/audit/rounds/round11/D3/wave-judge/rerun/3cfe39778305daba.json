@@ -1,0 +1,12 @@
+{
+ "key": "3cfe39778305daba",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_3cfe39778305daba.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT calls_tie_baseline=1 evidence_delta=-0.007292 heating_kwh=1.0\nRESULT calls_tie_mutant=0 evidence_delta=0.0 heating_kwh=1.0\nRESULT calls_kwh075_baseline=0 evidence_delta=0.0 heating_kwh=0.75\nRESULT calls_kwh075_mutant=0 evidence_delta=0.0 heating_kwh=0.75\nRESULT calls_kwh150_baseline=1 evidence_delta=-0.007292 heating_kwh=1.5\nRESULT calls_kwh150_mutant=1 evidence_delta=-0.007292 heating_kwh=1.5\nRESULT calls_tie_split_baseline=1 evidence_delta=-0.007292 heating_kwh=1.0\nRESULT calls_tie_split_mutant=0 evidence_delta=0.0 heating_kwh=1.0\nRESULT thread_factor=1.000\nRESULT load1=134.76\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 9.8,
+  "load1": 132.4580078125
+ }
+}

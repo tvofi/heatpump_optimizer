@@ -1,0 +1,12 @@
+{
+ "key": "65175bb211f70f26",
+ "box": "D3-g10",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_65175bb211f70f26.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT none_baseline=(infos,report,refreshes)(1, None, 1)\nRESULT none_mutant=(infos,report,refreshes)(0, None, 1)\nRESULT null_moved=0 count (worker returns a report)\nRESULT probe_cpu_s=0.01 s provisional\nRESULT thread_factor=0.999\nRESULT load1=137.19\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 11.3,
+  "load1": 137.18603515625
+ }
+}

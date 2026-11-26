@@ -1,0 +1,12 @@
+{
+ "key": "3e68dcd55f9567e5",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e68dcd55f9567e5.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT temperature_lo_-70_baseline=-70.0\nRESULT temperature_lo_-70_mutant=None\nRESULT temperature_hi_70_baseline=70.0\nRESULT temperature_hi_70_mutant=70.0\nRESULT temperature_mid_0_baseline=0.0\nRESULT temperature_mid_0_mutant=0.0\nRESULT wind_speed_lo_0_baseline=0.0\nRESULT wind_speed_lo_0_mutant=None\nRESULT wind_speed_hi_100_baseline=100.0\nRESULT wind_speed_hi_100_mutant=100.0\nRESULT wind_speed_mid_50_baseline=50.0\nRESULT wind_speed_mid_50_mutant=50.0\nRESULT precipitation_lo_0_baseline=0.0\nRESULT precipitation_lo_0_mutant=None\nRESULT precipitation_hi_1000_baseline=1000.0\nRESULT precipitation_hi_1000_mutant=1000.0\nRESULT precipitation_mid_500_baseline=500.0\nRESULT precipitation_mid_500_mutant=500.0\nRESULT humidity_lo_0_baseline=0.0\nRESULT humidity_lo_0_mutant=None\nRESULT humidity_hi_100_baseline=100.0\nRESULT humidity_hi_100_mutant=100.0\nRESULT humidity_mid_50_baseline=50.0\nRESULT humidity_mid_50_mutant=50.0\nRESULT solar_irradiance_lo_0_baseline=0.0\nRESULT solar_irradiance_lo_0_mutant=None\nRESULT solar_irradiance_hi_2000_baseline=2000.0\nRESULT solar_irradiance_hi_2000_mutant=2000.0\nRESULT solar_irradiance_mid_1000_baseline=1000.0\nRESULT solar_irradiance_mid_1000_mutant=1000.0\nRESULT native_solar_irradiance_lo_0_baseline=0.0\nRESULT native_solar_irradiance_lo_0_mutant=None\nRESULT native_solar_irradiance_hi_2000_baseline=2000.0\nRESULT native_solar_irradiance_hi_2000_mutant=2000.0\nRESULT native_solar_irradiance_mid_1000_baseline=1000.0\nRESULT native_solar_irradiance_mid_1000_mutant=1000.0\nRESULT fields_x_bounds_moved=6 count\nRESULT thread_factor=1.000\nRESULT load1=105.25\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.4,
+  "load1": 105.24658203125
+ }
+}

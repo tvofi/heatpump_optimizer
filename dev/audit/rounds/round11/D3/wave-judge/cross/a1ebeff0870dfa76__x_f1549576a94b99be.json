@@ -1,0 +1,16 @@
+{
+ "a": "f1549576a94b99be",
+ "b": "a1ebeff0870dfa76",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:784",
+ "a_new": "if False:",
+ "b_new": "if need >= boost_top:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT boost_top=60.0 C\nRESULT tie_inputs_tried=601 count\nRESULT tie_hits=16 count\nRESULT moved_near_tie=300 count\nRESULT moved_under_tie=0 count\nRESULT tie_draw_kw=7.246988794418304\nRESULT tie_runup_steps_baseline=6 count\nRESULT tie_runup_steps_mutant=6 count\nRESULT tie_ceiling_step39_baseline=60.0 C  tie_ceiling_step39_mutant=60.0 C\nRESULT tie_requirement_step39_baseline=60.0000 C  mutant=60.0000 C\nRESULT moved_random=0 count\nRESULT sweep_configs_with_ties=16/30 count\nRESULT sweep_ties_moved=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=57.56\nRESULT swapins=0 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

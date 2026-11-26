@@ -1,0 +1,12 @@
+{
+ "key": "a4f4c88e7480a514",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a4f4c88e7480a514.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_cost_baseline=29.00000000\nRESULT tie_cost_mutant=28.99999600\nRESULT moved=1 count\nRESULT null_delta=0 count\nRESULT plan_predicted_cost_baseline=10.72234231\nRESULT plan_predicted_cost_mutant=10.72234229\nRESULT plan_maxabs_diff_kw=0.000000 kW\nRESULT thread_factor=1.000\nRESULT load1=49.86\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 6.6,
+  "load1": 49.47119140625
+ }
+}

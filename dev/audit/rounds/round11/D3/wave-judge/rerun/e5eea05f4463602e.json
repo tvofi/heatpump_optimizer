@@ -1,0 +1,12 @@
+{
+ "key": "e5eea05f4463602e",
+ "box": "D3-g31",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_e5eea05f4463602e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT pull_prices_401_html_body verdict baseline=reauth mutant=raised:ContentTypeError\nRESULT pull_prices_403_html_body verdict baseline=reauth mutant=raised:ContentTypeError\nRESULT pull_prices_502_html_body verdict baseline=fail mutant=raised:ContentTypeError\nRESULT pull_prices_500_json_errors verdict baseline=fail mutant=fail\nRESULT pull_prices_401_json_errors verdict baseline=reauth mutant=reauth\nRESULT pull_prices_200_no_homes(null) verdict baseline=fail mutant=fail\nRESULT cases_moved=3 count (of 6)\nRESULT contenttypeerror_is_clienterror=1\nRESULT thread_factor=1.000\nRESULT load1=37.83\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.8,
+  "load1": 37.82568359375
+ }
+}

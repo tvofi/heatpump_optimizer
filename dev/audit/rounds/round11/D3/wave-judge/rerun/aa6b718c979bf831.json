@@ -1,0 +1,12 @@
+{
+ "key": "aa6b718c979bf831",
+ "box": "D3-g10",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_aa6b718c979bf831.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT weather_baseline=(warnings,infos,debugs,outage_cycles,stale)(1, 1, 1, 0, False)\nRESULT weather_mutant=(warnings,infos,debugs,outage_cycles,stale)(0, 1, 2, 0, False)\nRESULT state_moved=0 count (outage counter and staleness)\nRESULT null_moved=0 count (null sequence ('recover',))\nRESULT probe_cpu_s=0.01 s provisional\nRESULT thread_factor=1.000\nRESULT load1=139.55\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 11.9,
+  "load1": 139.552734375
+ }
+}

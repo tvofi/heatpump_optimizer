@@ -1,0 +1,12 @@
+{
+ "key": "355c3d7dd36a1b90",
+ "box": "D3-g02",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_355c3d7dd36a1b90.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT delta6_exact_cool_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_cool_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_cool_moved=1 count\nRESULT delta6_exact_warm_baseline_scale=0.99 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_warm_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_warm_moved=1 count\nRESULT delta6_exact_flat_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_flat_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_flat_moved=1 count\nRESULT delta6_exact_two_zone_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_two_zone_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta6_exact_two_zone_moved=1 count\nRESULT delta5p9_null_baseline_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta5p9_null_mutant_scale=1.0 samples=0 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta5p9_null_moved=0 count\nRESULT delta26_null_baseline_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta26_null_mutant_scale=1.01 samples=1 cusum_stat=0.0 tripped=0 saves=0 returned=True interval=1\nRESULT delta26_null_moved=0 count\nRESULT inputs_moved=4 count of 6\nRESULT thread_factor=1.000\nRESULT load1=99.00\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 18.4,
+  "load1": 105.806640625
+ }
+}

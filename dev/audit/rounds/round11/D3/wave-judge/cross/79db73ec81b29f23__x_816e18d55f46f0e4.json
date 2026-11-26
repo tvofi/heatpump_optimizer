@@ -1,0 +1,16 @@
+{
+ "a": "816e18d55f46f0e4",
+ "b": "79db73ec81b29f23",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9352",
+ "a_new": "if False:",
+ "b_new": "if p_max < 0.1:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT caps_p0.1_baseline=None\nRESULT caps_p0.1_mutant=[0.06, 0.06]\nRESULT null_delta=1 count\nRESULT thread_factor=1.000\nRESULT load1=126.56\nRESULT swapins=-1 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

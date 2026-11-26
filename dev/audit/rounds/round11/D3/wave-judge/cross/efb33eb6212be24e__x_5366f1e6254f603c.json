@@ -1,0 +1,9 @@
+{
+ "a": "5366f1e6254f603c",
+ "b": "efb33eb6212be24e",
+ "site": "custom_components/heatpump_optimizer/defrost.py:392",
+ "a_new": "if delivered_ratio < 0 or delivered_ratio > 3.0:",
+ "b_new": "if delivered_ratio <= 0 or delivered_ratio >= 3.0:",
+ "replacements": 0,
+ "status": "not expressible"
+}

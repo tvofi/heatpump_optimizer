@@ -1,0 +1,12 @@
+{
+ "key": "4e5a67b907d13871",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_4e5a67b907d13871.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT dhw_steps_at_0p1=22 count\nRESULT dhw_planned_heating_hours_baseline=0\nRESULT dhw_planned_heating_hours_mutant=22\nRESULT null_delta=0 count\nRESULT plan_dhw_maxabs_diff_kw=0.0000 kW\nRESULT thread_factor=1.001\nRESULT load1=59.93\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.0,
+  "load1": 59.69921875
+ }
+}

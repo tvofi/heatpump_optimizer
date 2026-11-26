@@ -1,0 +1,12 @@
+{
+ "key": "9cdf54d2309cfcc8",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_9cdf54d2309cfcc8.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT active_at_tie_baseline=0\nRESULT active_at_tie_mutant=1\nRESULT active_at_before_end_baseline=1\nRESULT active_at_before_end_mutant=1\nRESULT active_at_after_end_baseline=0\nRESULT active_at_after_end_mutant=0\nRESULT thread_factor=1.000\nRESULT load1=137.45\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 9.0,
+  "load1": 137.45166015625
+ }
+}

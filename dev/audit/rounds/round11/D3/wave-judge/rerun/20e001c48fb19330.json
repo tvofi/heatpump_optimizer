@@ -1,0 +1,19 @@
+{
+ "key": "20e001c48fb19330",
+ "box": "D3-g33",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g33/probes/probe_20e001c48fb19330.py [--mutant]",
+ "base": {
+  "rc": 0,
+  "stdout": "RESULT open_hours=6\nRESULT end_hour_open=0\nRESULT open_hours_flat=4\nRESULT open_hours_wrap2=4\nRESULT thread_factor=1.000\nRESULT load1=40.47\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.0,
+  "load1": 40.470703125
+ },
+ "mut": {
+  "rc": 0,
+  "stdout": "RESULT open_hours=7\nRESULT end_hour_open=1\nRESULT open_hours_flat=4\nRESULT open_hours_wrap2=5\nRESULT thread_factor=1.000\nRESULT load1=42.19\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.8,
+  "load1": 42.1943359375
+ }
+}

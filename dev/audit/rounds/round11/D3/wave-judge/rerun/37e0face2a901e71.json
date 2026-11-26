@@ -1,0 +1,12 @@
+{
+ "key": "37e0face2a901e71",
+ "box": "D3-g01",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_37e0face2a901e71.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT short_solar_baseline=[100.0, 101.0, 7.0, 0.0, 0.0, 0.0]\nRESULT short_solar_mutant=IndexError\nRESULT inputs solar=[] n=4 covered=0: baseline=[0.0, 0.0, 0.0, 0.0] mutant=IndexError\nRESULT inputs solar=[5.0, 6.0, 7.0] n=6 covered=3: baseline=[100.0, 101.0, 102.0, 0.0, 0.0, 0.0] mutant=IndexError\nRESULT inputs solar=[5.0, 6.0, 7.0] n=6 covered=4: baseline=[100.0, 101.0, 102.0, 103.0, 0.0, 0.0] mutant=[100.0, 101.0, 102.0, 103.0, 0.0, 0.0]\nRESULT inputs solar=[5.0, 6.0, 7.0] n=3 covered=0: baseline=[5.0, 6.0, 7.0] mutant=[5.0, 6.0, 7.0]\nRESULT null_delta=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=94.92\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 9.4,
+  "load1": 94.92333984375
+ }
+}

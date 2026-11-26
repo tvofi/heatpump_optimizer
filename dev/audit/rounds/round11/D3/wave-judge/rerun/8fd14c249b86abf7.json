@@ -1,0 +1,12 @@
+{
+ "key": "8fd14c249b86abf7",
+ "box": "D3-g23",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8fd14c249b86abf7.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT direct_off_step_at_floor_plus_0.1_release_baseline=([0],[])\nRESULT direct_off_step_at_floor_plus_0.1_release_mutant=([],[])\nRESULT null_deep_breach_delta=0\nRESULT optimize_off_block_differing_plans=11 of 55\nRESULT thread_factor=1.000\nRESULT load1=44.99\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 1729.2,
+  "load1": 44.98876953125
+ }
+}

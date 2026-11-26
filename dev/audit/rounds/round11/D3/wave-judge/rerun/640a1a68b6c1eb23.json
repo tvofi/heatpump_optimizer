@@ -1,0 +1,12 @@
+{
+ "key": "640a1a68b6c1eb23",
+ "box": "D3-g04",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_640a1a68b6c1eb23.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT default_presence_entity=None\nRESULT fake_states_differing=0 count\nRESULT ha_contract_baseline=(None, {}) for None\nRESULT ha_contract_mutant=raises AttributeError for None\nRESULT ha_contract_differing=1 count\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=140.16\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 10.7,
+  "load1": 138.78857421875
+ }
+}

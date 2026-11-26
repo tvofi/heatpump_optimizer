@@ -1,0 +1,12 @@
+{
+ "key": "de6bbadf1499bae9",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_de6bbadf1499bae9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_1e+160=refused:fit failed\nRESULT mutant_1e+160=refused:fitted parameters outside plausible bounds\nRESULT baseline_nan=ua=0.150000000 cap=8.333333333 tau=55.555555556 conf=nan hw=nan\nRESULT mutant_nan=refused:fitted parameters outside plausible bounds\nRESULT baseline_inf=ua=0.150000000 cap=8.333333333 tau=55.555555556 conf=0.000000000 hw=inf\nRESULT mutant_inf=refused:fitted parameters outside plausible bounds\nRESULT moved=3 count\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=68.28\nRESULT swapins=0\n",
+  "stderr": "<worktree>/custom_components/heatpump_optimizer/sysid.py:817: RuntimeWarning: invalid value encountered in subtract\n  jac[:, i] = (residual(bumped) - value) / step\n<worktree>/custom_components/heatpump_optimizer/sysid.py:908: RuntimeWarning: invalid value encountered in subtract\n  ss_tot = float(np.sum(np.square(observed - np.mean(observed))))\n",
+  "wall_s": 21.3,
+  "load1": 68.2783203125
+ }
+}

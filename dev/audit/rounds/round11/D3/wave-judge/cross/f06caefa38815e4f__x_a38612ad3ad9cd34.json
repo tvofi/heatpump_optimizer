@@ -1,0 +1,16 @@
+{
+ "a": "a38612ad3ad9cd34",
+ "b": "f06caefa38815e4f",
+ "site": "custom_components/heatpump_optimizer/price_model.py:141",
+ "a_new": "if low >= 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):",
+ "b_new": "if low > 0.0 and high < low * (hi / lo) * (1.0 + 1e-9):",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT all_zero max_abs_shape_delta=1 warnings baseline=1 mutant=0 tail_price_17h baseline=1 mutant=0\nRESULT one_zero max_abs_shape_delta=0 warnings baseline=1 mutant=1 tail_price_17h baseline=1.03448 mutant=1.03448\nRESULT negative_bin max_abs_shape_delta=0 warnings baseline=1 mutant=1 tail_price_17h baseline=1.03448 mutant=1.03448\nRESULT at_edge max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=0.5 mutant=0.5\nRESULT edge_nextafter_up max_abs_shape_delta=0 warnings baseline=1 mutant=1 tail_price_17h baseline=0.827586 mutant=0.827586\nRESULT edge_nextafter_down max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=0.5 mutant=0.5\nRESULT flat_ones(null) max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=1 mutant=1\nRESULT learner_cone_max max_abs_shape_delta=0 warnings baseline=0 mutant=0 tail_price_17h baseline=0.2 mutant=0.2\nRESULT cases_moved=1 count (of 8)\nRESULT thread_factor=1.000\nRESULT load1=65.39\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

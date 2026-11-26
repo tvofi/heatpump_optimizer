@@ -1,0 +1,12 @@
+{
+ "key": "09e80cfe3036223e",
+ "box": "D3-g28",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_09e80cfe3036223e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT inputs_tried=20000\nRESULT inputs_moved=200\nRESULT max_abs_diff=7.88e-16 kW\nRESULT example_n_pmax_dt_energy_mutant_min=(36, 6.0, 0.5632992238778017, 40.53314188803488, -7.883717765363019e-16)\nRESULT golden_plan_max_abs_diff=0 kW (winter_typical, summer_negative, shoulder)\nRESULT thread_factor=1.000\nRESULT load1=39.33\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 40.8,
+  "load1": 39.33203125
+ }
+}

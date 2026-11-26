@@ -1,0 +1,12 @@
+{
+ "key": "011b9e2e975b5e98",
+ "box": "D3-g42",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_011b9e2e975b5e98.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT DHW_COOLING_RATE_MIN_baseline=0.05\nRESULT DHW_COOLING_RATE_MIN_mutant=0.05\nRESULT config_coast_hours_cooling_rate_0.0_baseline='168.0'\nRESULT config_coast_hours_cooling_rate_0.0_mutant='346.5735902799726'\nRESULT config_coast_hours_cooling_rate_0.05_baseline='168.0'\nRESULT config_coast_hours_cooling_rate_0.05_mutant='346.5735902799726'\nRESULT config_coast_hours_cooling_rate_0.2_baseline='86.64339756999316'\nRESULT config_coast_hours_cooling_rate_0.2_mutant='86.64339756999316'\nRESULT config_ua_cooling_rate_-5.0_baseline='0.00046400000000000006'\nRESULT config_ua_cooling_rate_-5.0_mutant='0.00046400000000000006'\nRESULT config_ua_cooling_rate_0.0_baseline='0.00046400000000000006'\nRESULT config_ua_cooling_rate_0.0_mutant='0.00046400000000000006'\nRESULT config_ua_cooling_rate_1e-12_baseline='0.00046400000000000006'\nRESULT config_ua_cooling_rate_1e-12_mutant='0.00046400000000000006'\nRESULT default_h_baseline='57.762265046662115'\nRESULT default_h_mutant='57.762265046662115'\nRESULT ua_0.0001_baseline='168.0'\nRESULT ua_0.0001_mutant='1608.1014588990731'\nRESULT ua_0.001_baseline='160.81014588990732'\nRESULT ua_0.001_mutant='160.81014588990732'\nRESULT ua_1e-06_baseline='168.0'\nRESULT ua_1e-06_mutant='160810.14588990732'\nRESULT metrics_moved=4\n",
+  "stderr": "",
+  "wall_s": 5.5,
+  "load1": 44.22265625
+ }
+}

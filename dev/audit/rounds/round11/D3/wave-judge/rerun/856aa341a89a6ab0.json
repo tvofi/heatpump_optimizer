@@ -1,0 +1,12 @@
+{
+ "key": "856aa341a89a6ab0",
+ "box": "D3-g23",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_856aa341a89a6ab0.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT released_space_baseline=[0]\nRESULT released_space_mutant=[]\nRESULT space_kwh_first_hour_baseline=4.8809 mutant=4.5000\nRESULT null_block_delta=0\nRESULT direct_breach_after_step0_off_baseline=([0],[]) mutant=([],[])\nRESULT thread_factor=1.000\nRESULT load1=72.24\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 71.0,
+  "load1": 72.2421875
+ }
+}

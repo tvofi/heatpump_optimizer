@@ -1,0 +1,12 @@
+{
+ "key": "8206a42b98c8dd86",
+ "box": "D3-g28",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_8206a42b98c8dd86.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT pct_baseline=0.000 %\nRESULT pct_mutant=50.000 %\nRESULT pct_abs_diff=50.000 %\nRESULT null_baseline_cost_0p02_diff=0.000 %\nRESULT null_baseline_cost_0p009_diff=0.000 %\nRESULT thread_factor=1.000\nRESULT load1=38.99\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 6.4,
+  "load1": 38.9873046875
+ }
+}

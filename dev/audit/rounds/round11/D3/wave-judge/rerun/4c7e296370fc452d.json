@@ -1,0 +1,12 @@
+{
+ "key": "4c7e296370fc452d",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_4c7e296370fc452d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT rain_anticipation_baseline=1.0\nRESULT rain_anticipation_mutant=1.0075\nRESULT moved=1 count\nRESULT lengths_moved=2 of 4 count\nRESULT null_delta=0 count\nRESULT wall=5.09 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=54.90\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 6.1,
+  "load1": 54.02978515625
+ }
+}

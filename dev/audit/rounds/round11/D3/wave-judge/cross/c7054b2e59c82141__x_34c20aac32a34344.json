@@ -1,0 +1,16 @@
+{
+ "a": "34c20aac32a34344",
+ "b": "c7054b2e59c82141",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9273",
+ "a_new": "if margin <= 0.0 and self._curve_learner.bias <= 0.0:",
+ "b_new": "if margin < 0.0 and self._curve_learner.bias < 0.0:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT margin_zero_bias_neg_baseline=(bias,comfortable_days,resets)(0.0, 0, 1)\nRESULT margin_zero_bias_neg_mutant=(bias,comfortable_days,resets)(0.0, 0, 1)\nRESULT null_moved=1 count over 3 null inputs [(-0.3, -1.0), (0.0, 0.0), (0.5, -1.0)]\nRESULT probe_cpu_s=0.03 s provisional\nRESULT thread_factor=1.000\nRESULT load1=73.09\nRESULT swapins=n/a\n",
+   "stderr": "Comfort miss (margin 0.00 \u00b0C) with curve bias -1.0 K applied; bias reset to 0\nComfort miss (margin 0.00 \u00b0C) with curve bias -1.0 K applied; bias reset to 0\nComfort miss (margin -0.30 \u00b0C) with curve bias -1.0 K applied; bias reset to 0\nComfort miss (margin -0.30 \u00b0C) with curve bias -1.0 K applied; bias reset to 0\n"
+  }
+ },
+ "status": "ran"
+}

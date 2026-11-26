@@ -1,0 +1,12 @@
+{
+ "key": "19404e3632806509",
+ "box": "D3-g45",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_19404e3632806509.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT null_moved=0 count\nRESULT inputs_tried=34992 count\nRESULT inputs_moved=4152 count\nRESULT max_abs_diff=5.219999999999999\nFIRST combo(T_up,T_sl,T_buf,T_w,tp,ext,loss,tgt,dt,two)= (18.0, 15.0, 25.0, 30.0, 0.0, 0.0, 0.0, None, 0.25, False)\n  baseline= (0.5167272727272727, 1.1072727272727272, 0.0, 0.0, 0.0)\n  mutant  = (0.361709090909091, 0.7750909090909092, 0.0, 0.0, 0.0)\nRESULT moved_ordinary_dt_ge_0.25=3936 of 17496 count\nRESULT moved_tiny_dt_lt_1e-6=216 of 17496 count\n",
+  "stderr": "",
+  "wall_s": 61.3,
+  "load1": 39.197265625
+ }
+}

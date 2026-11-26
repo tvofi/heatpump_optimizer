@@ -1,0 +1,12 @@
+{
+ "key": "ad01ae06d7ea84ec",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_ad01ae06d7ea84ec.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT nearflat_baseline=None\nRESULT nearflat_mutant=array:23,23,19,19,19,19,23,23\nRESULT moved=1 count\nRESULT null_delta=0 count\nRESULT reach_proposed_baseline=0 count\nRESULT reach_proposed_mutant=0 count\nRESULT reach_plan_maxabs_diff_kw=0.0000 kW\nRESULT reach_objective_delta=0.000000\nRESULT reach_cpu_baseline_s=1.43 s (provisional)\nRESULT reach_cpu_mutant_s=1.46 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=49.15\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 18.4,
+  "load1": 49.15234375
+ }
+}

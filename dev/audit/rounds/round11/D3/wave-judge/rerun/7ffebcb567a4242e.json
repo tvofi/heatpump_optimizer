@@ -1,0 +1,12 @@
+{
+ "key": "7ffebcb567a4242e",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_7ffebcb567a4242e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT seed_at_899s_baseline=42.0\nRESULT seed_at_899s_mutant=42.0\nRESULT seed_at_900s_baseline=42.0\nRESULT seed_at_900s_mutant=None\nRESULT seed_at_901s_baseline=None\nRESULT seed_at_901s_mutant=None\nRESULT seed_at_0.5s_baseline=42.0\nRESULT seed_at_0.5s_mutant=42.0\nRESULT seed_at_1800s_baseline=None\nRESULT seed_at_1800s_mutant=None\nRESULT inputs_moved=1 count\nRESULT thread_factor=1.000\nRESULT load1=109.70\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.9,
+  "load1": 106.92236328125
+ }
+}

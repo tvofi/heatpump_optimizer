@@ -1,0 +1,16 @@
+{
+ "a": "aa6d264aa0411bcd",
+ "b": "b8d5ec03e8eba5c7",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1942",
+ "a_new": "if len(rows) <= 5:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "CASE gap_4rows: differs=0 baseline=[refused:not enough usable intervals] mutant=[refused:not enough usable intervals]\nCASE gap_0rows: differs=0 baseline=[refused:not enough usable intervals] mutant=[refused:not enough usable intervals]\nCASE plant_20rows: differs=0 baseline=[completed ua=0.1999999984516595 C=5.025041666986053 conf=0.999999997988227] mutant=[completed ua=0.1999999984516595 C=5.025041666986053 conf=0.999999997988227]\nCASE plant_noisy: differs=0 baseline=[completed ua=0.19139678919976663 C=4.863601267584928 conf=0.8596784536099924] mutant=[completed ua=0.19139678919976663 C=4.863601267584928 conf=0.8596784536099924]\nRESULT first_case=gap_4rows\nRESULT outcome_baseline=[refused:not enough usable intervals]\nRESULT outcome_mutant=[refused:not enough usable intervals]\nRESULT cases_differing=0 count (of 2)\nRESULT null_differing=0 count (of 2)\nRESULT thread_factor=1.000 ratio\nRESULT load1=63.96\nRESULT swapins=6 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,12 @@
+{
+ "key": "9dd0547496b091b0",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_9dd0547496b091b0.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_kw=0 kW\nRESULT mutant_kw=-3 kW\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=64.51\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.6,
+  "load1": 64.51171875
+ }
+}

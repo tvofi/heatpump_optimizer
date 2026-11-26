@@ -1,0 +1,12 @@
+{
+ "key": "3e3fbb5fcbbe9bcc",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_3e3fbb5fcbbe9bcc.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT v1_store_upgrade_log_records_baseline=1 count\nRESULT v1_store_migrated_baseline=True\nRESULT v1_store_factors_equal_source_baseline=1\nRESULT v1_store_upgrade_log_records_mutant=0 count\nRESULT v1_store_migrated_mutant=True\nRESULT v1_store_factors_equal_source_mutant=1\nRESULT v2_store_upgrade_log_records_baseline=0 count\nRESULT v2_store_migrated_baseline=False\nRESULT v2_store_factors_equal_source_baseline=1\nRESULT v2_store_upgrade_log_records_mutant=0 count\nRESULT v2_store_migrated_mutant=False\nRESULT v2_store_factors_equal_source_mutant=1\nRESULT thread_factor=1.000\nRESULT load1=102.70\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 1.6,
+  "load1": 102.69677734375
+ }
+}

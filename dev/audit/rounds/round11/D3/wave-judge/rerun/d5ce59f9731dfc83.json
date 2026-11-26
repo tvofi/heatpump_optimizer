@@ -1,0 +1,12 @@
+{
+ "key": "d5ce59f9731dfc83",
+ "box": "D3-g08",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_d5ce59f9731dfc83.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT throttling_mode=manual\nRESULT zero_slot_baseline=price_ratio 0.5 reason 'Set to the'\nRESULT zero_slot_mutant=price_ratio 0.0 reason 'Set to the'\nRESULT missing_total_baseline=price_ratio 1.0 reason 'Prices are nearly'\nRESULT missing_total_mutant=price_ratio 0.0 reason 'Set to the'\nRESULT nan_total_baseline=price_ratio 0.833 reason 'Set to the'\nRESULT nan_total_mutant=price_ratio 0.0 reason 'Set to the'\nRESULT zero_and_one_positive_baseline=price_ratio None reason 'Set to the'\nRESULT zero_and_one_positive_mutant=price_ratio 0.0 reason 'Set to the'\nRESULT negative_and_zero_baseline=price_ratio 0.75 reason 'Set to the'\nRESULT negative_and_zero_mutant=price_ratio 0.0 reason 'Set to the'\nRESULT cases_moved=5 count of 5\nRESULT null_moved=0 count of 2\n",
+  "stderr": "",
+  "wall_s": 9.3,
+  "load1": 131.525390625
+ }
+}

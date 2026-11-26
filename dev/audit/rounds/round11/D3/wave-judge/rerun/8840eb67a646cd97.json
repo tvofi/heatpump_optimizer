@@ -1,0 +1,12 @@
+{
+ "key": "8840eb67a646cd97",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_8840eb67a646cd97.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_phase=aborted\nRESULT mutant_phase=step\nRESULT baseline_next_return=None\nRESULT mutant_next_return=1.7999999999999998\nRESULT mutant_reason_after='room temperature drifted beyond the allowed excursion'\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=64.51\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.2,
+  "load1": 64.51171875
+ }
+}

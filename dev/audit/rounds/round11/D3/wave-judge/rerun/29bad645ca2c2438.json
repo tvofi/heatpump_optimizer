@@ -1,0 +1,12 @@
+{
+ "key": "29bad645ca2c2438",
+ "box": "D3-g04",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_29bad645ca2c2438.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_price=0.012022669199125837 SEK/kWh\nRESULT recommended_baseline=48\nRESULT recommended_mutant=50\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=140.16\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 11.3,
+  "load1": 140.1630859375
+ }
+}

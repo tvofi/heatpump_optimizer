@@ -1,0 +1,12 @@
+{
+ "key": "1c0e818b4bb24fcd",
+ "box": "D3-g14",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_1c0e818b4bb24fcd.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_plan=[0,3,3,0,0,3,0.6,0] kW\nRESULT mutant_plan=[0,3,3,-1,0,5,0.6,-1] kW\nRESULT delta_kw=2.000000 kW\nRESULT random_plans_separating=220 of 400\nRESULT null_delta_kw=0.000000 kW\nRESULT realistic_delta_kw=0.000000 kW\n",
+  "stderr": "",
+  "wall_s": 9.3,
+  "load1": 97.181640625
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "a5c9796d35117839",
+ "box": "D3-g30",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_a5c9796d35117839.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT edm_5_days_exactly_confident_baseline=0.233151\nRESULT edm_5_days_exactly_confident_mutant=None\nRESULT null_edm_4_days_baseline=None\nRESULT null_edm_4_days_mutant=None\nRESULT null_edm_6_days_baseline=0.233151\nRESULT null_edm_6_days_mutant=0.233151\nRESULT edm_inputs_moved=1 count\nRESULT null_delta=0 count\nRESULT inputs_tried=5_days_exactly_confident,4_days,6_days\nRESULT thread_factor=1.000\nRESULT load1=36.79\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.7,
+  "load1": 36.791015625
+ }
+}

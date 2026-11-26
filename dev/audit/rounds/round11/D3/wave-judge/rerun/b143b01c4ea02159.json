@@ -1,0 +1,12 @@
+{
+ "key": "b143b01c4ea02159",
+ "box": "D3-g25",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_b143b01c4ea02159.py",
+ "run": {
+  "rc": 0,
+  "stdout": "INPUT 0: space power 2.0 kW (p_norm 0.6): baseline 'normal' | mutant 'pre_heat' | moved 1\nRESULT baseline_value='normal'\nRESULT mutant_value='pre_heat'\nRESULT moved=1 count\nINPUT 1: space power 2.6 kW (p_norm 0.84) [null]: baseline 'pre_heat' | mutant 'pre_heat' | moved 0\nRESULT null_moved=0 count\nINPUT 2: space power 1.6 kW (p_norm 0.44): baseline 'normal' | mutant 'pre_heat' | moved 1\nRESULT inputs_tried=3 count\nRESULT moved_any=1 count\nRESULT thread_factor=1.000\nRESULT load1=39.49\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 4.0,
+  "load1": 39.49169921875
+ }
+}

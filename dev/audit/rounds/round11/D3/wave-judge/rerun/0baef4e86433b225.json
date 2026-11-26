@@ -1,0 +1,12 @@
+{
+ "key": "0baef4e86433b225",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0baef4e86433b225.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_idle_samples=0 count\nRESULT mutant_idle_samples=2 count\nRESULT baseline_done_samples=0 count\nRESULT mutant_done_samples=2 count\nRESULT return_moved=0 count\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=66.15\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.1,
+  "load1": 66.15234375
+ }
+}

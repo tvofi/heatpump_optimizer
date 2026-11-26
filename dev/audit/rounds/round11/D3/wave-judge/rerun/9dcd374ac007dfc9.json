@@ -1,0 +1,12 @@
+{
+ "key": "9dcd374ac007dfc9",
+ "box": "D3-g11",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_9dcd374a.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT no_cap_breach_key_baseline=0 mutant=1 (mutant value 0.0)\nRESULT no_cap_empty_breach_key_baseline=0 mutant=1 (mutant value 0.0)\nRESULT null_moved=0 count  (capped: (1, 0.0))\nRESULT thread_factor=1.000\nRESULT load1=98.76\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 61.5,
+  "load1": 98.7646484375
+ }
+}

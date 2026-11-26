@@ -1,0 +1,16 @@
+{
+ "a": "10665a84dc064489",
+ "b": "d7421c10ed63c281",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2114",
+ "a_new": "if False:",
+ "b_new": "if rank <= 2:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "CASE power_const_rank2: differs=0 baseline=[completed ua=1.9999999999999991 C=4.0 conf=0.75] mutant=[completed ua=1.9999999999999991 C=4.0 conf=0.75]\nCASE power_prop_delta_rank1: differs=1 baseline=[refused:step gave insufficient excitation] mutant=[completed ua=0.49999999999999967 C=9.999999999999996 conf=0.75]\nCASE plant: differs=0 baseline=[completed ua=0.1999999984516595 C=5.025041666986053 conf=0.999999997988227] mutant=[completed ua=0.1999999984516595 C=5.025041666986053 conf=0.999999997988227]\nRESULT first_case=power_const_rank2\nRESULT outcome_baseline=[completed ua=1.9999999999999991 C=4.0 conf=0.75]\nRESULT outcome_mutant=[completed ua=1.9999999999999991 C=4.0 conf=0.75]\nRESULT cases_differing=0 count (of 1)\nRESULT null_differing=1 count (of 2)\nRESULT thread_factor=1.000 ratio\nRESULT load1=60.42\nRESULT swapins=7 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

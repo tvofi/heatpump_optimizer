@@ -1,0 +1,16 @@
+{
+ "a": "61e748f094f2daa8",
+ "b": "a33188790c5affad",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:6454",
+ "a_new": "if self._solve_failures > SOLVE_FAILURE_ISSUE_COUNT:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT issues_left_after_recovery_3_failures_baseline=0 mutant=1  (raised 1 / 1)\nRESULT null_moved=0 count  (1 failures: baseline (0, 0), mutant (0, 0))\nRESULT thread_factor=1.000\nRESULT load1=61.99\nRESULT swapins=0 count\n",
+   "stderr": "Optimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 6376, in async_run_optimization\n    horizon = self._forecast_arrays(now)\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/_judge_cross_a33188790c5affad__61e748f094f2daa8.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\nOptimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 37, in async_run_optimization\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/_judge_cross_a33188790c5affad__61e748f094f2daa8.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\nOptimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 6376, in async_run_optimization\n    horizon = self._forecast_arrays(now)\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/_judge_cross_a33188790c5affad__61e748f094f2daa8.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\nOptimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 37, in async_run_optimization\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/_judge_cross_a33188790c5affad__61e748f094f2daa8.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\n"
+  }
+ },
+ "status": "ran"
+}

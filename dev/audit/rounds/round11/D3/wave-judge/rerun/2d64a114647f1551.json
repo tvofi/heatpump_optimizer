@@ -1,0 +1,12 @@
+{
+ "key": "2d64a114647f1551",
+ "box": "D3-g39",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_2d64a114647f1551.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT all_zero_baseline=0.0\nRESULT all_zero_mutant=0.0\nRESULT zero_and_negative_baseline=0.0\nRESULT zero_and_negative_mutant=-2.6269532288089563e-26\nRESULT zero_and_neg_k2_baseline=0.0\nRESULT zero_and_neg_k2_mutant=-6.665187755269336e-13\nRESULT zero_and_tiny_neg_baseline=0.0\nRESULT zero_and_tiny_neg_mutant=-4.875026045493982e-11\nRESULT positive_baseline=1.9933063882612345\nRESULT positive_mutant=1.9933063882612345\nRESULT cases_moved=3\nRESULT null_cases_moved=0\n",
+  "stderr": "",
+  "wall_s": 2.0,
+  "load1": 56.05859375
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "b539d4504385a139",
+ "box": "D3-g32",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_b539d4504385a139.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT reason_baseline_unknown_empty_dict='Price entity is empty'\nRESULT reason_mutant_unknown_empty_dict='Price entity published no today/tomorrow series'\nRESULT reason_baseline_unavailable_empty_dict='Price entity is empty'\nRESULT reason_mutant_unavailable_empty_dict='Price entity published no today/tomorrow series'\nRESULT reason_baseline_blank_empty_dict='Price entity is empty'\nRESULT reason_mutant_blank_empty_dict='Price entity published no today/tomorrow series'\nRESULT reason_baseline_unknown_none_attrs='Price entity is empty'\nRESULT reason_mutant_unknown_none_attrs='Price entity is empty'\nRESULT reason_baseline_unknown_tuple_attrs='Price entity is empty'\nRESULT reason_mutant_unknown_tuple_attrs='Price entity published no today/tomorrow series'\nRESULT inputs_moved=4 count\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=37.36\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.5,
+  "load1": 37.35888671875
+ }
+}

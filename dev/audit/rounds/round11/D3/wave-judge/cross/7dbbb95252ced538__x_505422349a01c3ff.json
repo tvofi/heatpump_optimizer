@@ -1,0 +1,21 @@
+{
+ "a": "505422349a01c3ff",
+ "b": "7dbbb95252ced538",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1922",
+ "a_new": "if dt_h < 1e-3 or dt_h > 2.0:",
+ "b_new": "if dt_h <= 1e-3 or dt_h >= 2.0:",
+ "replacements": 2,
+ "runs": {
+  "base": {
+   "rc": 0,
+   "stdout": "RESULT reached_fit_tie=1\nRESULT reached_fit_below=1\nRESULT reached_fit_above=0\nRESULT reached_fit_null=1\nRESULT ua_31=None reason='fit gave implausible signs'\nRESULT ua_31_null=0.11999999998427369 reason='ok'\nRESULT thread_factor=1.000\nRESULT load1=63.70\nRESULT swapins=0\n",
+   "stderr": ""
+  },
+  "mut": {
+   "rc": 0,
+   "stdout": "RESULT reached_fit_tie=1\nRESULT reached_fit_below=1\nRESULT reached_fit_above=0\nRESULT reached_fit_null=1\nRESULT ua_31=None reason='fit gave implausible signs'\nRESULT ua_31_null=0.11999999998427369 reason='ok'\nRESULT thread_factor=1.000\nRESULT load1=63.96\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,16 @@
+{
+ "a": "a1ebeff0870dfa76",
+ "b": "f1549576a94b99be",
+ "site": "custom_components/heatpump_optimizer/dhw_planner.py:784",
+ "a_new": "if need >= boost_top:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT boost_top=60.0 C\nRESULT runup_max_baseline=0.0000 C\nRESULT runup_max_mutant=0.0000 C\nRESULT runup_steps_above_boost_mutant=0 count\nRESULT req_at_boost_steps_baseline=0 count\nRESULT req_at_boost_steps_mutant=0 count\nRESULT ceiling_at_boost_steps_baseline=1 count  mutant=1 count\nRESULT null_moved=0 count\nRESULT thread_factor=1.001 ratio\nRESULT load1=58.66\nRESULT swapins=0 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

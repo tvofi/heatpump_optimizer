@@ -1,0 +1,12 @@
+{
+ "key": "7da9151a6a79c43e",
+ "box": "D3-g16",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_7da9151a6a79c43e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "# baseline=[1.987, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] mutant=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\nRESULT dhw_kw_sum_baseline=1.9870 kW\nRESULT dhw_kw_sum_mutant=0.0000 kW\nRESULT tank_at_need_baseline=55.451 C  (requirement 55)\nRESULT tank_at_need_mutant=41.891 C\nRESULT null_inputs_moved=0 of 2 (-)\nRESULT thread_factor=1.000\nRESULT load1=81.05\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 6.3,
+  "load1": 78.9658203125
+ }
+}

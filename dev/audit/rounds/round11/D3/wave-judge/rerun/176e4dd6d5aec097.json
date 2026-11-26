@@ -1,0 +1,12 @@
+{
+ "key": "176e4dd6d5aec097",
+ "box": "D3-g20",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_176e4dd6d5aec097.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT inputs_tried=450 count\nRESULT inputs_moved=70 count\nRESULT tie_baseline_weight0=1.0\nRESULT tie_mutant_weight0=1.1\nRESULT first_moved_input='dt=0.25 n=1 solar=0.0 loss=1.1' baseline=1.0 mutant=1.1\nRESULT null_delta=0\nRESULT thread_factor=1.000\nRESULT load1=53.05\nRESULT swapins=49 count\n",
+  "stderr": "",
+  "wall_s": 9.6,
+  "load1": 53.0478515625
+ }
+}

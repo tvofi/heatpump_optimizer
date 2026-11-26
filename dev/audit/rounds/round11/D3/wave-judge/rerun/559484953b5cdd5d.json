@@ -1,0 +1,12 @@
+{
+ "key": "559484953b5cdd5d",
+ "box": "D3-g39",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_559484953b5cdd5d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT boundary_k_s_baseline=0.0\nRESULT boundary_k_s_mutant=1200000000.0\nRESULT just_above_k_s_baseline=600000000.0\nRESULT just_above_k_s_mutant=600000000.0\nRESULT zero_k_s_baseline=0.0\nRESULT zero_k_s_mutant=0.0\nRESULT ordinary_baseline=2.4\nRESULT ordinary_mutant=2.4\nRESULT cases_moved=1\nRESULT null_cases_moved=0\n",
+  "stderr": "",
+  "wall_s": 3.6,
+  "load1": 53.1650390625
+ }
+}

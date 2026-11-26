@@ -1,0 +1,16 @@
+{
+ "a": "8ef1027c9e221b64",
+ "b": "ce686724ef107650",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5229",
+ "a_new": "pinned_off = not _pin_is_free(pin) and pin <= 0.5",
+ "b_new": "pinned_off = not _pin_is_free(pin) or pin < 0.5",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT direct_on_pin_at_floor_release_baseline=([],[])\nRESULT direct_on_pin_at_floor_release_mutant=([],[])\nRESULT null_free_step_delta=0\nRESULT optimize_on_block_differing_plans=0 of 36\nRESULT thread_factor=1.000\nRESULT load1=76.21\nRESULT swapins=n/a\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

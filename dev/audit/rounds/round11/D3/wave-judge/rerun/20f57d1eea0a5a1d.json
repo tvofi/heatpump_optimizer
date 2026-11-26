@@ -1,0 +1,12 @@
+{
+ "key": "20f57d1eea0a5a1d",
+ "box": "D3-g01",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_20f57d1eea0a5a1d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT dhw_disabled_vvc_baseline=[('turn_on', 'switch.vvc')]\nRESULT dhw_disabled_vvc_mutant=[('turn_off', 'switch.vvc')]\nRESULT dhw_enabled_schedule_off_vvc_baseline=[('turn_on', 'switch.vvc')]\nRESULT dhw_enabled_schedule_off_vvc_mutant=[('turn_off', 'switch.vvc')]\nRESULT inputs dhw_disabled at 07:00: baseline=[('turn_on', 'switch.vvc')] mutant=[('turn_on', 'switch.vvc')]\nRESULT null_delta=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=96.12\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 10.3,
+  "load1": 96.11669921875
+ }
+}

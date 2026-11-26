@@ -1,0 +1,16 @@
+{
+ "a": "8ab42c4ab9755537",
+ "b": "e689dc488b493c6b",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:6752",
+ "a_new": "elif wood_mean is not None or not had:",
+ "b_new": "elif False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT wood_logs_baseline=(warnings,infos,format_errors,temps)(1, 2, 0, (60.0, 60.0, None, None, 58.0))\nRESULT wood_logs_mutant=(warnings,infos,format_errors,temps)(1, 4, 1, (60.0, 60.0, None, None, 58.0))\nRESULT temps_moved=0 count\nRESULT null_moved=1 count (null input ('unavailable',))\nRESULT probe_cpu_s=0.05 s provisional\nRESULT thread_factor=1.000\nRESULT load1=66.59\nRESULT swapins=n/a\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,12 @@
+{
+ "key": "efa2c19c51831a68",
+ "box": "D3-g06",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_efa2c19c51831a68.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT cap1e-6_baseline=(0.0,1.0,0.0,0.0)\nRESULT cap1e-6_mutant=(1.0,1.0,0.0392,0.0)\nRESULT cases_moved=1 count\nRESULT null_cap10=(1.0,1.0,0.0392,0.16)\nRESULT null_cap0=(0.0,1.0,0.0,0.0)\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=164.73\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 11.7,
+  "load1": 163.38623046875
+ }
+}

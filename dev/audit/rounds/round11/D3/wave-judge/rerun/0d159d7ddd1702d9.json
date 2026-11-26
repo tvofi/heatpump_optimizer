@@ -1,0 +1,12 @@
+{
+ "key": "0d159d7ddd1702d9",
+ "box": "D3-g32",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d159d7ddd1702d9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT guessed_tail_baseline=[3.0, 3.0, 3.0]\nRESULT guessed_tail_mutant=[2.0, 2.0, 2.0]\nRESULT guessed_tail_delta=1.0000 SEK/kWh\nRESULT sigma_delta=0.0000 SEK/kWh\nRESULT null_delta=0.0000 SEK/kWh\nRESULT flat_known_delta=0.0000 SEK/kWh\nRESULT thread_factor=1.000\nRESULT load1=37.83\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.7,
+  "load1": 37.82568359375
+ }
+}

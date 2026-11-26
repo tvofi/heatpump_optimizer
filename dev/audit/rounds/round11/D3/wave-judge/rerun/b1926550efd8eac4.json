@@ -1,0 +1,12 @@
+{
+ "key": "b1926550efd8eac4",
+ "box": "D3-g20",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_b1926550efd8eac4.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT inputs_tried=42 count\nRESULT inputs_moved=3 count\nRESULT moved dhw=1e-06 space=tie head-1e-3 (4.9989989999999995): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)\nRESULT moved dhw=1e-06 space=above tie (4.998999): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)\nRESULT moved dhw=1e-06 space=head (4.999999): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)\nRESULT focus dhw=1e-06 space=head (4.999999): baseline(status,pinned)=('ok', 0) mutant=('replanned', 1)\nRESULT null_delta=0 count (dhw=1.0 space=1.0: far from both edges)\nRESULT thread_factor=1.000\nRESULT load1=51.67\nRESULT swapins=11 count\n",
+  "stderr": "",
+  "wall_s": 5.9,
+  "load1": 51.6708984375
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "977021e3b3964277",
+ "box": "D3-g26",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_977021e3b3964277.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT pair_holiday_wed_baseline=(20.0, 17.0, 8, 20)\nRESULT pair_holiday_wed_mutant=(20.0, 19.5, 8, 20)\nRESULT hours_moved_holiday_wed=12 count\nRESULT pair_holiday_sat_baseline=(20.0, 17.0, 8, 20)\nRESULT pair_holiday_sat_mutant=(20.0, 19.5, 8, 20)\nRESULT hours_moved_holiday_sat=12 count\nRESULT pair_plain_sat_baseline=(22.0, 20.0, 9, 23)\nRESULT pair_plain_sat_mutant=(22.0, 20.0, 9, 23)\nRESULT hours_moved_plain_sat=0 count\nRESULT pair_plain_wed_baseline=(21.0, 19.5, 7, 22)\nRESULT pair_plain_wed_mutant=(21.0, 19.5, 7, 22)\nRESULT hours_moved_plain_wed=0 count\nRESULT hours_moved_total=24 count\nRESULT null_hours_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=98.02\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 4.5,
+  "load1": 98.02294921875
+ }
+}

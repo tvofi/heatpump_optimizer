@@ -1,0 +1,12 @@
+{
+ "key": "1d11f24436471959",
+ "box": "D3-g25",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_1d11f24436471959.py",
+ "run": {
+  "rc": 0,
+  "stdout": "INPUT 0: dhw_power 0.1 kW (exactly the threshold): baseline False | mutant True | moved 1\nRESULT baseline_value=False\nRESULT mutant_value=True\nRESULT moved=1 count\nINPUT 1: dhw_power 0.2 kW [null]: baseline True | mutant True | moved 0\nRESULT null_moved=0 count\nINPUT 2: dhw_power 0.0 kW: baseline False | mutant False | moved 0\nINPUT 3: dhw_power 0.1000001 kW: baseline True | mutant True | moved 0\nRESULT inputs_tried=4 count\nRESULT moved_any=1 count\nRESULT thread_factor=1.000\nRESULT load1=36.98\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 2.6,
+  "load1": 36.98486328125
+ }
+}

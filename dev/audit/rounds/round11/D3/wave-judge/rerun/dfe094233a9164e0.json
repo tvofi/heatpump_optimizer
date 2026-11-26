@@ -1,0 +1,12 @@
+{
+ "key": "dfe094233a9164e0",
+ "box": "D3-g41",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_dfe094233a9164e0.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT derate_factor_m2_h90=0.7\nRESULT cop_m2_h90_baseline=np.float64(1.8987499999999997)\nRESULT cop_m2_h90_mutant=np.float64(2.7125)\nRESULT cop_m2_h90_scalar=1.8987499999999997\nRESULT inputs_tried=36 count\nRESULT moved_inputs=36 count\nRESULT null_moved=0 count\nRESULT parity_breaks_baseline=0 count\nRESULT parity_breaks_mutant=36 count\nRESULT thread_factor=0.110 ratio\nRESULT load1=56.85\nRESULT swapins=na count\n",
+  "stderr": "",
+  "wall_s": 2.9,
+  "load1": 56.84765625
+ }
+}

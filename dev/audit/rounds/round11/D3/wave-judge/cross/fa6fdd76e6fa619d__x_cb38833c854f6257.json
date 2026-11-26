@@ -1,0 +1,16 @@
+{
+ "a": "cb38833c854f6257",
+ "b": "fa6fdd76e6fa619d",
+ "site": "custom_components/heatpump_optimizer/sysid.py:610",
+ "a_new": "if not (c_r >= 1e-9 and c_s > 1e-9 and k_s > 1e-9):",
+ "b_new": "if not (c_r > 1e-9 and c_s >= 1e-9 and k_s > 1e-9):",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT boundary_c_s_baseline=0.0\nRESULT boundary_c_s_mutant=0.0\nRESULT just_above_c_s_baseline=3.999999996e-09\nRESULT just_above_c_s_mutant=3.999999996e-09\nRESULT zero_c_s_baseline=0.0\nRESULT zero_c_s_mutant=0.0\nRESULT ordinary_baseline=2.4\nRESULT ordinary_mutant=2.4\nRESULT cases_moved=0\nRESULT null_cases_moved=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,12 @@
+{
+ "key": "9460d3802a8903d6",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_9460d3802a8903d6.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline=ua=0.123915027 cap=5.010000000 tau=40.430931814 conf=0.000000000 hw=inf\nRESULT mutant=ua=0.123915027 cap=5.001000000 tau=40.358301398 conf=0.000000000 hw=inf\nRESULT moved=1 count\nRESULT null_moved=0 count\nRESULT zero_prior_baseline=ua=0.123915027 cap=5.010000000 tau=40.430931814 conf=0.000000000 hw=inf\nRESULT zero_prior_mutant=ua=0.123915027 cap=5.001000000 tau=40.358301398 conf=0.000000000 hw=inf\nRESULT thread_factor=1.000\nRESULT load1=68.28\nRESULT swapins=0\n",
+  "stderr": "<worktree>/custom_components/heatpump_optimizer/sysid.py:2376: RuntimeWarning: divide by zero encountered in log\n  np.log(max(cr0 * mult, 1e-2)),\n<worktree>/custom_components/heatpump_optimizer/sysid.py:816: RuntimeWarning: invalid value encountered in scalar add\n  bumped[i] += step\n",
+  "wall_s": 23.1,
+  "load1": 68.2783203125
+ }
+}

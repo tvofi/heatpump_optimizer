@@ -1,0 +1,12 @@
+{
+ "key": "0b51e1d1975513aa",
+ "box": "D3-g14",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0b51e1d1975513aa.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT short_pins_returns_plan_baseline=1\nRESULT short_pins_returns_plan_mutant=0\nRESULT empty_pins_returns_plan_baseline=1\nRESULT empty_pins_returns_plan_mutant=0\nRESULT null_equal_or_longer_identical=2 of 2\n",
+  "stderr": "",
+  "wall_s": 4.9,
+  "load1": 97.181640625
+ }
+}

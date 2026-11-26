@@ -1,0 +1,12 @@
+{
+ "key": "b94f040a7b0aed92",
+ "box": "D3-g27",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_b94f040a7b0aed92.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT example_input=reasons=['idle_coasting'],pins=[0.0]\nRESULT output_baseline=('ok',('idle_coasting',))\nRESULT output_mutant=('ok',('manual_plan',))\nRESULT grid_inputs_tried=54 count\nRESULT grid_inputs_moved=6 count\nRESULT domain_inputs_tried=18 count\nRESULT domain_inputs_moved=4 count\nRESULT production_calls=8 count\nRESULT production_calls_len_mismatch=0 count\nRESULT production_calls_moved=3 count\nRESULT production_manual_labels_baseline=3 count\nRESULT production_manual_labels_mutant=286 count\nRESULT production_reason_labels_changed=283 count\nRESULT null_inputs_moved=0 count\nRESULT null_reason_labels_changed=0 count\nRESULT thread_factor=1.000\nRESULT load1=39.84\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 37.8,
+  "load1": 40.57421875
+ }
+}

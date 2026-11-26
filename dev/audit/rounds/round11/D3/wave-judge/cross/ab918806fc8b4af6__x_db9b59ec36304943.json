@@ -1,0 +1,16 @@
+{
+ "a": "db9b59ec36304943",
+ "b": "ab918806fc8b4af6",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:10331",
+ "a_new": "if energy < 0:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT zero_energy_lines_baseline=0 count []\nRESULT zero_energy_lines_mutant=3 count ['dhw', 'space', 'spot']\nRESULT zero_energy_total_kwh_delta=0.0\nRESULT zero_energy_saves baseline=1 mutant=1\nRESULT no_meter_zero_plan_lines_baseline=0 count []\nRESULT no_meter_zero_plan_lines_mutant=3 count ['dhw', 'space', 'spot']\nRESULT no_meter_zero_plan_total_kwh_delta=0.0\nRESULT no_meter_zero_plan_saves baseline=1 mutant=1\nRESULT inputs no-price zero-energy: baseline=([], 1, 0.0) mutant=(['spot'], 1, 0.0)\nRESULT null_delta=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=140.38\nRESULT swapins=0 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

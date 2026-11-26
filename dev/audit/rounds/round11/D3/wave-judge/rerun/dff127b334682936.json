@@ -1,0 +1,12 @@
+{
+ "key": "dff127b334682936",
+ "box": "D3-g06",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_dff127b334682936.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT cop0_baseline={}\nRESULT cop0_mutant={-4:[0.0,1]}\nRESULT heat0_baseline={}\nRESULT heat0_mutant={-4:[0.0,1]}\nRESULT draw0_baseline={}\nRESULT draw0_mutant={-4:[0.0,1]}\nRESULT cases_moved=3 count\nRESULT null_cop_neg={}\nRESULT null_cop2={-4:[8.0,1]}\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=151.49\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 10.7,
+  "load1": 151.48876953125
+ }
+}

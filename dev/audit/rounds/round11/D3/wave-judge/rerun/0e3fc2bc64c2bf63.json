@@ -1,0 +1,12 @@
+{
+ "key": "0e3fc2bc64c2bf63",
+ "box": "D3-g14",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_0e3fc2bc64c2bf63.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_kw_at_pin_0p5=0.600000 kW\nRESULT mutant_kw_at_pin_0p5=0.000000 kW\nRESULT null_delta_kw=0.000000 kW\nRESULT realistic_delta_kw=0.000000 kW\n",
+  "stderr": "",
+  "wall_s": 5.9,
+  "load1": 95.0048828125
+ }
+}

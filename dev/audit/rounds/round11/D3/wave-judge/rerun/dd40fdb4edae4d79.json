@@ -1,0 +1,12 @@
+{
+ "key": "dd40fdb4edae4d79",
+ "box": "D3-g45",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_dd40fdb4edae4d79.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT flow_set_vt45.0_baseline=51.75 mutant=40.25\nRESULT flow_set_vt25.0_baseline=28.75 mutant=40.25\nRESULT flow_set_vtNone_baseline=40.25 mutant=40.25\nRESULT null_delta=0.0\nRESULT inputs_moved=2 of 2 count\n",
+  "stderr": "",
+  "wall_s": 2.6,
+  "load1": 39.12744140625
+ }
+}

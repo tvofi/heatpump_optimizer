@@ -1,0 +1,12 @@
+{
+ "key": "efb33eb6212be24e",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_efb33eb6212be24e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT ratio0.0_count_baseline=0 count\nRESULT ratio0.0_factor_baseline=1.0\nRESULT ratio0.0_count_mutant=0 count\nRESULT ratio0.0_factor_mutant=1.0\nRESULT ratio3.0_count_baseline=1 count\nRESULT ratio3.0_factor_baseline=1.0\nRESULT ratio3.0_count_mutant=0 count\nRESULT ratio3.0_factor_mutant=1.0\nRESULT ratio1e-09_count_baseline=1 count\nRESULT ratio1e-09_factor_baseline=0.9774999999999999\nRESULT ratio1e-09_count_mutant=1 count\nRESULT ratio1e-09_factor_mutant=0.9774999999999999\nRESULT ratio2.999999_count_baseline=1 count\nRESULT ratio2.999999_factor_baseline=1.0\nRESULT ratio2.999999_count_mutant=1 count\nRESULT ratio2.999999_factor_mutant=1.0\nRESULT ratio3.000001_count_baseline=0 count\nRESULT ratio3.000001_factor_baseline=1.0\nRESULT ratio3.000001_count_mutant=0 count\nRESULT ratio3.000001_factor_mutant=1.0\nRESULT ratio1.0_count_baseline=1 count\nRESULT ratio1.0_factor_baseline=1.0\nRESULT ratio1.0_count_mutant=1 count\nRESULT ratio1.0_factor_mutant=1.0\nRESULT ratios_moved=1 count\nRESULT learned_ratio0.0_published_factor_baseline=0.9285714285714286\nRESULT learned_ratio0.0_published_factor_mutant=0.9285714285714286\nRESULT learned_ratio3.0_published_factor_baseline=0.9208333333333333\nRESULT learned_ratio3.0_published_factor_mutant=0.9285714285714286\nRESULT thread_factor=1.000\nRESULT load1=102.70\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 1.2,
+  "load1": 100.3984375
+ }
+}

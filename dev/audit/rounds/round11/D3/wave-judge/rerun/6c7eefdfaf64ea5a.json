@@ -1,0 +1,12 @@
+{
+ "key": "6c7eefdfaf64ea5a",
+ "box": "D3-g38",
+ "command": "cd <clean baseline checkout> && HPO_PROBE_ROOT=$PWD PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 <box tree>/dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_6c7eefdfaf64ea5a.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT admit[one_zone_1e-6] baseline=0 mutant=1 reasons='no configured heat-loss coefficient to scale'|'adopted'\nRESULT admit[two_zone_5e-7+5e-7] baseline=0 mutant=1 reasons='no configured heat-loss coefficient to scale'|'adopted'\nRESULT admit[null_0] baseline=0 mutant=0 reasons='no configured heat-loss coefficient to scale'|'no configured heat-loss coefficient to scale'\nRESULT admit[null_2e-6] baseline=1 mutant=1 reasons='adopted'|'adopted'\nRESULT admit[null_0.2] baseline=1 mutant=1 reasons='adopted'|'adopted'\nRESULT inputs_differing=2 of 5\n",
+  "stderr": "",
+  "wall_s": 2.8,
+  "load1": 51.56005859375
+ }
+}

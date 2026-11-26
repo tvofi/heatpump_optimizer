@@ -1,0 +1,12 @@
+{
+ "key": "24d9995ccee4252e",
+ "box": "D3-g13",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_24d9995ccee4252e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT rows_total_baseline=1 count\nRESULT rows_with_duty_baseline=0 count\nRESULT rows_with_duty_mutant=1 count\nRESULT mutant_row_fields=['duty', 'duty_samples', 'events']\nRESULT mutant_row_duty=0.0 events=0 duty_samples=0\nRESULT null_delta_rows=0 count\nRESULT empty_rows_baseline=0 mutant=0 count\nRESULT thread_factor=1.000\nRESULT load1=100.40\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 1.4,
+  "load1": 100.3984375
+ }
+}

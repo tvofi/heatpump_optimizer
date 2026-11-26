@@ -1,0 +1,12 @@
+{
+ "key": "021dc21415f3229e",
+ "box": "D3-g01",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_021dc21415f3229e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT reanchor_7pct_baseline=(True, 1.279005)\nRESULT reanchor_7pct_mutant=(False, 1.2)\nRESULT inputs frac=0.049: baseline=(False, 1.2) mutant=(False, 1.2)\nRESULT inputs frac=0.051: baseline=(False, 1.2) mutant=(False, 1.2)\nRESULT inputs frac=0.099: baseline=(True, 1.313193) mutant=(False, 1.2)\nRESULT inputs frac=0.101: baseline=(True, 1.315551) mutant=(False, 1.2)\nRESULT inputs frac=-0.07: baseline=(True, 1.11396) mutant=(False, 1.2)\nRESULT null_delta=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=94.55\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 7.4,
+  "load1": 95.14697265625
+ }
+}

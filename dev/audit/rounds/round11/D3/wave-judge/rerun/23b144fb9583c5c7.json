@@ -1,0 +1,12 @@
+{
+ "key": "23b144fb9583c5c7",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_23b144fb9583c5c7.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT fraction_baseline=0.6667\nRESULT fraction_mutant=0.9565\nRESULT abs_delta=0.2899\nRESULT bands_moved=3 of 3 count\nRESULT null_abs_delta=0.0\nRESULT wall=4.43 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=60.77\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 5.3,
+  "load1": 60.77197265625
+ }
+}

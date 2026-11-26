@@ -1,0 +1,12 @@
+{
+ "key": "a33188790c5affad",
+ "box": "D3-g11",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT issues_left_after_recovery_3_failures_baseline=0 mutant=1  (raised 1 / 1)\nRESULT null_moved=0 count  (1 failures: baseline (0, 0), mutant (0, 0))\nRESULT thread_factor=1.000\nRESULT load1=119.42\nRESULT swapins=0 count\n",
+  "stderr": "Optimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 6376, in async_run_optimization\n    horizon = self._forecast_arrays(now)\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\nOptimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 37, in async_run_optimization\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\nOptimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 6376, in async_run_optimization\n    horizon = self._forecast_arrays(now)\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\nOptimization failed: injected forecast failure\nTraceback (most recent call last):\n  File \"<worktree>/custom_components/heatpump_optimizer/coordinator.py\", line 37, in async_run_optimization\n  File \"<worktree>/dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_a3318879.py\", line 128, in boom\n    raise RuntimeError(\"injected forecast failure\")\nRuntimeError: injected forecast failure\n",
+  "wall_s": 28.5,
+  "load1": 119.4248046875
+ }
+}

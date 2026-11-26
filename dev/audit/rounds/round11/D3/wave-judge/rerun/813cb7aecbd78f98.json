@@ -1,0 +1,12 @@
+{
+ "key": "813cb7aecbd78f98",
+ "box": "D3-g10",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_813cb7aecbd78f98.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_baseline=(accum_cm,damped)(2.0, True)\nRESULT tie_mutant=(accum_cm,damped)(2.0, False)\nRESULT null_moved=0 count over 2 null inputs (accum, gap_h, rate) [(1.5, 0.0, 0.0), (2.5, 0.0, 0.0)]\nRESULT inputs_tried=3 count\nRESULT probe_cpu_s=0.01 s provisional\nRESULT thread_factor=1.000\nRESULT load1=140.38\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 10.3,
+  "load1": 140.384765625
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "cde383447b865539",
+ "box": "D3-g44",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cde383447b865539.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT site='and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME'\nRESULT vol_100.0: baseline=True mutant=False\nRESULT vol_99.999999999: baseline=False mutant=False\nRESULT vol_100.000000001: baseline=True mutant=True\nRESULT vol_5.0: baseline=False mutant=False\nRESULT vol_750.0: baseline=True mutant=True\nRESULT inputs_tried=5 count\nRESULT inputs_moved=1 count\nRESULT null_moved=0 count\n",
+  "stderr": "",
+  "wall_s": 3.2,
+  "load1": 44.501953125
+ }
+}

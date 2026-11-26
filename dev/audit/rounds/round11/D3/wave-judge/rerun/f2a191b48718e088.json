@@ -1,0 +1,12 @@
+{
+ "key": "f2a191b48718e088",
+ "box": "D3-g10",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_f2a191b48718e088.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT active_baseline=(debugs,flag)(1, False)\nRESULT active_mutant=(debugs,flag)(0, False)\nRESULT null_moved=0 count (detector inactive)\nRESULT probe_cpu_s=0.02 s provisional\nRESULT thread_factor=1.000\nRESULT load1=136.07\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 11.4,
+  "load1": 136.06591796875
+ }
+}

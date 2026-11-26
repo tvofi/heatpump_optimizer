@@ -1,0 +1,12 @@
+{
+ "key": "d128afa0c1ce3d28",
+ "box": "D3-g27",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g27/probes/probe_d128afa0c1ce3d28.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT example_input=pin=1.0,bounds=(0.0,0.0),min_on_power=0.8\nRESULT bounds_baseline=(0.0,0.0)\nRESULT bounds_mutant=(0.8,0.0)\nRESULT grid_inputs_tried=180 count\nRESULT grid_inputs_moved=50 count\nRESULT domain_inputs_tried=60 count\nRESULT domain_inputs_moved=10 count\nRESULT inverted_boxes_on_pins_baseline=0 count\nRESULT inverted_boxes_on_pins_mutant=10 count\nRESULT production_calls=4 count\nRESULT production_calls_moved=1 count\nRESULT production_calls_inverted_under_mutant=1 count\nRESULT production_pins_not_0_1_nan=0 count\nRESULT production_low_headroom_dhw_steps_pinned_on=0 count\nRESULT production_mutant_solve_error=none\nRESULT production_plan_max_abs_delta_kw=3.05687 kW\nRESULT production_objective_max_abs_delta=18.0096\nRESULT capped_step36_total_kw_baseline=0.1 kW\nRESULT capped_step36_total_kw_mutant=0.1 kW\nRESULT capped_step36_cap_kw=0.05 kW\nRESULT null_inputs_moved=0 count\nRESULT null_plan_max_abs_delta_kw=0 kW\nRESULT thread_factor=1.000\nRESULT load1=77.44\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 31.6,
+  "load1": 75.31787109375
+ }
+}

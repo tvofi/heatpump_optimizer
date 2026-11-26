@@ -1,0 +1,12 @@
+{
+ "key": "ce686724ef107650",
+ "box": "D3-g23",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_ce686724ef107650.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT direct_on_pin_at_floor_release_baseline=([],[])\nRESULT direct_on_pin_at_floor_release_mutant=([0],[])\nRESULT null_free_step_delta=0\nRESULT optimize_on_block_differing_plans=3 of 36\nRESULT thread_factor=1.000\nRESULT load1=58.25\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 997.5,
+  "load1": 58.25341796875
+ }
+}

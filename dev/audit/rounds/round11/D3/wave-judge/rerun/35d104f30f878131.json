@@ -1,0 +1,12 @@
+{
+ "key": "35d104f30f878131",
+ "box": "D3-g26",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_35d104f30f878131.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT predictive_info_keys_in_plan=25 count\nRESULT predictive_keys_baseline=3 count  {'solar_reduction_factor': np.float64(0.99), 'wind_anticipation_factor': 1.06, 'pre_heat_urgency': np.float64(0.16)}\nRESULT predictive_keys_mutant=0 count  {'solar_reduction_factor': None, 'wind_anticipation_factor': None, 'pre_heat_urgency': None}\nRESULT ecl110_context_pre_heat_urgency_baseline=0.16\nRESULT ecl110_context_pre_heat_urgency_mutant=None\nRESULT null_keys_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=40.83\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 6.8,
+  "load1": 40.82666015625
+ }
+}

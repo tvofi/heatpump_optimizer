@@ -1,0 +1,12 @@
+{
+ "key": "4f1f941124291aeb",
+ "box": "D3-g17",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_4f1f941124291aeb.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_temp=60.01999856691201 C max_temp_step3=61.11999856691201 C\nRESULT plan_baseline=[0,0,0,0,0,0,0,0,1.13391471,2.03671589,0,0]\nRESULT plan_mutant=[0,0,0,0.1,0,0,0,0,1.07658536,2.03677205,0,0]\nRESULT step3_baseline=0 kW\nRESULT step3_mutant=0.1 kW\nRESULT delta_kw=0.1 kW\nRESULT null_delta_kw=0 kW\nRESULT sweep_inputs=120 sweep_differing_inputs=0\nRESULT inputs_tried=exact tie temps[4]==ceiling[3]-0.1 (max_temp searched by nextafter); ceiling 2 ulp up (null); 120 random (0 differ)\nRESULT thread_factor=1.000\nRESULT load1=70.28\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 13.6,
+  "load1": 68.17578125
+ }
+}

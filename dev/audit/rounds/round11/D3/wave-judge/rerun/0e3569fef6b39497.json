@@ -1,0 +1,12 @@
+{
+ "key": "0e3569fef6b39497",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_0e3569fef6b39497.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT no_inferred_handover_logs_baseline=0 count\nRESULT no_inferred_handover_logs_mutant=1 count\nRESULT no_inferred_state_equal=1\nRESULT with_inferred_handover_logs_baseline=1 count\nRESULT with_inferred_handover_logs_mutant=1 count\nRESULT with_inferred_state_equal=1\nRESULT thread_factor=1.000\nRESULT load1=100.40\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 1.3,
+  "load1": 100.3984375
+ }
+}

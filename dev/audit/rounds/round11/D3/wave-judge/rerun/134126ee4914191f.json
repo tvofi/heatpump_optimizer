@@ -1,0 +1,12 @@
+{
+ "key": "134126ee4914191f",
+ "box": "D3-g03",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_134126ee.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT score_tie_baseline=43.0\nRESULT score_tie_mutant=40.0\nRESULT null_delta=0 count\nRESULT thread_factor=1.001\nRESULT load1=139.50\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 9.5,
+  "load1": 139.5029296875
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "68c8ce175dcfa839",
+ "box": "D3-g01",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_68c8ce175dcfa839.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT partial_cover_log_baseline=1 count\nRESULT partial_cover_log_mutant=0 count\nRESULT series_delta=0 count\nRESULT inputs ([], 4, 0): baseline=([0.0, 0.0, 0.0, 0.0], 1) mutant=([0.0, 0.0, 0.0, 0.0], 0)\nRESULT inputs ([5.0, 5.0, 5.0, 5.0, 5.0, 5.0], 6, 5): baseline=([100.0, 101.0, 102.0, 103.0, 104.0, 5.0], 1) mutant=([100.0, 101.0, 102.0, 103.0, 104.0, 5.0], 0)\nRESULT null_delta=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=94.92\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 9.2,
+  "load1": 94.92333984375
+ }
+}

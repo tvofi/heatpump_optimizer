@@ -1,0 +1,12 @@
+{
+ "key": "d1197dfed14a6927",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_d1197dfed14a6927.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_same_count_exact_tie=1\nRESULT tie_same_count_decide_baseline=('measured', 0.9375, 5)\nRESULT tie_same_count_decide_mutant=('inferred', 0.9375, 5)\nRESULT tie_same_count_summary_baseline=[('measured', 5)]\nRESULT tie_same_count_summary_mutant=[('inferred', 5)]\nRESULT tie_diff_count_exact_tie=1\nRESULT tie_diff_count_decide_baseline=('measured', 0.925, 3)\nRESULT tie_diff_count_decide_mutant=('inferred', 0.925, 1)\nRESULT tie_diff_count_summary_baseline=[('measured', 3)]\nRESULT tie_diff_count_summary_mutant=[('inferred', 1)]\nRESULT inferred_lower_exact_tie=0\nRESULT inferred_lower_decide_baseline=('inferred', 0.85, 6)\nRESULT inferred_lower_decide_mutant=('inferred', 0.85, 6)\nRESULT inferred_lower_summary_baseline=[('inferred', 6)]\nRESULT inferred_lower_summary_mutant=[('inferred', 6)]\nRESULT inferred_higher_exact_tie=0\nRESULT inferred_higher_decide_baseline=('measured', 0.875, 5)\nRESULT inferred_higher_decide_mutant=('measured', 0.875, 5)\nRESULT inferred_higher_summary_baseline=[('measured', 5)]\nRESULT inferred_higher_summary_mutant=[('measured', 5)]\nRESULT cases_moved=2 count\nRESULT thread_factor=1.000\nRESULT load1=102.70\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 1.4,
+  "load1": 102.69677734375
+ }
+}

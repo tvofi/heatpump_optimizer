@@ -1,0 +1,12 @@
+{
+ "key": "2aa0f17a216035ee",
+ "box": "D3-g18",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_2aa0f17a216035ee.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT bias_baseline=3.000000 K\nRESULT bias_mutant=3.666667 K\nRESULT delta=0.666667 K\nRESULT null_delta=0.000000 K\nRESULT folds_until_arms_agree_never=1 count\nRESULT thread_factor=0.996 ratio\nRESULT load1=66.59\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 1.5,
+  "load1": 66.58984375
+ }
+}

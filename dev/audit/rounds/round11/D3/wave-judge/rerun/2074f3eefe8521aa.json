@@ -1,0 +1,12 @@
+{
+ "key": "2074f3eefe8521aa",
+ "box": "D3-g17",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_2074f3eefe8521aa.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT status1_baseline=None status1_mutant=plan\nRESULT status1_mutant_plan=[0,0,0,0,0,0,0,0,0,0,1.47660443,0,0,0,0,0]\nRESULT status2_baseline=None status2_mutant=None\nRESULT real_differing=0\nRESULT reach=the LP carries a priced shortfall slack and finite bounds, so it is feasible and bounded on every input tried; a real success=False needs a solver limit or numerical failure, which this probe stubs (mock.patch.object on dhw_planner.linprog)\nRESULT inputs_tried=stubbed status 1 with x; stubbed status 2 without x; unmocked (null)\nRESULT thread_factor=1.000\nRESULT load1=62.12\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 6.4,
+  "load1": 62.1240234375
+ }
+}

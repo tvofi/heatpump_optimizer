@@ -1,0 +1,16 @@
+{
+ "a": "c1ce480d20083d83",
+ "b": "e7edbe5bae5e180a",
+ "site": "custom_components/heatpump_optimizer/sysid.py:897",
+ "a_new": "if False:",
+ "b_new": "if not (0.1 <= tau <= 200.0) or not (0.01 < ua <= 5.0):",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT refused[ua0.01_exact] baseline=0 mutant=0\nRESULT refused[null_ua0.02] baseline=0 mutant=0\nRESULT refused[null_ua0.005] baseline=1 mutant=0\nRESULT inputs_differing=1 of 3\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

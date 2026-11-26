@@ -1,0 +1,12 @@
+{
+ "key": "d90533f4d17cfa14",
+ "box": "D3-g42",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_d90533f4d17cfa14.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT h_10.0_5.0_20.0_baseline='0.0'\nRESULT h_10.0_5.0_20.0_mutant='168.0'\nRESULT h_15.0_10.0_20.0_baseline='0.0'\nRESULT h_15.0_10.0_20.0_mutant='168.0'\nRESULT h_20.0_10.0_20.0_baseline='0.0'\nRESULT h_20.0_10.0_20.0_mutant='168.0'\nRESULT h_40.0_30.0_20.0_baseline='57.762265046662115'\nRESULT h_40.0_30.0_20.0_mutant='57.762265046662115'\nRESULT metrics_moved=3\n",
+  "stderr": "",
+  "wall_s": 5.5,
+  "load1": 44.28466796875
+ }
+}

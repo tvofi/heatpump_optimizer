@@ -1,0 +1,12 @@
+{
+ "key": "0d5a6ef5041b90f9",
+ "box": "D3-g32",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_0d5a6ef5041b90f9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT moved_features_heavy_(6.0, 3.0, 21.0, 2.0): baseline=4.353515625 mutant=4.3125\nRESULT moved_features_heavy_(8.0, 4.0, 21.5, 8.0): baseline=2.8828125 mutant=2.75\nRESULT moved_light_(6.0, 3.0, 21.0, 2.0): baseline=2.818359375 mutant=2.8125\nRESULT moved_light_(8.0, 4.0, 21.5, 8.0): baseline=1.822265625 mutant=1.75\nRESULT moved_leaky_(6.0, 3.0, 21.0, 2.0): baseline=5.663085938 mutant=5.625\nRESULT moved_leaky_(8.0, 4.0, 21.5, 8.0): baseline=3.578125 mutant=3.5\nRESULT inputs_moved=7/24 count\nRESULT features_cell_step_kw_baseline=4.353515625 mutant=4.3125\nRESULT features_cell_peak_c_baseline=0.6499 mutant=0.6402 bound=0.65\nRESULT thread_factor=1.000\nRESULT load1=37.09\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.9,
+  "load1": 37.08984375
+ }
+}

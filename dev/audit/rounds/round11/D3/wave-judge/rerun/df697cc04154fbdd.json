@@ -1,0 +1,12 @@
+{
+ "key": "df697cc04154fbdd",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_df697cc04154fbdd.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT calls_tie_i10_baseline=1 calls_tie_i10_mutant=0 seconds=150.0\nRESULT calls_inside_i10_baseline=1 calls_inside_i10_mutant=1 seconds=151.0\nRESULT calls_outside_i10_baseline=0 calls_outside_i10_mutant=0 seconds=149.0\nRESULT calls_tie_i30_baseline=1 calls_tie_i30_mutant=0 seconds=450.0\nRESULT calls_inside_i30_baseline=1 calls_inside_i30_mutant=1 seconds=451.0\nRESULT calls_outside_i30_baseline=0 calls_outside_i30_mutant=0 seconds=449.0\nRESULT calls_tie_i120_baseline=1 calls_tie_i120_mutant=0 seconds=1800.0\nRESULT calls_inside_i120_baseline=1 calls_inside_i120_mutant=1 seconds=1801.0\nRESULT calls_outside_i120_baseline=0 calls_outside_i120_mutant=0 seconds=1799.0\nRESULT thread_factor=1.000\nRESULT load1=130.18\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 10.7,
+  "load1": 132.966796875
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "f1549576a94b99be",
+ "box": "D3-g15",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_f1549576a94b99be.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT boost_top=60.0 C\nRESULT runup_max_baseline=0.0000 C\nRESULT runup_max_mutant=139.1276 C\nRESULT runup_steps_above_boost_mutant=20 count\nRESULT req_at_boost_steps_baseline=0 count\nRESULT req_at_boost_steps_mutant=20 count\nRESULT ceiling_at_boost_steps_baseline=1 count  mutant=21 count\nRESULT null_moved=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=88.56\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 6.8,
+  "load1": 88.5576171875
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "a": "5ce83ed87c36b9a5",
+ "b": "fe3e41de6bdc640a",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5213",
+ "a_new": "if not _pin_is_free(pin) and pin <= 0.5:",
+ "b_new": "if not _pin_is_free(pin) or pin < 0.5:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT released_space_baseline=[0,1]\nRESULT released_space_mutant=[0,1]\nRESULT space_kwh_first_hour_baseline=4.8809 mutant=4.8809\nRESULT null_off_only_delta=0\nRESULT thread_factor=1.000\nRESULT load1=86.68\nRESULT swapins=n/a\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

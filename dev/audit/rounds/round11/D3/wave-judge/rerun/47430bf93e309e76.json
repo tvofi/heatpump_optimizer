@@ -1,0 +1,12 @@
+{
+ "key": "47430bf93e309e76",
+ "box": "D3-g20",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_47430bf93e309e76.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT inputs_tried=66 count\nRESULT inputs_moved=33 count\nRESULT inputs_moved_beyond_exception_type=31 count (rows where both arms raise, differing only in the exception type: 2)\nRESULT moved n=1 floors.size=0 fill=18.0: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))\nRESULT moved n=1 floors.size=0 fill=25.0: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))\nRESULT moved n=1 floors.size=0 fill=nan: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))\nRESULT moved n=1 floors.size=0 fill=-inf: baseline=(shape(1,) first=[19.5], shape(1,) first=[16.5], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[16.5], shape(0,) first=[]))\nRESULT moved n=1 floors=list[18.0]*0 margins=0.5: baseline=(shape(1,) first=[19.5], shape(1,) first=[17.0], shape(1,) first=[23.0], (shape(1,) first=[17.0], shape(1,) first=[-inf])) mutant=(shape(1,) first=[19.5], shape(0,) first=[], shape(1,) first=[23.0], (shape(1,) first=[17.0], shape(0,) first=[]))\nRESULT null_delta=0 count (n=96 floors=None margins=None)\nRESULT thread_factor=1.000\nRESULT load1=51.82\nRESULT swapins=10 count\n",
+  "stderr": "",
+  "wall_s": 7.0,
+  "load1": 51.81640625
+ }
+}

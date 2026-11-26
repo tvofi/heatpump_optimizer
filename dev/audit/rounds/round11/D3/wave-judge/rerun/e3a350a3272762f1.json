@@ -1,0 +1,12 @@
+{
+ "key": "e3a350a3272762f1",
+ "box": "D3-g41",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g41/probes/probe_e3a350a3272762f1.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT amb_none_nan_baseline=np.float64(2.44125)\nRESULT amb_none_nan_mutant=np.float64(1.6275000000000002)\nRESULT amb_none_nan_mutant_finite=1\nRESULT amb_none_nan_equals_none_baseline=1\nRESULT amb_none_nan_equals_none_mutant=0\nRESULT amb_none_nan_moved=4 count (of 4 outdoor temps)\nRESULT amb_none_null_moved=0 count (of 9)\nRESULT amb80_nan_baseline=np.float64(1.7161262376237623)\nRESULT amb80_nan_mutant=np.float64(1.6275000000000002)\nRESULT amb80_nan_mutant_finite=1\nRESULT amb80_nan_equals_none_baseline=1\nRESULT amb80_nan_equals_none_mutant=0\nRESULT amb80_nan_moved=4 count (of 4 outdoor temps)\nRESULT amb80_null_moved=0 count (of 9)\nRESULT thread_factor=0.103 ratio\nRESULT load1=56.85\nRESULT swapins=na count\n",
+  "stderr": "",
+  "wall_s": 3.5,
+  "load1": 56.84765625
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "26180738b4dfa52e",
+ "box": "D3-g28",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_26180738b4dfa52e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT pmax_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_neg_mutant=ok:[-1.0, -1.0, -1.0, -1.0]\nRESULT pmax_neg_mutant_min_kw=-1.000 kW\nRESULT dt_zero_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT dt_zero_mutant=raise:ZeroDivisionError: division by zero\nRESULT dt_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT dt_neg_mutant=ok:[0.0, -4.0, 0.0, 0.0]\nRESULT energy_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT energy_neg_mutant=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_zero_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_zero_mutant=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT null_ordinary_diff=0\nRESULT thread_factor=1.000\nRESULT load1=39.07\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 6.8,
+  "load1": 39.07373046875
+ }
+}

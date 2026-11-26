@@ -1,0 +1,12 @@
+{
+ "key": "1b476993921016f9",
+ "box": "D3-g45",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_1b476993921016f9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT draw_power_recovery-0.5_baseline=0.32625000000000004 mutant=0.48937500000000006\nRESULT draw_power_recovery0.0_baseline=0.32625000000000004 mutant=0.32625000000000004\nRESULT draw_power_recovery0.5_baseline=0.16312500000000002 mutant=0.16312500000000002\nRESULT draw_power_recovery0.9_baseline=0.032624999999999994 mutant=0.032624999999999994\nRESULT draw_power_recovery1.5_baseline=0.032624999999999994 mutant=-0.16312500000000002\nRESULT draw_power_recoverynan_baseline=nan mutant=nan\nRESULT inputs_moved=2 of 6 count\nRESULT null_moved=0 count\n",
+  "stderr": "",
+  "wall_s": 3.0,
+  "load1": 39.197265625
+ }
+}

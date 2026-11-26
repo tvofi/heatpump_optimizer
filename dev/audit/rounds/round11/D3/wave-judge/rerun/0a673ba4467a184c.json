@@ -1,0 +1,12 @@
+{
+ "key": "0a673ba4467a184c",
+ "box": "D3-g28",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_0a673ba4467a184c.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT outcome_baseline=ok:0.0\nRESULT outcome_mutant=raise:ZeroDivisionError: division by zero\nRESULT mutant_raises=1\nRESULT null_fixed_speed_diff=0.000000\nRESULT thread_factor=1.000\nRESULT load1=40.01\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 7.0,
+  "load1": 40.009765625
+ }
+}

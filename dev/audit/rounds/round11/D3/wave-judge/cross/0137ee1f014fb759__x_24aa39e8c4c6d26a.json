@@ -1,0 +1,9 @@
+{
+ "a": "24aa39e8c4c6d26a",
+ "b": "0137ee1f014fb759",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2325",
+ "a_new": "if bool(np.any((dts <= 1e-3) | (dts >= 2.0))):",
+ "b_new": "if bool(np.any((dts < 1e-3) | (dts > 2.0))):",
+ "replacements": 0,
+ "status": "not expressible"
+}

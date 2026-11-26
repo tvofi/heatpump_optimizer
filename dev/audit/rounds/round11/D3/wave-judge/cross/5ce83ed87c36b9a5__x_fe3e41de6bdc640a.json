@@ -1,0 +1,16 @@
+{
+ "a": "fe3e41de6bdc640a",
+ "b": "5ce83ed87c36b9a5",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5213",
+ "a_new": "if not _pin_is_free(pin) or pin < 0.5:",
+ "b_new": "if not _pin_is_free(pin) and pin <= 0.5:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT direct_half_pin_release_baseline=([0],[])\nRESULT direct_half_pin_release_mutant=([],[])\nRESULT null_on_pin_delta=1\nRESULT optimize_half_pin_differing_plans=5 of 15\nRESULT thread_factor=1.000\nRESULT load1=54.81\nRESULT swapins=n/a\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

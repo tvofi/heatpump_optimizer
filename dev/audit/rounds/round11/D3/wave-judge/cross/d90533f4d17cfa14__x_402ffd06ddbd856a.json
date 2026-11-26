@@ -1,0 +1,9 @@
+{
+ "a": "402ffd06ddbd856a",
+ "b": "d90533f4d17cfa14",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3649",
+ "a_new": "if hot < 0.0:",
+ "b_new": "if False:",
+ "replacements": 0,
+ "status": "not expressible"
+}

@@ -1,0 +1,12 @@
+{
+ "key": "1721e50b7537a426",
+ "box": "D3-g26",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_1721e50b7537a426.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT released_dhw_baseline=48 count\nRESULT released_dhw_mutant=56 count\nRESULT solves_baseline=2 count\nRESULT solves_mutant=5 count\nRESULT allzero_released_baseline=88 count\nRESULT allzero_released_mutant=96 count\nRESULT null_released_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=103.44\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 27.4,
+  "load1": 103.44482421875
+ }
+}

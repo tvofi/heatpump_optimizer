@@ -1,0 +1,16 @@
+{
+ "a": "4410da4e8eb84cb8",
+ "b": "f11665aaedbf2550",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:8838",
+ "a_new": "if params.dhw_enabled or state.dhw_temperature < params.dhw_min_temp:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT hold_baseline=1\nRESULT hold_mutant=1\nRESULT null_baseline=1\nRESULT null_mutant=1\nRESULT thread_factor=1.000\nRESULT load1=88.70\nRESULT swapins=nan\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

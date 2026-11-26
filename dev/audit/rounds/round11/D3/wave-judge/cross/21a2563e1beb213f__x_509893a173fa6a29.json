@@ -1,0 +1,16 @@
+{
+ "a": "509893a173fa6a29",
+ "b": "21a2563e1beb213f",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9486",
+ "a_new": "if count >= COP_BASELINE_MIN_SAMPLES and baseline >= 0.5:",
+ "b_new": "if count > COP_BASELINE_MIN_SAMPLES and baseline > 0.5:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT n_then_drop_baseline=stat 0.323333333 baseline_cop 2.98 count 21 issues 0\nRESULT n_then_drop_mutant=stat 0.323333333 baseline_cop 2.98 count 21 issues 0\nRESULT n_then_two_drops_baseline=stat 0.642192394 baseline_cop 2.9604 count 22 issues 0\nRESULT n_then_two_drops_mutant=stat 0.642192394 baseline_cop 2.9604 count 22 issues 0\nRESULT n_minus_1_then_drop_baseline=stat 0.0 baseline_cop 2.95 count 20 issues 0\nRESULT n_minus_1_then_drop_mutant=stat 0.0 baseline_cop 2.95 count 20 issues 0\nRESULT seqs_moved=0 count of 3\nRESULT null_moved=0 count of 2\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

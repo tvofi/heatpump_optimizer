@@ -1,0 +1,16 @@
+{
+ "a": "30fcf9ba50130ea2",
+ "b": "89a3d25e2425b8e0",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9386",
+ "a_new": "if capacity <= 1e-6 or dt_h < 1e-6:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT cap0_baseline=(0.0,1.0,0.0,0.0)\nRESULT cap0_mutant=(0.0,1.0,0.0,0.0)\nRESULT dt0_baseline=(0.0,1.0,0.0,0.0)\nRESULT dt0_mutant=(0.0,1.0,0.0,0.0)\nRESULT dt_neg_baseline=(0.0,1.0,0.0,0.0)\nRESULT dt_neg_mutant=(0.0,1.0,0.0,0.0)\nRESULT cases_moved=0 count\nRESULT null_cap10_dt0p5=(1.0,1.0,0.0392,0.16)\nRESULT null_default=(1.0,1.0,0.0392,0.16)\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=115.71\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,16 @@
+{
+ "a": "cb58757b91fa48c4",
+ "b": "ad01ae06d7ea84ec",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:5054",
+ "a_new": "if p85 < p25 * 1.05:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT nearflat_baseline=None\nRESULT nearflat_mutant=None\nRESULT moved=0 count\nRESULT null_delta=0 count\nRESULT reach_proposed_baseline=0 count\nRESULT reach_proposed_mutant=0 count\nRESULT reach_plan_maxabs_diff_kw=0.0000 kW\nRESULT reach_objective_delta=0.000000\nRESULT reach_cpu_baseline_s=1.54 s (provisional)\nRESULT reach_cpu_mutant_s=1.57 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=53.23\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

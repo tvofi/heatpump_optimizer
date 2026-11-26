@@ -1,0 +1,12 @@
+{
+ "key": "ceee24404849933e",
+ "box": "D3-g08",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_ceee24404849933e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT fresh_error_baseline=((('candidate_fuse_a', 20), ('error', 'solver_failed'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)\nRESULT fresh_error_mutant=((), '2026-07-09T12:00:00+00:00', 1)\nRESULT fresh_no_echo_baseline=((('candidate_fuse_a', 20), ('error', 'rate_limited'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)\nRESULT fresh_no_echo_mutant=((), '2026-07-09T12:00:00+00:00', 1)\nRESULT stale_error_record_then_error_baseline=((('candidate_fuse_a', 20), ('error', 'x'), ('month', '2026-07')), '2026-07-09T12:00:00+00:00', 1)\nRESULT stale_error_record_then_error_mutant=((('candidate_fuse_a', 20), ('error', 'old'), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1)\nRESULT null_prior_verdict_error_baseline=((('candidate_kw', 13.8), ('feasible', True), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1) mutant=((('candidate_kw', 13.8), ('feasible', True), ('month', '2026-06')), '2026-07-09T12:00:00+00:00', 1)\nRESULT null_success_baseline=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1) mutant=((('candidate_fuse_a', 20), ('candidate_kw', 13.8), ('comfort_shortfall_c', 0.0), ('cost_delta_sek_month', None), ('current_fuse_a', 25), ('feasible', True), ('month', '2026-07'), ('worst_margin_kw', 4.8)), '2026-07-15T12:00:00+00:00', 1)\nRESULT cases_moved=3 count of 3\nRESULT null_moved=0 count of 2\n",
+  "stderr": "",
+  "wall_s": 8.7,
+  "load1": 130.7880859375
+ }
+}

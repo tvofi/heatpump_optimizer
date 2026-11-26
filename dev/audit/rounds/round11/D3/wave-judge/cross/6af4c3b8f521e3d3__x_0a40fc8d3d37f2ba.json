@@ -1,0 +1,16 @@
+{
+ "a": "0a40fc8d3d37f2ba",
+ "b": "6af4c3b8f521e3d3",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2111",
+ "a_new": "if False:",
+ "b_new": "if np.isfinite(ro) and (not np.isfinite(lo) or ro <= lo - 1e-9):",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT example_input=left=0.0,right=-3.0\nRESULT kept_baseline=right\nRESULT kept_mutant=left\nRESULT kept_objective_baseline_left10_right5=5.0\nRESULT kept_objective_mutant_left10_right5=10.0\nRESULT grid_inputs_tried=196 count\nRESULT grid_inputs_moved=84 count\nRESULT domain_inputs_tried=121 count\nRESULT domain_inputs_moved=51 count\nRESULT production_calls=0 count\nRESULT production_calls_moved=0 count\nRESULT null_inputs_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=66.15\nRESULT swapins=na\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

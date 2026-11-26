@@ -1,0 +1,12 @@
+{
+ "key": "4fd094e9727818b3",
+ "box": "D3-g11",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g11/probes/probe_4fd094e9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT age_at_limit_baseline=12.0\nRESULT age_at_limit_mutant=None\nRESULT null_moved=0 count\nRESULT thread_factor=0.998\nRESULT load1=119.42\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 9.1,
+  "load1": 115.70703125
+ }
+}

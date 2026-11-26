@@ -1,0 +1,12 @@
+{
+ "key": "247372989ae65baa",
+ "box": "D3-g17",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_247372989ae65baa.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT positive_dt_differing=0\nRESULT dt0_baseline=None dt0_mutant=ZeroDivisionError\nRESULT dtneg_baseline=None dtneg_mutant=None\nRESULT reach=ctx.dt is the configured step length in hours (positive); no input with dt > 0 separates the arms\nRESULT inputs_tried=dt 1.0, 0.25, 1e-7 (window >= horizon in both), 0.0, -1.0\nRESULT thread_factor=1.001\nRESULT load1=66.16\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 7.4,
+  "load1": 64.224609375
+ }
+}

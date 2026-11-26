@@ -1,0 +1,12 @@
+{
+ "key": "be3a3a75280c7b7e",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_be3a3a75280c7b7e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT short_baseline=array:1,0,nan,nan\nRESULT short_mutant=raise:ValueError\nRESULT null_delta=0 count\nRESULT optimize_short_pins_baseline=ok\nRESULT optimize_short_pins_mutant=raise:ValueError\nRESULT reach_plan_maxabs_diff_kw=0.0000 kW\nRESULT thread_factor=1.000\nRESULT load1=50.07\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 9.7,
+  "load1": 49.5068359375
+ }
+}

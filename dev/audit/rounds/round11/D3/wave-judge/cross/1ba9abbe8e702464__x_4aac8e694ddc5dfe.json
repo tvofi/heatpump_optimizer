@@ -1,0 +1,9 @@
+{
+ "a": "4aac8e694ddc5dfe",
+ "b": "1ba9abbe8e702464",
+ "site": "custom_components/heatpump_optimizer/defrost.py:537",
+ "a_new": "return 0.0 < v <= 1.0  # observe_duty's gate; NaN fails it",
+ "b_new": "return 0.0 <= v < 1.0  # observe_duty's gate; NaN fails it",
+ "replacements": 0,
+ "status": "not expressible"
+}

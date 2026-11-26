@@ -1,0 +1,2579 @@
+{
+ "canonical": [
+  "D3-wave-fafb0d2c15e72efb",
+  "D3-wave-676e8bfb416ff635",
+  "D3-wave-622996d751dca0c4",
+  "D3-wave-0e6080e5385399cb",
+  "D3-wave-021dc21415f3229e",
+  "D3-wave-1165914e57f5bd08",
+  "D3-wave-ab918806fc8b4af6",
+  "D3-wave-cf7be12db1a662c4",
+  "D3-wave-031dba68286ccfbf",
+  "D3-wave-22205dc8a4a6e79b",
+  "D3-wave-37e0face2a901e71",
+  "D3-wave-68c8ce175dcfa839",
+  "D3-wave-20f57d1eea0a5a1d",
+  "D3-wave-cd1d099ef87f3ab9",
+  "D3-wave-473508040d23cc21",
+  "D3-wave-ad8a02e5c07428ab",
+  "D3-wave-b3a8cff2e5c0a8cc",
+  "D3-wave-59027d3bdf2e7a0c",
+  "D3-wave-2700e28d79c64bd8",
+  "D3-wave-9d324a1dc7a6aa82",
+  "D3-wave-bb1abbfc58114a17",
+  "D3-wave-74dbcc2eae2c24f5",
+  "D3-wave-355c3d7dd36a1b90",
+  "D3-wave-ec4b6ee2ab420129",
+  "D3-wave-16f7665306eebdf3",
+  "D3-wave-2ec5fda238265712",
+  "D3-wave-c0ecc8e0b6b66ded",
+  "D3-wave-ac6bedc70bb82ff7",
+  "D3-wave-3304e65ba361587f",
+  "D3-wave-a28fd1af46c39331",
+  "D3-wave-4498461fcf451835",
+  "D3-wave-79db73ec81b29f23",
+  "D3-wave-9c82d861621b8087",
+  "D3-wave-e880fd3537006726",
+  "D3-wave-134126ee4914191f",
+  "D3-wave-b7623a645f34e628",
+  "D3-wave-420bcb8597761025",
+  "D3-wave-466c95cb8978ea1d",
+  "D3-wave-a7dd3153718e531b",
+  "D3-wave-7457d714cd44306c",
+  "D3-wave-6aeb83e5435c9cac",
+  "D3-wave-d06a2d8e53342785",
+  "D3-wave-faf822994582adfc",
+  "D3-wave-feed2751f4116bd1",
+  "D3-wave-29bad645ca2c2438",
+  "D3-wave-640a1a68b6c1eb23",
+  "D3-wave-c087dc286eeff014",
+  "D3-wave-218ac218da41d87d",
+  "D3-wave-bcf290164a0edeeb",
+  "D3-wave-375376c4733a1a51",
+  "D3-wave-2699efc070f5d4e3",
+  "D3-wave-d05457b7adf4d691",
+  "D3-wave-d943cc9f7670a834",
+  "D3-wave-d915157ffe509e58",
+  "D3-wave-dff127b334682936",
+  "D3-wave-59337f7f63497f21",
+  "D3-wave-4542deee22df985f",
+  "D3-wave-e347b6890486dd0d",
+  "D3-wave-72fbe692d30d275e",
+  "D3-wave-2e4d4a89570a1b24",
+  "D3-wave-89a3d25e2425b8e0",
+  "D3-wave-96fe4cecaa16f997",
+  "D3-wave-1a24365a55bfb2c7",
+  "D3-wave-d3cad40ffce9b765",
+  "D3-wave-f0146f6f4901ec82",
+  "D3-wave-4410da4e8eb84cb8",
+  "D3-wave-f11665aaedbf2550",
+  "D3-wave-9b72b944ac12fa25",
+  "D3-wave-fd1cc23d380739ba",
+  "D3-wave-c20f346300d7efc1",
+  "D3-wave-60f673da42f9d671",
+  "D3-wave-b6ac2d53028d45a3",
+  "D3-wave-1ee0ec8960fb9a66",
+  "D3-wave-15456e64946920b5",
+  "D3-wave-ceee24404849933e",
+  "D3-wave-341d807c3a3d361d",
+  "D3-wave-d5ce59f9731dfc83",
+  "D3-wave-7398de952c9d1510",
+  "D3-wave-21a2563e1beb213f",
+  "D3-wave-509893a173fa6a29",
+  "D3-wave-cd6eee1c9c175e5f",
+  "D3-wave-b283779946540c3d",
+  "D3-wave-25fb4eaf35cfdda5",
+  "D3-wave-9cdf54d2309cfcc8",
+  "D3-wave-d8101520588009d9",
+  "D3-wave-3d83c32f185cf411",
+  "D3-wave-002980a15ae8b9a9",
+  "D3-wave-1785780ac9dd1b18",
+  "D3-wave-326b26f53972df61",
+  "D3-wave-104db258fed59c2d",
+  "D3-wave-8daaf4fcaf8cd897",
+  "D3-wave-3cfe39778305daba",
+  "D3-wave-425a9196b86265d0",
+  "D3-wave-0c99189b7639f1bd",
+  "D3-wave-df697cc04154fbdd",
+  "D3-wave-205660ee362d1a07",
+  "D3-wave-c7054b2e59c82141",
+  "D3-wave-ff56936f15fd4675",
+  "D3-wave-349b2e117d076731",
+  "D3-wave-8ab42c4ab9755537",
+  "D3-wave-f2a191b48718e088",
+  "D3-wave-b871ff0486182e3e",
+  "D3-wave-813cb7aecbd78f98",
+  "D3-wave-aa6b718c979bf831",
+  "D3-wave-18fe89552892dc4b",
+  "D3-wave-65175bb211f70f26",
+  "D3-wave-61e748f094f2daa8",
+  "D3-wave-94285425a1bc856a",
+  "D3-wave-69b933a6a720006b",
+  "D3-wave-9dcd374ac007dfc9",
+  "D3-wave-4fd094e9727818b3",
+  "D3-wave-e2b030e0716d126c",
+  "D3-wave-738102c9ed0f89af",
+  "D3-wave-372a4f4fcc8de86f",
+  "D3-wave-6f5898d327366799",
+  "D3-wave-7ffebcb567a4242e",
+  "D3-wave-845155d368e8b524",
+  "D3-wave-3e68dcd55f9567e5",
+  "D3-wave-88ecd932bc81efec",
+  "D3-wave-4403a4c7bec83d8f",
+  "D3-wave-89bec0a0291b4756",
+  "D3-wave-b028ad9d6c702965",
+  "D3-wave-3b9eddc7ba9a7488",
+  "D3-wave-d1197dfed14a6927",
+  "D3-wave-3e3fbb5fcbbe9bcc",
+  "D3-wave-1ba9abbe8e702464",
+  "D3-wave-4aac8e694ddc5dfe",
+  "D3-wave-5366f1e6254f603c",
+  "D3-wave-efb33eb6212be24e",
+  "D3-wave-0e3569fef6b39497",
+  "D3-wave-24d9995ccee4252e",
+  "D3-wave-8297234e122897ff",
+  "D3-wave-681130c48add1573",
+  "D3-wave-c61a89f42607c92b",
+  "D3-wave-df4de55e12588fdf",
+  "D3-wave-3685cdbd27c1680f",
+  "D3-wave-1c0e818b4bb24fcd",
+  "D3-wave-0b51e1d1975513aa",
+  "D3-wave-0e3fc2bc64c2bf63",
+  "D3-wave-b25e80c59b31c20d",
+  "D3-wave-6999e2dab9790b53",
+  "D3-wave-cd7bc939ea82fecd",
+  "D3-wave-de02e0a048abc451",
+  "D3-wave-7f026b4dd7d44269",
+  "D3-wave-a1576c7241b67401",
+  "D3-wave-8fa714bbb756e11e",
+  "D3-wave-a1ebeff0870dfa76",
+  "D3-wave-f1549576a94b99be",
+  "D3-wave-7cd9b966a3bd0008",
+  "D3-wave-31c1881164f2dcdf",
+  "D3-wave-7640e80a994db479",
+  "D3-wave-35d61c87783ebe66",
+  "D3-wave-8fc6a207d6600867",
+  "D3-wave-72882f2ac25c19b1",
+  "D3-wave-a21e5757eab163a7",
+  "D3-wave-41000bf52dbaa1ad",
+  "D3-wave-88d911d796fdd71d",
+  "D3-wave-3ec31b99309ca722",
+  "D3-wave-84eb14f49ff66736",
+  "D3-wave-7da9151a6a79c43e",
+  "D3-wave-50ae25437a296deb",
+  "D3-wave-61862d35b6b2885d",
+  "D3-wave-5b123e9e5b76ebc3",
+  "D3-wave-4f1f941124291aeb",
+  "D3-wave-c1d6f40c74ee74ad",
+  "D3-wave-b1a8d3056bf42597",
+  "D3-wave-ddf4602569b157b1",
+  "D3-wave-247372989ae65baa",
+  "D3-wave-b1074e70396100d8",
+  "D3-wave-b7a6f145165338bf",
+  "D3-wave-2074f3eefe8521aa",
+  "D3-wave-64576dd552491452",
+  "D3-wave-91617fb42e33ebdf",
+  "D3-wave-936bcb2da6441e86",
+  "D3-wave-2aa0f17a216035ee",
+  "D3-wave-9297f123a6265555",
+  "D3-wave-911f3cf5172ffc44",
+  "D3-wave-b5f0a73275608684",
+  "D3-wave-68cc141bf2c3493a",
+  "D3-wave-2043855ef5cf151d",
+  "D3-wave-eee37674711fa45f",
+  "D3-wave-23b144fb9583c5c7",
+  "D3-wave-68ef00f470ecea8d",
+  "D3-wave-be95c184bf4746ff",
+  "D3-wave-e53563e772b70dbc",
+  "D3-wave-24ef8e54dad20484",
+  "D3-wave-7f048d7823b17826",
+  "D3-wave-4c7e296370fc452d",
+  "D3-wave-9644a454ac8f288b",
+  "D3-wave-d800d2857a698d22",
+  "D3-wave-176e4dd6d5aec097",
+  "D3-wave-c40e66fc9831672f",
+  "D3-wave-7add4cd79387ec24",
+  "D3-wave-bf2229e3f179f4b6",
+  "D3-wave-47430bf93e309e76",
+  "D3-wave-3652dbb5880d62c8",
+  "D3-wave-b1926550efd8eac4",
+  "D3-wave-fd57e13959b23a4c",
+  "D3-wave-ad01ae06d7ea84ec",
+  "D3-wave-00298af0aa9d1903",
+  "D3-wave-a4f4c88e7480a514",
+  "D3-wave-be3a3a75280c7b7e",
+  "D3-wave-deb281264473bdd6",
+  "D3-wave-a66e107749d0ae11",
+  "D3-wave-4e5a67b907d13871",
+  "D3-wave-ed5e3ec5b879ed90",
+  "D3-wave-6309f3e4a0a6c45f",
+  "D3-wave-ef9a378b671791ca",
+  "D3-wave-7da20bf51cc217e6",
+  "D3-wave-ce686724ef107650",
+  "D3-wave-8fd14c249b86abf7",
+  "D3-wave-0120a5a672990611",
+  "D3-wave-0ecb763c4bcb0828",
+  "D3-wave-bc3a42f14c903439",
+  "D3-wave-856aa341a89a6ab0",
+  "D3-wave-fe3e41de6bdc640a",
+  "D3-wave-70791cdb98f8ddd7",
+  "D3-wave-7516dd3d9e66d3ef",
+  "D3-wave-ce5b92d704397d85",
+  "D3-wave-aab0b73e229ad900",
+  "D3-wave-56de38e47369b2b7",
+  "D3-wave-df066a5f3f3d3e0f",
+  "D3-wave-bbcded8a73c6a2f1",
+  "D3-wave-f3126cd40dc76143",
+  "D3-wave-f58c6d034aa31e46",
+  "D3-wave-6aec51dc6f670787",
+  "D3-wave-b2e075c0da35240d",
+  "D3-wave-57f696b2f988d5a9",
+  "D3-wave-b143b01c4ea02159",
+  "D3-wave-a581feadd69c6c42",
+  "D3-wave-e96ae75a1f1f213e",
+  "D3-wave-d0de1c16101369f5",
+  "D3-wave-f8b7db7badd35158",
+  "D3-wave-cd766b55c44ca3ee",
+  "D3-wave-724471c27310230f",
+  "D3-wave-970ed4d74c36caa1",
+  "D3-wave-1d11f24436471959",
+  "D3-wave-e16ae8a6fd6cea40",
+  "D3-wave-119b25afdd5d4988",
+  "D3-wave-35d104f30f878131",
+  "D3-wave-f56e3474baa75dc5",
+  "D3-wave-1721e50b7537a426",
+  "D3-wave-2693e4fc04518cbf",
+  "D3-wave-977021e3b3964277",
+  "D3-wave-10de422e4e1024a7",
+  "D3-wave-e4affa9b9b540588",
+  "D3-wave-0fcdd4bdabc205ea",
+  "D3-wave-8365c2592bae9886",
+  "D3-wave-d128afa0c1ce3d28",
+  "D3-wave-0a40fc8d3d37f2ba",
+  "D3-wave-f077d8a96cc1e3ed",
+  "D3-wave-6a32950e7b3e62f2",
+  "D3-wave-c5abe60d7c7ca966",
+  "D3-wave-ef7b85a510c47950",
+  "D3-wave-3067ff76235329e4",
+  "D3-wave-b94f040a7b0aed92",
+  "D3-wave-9aa50bd32847b4dd",
+  "D3-wave-1e3d68358832d695",
+  "D3-wave-b53efc6448b724e4",
+  "D3-wave-92e6a72a53dd339f",
+  "D3-wave-64629e9b22df0c16",
+  "D3-wave-0a673ba4467a184c",
+  "D3-wave-62abf71b9686f2b8",
+  "D3-wave-9e9ab1d6567ff65b",
+  "D3-wave-01e740ed4f78ae95",
+  "D3-wave-09e80cfe3036223e",
+  "D3-wave-8206a42b98c8dd86",
+  "D3-wave-e670e7e026a9f4ec",
+  "D3-wave-8171db177f51df33",
+  "D3-wave-2aff1f5c0b10dffa",
+  "D3-wave-000221f3921dd956",
+  "D3-wave-0ea7620ce058c489",
+  "D3-wave-213a122afd9ff3e1",
+  "D3-wave-b10967dd4ea185fd",
+  "D3-wave-7e5493bcbddd6c18",
+  "D3-wave-66686e3bc3bac9b9",
+  "D3-wave-5bf50f5d986f927d",
+  "D3-wave-cc96ce9e391ca6f2",
+  "D3-wave-b5aef00760fd5ea8",
+  "D3-wave-b9b6cf1d15a84248",
+  "D3-wave-a5c9796d35117839",
+  "D3-wave-13cadf1ab9a2de61",
+  "D3-wave-b5a482468c783209",
+  "D3-wave-0b10a7c76e2514d2",
+  "D3-wave-c4697335da324182",
+  "D3-wave-4e79ba6ea642d086",
+  "D3-wave-12cd6ddd79fb36fc",
+  "D3-wave-3a064c11321daba7",
+  "D3-wave-efa02472a5a773bc",
+  "D3-wave-a38612ad3ad9cd34",
+  "D3-wave-28de20de50a9540b",
+  "D3-wave-e5eea05f4463602e",
+  "D3-wave-0d159d7ddd1702d9",
+  "D3-wave-b539d4504385a139",
+  "D3-wave-88732fcb7c604858",
+  "D3-wave-0d5a6ef5041b90f9",
+  "D3-wave-4a189db92053760e",
+  "D3-wave-80cb9a8152f72e57",
+  "D3-wave-822c0c6477ed703e",
+  "D3-wave-adc459d2db521041",
+  "D3-wave-a23ed12204379870",
+  "D3-wave-6e67f128730b3ecd",
+  "D3-wave-20e001c48fb19330",
+  "D3-wave-95090bc58c6535b2",
+  "D3-wave-505422349a01c3ff",
+  "D3-wave-7dbbb95252ced538",
+  "D3-wave-aa6d264aa0411bcd",
+  "D3-wave-b8d5ec03e8eba5c7",
+  "D3-wave-756f3bebd6a42efc",
+  "D3-wave-84372c0eb1502d14",
+  "D3-wave-20f72103eda78713",
+  "D3-wave-4eeb366191982f92",
+  "D3-wave-44bb0ce0b258242c",
+  "D3-wave-10665a84dc064489",
+  "D3-wave-d7421c10ed63c281",
+  "D3-wave-501a5e7cda702183",
+  "D3-wave-20cde1046cbd5681",
+  "D3-wave-6cfdb101dc87a6ea",
+  "D3-wave-d203230963349f60",
+  "D3-wave-5654f855fcc27724",
+  "D3-wave-4593852cf3862b3c",
+  "D3-wave-64f3ef1feaaf7bc9",
+  "D3-wave-784e362919d88a92",
+  "D3-wave-d661d68f54982097",
+  "D3-wave-a5b06d898bf0ba03",
+  "D3-wave-c51115b0104a8bf5",
+  "D3-wave-4da9d281d4714565",
+  "D3-wave-440c0a6d5ee72d19",
+  "D3-wave-809e8d14f04e1127",
+  "D3-wave-0137ee1f014fb759",
+  "D3-wave-24aa39e8c4c6d26a",
+  "D3-wave-ae8f84354933d191",
+  "D3-wave-9460d3802a8903d6",
+  "D3-wave-de6bbadf1499bae9",
+  "D3-wave-0baef4e86433b225",
+  "D3-wave-b3c0e51c511b2618",
+  "D3-wave-9dd0547496b091b0",
+  "D3-wave-8840eb67a646cd97",
+  "D3-wave-5104733df3085998",
+  "D3-wave-373207a8e12c37c5",
+  "D3-wave-291748b42a54c1f6",
+  "D3-wave-b4f7503c6959449d",
+  "D3-wave-f6016f6adb9683a8",
+  "D3-wave-c1ce480d20083d83",
+  "D3-wave-d8e588be2e0aba89",
+  "D3-wave-e7edbe5bae5e180a",
+  "D3-wave-a1ba3ad7c4c53dd5",
+  "D3-wave-56294c2224449394",
+  "D3-wave-6c7eefdfaf64ea5a",
+  "D3-wave-a6c42cff101ffc65",
+  "D3-wave-6f546669421ba07b",
+  "D3-wave-7c25d8795fa2d46c",
+  "D3-wave-907d16324ff11dda",
+  "D3-wave-990cdd83373504ad",
+  "D3-wave-d0f2d18b2b49232c",
+  "D3-wave-4467ecd198f47483",
+  "D3-wave-559484953b5cdd5d",
+  "D3-wave-cb38833c854f6257",
+  "D3-wave-fa6fdd76e6fa619d",
+  "D3-wave-246043395831f540",
+  "D3-wave-de935c38786265e7",
+  "D3-wave-4ad3dc13bfdb70a8",
+  "D3-wave-7fcaf91cced5ce41",
+  "D3-wave-37b3c9a03326d207",
+  "D3-wave-6536ff6b094f971d",
+  "D3-wave-5371ee2b5e897750",
+  "D3-wave-5f094dbca9a593e9",
+  "D3-wave-996dce5148e02763",
+  "D3-wave-3e9a439baa86a074",
+  "D3-wave-1894e6dcd2251a30",
+  "D3-wave-2d037a10caa62e28",
+  "D3-wave-43b54266f12bfb21",
+  "D3-wave-dfe094233a9164e0",
+  "D3-wave-e3a350a3272762f1",
+  "D3-wave-94ce174acf85b6f2",
+  "D3-wave-898d741cf6142efb",
+  "D3-wave-a6cebb125b72f083",
+  "D3-wave-c5e678a5d1812e40",
+  "D3-wave-5b8e7044ee7974f8",
+  "D3-wave-f7e051cc469b465f",
+  "D3-wave-402ffd06ddbd856a",
+  "D3-wave-d90533f4d17cfa14",
+  "D3-wave-011b9e2e975b5e98",
+  "D3-wave-9df41596c4fa89c6",
+  "D3-wave-029c040224dc4e38",
+  "D3-wave-7068e39e4608027f",
+  "D3-wave-6462c28df2f973e0",
+  "D3-wave-05b5a15efaaf70de",
+  "D3-wave-36117bb3a189672b",
+  "D3-wave-3d4899a05eb126c3",
+  "D3-wave-78b7f2ebcf85c8a1",
+  "D3-wave-9362d5efbe6808c2",
+  "D3-wave-cde383447b865539",
+  "D3-wave-f66c6e9cf9d1f84a",
+  "D3-wave-b2faf84904db389e",
+  "D3-wave-1b476993921016f9",
+  "D3-wave-ea888783bb621669",
+  "D3-wave-b098598faf0d87dc",
+  "D3-wave-dd40fdb4edae4d79",
+  "D3-wave-19404e3632806509",
+  "D3-wave-beeb068352333132",
+  "D3-wave-ea9c4705de428b28",
+  "D3-wave-98853a541b6b5d6a",
+  "D3-wave-39041ccf21eedba6"
+ ],
+ "merged": [
+  {
+   "id": "D3-wave-db9b59ec36304943",
+   "into": "D3-wave-ab918806fc8b4af6",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:10331",
+   "number": "probe_db9b59ec36304943 run with ab918806fc8b4af6's mutant: 2 of 2 of its own moved arm pairs move, e.g. ('no_meter_zero_plan_lines', ['0 count []', \"3 count ['dhw', 'space', 'spot']\"]); null pairs held"
+  },
+  {
+   "id": "D3-wave-816e18d55f46f0e4",
+   "into": "D3-wave-79db73ec81b29f23",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9352",
+   "number": "probe_816e18d55f46f0e4 run with 79db73ec81b29f23's mutant: 1 of 2 of its own moved arm pairs move, e.g. ('caps_p0.1', ['None', '[0.06, 0.06]']); null pairs held"
+  },
+  {
+   "id": "D3-wave-8e729260c34e2e3b",
+   "into": "D3-wave-4542deee22df985f",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9440",
+   "number": "probe_8e729260c34e2e3b run with 4542deee22df985f's mutant: 2 of 2 of its own moved arm pairs move, e.g. ('cap1e-6', ['None', '0.3']); null pairs held"
+  },
+  {
+   "id": "D3-wave-30fcf9ba50130ea2",
+   "into": "D3-wave-89a3d25e2425b8e0",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9386",
+   "number": "probe_30fcf9ba50130ea2 run with 89a3d25e2425b8e0's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('dt1e-6', ['(0.0,1.0,0.0,0.0)', '(1.0,1.0,0.0392,80000.0)']); null pairs held"
+  },
+  {
+   "id": "D3-wave-efa2c19c51831a68",
+   "into": "D3-wave-89a3d25e2425b8e0",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9386",
+   "number": "probe_efa2c19c51831a68 run with 89a3d25e2425b8e0's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('cap1e-6', ['(0.0,1.0,0.0,0.0)', '(1.0,1.0,0.0392,0.0)']); null pairs held"
+  },
+  {
+   "id": "D3-wave-205d200980d58e9e",
+   "into": "D3-wave-96fe4cecaa16f997",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9390",
+   "number": "probe_205d200980d58e9e run with 96fe4cecaa16f997's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('x1e-6', ['(0.0,1.0,0.0,0.0)', '(1.0,1.0,2e-08,0.16)']); null pairs held"
+  },
+  {
+   "id": "D3-wave-e163f6fbc359cd4c",
+   "into": "D3-wave-1a24365a55bfb2c7",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9402",
+   "number": "probe_e163f6fbc359cd4c run with 1a24365a55bfb2c7's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('scale_tie', ['1.000000', '2.000000']); null pairs held"
+  },
+  {
+   "id": "D3-wave-7ec91efc2c6deffd",
+   "into": "D3-wave-4410da4e8eb84cb8",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:8838",
+   "number": "probe_7ec91efc2c6deffd run with 4410da4e8eb84cb8's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('hold', ['0', '1']); null pairs held"
+  },
+  {
+   "id": "D3-wave-34c20aac32a34344",
+   "into": "D3-wave-ff56936f15fd4675",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:9273",
+   "number": "probe_34c20aac32a34344 run with ff56936f15fd4675's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('margin_neg_bias0', ['(bias,comfortable_days,resets)(0.0, 5, 0)', '(bias,comfortable_days,resets)(0.0, 0, 0)']); null pairs held"
+  },
+  {
+   "id": "D3-wave-cdd17526ebbf2a93",
+   "into": "D3-wave-349b2e117d076731",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:6747",
+   "number": "probe_cdd17526ebbf2a93 run with 349b2e117d076731's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('wood_logs', ['(warnings,infos,format_errors,temps)(1, 2, 0,', '(warnings,infos,format_errors,temps)(0, 2, 0,']); null pairs held"
+  },
+  {
+   "id": "D3-wave-e689dc488b493c6b",
+   "into": "D3-wave-8ab42c4ab9755537",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:6752",
+   "number": "probe_e689dc488b493c6b run with 8ab42c4ab9755537's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('wood_logs', ['(warnings,infos,format_errors,temps)(1, 2, 0,', '(warnings,infos,format_errors,temps)(1, 4, 1,']); null pairs held"
+  },
+  {
+   "id": "D3-wave-a33188790c5affad",
+   "into": "D3-wave-61e748f094f2daa8",
+   "site": "custom_components/heatpump_optimizer/coordinator.py:6454",
+   "number": "probe_a33188790c5affad run with 61e748f094f2daa8's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('issues_left_after_recovery_3_failures', ['0', '1']); null pairs held"
+  },
+  {
+   "id": "D3-wave-cb58757b91fa48c4",
+   "into": "D3-wave-ad01ae06d7ea84ec",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5054",
+   "number": "probe_cb58757b91fa48c4 run with ad01ae06d7ea84ec's mutant: 3 of 3 of its own moved arm pairs move, e.g. ('reach_three_level_10_8_6_proposed', ['0', '1']); null pairs held"
+  },
+  {
+   "id": "D3-wave-8ef1027c9e221b64",
+   "into": "D3-wave-ce686724ef107650",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5229",
+   "number": "probe_8ef1027c9e221b64 run with ce686724ef107650's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('direct_half_pin_release', ['([],[])', '([0],[])']); null pairs held"
+  },
+  {
+   "id": "D3-wave-5ce83ed87c36b9a5",
+   "into": "D3-wave-fe3e41de6bdc640a",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:5213",
+   "number": "probe_5ce83ed87c36b9a5 run with fe3e41de6bdc640a's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('direct_half_pin_release', ['([0],[])', '([],[])']); null pairs held"
+  },
+  {
+   "id": "D3-wave-6af4c3b8f521e3d3",
+   "into": "D3-wave-0a40fc8d3d37f2ba",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:2111",
+   "number": "probe_6af4c3b8f521e3d3 run with 0a40fc8d3d37f2ba's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('kept', ['right', 'left']); null pairs held"
+  },
+  {
+   "id": "D3-wave-26180738b4dfa52e",
+   "into": "D3-wave-01e740ed4f78ae95",
+   "site": "custom_components/heatpump_optimizer/optimizer.py:2126",
+   "number": "probe_26180738b4dfa52e run with 01e740ed4f78ae95's mutant: 1 of 3 of its own moved arm pairs move, e.g. ('dt_zero', ['ok:[0.0, 0.0, 0.0, 0.0]', 'raise:ZeroDivisionError: division by zero']); null pairs held"
+  },
+  {
+   "id": "D3-wave-f06caefa38815e4f",
+   "into": "D3-wave-a38612ad3ad9cd34",
+   "site": "custom_components/heatpump_optimizer/price_model.py:141",
+   "number": "probe_f06caefa38815e4f run with a38612ad3ad9cd34's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('cases_moved=1 count (of 8)', None); null pairs held"
+  },
+  {
+   "id": "D3-wave-cf96494341270371",
+   "into": "D3-wave-6e67f128730b3ecd",
+   "site": "custom_components/heatpump_optimizer/sysid.py:1541",
+   "number": "probe_cf96494341270371 run with 6e67f128730b3ecd's mutant: 1 of 2 of its own moved arm pairs move, e.g. ('band_refused_scan', ['00001', '10001']); null pairs held"
+  },
+  {
+   "id": "D3-wave-50daaa57683189c5",
+   "into": "D3-wave-20f72103eda78713",
+   "site": "custom_components/heatpump_optimizer/sysid.py:2018",
+   "number": "probe_50daaa57683189c5 run with 20f72103eda78713's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('outcome', ['[completed ua=0.19574717836315605 C=5.1266291198200555 conf=0.9928503284067113]', '[completed ua=0.1957505338951885 C=5.1266222478985455 conf=0.9928506412102832]']); null pairs held"
+  },
+  {
+   "id": "D3-wave-2d64a114647f1551",
+   "into": "D3-wave-5371ee2b5e897750",
+   "site": "custom_components/heatpump_optimizer/tariff.py:747",
+   "number": "probe_2d64a114647f1551 run with 5371ee2b5e897750's mutant: 1 of 1 of its own moved arm pairs move, e.g. ('cases_moved=3', None); null pairs held"
+  },
+  {
+   "id": "D3-wave-fdf5872fd576c405",
+   "into": "D3-wave-98853a541b6b5d6a",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:2581",
+   "number": "probe_fdf5872fd576c405 run with 98853a541b6b5d6a's mutant: 2 of 2 of its own moved arm pairs move, e.g. ('inputs_moved=1275 count', None); null pairs held"
+  }
+ ],
+ "pairs": [
+  {
+   "a": "0137ee1f014fb759",
+   "b": "24aa39e8c4c6d26a",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "01e740ed4f78ae95",
+   "b": "26180738b4dfa52e",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [
+    "dt_zero"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "dt_zero",
+    [
+     "ok:[0.0, 0.0, 0.0, 0.0]",
+     "raise:ZeroDivisionError: division by zero"
+    ]
+   ]
+  },
+  {
+   "a": "05b5a15efaaf70de",
+   "b": "b2faf84904db389e",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "0a40fc8d3d37f2ba",
+   "b": "6af4c3b8f521e3d3",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "kept"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "kept",
+    [
+     "right",
+     "left"
+    ]
+   ]
+  },
+  {
+   "a": "0c99189b7639f1bd",
+   "b": "df697cc04154fbdd",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "10665a84dc064489",
+   "b": "d7421c10ed63c281",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "1a24365a55bfb2c7",
+   "b": "d3cad40ffce9b765",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [
+    "null"
+   ],
+   "example": null
+  },
+  {
+   "a": "1a24365a55bfb2c7",
+   "b": "e163f6fbc359cd4c",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "scale_tie"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "scale_tie",
+    [
+     "1.000000",
+     "2.000000"
+    ]
+   ]
+  },
+  {
+   "a": "1ba9abbe8e702464",
+   "b": "4aac8e694ddc5dfe",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "205d200980d58e9e",
+   "b": "96fe4cecaa16f997",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "20cde1046cbd5681",
+   "b": "6cfdb101dc87a6ea",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "20f72103eda78713",
+   "b": "50daaa57683189c5",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "outcome"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "outcome",
+    [
+     "[completed ua=0.19574717836315605 C=5.1266291198200555 conf=0.9928503284067113]",
+     "[completed ua=0.1957505338951885 C=5.1266222478985455 conf=0.9928506412102832]"
+    ]
+   ]
+  },
+  {
+   "a": "21a2563e1beb213f",
+   "b": "509893a173fa6a29",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [
+    "null_moved=1 count of 2"
+   ],
+   "example": null
+  },
+  {
+   "a": "24aa39e8c4c6d26a",
+   "b": "0137ee1f014fb759",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "26180738b4dfa52e",
+   "b": "01e740ed4f78ae95",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "dt0"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "dt0",
+    [
+     "ok:[0.0, 0.0, 0.0, 0.0]",
+     "raise:ZeroDivisionError: division by zero"
+    ]
+   ]
+  },
+  {
+   "a": "2d64a114647f1551",
+   "b": "5371ee2b5e897750",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "30fcf9ba50130ea2",
+   "b": "89a3d25e2425b8e0",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "30fcf9ba50130ea2",
+   "b": "efa2c19c51831a68",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "349b2e117d076731",
+   "b": "cdd17526ebbf2a93",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "wood_logs"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "wood_logs",
+    [
+     "(warnings,infos,format_errors,temps)(1, 2, 0,",
+     "(warnings,infos,format_errors,temps)(0, 2, 0,"
+    ]
+   ]
+  },
+  {
+   "a": "34c20aac32a34344",
+   "b": "c7054b2e59c82141",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "34c20aac32a34344",
+   "b": "ff56936f15fd4675",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "3652dbb5880d62c8",
+   "b": "b1926550efd8eac4",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "inputs_moved=4 count"
+   ],
+   "n_hit": 1,
+   "null_moved": [
+    "null_delta=0 count (dhw=1.0 space=1.0: far from both edges)"
+   ],
+   "example": [
+    "inputs_moved=4 count",
+    null
+   ]
+  },
+  {
+   "a": "3e68dcd55f9567e5",
+   "b": "88ecd932bc81efec",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "402ffd06ddbd856a",
+   "b": "d90533f4d17cfa14",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "440c0a6d5ee72d19",
+   "b": "809e8d14f04e1127",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "4410da4e8eb84cb8",
+   "b": "7ec91efc2c6deffd",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "hold"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "hold",
+    [
+     "0",
+     "1"
+    ]
+   ]
+  },
+  {
+   "a": "4410da4e8eb84cb8",
+   "b": "f11665aaedbf2550",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "4542deee22df985f",
+   "b": "8e729260c34e2e3b",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "cap1e-6",
+    "cap1e-6_prior0p8"
+   ],
+   "n_hit": 2,
+   "null_moved": [],
+   "example": [
+    "cap1e-6",
+    [
+     "None",
+     "0.3"
+    ]
+   ]
+  },
+  {
+   "a": "4593852cf3862b3c",
+   "b": "64f3ef1feaaf7bc9",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 0,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "4593852cf3862b3c",
+   "b": "784e362919d88a92",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "4593852cf3862b3c",
+   "b": "d661d68f54982097",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 0,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "4aac8e694ddc5dfe",
+   "b": "1ba9abbe8e702464",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "505422349a01c3ff",
+   "b": "7dbbb95252ced538",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "509893a173fa6a29",
+   "b": "21a2563e1beb213f",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "50daaa57683189c5",
+   "b": "20f72103eda78713",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "5366f1e6254f603c",
+   "b": "efb33eb6212be24e",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "5371ee2b5e897750",
+   "b": "2d64a114647f1551",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "cases_moved=3"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "cases_moved=3",
+    null
+   ]
+  },
+  {
+   "a": "559484953b5cdd5d",
+   "b": "cb38833c854f6257",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "559484953b5cdd5d",
+   "b": "fa6fdd76e6fa619d",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "57f696b2f988d5a9",
+   "b": "b143b01c4ea02159",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "5ce83ed87c36b9a5",
+   "b": "fe3e41de6bdc640a",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "61e748f094f2daa8",
+   "b": "a33188790c5affad",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "issues_left_after_recovery_3_failures"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "issues_left_after_recovery_3_failures",
+    [
+     "0",
+     "1"
+    ]
+   ]
+  },
+  {
+   "a": "64f3ef1feaaf7bc9",
+   "b": "4593852cf3862b3c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "64f3ef1feaaf7bc9",
+   "b": "784e362919d88a92",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "64f3ef1feaaf7bc9",
+   "b": "d661d68f54982097",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 0,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "6af4c3b8f521e3d3",
+   "b": "0a40fc8d3d37f2ba",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "kept"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "kept",
+    [
+     "left",
+     "right"
+    ]
+   ]
+  },
+  {
+   "a": "6cfdb101dc87a6ea",
+   "b": "20cde1046cbd5681",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "6e67f128730b3ecd",
+   "b": "cf96494341270371",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "band_refused_scan"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "band_refused_scan",
+    [
+     "00001",
+     "10001"
+    ]
+   ]
+  },
+  {
+   "a": "784e362919d88a92",
+   "b": "4593852cf3862b3c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "784e362919d88a92",
+   "b": "64f3ef1feaaf7bc9",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 0,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "784e362919d88a92",
+   "b": "d661d68f54982097",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 0,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "79db73ec81b29f23",
+   "b": "816e18d55f46f0e4",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "caps_p0.1"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "caps_p0.1",
+    [
+     "None",
+     "[0.06, 0.06]"
+    ]
+   ]
+  },
+  {
+   "a": "7c25d8795fa2d46c",
+   "b": "907d16324ff11dda",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "7c25d8795fa2d46c",
+   "b": "990cdd83373504ad",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "7c25d8795fa2d46c",
+   "b": "d0f2d18b2b49232c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "7dbbb95252ced538",
+   "b": "505422349a01c3ff",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "7ec91efc2c6deffd",
+   "b": "4410da4e8eb84cb8",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "7ec91efc2c6deffd",
+   "b": "f11665aaedbf2550",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "809e8d14f04e1127",
+   "b": "440c0a6d5ee72d19",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "816e18d55f46f0e4",
+   "b": "79db73ec81b29f23",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "caps_p0.1"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "caps_p0.1",
+    [
+     "None",
+     "[0.06, 0.06]"
+    ]
+   ]
+  },
+  {
+   "a": "822c0c6477ed703e",
+   "b": "adc459d2db521041",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 4,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "88ecd932bc81efec",
+   "b": "3e68dcd55f9567e5",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "89a3d25e2425b8e0",
+   "b": "30fcf9ba50130ea2",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "dt1e-6"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "dt1e-6",
+    [
+     "(0.0,1.0,0.0,0.0)",
+     "(1.0,1.0,0.0392,80000.0)"
+    ]
+   ]
+  },
+  {
+   "a": "89a3d25e2425b8e0",
+   "b": "efa2c19c51831a68",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "cap1e-6"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "cap1e-6",
+    [
+     "(0.0,1.0,0.0,0.0)",
+     "(1.0,1.0,0.0392,0.0)"
+    ]
+   ]
+  },
+  {
+   "a": "8ab42c4ab9755537",
+   "b": "e689dc488b493c6b",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "wood_logs"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "wood_logs",
+    [
+     "(warnings,infos,format_errors,temps)(1, 2, 0,",
+     "(warnings,infos,format_errors,temps)(1, 4, 1,"
+    ]
+   ]
+  },
+  {
+   "a": "8e729260c34e2e3b",
+   "b": "4542deee22df985f",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "8ef1027c9e221b64",
+   "b": "ce686724ef107650",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "907d16324ff11dda",
+   "b": "7c25d8795fa2d46c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "907d16324ff11dda",
+   "b": "990cdd83373504ad",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "907d16324ff11dda",
+   "b": "d0f2d18b2b49232c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "96fe4cecaa16f997",
+   "b": "205d200980d58e9e",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "x1e-6"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "x1e-6",
+    [
+     "(0.0,1.0,0.0,0.0)",
+     "(1.0,1.0,2e-08,0.16)"
+    ]
+   ]
+  },
+  {
+   "a": "98853a541b6b5d6a",
+   "b": "fdf5872fd576c405",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "inputs_moved=1275 count",
+    "max_abs_diff=2.7157999999999998"
+   ],
+   "n_hit": 2,
+   "null_moved": [],
+   "example": [
+    "inputs_moved=1275 count",
+    null
+   ]
+  },
+  {
+   "a": "990cdd83373504ad",
+   "b": "7c25d8795fa2d46c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "990cdd83373504ad",
+   "b": "907d16324ff11dda",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "990cdd83373504ad",
+   "b": "d0f2d18b2b49232c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "9d324a1dc7a6aa82",
+   "b": "bb1abbfc58114a17",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "a1ebeff0870dfa76",
+   "b": "f1549576a94b99be",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "a33188790c5affad",
+   "b": "61e748f094f2daa8",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "issues_left_after_recovery_3_failures"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "issues_left_after_recovery_3_failures",
+    [
+     "0",
+     "1"
+    ]
+   ]
+  },
+  {
+   "a": "a38612ad3ad9cd34",
+   "b": "f06caefa38815e4f",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "cases_moved=1 count (of 8)"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "cases_moved=1 count (of 8)",
+    null
+   ]
+  },
+  {
+   "a": "a581feadd69c6c42",
+   "b": "e96ae75a1f1f213e",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "aa6d264aa0411bcd",
+   "b": "b8d5ec03e8eba5c7",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "ab918806fc8b4af6",
+   "b": "db9b59ec36304943",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "no_meter_zero_plan_lines",
+    "zero_energy_lines"
+   ],
+   "n_hit": 2,
+   "null_moved": [],
+   "example": [
+    "no_meter_zero_plan_lines",
+    [
+     "0 count []",
+     "3 count ['dhw', 'space', 'spot']"
+    ]
+   ]
+  },
+  {
+   "a": "ad01ae06d7ea84ec",
+   "b": "cb58757b91fa48c4",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [
+    "reach_three_level_10_8_6_proposed",
+    "reach_two_level_16_8_proposed",
+    "tie"
+   ],
+   "n_hit": 3,
+   "null_moved": [],
+   "example": [
+    "reach_three_level_10_8_6_proposed",
+    [
+     "0",
+     "1"
+    ]
+   ]
+  },
+  {
+   "a": "adc459d2db521041",
+   "b": "822c0c6477ed703e",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 4,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "b143b01c4ea02159",
+   "b": "57f696b2f988d5a9",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "b1926550efd8eac4",
+   "b": "3652dbb5880d62c8",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "inputs_moved=3 count"
+   ],
+   "n_hit": 1,
+   "null_moved": [
+    "null_delta=0 count (dhw=1.0 space=1.0: far from both edges)"
+   ],
+   "example": [
+    "inputs_moved=3 count",
+    null
+   ]
+  },
+  {
+   "a": "b2faf84904db389e",
+   "b": "05b5a15efaaf70de",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "b4f7503c6959449d",
+   "b": "f6016f6adb9683a8",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "b8d5ec03e8eba5c7",
+   "b": "aa6d264aa0411bcd",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "bb1abbfc58114a17",
+   "b": "9d324a1dc7a6aa82",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "c1ce480d20083d83",
+   "b": "d8e588be2e0aba89",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [
+    "refused[null_tau0.05]"
+   ],
+   "example": null
+  },
+  {
+   "a": "c1ce480d20083d83",
+   "b": "e7edbe5bae5e180a",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [
+    "refused[null_ua0.005]"
+   ],
+   "example": null
+  },
+  {
+   "a": "c7054b2e59c82141",
+   "b": "34c20aac32a34344",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "c7054b2e59c82141",
+   "b": "ff56936f15fd4675",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "cb38833c854f6257",
+   "b": "559484953b5cdd5d",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "cb38833c854f6257",
+   "b": "fa6fdd76e6fa619d",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "cb58757b91fa48c4",
+   "b": "ad01ae06d7ea84ec",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "cdd17526ebbf2a93",
+   "b": "349b2e117d076731",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "wood_logs"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "wood_logs",
+    [
+     "(warnings,infos,format_errors,temps)(1, 2, 0,",
+     "(warnings,infos,format_errors,temps)(3, 2, 0,"
+    ]
+   ]
+  },
+  {
+   "a": "ce686724ef107650",
+   "b": "8ef1027c9e221b64",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "direct_half_pin_release"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "direct_half_pin_release",
+    [
+     "([],[])",
+     "([0],[])"
+    ]
+   ]
+  },
+  {
+   "a": "cf96494341270371",
+   "b": "6e67f128730b3ecd",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0,
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "band_refused_scan"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "band_refused_scan",
+    [
+     "10000",
+     "10001"
+    ]
+   ]
+  },
+  {
+   "a": "d0f2d18b2b49232c",
+   "b": "7c25d8795fa2d46c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d0f2d18b2b49232c",
+   "b": "907d16324ff11dda",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d0f2d18b2b49232c",
+   "b": "990cdd83373504ad",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d3cad40ffce9b765",
+   "b": "1a24365a55bfb2c7",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d3cad40ffce9b765",
+   "b": "e163f6fbc359cd4c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d661d68f54982097",
+   "b": "4593852cf3862b3c",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d661d68f54982097",
+   "b": "64f3ef1feaaf7bc9",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 0,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d661d68f54982097",
+   "b": "784e362919d88a92",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d7421c10ed63c281",
+   "b": "10665a84dc064489",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d8e588be2e0aba89",
+   "b": "c1ce480d20083d83",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d8e588be2e0aba89",
+   "b": "e7edbe5bae5e180a",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "d90533f4d17cfa14",
+   "b": "402ffd06ddbd856a",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "db9b59ec36304943",
+   "b": "ab918806fc8b4af6",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "no_meter_zero_plan_lines",
+    "zero_energy_lines"
+   ],
+   "n_hit": 2,
+   "null_moved": [],
+   "example": [
+    "no_meter_zero_plan_lines",
+    [
+     "0 count []",
+     "3 count ['dhw', 'space', 'spot']"
+    ]
+   ]
+  },
+  {
+   "a": "df697cc04154fbdd",
+   "b": "0c99189b7639f1bd",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "e163f6fbc359cd4c",
+   "b": "1a24365a55bfb2c7",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "e163f6fbc359cd4c",
+   "b": "d3cad40ffce9b765",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "e689dc488b493c6b",
+   "b": "8ab42c4ab9755537",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "wood_logs"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "wood_logs",
+    [
+     "(warnings,infos,format_errors,temps)(1, 2, 0,",
+     "(warnings,infos,format_errors,temps)(1, 0, 0,"
+    ]
+   ]
+  },
+  {
+   "a": "e7edbe5bae5e180a",
+   "b": "c1ce480d20083d83",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "e7edbe5bae5e180a",
+   "b": "d8e588be2e0aba89",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "e96ae75a1f1f213e",
+   "b": "a581feadd69c6c42",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "efa2c19c51831a68",
+   "b": "30fcf9ba50130ea2",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "efa2c19c51831a68",
+   "b": "89a3d25e2425b8e0",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 3,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "efb33eb6212be24e",
+   "b": "5366f1e6254f603c",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "f06caefa38815e4f",
+   "b": "a38612ad3ad9cd34",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "cases_moved=1 count (of 8)"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "cases_moved=1 count (of 8)",
+    null
+   ]
+  },
+  {
+   "a": "f11665aaedbf2550",
+   "b": "4410da4e8eb84cb8",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "f11665aaedbf2550",
+   "b": "7ec91efc2c6deffd",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [
+    "null"
+   ],
+   "example": null
+  },
+  {
+   "a": "f1549576a94b99be",
+   "b": "a1ebeff0870dfa76",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "f6016f6adb9683a8",
+   "b": "b4f7503c6959449d",
+   "moves": false,
+   "status": "not expressible"
+  },
+  {
+   "a": "fa6fdd76e6fa619d",
+   "b": "559484953b5cdd5d",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "fa6fdd76e6fa619d",
+   "b": "cb38833c854f6257",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  },
+  {
+   "a": "fdf5872fd576c405",
+   "b": "98853a541b6b5d6a",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 2,
+   "hit": [
+    "inputs_moved=1280 count",
+    "max_abs_diff=17.5"
+   ],
+   "n_hit": 2,
+   "null_moved": [],
+   "example": [
+    "inputs_moved=1280 count",
+    null
+   ]
+  },
+  {
+   "a": "fe3e41de6bdc640a",
+   "b": "5ce83ed87c36b9a5",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "direct_half_pin_release"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "direct_half_pin_release",
+    [
+     "([0],[])",
+     "([],[])"
+    ]
+   ]
+  },
+  {
+   "a": "ff56936f15fd4675",
+   "b": "34c20aac32a34344",
+   "moves": true,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [
+    "margin_neg_bias0"
+   ],
+   "n_hit": 1,
+   "null_moved": [],
+   "example": [
+    "margin_neg_bias0",
+    [
+     "(bias,comfortable_days,resets)(0.0, 5, 0)",
+     "(bias,comfortable_days,resets)(0.0, 0, 0)"
+    ]
+   ]
+  },
+  {
+   "a": "ff56936f15fd4675",
+   "b": "c7054b2e59c82141",
+   "moves": false,
+   "status": "ran",
+   "rc": [
+    0
+   ],
+   "b_moved": 1,
+   "hit": [],
+   "n_hit": 0,
+   "null_moved": [],
+   "example": null
+  }
+ ]
+}

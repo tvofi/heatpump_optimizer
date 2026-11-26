@@ -1,0 +1,12 @@
+{
+ "key": "bc3a42f14c903439",
+ "box": "D3-g23",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_bc3a42f14c903439.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT direct_tie_release_baseline=([],[])\nRESULT direct_tie_release_mutant=([],[0])\nRESULT null_off_tie_delta=0\nRESULT thread_factor=1.001\nRESULT load1=72.75\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 4.8,
+  "load1": 72.75390625
+ }
+}

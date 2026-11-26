@@ -1,0 +1,16 @@
+{
+ "a": "a581feadd69c6c42",
+ "b": "e96ae75a1f1f213e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:6606",
+ "a_new": "elif False:",
+ "b_new": "elif p_norm <= 0.9:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "INPUT 0: space power 2.75 kW (p_norm 0.9): baseline 'boost' | mutant 'boost' | moved 0\nRESULT baseline_value='boost'\nRESULT mutant_value='boost'\nRESULT moved=0 count\nINPUT 1: space power 3.0 kW (p_norm 1) [null]: baseline 'boost' | mutant 'boost' | moved 0\nRESULT null_moved=0 count\nINPUT 2: space power 2.6 kW (p_norm 0.84): baseline 'pre_heat' | mutant 'boost' | moved 1\nRESULT inputs_tried=3 count\nRESULT moved_any=1 count\nRESULT thread_factor=1.000\nRESULT load1=52.97\nRESULT swapins=-1 count\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,16 @@
+{
+ "a": "05b5a15efaaf70de",
+ "b": "b2faf84904db389e",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:677",
+ "a_new": "rate = (max(float(rate), low))",
+ "b_new": "rate = min((float(rate)), high)",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT ua_baseline_rate1e-06=0.00041098000759174654\nRESULT ua_mutant_rate1e-06=0.00041098000759174654\nRESULT ua_baseline_rate0.0=0.0020549000379587326\nRESULT ua_mutant_rate0.0=0.0020549000379587326\nRESULT ua_ratio_mutant_over_baseline=1.000e+00\nRESULT null_delta=0.0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

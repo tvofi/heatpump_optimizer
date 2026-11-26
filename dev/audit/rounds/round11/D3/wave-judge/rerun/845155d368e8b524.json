@@ -1,0 +1,12 @@
+{
+ "key": "845155d368e8b524",
+ "box": "D3-g12",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g12/probes/probe_845155d368e8b524.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT outage_gap_minutes=90.0\nRESULT gap_89.0min_baseline=None\nRESULT gap_89.0min_mutant=None\nRESULT gap_90.0min_baseline=None\nRESULT gap_90.0min_mutant='Update gap of 90 minutes'\nRESULT gap_91.0min_baseline='Update gap of 91 minutes'\nRESULT gap_91.0min_mutant='Update gap of 91 minutes'\nRESULT gap_89.999min_baseline=None\nRESULT gap_89.999min_mutant=None\nRESULT gap_90.001min_baseline='Update gap of 90 minutes'\nRESULT gap_90.001min_mutant='Update gap of 90 minutes'\nRESULT inputs_moved=1 count\nRESULT thread_factor=1.000\nRESULT load1=106.92\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.9,
+  "load1": 106.92236328125
+ }
+}

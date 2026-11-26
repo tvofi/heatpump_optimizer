@@ -1,0 +1,12 @@
+{
+ "key": "d8101520588009d9",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_d8101520588009d9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT fuse_kw=None\nRESULT sample_factor_offseason=0.0\nRESULT available_offseason_baseline=0 limit_kw=None limit_source=None\nRESULT available_offseason_mutant=1 limit_kw=0.0 limit_source='capacity tariff with no peak reference yet'\nRESULT sample_factor_inseason=1.0\nRESULT available_inseason_baseline=1 limit_kw=0.0 limit_source='capacity tariff with no peak reference yet'\nRESULT available_inseason_mutant=1 limit_kw=0.0 limit_source='capacity tariff with no peak reference yet'\nRESULT thread_factor=1.000\nRESULT load1=137.45\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.5,
+  "load1": 137.45166015625
+ }
+}

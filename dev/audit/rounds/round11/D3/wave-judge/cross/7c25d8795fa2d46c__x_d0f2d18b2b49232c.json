@@ -1,0 +1,16 @@
+{
+ "a": "d0f2d18b2b49232c",
+ "b": "7c25d8795fa2d46c",
+ "site": "custom_components/heatpump_optimizer/sysid.py:677",
+ "a_new": "if not (c_r > 1e-9 and c_s >= 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:",
+ "b_new": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band >= 1e-9:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT admit[band_1e-9_exact] baseline=0 mutant=0 reason_equal=1\nRESULT admit[null_band_0] baseline=0 mutant=0 reason_equal=1\nRESULT admit[null_band_1h] baseline=1 mutant=1 reason_equal=1\nRESULT inputs_differing=0 of 3\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

@@ -1,0 +1,12 @@
+{
+ "key": "7cd9b966a3bd0008",
+ "box": "D3-g15",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7cd9b966a3bd0008.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT reference_runup_steps=5 count  (floor 20 C: steps 35..39)\nRESULT ties_moved=5/5 count\nRESULT tie_step=38 floor=np.float64(43.51385386005922) C\nRESULT tie_runup_steps_baseline=2 count\nRESULT tie_runup_steps_mutant=5 count\nRESULT tie_req_sum_baseline=855.7613 C  tie_req_sum_mutant=869.8499 C\nRESULT tie_req_sum_delta_c=14.0886 C\nRESULT null_moved=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=88.56\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 7.0,
+  "load1": 88.5576171875
+ }
+}

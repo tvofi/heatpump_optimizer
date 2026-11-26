@@ -1,0 +1,16 @@
+{
+ "a": "01e740ed4f78ae95",
+ "b": "26180738b4dfa52e",
+ "site": "custom_components/heatpump_optimizer/optimizer.py:2126",
+ "a_new": "if energy_kwh <= 0 or p_max <= 0 or dt < 0:",
+ "b_new": "if False:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT pmax_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_neg_mutant=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_neg_mutant_min_kw=0.000 kW\nRESULT dt_zero_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT dt_zero_mutant=raise:ZeroDivisionError: division by zero\nRESULT dt_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT dt_neg_mutant=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT energy_neg_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT energy_neg_mutant=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_zero_baseline=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT pmax_zero_mutant=ok:[0.0, 0.0, 0.0, 0.0]\nRESULT null_ordinary_diff=0\nRESULT thread_factor=1.000\nRESULT load1=65.39\nRESULT swapins=-1\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

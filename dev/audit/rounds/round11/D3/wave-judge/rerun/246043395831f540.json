@@ -1,0 +1,12 @@
+{
+ "key": "246043395831f540",
+ "box": "D3-g39",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_246043395831f540.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT peaks0_baseline=0.0\nRESULT peaks0_mutant=raises ZeroDivisionError\nRESULT peaks3_baseline=16.666666666666668\nRESULT peaks3_mutant=16.666666666666668\nRESULT peaksneg1_baseline=0.0\nRESULT peaksneg1_mutant=0.0\nRESULT disabled0_baseline=0.0\nRESULT disabled0_mutant=0.0\nRESULT cases_moved=1\nRESULT null_cases_moved=0\n",
+  "stderr": "",
+  "wall_s": 3.2,
+  "load1": 54.13720703125
+ }
+}

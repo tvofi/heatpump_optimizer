@@ -1,0 +1,12 @@
+{
+ "key": "466c95cb8978ea1d",
+ "box": "D3-g04",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_466c95cb8978ea1d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT inputs[None] baseline=(0, None, 0) mutant=(1, None, 0)\nRESULT inputs[''] baseline=(0, None, 0) mutant=(1, None, 0)\nRESULT warnings_baseline=0 count\nRESULT warnings_mutant=1 count\nRESULT warnings_delta=2 count\nRESULT commanded_delta=0 count\nRESULT null_warnings_delta=0 count\nRESULT null_commanded=23.0,23.0\nRESULT thread_factor=1.000\nRESULT load1=139.38\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 11.3,
+  "load1": 139.38232421875
+ }
+}

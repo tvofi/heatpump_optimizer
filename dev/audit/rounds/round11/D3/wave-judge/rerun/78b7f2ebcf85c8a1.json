@@ -1,0 +1,12 @@
+{
+ "key": "78b7f2ebcf85c8a1",
+ "box": "D3-g44",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_78b7f2ebcf85c8a1.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT scenarios_tried=112 count\nRESULT scenarios_moved=28 count\nRESULT max_abs_diff=94.9999999\nRESULT null_max_abs_diff=0\n",
+  "stderr": "",
+  "wall_s": 550.2,
+  "load1": 50.05126953125
+ }
+}

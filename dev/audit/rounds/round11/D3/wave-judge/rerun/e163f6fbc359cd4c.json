@@ -1,0 +1,12 @@
+{
+ "key": "e163f6fbc359cd4c",
+ "box": "D3-g07",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_e163f6fbc359cd4c.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_found=1 bool\nRESULT var_after=1e-06\nRESULT scale_baseline_tie=1.000000 ratio\nRESULT scale_mutant_tie=2.000000 ratio\nRESULT null_baseline=2.000000 ratio\nRESULT null_mutant=2.000000 ratio\nRESULT realistic_sequences_tried=36 count\nRESULT realistic_sequences_differing=0 count\nRESULT thread_factor=1.000\nRESULT load1=157.43\nRESULT swapins=nan\n",
+  "stderr": "",
+  "wall_s": 17.8,
+  "load1": 153.4755859375
+ }
+}

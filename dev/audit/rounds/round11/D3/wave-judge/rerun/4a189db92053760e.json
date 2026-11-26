@@ -1,0 +1,12 @@
+{
+ "key": "4a189db92053760e",
+ "box": "D3-g32",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g32/probes/probe_4a189db92053760e.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT moved_ua0.005_c4.0_g-0.8: baseline=(False, 'fitted gains outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua0.005_c4.0_g-0.5: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua0.005_c4.0_g-0.3: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua0.005_c4.0_g0.0: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua0.005_c4.0_g0.4: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.4)\nRESULT moved_ua0.005_c4.0_g2.0: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 2.0)\nRESULT moved_ua0.005_c4.0_g2.5: baseline=(False, 'fitted gains outside plausible bounds', None) mutant=(True, 'ok', 2.0)\nRESULT moved_ua0.2_c4.0_g-0.8: baseline=(False, 'fitted gains outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua0.2_c4.0_g2.5: baseline=(False, 'fitted gains outside plausible bounds', None) mutant=(True, 'ok', 2.0)\nRESULT moved_ua6.0_c4.0_g-0.8: baseline=(False, 'fitted gains outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua6.0_c4.0_g-0.5: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua6.0_c4.0_g-0.3: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua6.0_c4.0_g0.0: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.0)\nRESULT moved_ua6.0_c4.0_g0.4: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 0.4)\nRESULT moved_ua6.0_c4.0_g2.0: baseline=(False, 'fitted parameters outside plausible bounds', None) mutant=(True, 'ok', 2.0)\nRESULT moved_ua6.0_c4.0_g2.5: baseline=(False, 'fitted gains outside plausible bounds', None) mutant=(True, 'ok', 2.0)\nRESULT inputs_moved=16/21 count  (refused fit -> completed=True)\nRESULT null_in_band_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=37.09\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.4,
+  "load1": 37.08984375
+ }
+}

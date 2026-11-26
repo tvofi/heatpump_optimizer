@@ -1,0 +1,12 @@
+{
+ "key": "1785780ac9dd1b18",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_1785780ac9dd1b18.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT measured_production_kw_meter_baseline=3.0 stored_summary_has_key=True\nRESULT measured_production_kw_meter_mutant=None stored_summary_has_key=False\nRESULT measured_production_kw_nometer_baseline=None stored_summary_has_key=False\nRESULT measured_production_kw_nometer_mutant=None stored_summary_has_key=False\nRESULT thread_factor=1.000\nRESULT load1=137.17\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.6,
+  "load1": 135.95947265625
+ }
+}

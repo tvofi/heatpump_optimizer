@@ -1,0 +1,12 @@
+{
+ "key": "4542deee22df985f",
+ "box": "D3-g06",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g06/probes/probe_4542deee22df985f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT cap0_baseline=None\nRESULT cap0_mutant=0.3\nRESULT cap0_prior0p8_baseline=0.8\nRESULT cap0_prior0p8_mutant=0.79\nRESULT capneg_baseline=None\nRESULT capneg_mutant=0.29\nRESULT cases_moved=3 count\nRESULT null_cap10=0.4\nRESULT null_cap10_prior0p8=0.89\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=153.29\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 12.5,
+  "load1": 153.291015625
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "68ef00f470ecea8d",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_68ef00f470ecea8d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT release_calls_baseline=4 count\nRESULT release_calls_mutant=7 count\nRESULT moved=1 count\nRESULT released_baseline=24 count\nRESULT released_mutant=24 count\nRESULT real_release_calls_baseline=2 count\nRESULT real_release_calls_mutant=2 count\nRESULT real_released_baseline=24 count\nRESULT real_released_mutant=24 count\nRESULT null_release_calls=0/0 count\nRESULT wall=16.64 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=57.56\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 17.7,
+  "load1": 57.56396484375
+ }
+}

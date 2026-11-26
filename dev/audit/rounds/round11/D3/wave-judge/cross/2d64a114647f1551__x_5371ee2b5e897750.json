@@ -1,0 +1,16 @@
+{
+ "a": "5371ee2b5e897750",
+ "b": "2d64a114647f1551",
+ "site": "custom_components/heatpump_optimizer/tariff.py:747",
+ "a_new": "if False:",
+ "b_new": "if not np.any(x >= 0):",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT all_zero_baseline=0.0\nRESULT all_zero_mutant=0.0\nRESULT zero_and_negative_baseline=0.0\nRESULT zero_and_negative_mutant=-2.6269532288089563e-26\nRESULT zero_and_neg_k2_baseline=0.0\nRESULT zero_and_neg_k2_mutant=-6.665187755269336e-13\nRESULT zero_and_tiny_neg_baseline=0.0\nRESULT zero_and_tiny_neg_mutant=-4.875026045493982e-11\nRESULT positive_baseline=1.9933063882612345\nRESULT positive_mutant=1.9933063882612345\nRESULT cases_moved=3\nRESULT null_cases_moved=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

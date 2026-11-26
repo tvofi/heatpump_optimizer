@@ -1,0 +1,12 @@
+{
+ "key": "cb58757b91fa48c4",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_cb58757b91fa48c4.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_p85_equals_1p05_p25=1 count\nRESULT tie_baseline=None\nRESULT tie_mutant=array:23,23,19,19,19,23,23,23\nRESULT moved=1 count\nRESULT null_delta=0 count\nRESULT reach_two_level_16_8_proposed_baseline=0 count\nRESULT reach_two_level_16_8_proposed_mutant=1 count\nRESULT reach_two_level_16_8_plan_maxabs_diff_kw=0.0000 kW\nRESULT reach_two_level_16_8_objective_delta=0.000000\nRESULT reach_two_level_16_8_cpu_baseline_s=1.40 s (provisional)\nRESULT reach_two_level_16_8_cpu_mutant_s=1.98 s (provisional)\nRESULT reach_three_level_10_8_6_proposed_baseline=0 count\nRESULT reach_three_level_10_8_6_proposed_mutant=1 count\nRESULT reach_three_level_10_8_6_plan_maxabs_diff_kw=0.0000 kW\nRESULT reach_three_level_10_8_6_objective_delta=0.000000\nRESULT reach_three_level_10_8_6_cpu_baseline_s=1.46 s (provisional)\nRESULT reach_three_level_10_8_6_cpu_mutant_s=2.70 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=58.88\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 54.6,
+  "load1": 58.884765625
+ }
+}

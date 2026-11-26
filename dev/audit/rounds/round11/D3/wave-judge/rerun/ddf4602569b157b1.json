@@ -1,0 +1,12 @@
+{
+ "key": "ddf4602569b157b1",
+ "box": "D3-g17",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_ddf4602569b157b1.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT plan_baseline=[1e-06,0,0,1.31032673,0,0]\nRESULT plan_mutant=[1.37938921,0,0,0,0,0]\nRESULT step0_delta_kw=1.379 kW\nRESULT cost_baseline=3.93098 cost_mutant=1.37939\nRESULT null_delta_kw=0 kW\nRESULT sweep_inputs=80\nRESULT differing_inputs=0\nRESULT sweep_max_delta_kw=0 kW\nRESULT inputs_tried=step-0 demand exactly p_total_max-1e-6 (tie); p_total_max-2e-6 (null); 80 random (no tie: 0 differ)\nRESULT thread_factor=1.001\nRESULT load1=64.22\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 14.4,
+  "load1": 63.00537109375
+ }
+}

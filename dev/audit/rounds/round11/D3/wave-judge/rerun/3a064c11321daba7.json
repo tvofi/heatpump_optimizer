@@ -1,0 +1,12 @@
+{
+ "key": "3a064c11321daba7",
+ "box": "D3-g31",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_3a064c11321daba7.py",
+ "run": {
+  "rc": 0,
+  "stdout": "INPUTS 28 observed days (Mon 2026-01-05..), seeded rng 11; null: a fresh model\nRESULT residual_var_max=0.289469\nRESULT weekday_sigma_max_baseline=0.538\nRESULT weekday_sigma_max_mutant=0.0\nRESULT weekday_sigma_bins_differ=24 count (of 24)\nRESULT other_field_moved=0 count\nRESULT null_bins_differ=0 count (fresh model, var 0)\nRESULT thread_factor=1.000\nRESULT load1=38.12\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.5,
+  "load1": 38.1201171875
+ }
+}

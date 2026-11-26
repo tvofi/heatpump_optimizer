@@ -1,0 +1,12 @@
+{
+ "key": "de02e0a048abc451",
+ "box": "D3-g14",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_de02e0a048abc451.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT suppressed_steps_baseline=0\nRESULT suppressed_steps_mutant=1\nRESULT schedule_sum_baseline=0.000000 kW\nRESULT schedule_sum_mutant=0.000000 kW\nRESULT null_ext_off_suppressed=0,0\nRESULT null_unblocked_delta_kw=0.000000 kW\n",
+  "stderr": "",
+  "wall_s": 8.4,
+  "load1": 90.46826171875
+ }
+}

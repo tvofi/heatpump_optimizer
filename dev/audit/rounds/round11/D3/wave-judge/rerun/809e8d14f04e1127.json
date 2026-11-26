@@ -1,0 +1,12 @@
+{
+ "key": "809e8d14f04e1127",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_809e8d14f04e1127.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline=refused:not enough samples\nRESULT mutant=refused:not enough usable intervals\nRESULT completed_either=0 count\nRESULT moved=1 count\nRESULT null_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=58.70\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 5.1,
+  "load1": 58.70166015625
+ }
+}

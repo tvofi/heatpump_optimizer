@@ -1,0 +1,12 @@
+{
+ "key": "2699efc070f5d4e3",
+ "box": "D3-g05",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g05/probes/probe_2699efc070f5d4e3.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT not_configured baseline=None mutant=None\nRESULT unavailable baseline=None mutant=None\nRESULT unknown baseline=None mutant=None\nRESULT implausible_minus127C baseline=None mutant=True\nRESULT implausible_1500C baseline=None mutant=True\nRESULT word_on baseline=True mutant=True\nRESULT fresh_20C baseline=False mutant=False\nRESULT missing_entity baseline=None mutant=None\nRESULT moved_inputs=2 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=143.47\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 12.4,
+  "load1": 147.91796875
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "cdd17526ebbf2a93",
+ "box": "D3-g10",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g10/probes/probe_cdd17526ebbf2a93.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT wood_logs_baseline=(warnings,infos,format_errors,temps)(1, 2, 0, (60.0, 60.0, None, None, 58.0))\nRESULT wood_logs_mutant=(warnings,infos,format_errors,temps)(3, 2, 0, (60.0, 60.0, None, None, 58.0))\nRESULT temps_moved=0 count\nRESULT null_moved=0 count (null input ('60.0',))\nRESULT probe_cpu_s=0.04 s provisional\nRESULT thread_factor=1.000\nRESULT load1=136.47\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 10.2,
+  "load1": 136.59423828125
+ }
+}

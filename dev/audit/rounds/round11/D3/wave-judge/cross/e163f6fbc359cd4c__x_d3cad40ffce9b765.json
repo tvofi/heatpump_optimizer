@@ -1,0 +1,16 @@
+{
+ "a": "d3cad40ffce9b765",
+ "b": "e163f6fbc359cd4c",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9402",
+ "a_new": "if m[\"n\"] > SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:",
+ "b_new": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] >= 1e-6:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT tie_found=1 bool\nRESULT var_after=1e-06\nRESULT scale_baseline_tie=1.000000 ratio\nRESULT scale_mutant_tie=1.000000 ratio\nRESULT null_baseline=2.000000 ratio\nRESULT null_mutant=2.000000 ratio\nRESULT realistic_sequences_tried=36 count\nRESULT realistic_sequences_differing=11 count\nRESULT thread_factor=1.000\nRESULT load1=90.47\nRESULT swapins=nan\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

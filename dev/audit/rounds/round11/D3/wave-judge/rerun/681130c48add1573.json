@@ -1,0 +1,12 @@
+{
+ "key": "681130c48add1573",
+ "box": "D3-g13",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_681130c48add1573.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT on_then_peek: baseline=(1.0, 1, True, 600.0) mutant=(0.0, 1, True, 600.0)\nRESULT off_on_peek: baseline=(0.666666666667, 1, True, 900.0) mutant=(0.0, 1, True, 900.0)\nRESULT on_off_peek: baseline=(0.333333333333, 1, True, 900.0) mutant=(0.333333333333, 1, True, 900.0)\nRESULT repeat_same_stamp: baseline=(1.0, 1, True, 300.0) mutant=(1.0, 1, True, 300.0)\nRESULT zero_length: baseline=(0.0, 1, True, 0.0) mutant=(0.0, 1, True, 0.0)\nRESULT backwards_clock: baseline=(0.0, 1, True, 0.0) mutant=(0.0, 1, True, 0.0)\nRESULT dark_then_on: baseline=(0.8, 1, False, 600.0) mutant=(0.0, 1, False, 600.0)\nRESULT carried_level_after_close: baseline=(1.0, 0, False, 600.0) mutant=(0.0, 0, False, 600.0)\nRESULT carried_level_reobserved: baseline=(1.0, 0, True, 600.0) mutant=(0.0, 0, True, 600.0)\nRESULT none_observed: baseline=(0.0, 0, False, 0.0) mutant=(0.0, 0, False, 0.0)\nRESULT duty_baseline=1.0\nRESULT duty_mutant=0.0\nRESULT observed_baseline=1 mutant=1\nRESULT any_defrost_baseline=1 mutant=0\nRESULT sequences_moved=5 of 10 (on_then_peek,off_on_peek,dark_then_on,carried_level_after_close,carried_level_reobserved)\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=100.40\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 1.5,
+  "load1": 100.3984375
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "b5f0a73275608684",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_b5f0a73275608684.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT label_baseline=fixed\nRESULT label_mutant=entity\nRESULT label_changed=1 count\nRESULT value_delta=0.0\nRESULT negative_tie_label=fixed->entity\nRESULT zero_tie_label=fixed->entity\nRESULT null_label_delta=0 count\nRESULT wall=0.75 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=65.32\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 2.0,
+  "load1": 65.31689453125
+ }
+}

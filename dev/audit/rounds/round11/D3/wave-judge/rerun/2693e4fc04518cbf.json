@@ -1,0 +1,12 @@
+{
+ "key": "2693e4fc04518cbf",
+ "box": "D3-g26",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g26/probes/probe_2693e4fc04518cbf.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT released_baseline=88 count\nRESULT released_mutant=96 count\nRESULT null_released_delta=0 count\nRESULT reach_on_pins=1 count  (pin values channel_pins can emit: [0.0, 1.0])\nRESULT thread_factor=1.000\nRESULT load1=100.72\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 30.2,
+  "load1": 100.7236328125
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "20f72103eda78713",
+ "box": "D3-g34",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g34/probes/probe_20f72103.py",
+ "run": {
+  "rc": 0,
+  "stdout": "CASE dup0_step: differs=1 baseline=[completed ua=0.19574719588552125 C=5.126629633823094 conf=0.9928502727789756] mutant=[completed ua=0.19575055138538477 C=5.126622761903923 conf=0.9928505855787655]\nCASE dup0_relax: differs=1 baseline=[completed ua=0.19403004222638512 C=4.9202622589667575 conf=0.9919654111675706] mutant=[completed ua=0.19309428845882276 C=4.922057608270699 conf=0.9917465313336099]\nCASE tie3600us_step: differs=1 baseline=[completed ua=0.19574717836315605 C=5.1266291198200555 conf=0.9928503284067113] mutant=[completed ua=0.1957505338951885 C=5.1266222478985455 conf=0.9928506412102832]\nCASE gap3601us_step: differs=0 baseline=[completed ua=0.19575053389033015 C=5.1266222477557655 conf=0.9928506412257365] mutant=[completed ua=0.19575053389033015 C=5.1266222477557655 conf=0.9928506412257365]\nCASE dup0_across_phases: differs=0 baseline=[completed ua=0.19461640635122582 C=5.045775608680084 conf=0.9892304469131497] mutant=[completed ua=0.19461640635122582 C=5.045775608680084 conf=0.9892304469131497]\nRESULT first_case=dup0_step\nRESULT outcome_baseline=[completed ua=0.19574719588552125 C=5.126629633823094 conf=0.9928502727789756]\nRESULT outcome_mutant=[completed ua=0.19575055138538477 C=5.126622761903923 conf=0.9928505855787655]\nRESULT cases_differing=3 count (of 3)\nRESULT null_differing=0 count (of 2)\nRESULT thread_factor=1.000 ratio\nRESULT load1=57.07\nRESULT swapins=4 count\n",
+  "stderr": "",
+  "wall_s": 3.0,
+  "load1": 57.0703125
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "0137ee1f014fb759",
+ "box": "D3-g36",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g36/probes/probe_0137ee1f014fb759.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline=refused:slab mode too slow for the excitation window: tau_fast=4.17 h needs 12.5 h to settle, but the shortest phase of the 5.0 h window is 1.0 h\nRESULT mutant=ua=0.150000000 cap=15.000000000 tau=100.000000000 conf=0.418048113 hw=0\nRESULT moved=1 count\nRESULT null_moved=0 count\nRESULT zero_dt_moved=0 count\nRESULT thread_factor=1.000\nRESULT load1=60.42\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 12.4,
+  "load1": 60.4169921875
+ }
+}

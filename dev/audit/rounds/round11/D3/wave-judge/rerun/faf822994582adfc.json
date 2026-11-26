@@ -1,0 +1,12 @@
+{
+ "key": "faf822994582adfc",
+ "box": "D3-g04",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_faf822994582adfc.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT input min=None zero_draws=False: baseline=(60, False, (False, False, False, False, False, False, False)) mutant=(60, False, (False, False, False, False, False, False, False))\nRESULT input min=None zero_draws=True: baseline=(48, True, (True, True, True, True, True, True, True)) mutant=(48, True, (True, True, True, True, True, True, True))\nRESULT input min=48.0 zero_draws=False: baseline=(60, False, (False, False, False, False, False, False, False)) mutant=(60, False, (False, False, False, False, False, False, False))\nRESULT input min=48.0 zero_draws=True: baseline=(48, True, (True, True, True, True, True, True, True)) mutant=(48, True, (True, True, True, True, True, True, True))\nRESULT input min=50.0 zero_draws=False: baseline=(60, False, (False, False, False, False, False, False, False)) mutant=(60, False, (False, False, False, False, False, False, False))\nRESULT input min=50.0 zero_draws=True: baseline=(48, True, (True, True, True, True, True, True, True)) mutant=(50, True, (False, True, True, True, True, True, True))\nRESULT input min=55.0 zero_draws=False: baseline=(60, False, (False, False, False, False, False, False, False)) mutant=(60, False, (False, False, False, False, False, False, False))\nRESULT input min=55.0 zero_draws=True: baseline=(48, True, (True, True, True, True, True, True, True)) mutant=(56, True, (False, False, False, False, True, True, True))\nRESULT recommended_baseline=48\nRESULT recommended_mutant=56\nRESULT meets_flipped=4 count\nRESULT differing_cells=2 of 8\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=139.83\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 9.9,
+  "load1": 139.82958984375
+ }
+}

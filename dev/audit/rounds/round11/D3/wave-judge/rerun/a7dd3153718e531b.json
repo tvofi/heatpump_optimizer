@@ -1,0 +1,12 @@
+{
+ "key": "a7dd3153718e531b",
+ "box": "D3-g04",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_a7dd3153718e531b.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT input mae=0.25000000175 sigma=2.0: baseline=None mutant=array[4] max=2e-09\nRESULT input mae=0.25000000175 sigma=5.0: baseline=None mutant=array[4] max=5e-09\nRESULT input mae=0.25000000175 sigma=0.5: baseline=None mutant=None\nRESULT input mae=0.25000000175 sigma=1.0: baseline=None mutant=None\nRESULT outcome_baseline=None\nRESULT outcome_mutant=array[4] max=2e-09\nRESULT differing_inputs=2 count\nRESULT null_differing=0 count\nRESULT thread_factor=1.000\nRESULT load1=138.47\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 9.9,
+  "load1": 138.470703125
+ }
+}

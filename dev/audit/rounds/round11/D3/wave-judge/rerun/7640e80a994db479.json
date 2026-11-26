@@ -1,0 +1,12 @@
+{
+ "key": "7640e80a994db479",
+ "box": "D3-g15",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g15/probes/probe_7640e80a994db479.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT deadline_step=96 n_steps=96\nRESULT edge_due_baseline=False step=None\nRESULT edge_due_mutant=True step=1\nRESULT null_moved=0 count\nRESULT edge_solve_due_baseline=False dhw_kwh=4.6915\nRESULT edge_solve_due_mutant=True dhw_kwh=4.8211\nRESULT edge_solve_dhw_kwh_delta=0.1295 kWh\nRESULT null_solve_moved=0 count  (hours_since 143.75)\nRESULT thread_factor=1.000 ratio\nRESULT load1=66.16\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 73.0,
+  "load1": 66.15966796875
+ }
+}

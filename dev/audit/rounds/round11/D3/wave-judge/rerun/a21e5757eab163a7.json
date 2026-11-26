@@ -1,0 +1,12 @@
+{
+ "key": "a21e5757eab163a7",
+ "box": "D3-g16",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_a21e5757eab163a7.py",
+ "run": {
+  "rc": 0,
+  "stdout": "# tie: temps[5]=np.float64(60.0) ceiling=59.999999999 ceiling+1e-9=60.0\nRESULT raise_fits_baseline=1\nRESULT raise_fits_mutant=0\nRESULT non_tie_inputs_moved=0 of 4 (-)\nRESULT thread_factor=1.000\nRESULT load1=84.73\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 7.9,
+  "load1": 84.7255859375
+ }
+}

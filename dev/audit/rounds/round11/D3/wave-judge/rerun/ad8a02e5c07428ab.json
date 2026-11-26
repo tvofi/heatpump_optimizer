@@ -1,0 +1,12 @@
+{
+ "key": "ad8a02e5c07428ab",
+ "box": "D3-g02",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g02/probes/probe_ad8a02e5c07428ab.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT upper_cold_room_warm_baseline=turn_on\nRESULT upper_cold_room_warm_mutant=turn_off\nRESULT upper_cold_room_warm_moved=1 count\nRESULT lower_cold_room_warm_baseline=turn_on\nRESULT lower_cold_room_warm_mutant=turn_off\nRESULT lower_cold_room_warm_moved=1 count\nRESULT zones_warm_null_baseline=turn_off\nRESULT zones_warm_null_mutant=turn_off\nRESULT zones_warm_null_moved=0 count\nRESULT single_zone_upper_cold_null_baseline=turn_off\nRESULT single_zone_upper_cold_null_mutant=turn_off\nRESULT single_zone_upper_cold_null_moved=0 count\nRESULT room_cold_null_baseline=turn_on\nRESULT room_cold_null_mutant=turn_on\nRESULT room_cold_null_moved=0 count\nRESULT inputs_moved=2 count of 5\nRESULT thread_factor=1.000\nRESULT load1=96.12\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 10.0,
+  "load1": 96.11669921875
+ }
+}

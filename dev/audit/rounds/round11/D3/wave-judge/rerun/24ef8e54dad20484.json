@@ -1,0 +1,12 @@
+{
+ "key": "24ef8e54dad20484",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_24ef8e54dad20484.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT solar_reduction_baseline=1.0\nRESULT solar_reduction_mutant=0.6\nRESULT abs_delta=0.4000\nRESULT no_sun_delta=0 count\nRESULT null_delta=0 count\nRESULT wall=3.88 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=55.41\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 5.2,
+  "load1": 55.40869140625
+ }
+}

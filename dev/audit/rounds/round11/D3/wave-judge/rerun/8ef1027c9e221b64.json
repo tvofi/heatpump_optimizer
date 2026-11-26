@@ -1,0 +1,12 @@
+{
+ "key": "8ef1027c9e221b64",
+ "box": "D3-g23",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_8ef1027c9e221b64.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT direct_half_pin_release_baseline=([],[])\nRESULT direct_half_pin_release_mutant=([0],[])\nRESULT null_on_pin_delta=0\nRESULT optimize_half_pin_differing_plans=5 of 55\nRESULT thread_factor=1.000\nRESULT load1=62.28\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 1527.7,
+  "load1": 60.4169921875
+ }
+}

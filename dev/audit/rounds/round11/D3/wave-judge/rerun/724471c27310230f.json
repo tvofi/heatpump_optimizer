@@ -1,0 +1,12 @@
+{
+ "key": "724471c27310230f",
+ "box": "D3-g25",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_724471c27310230f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "INPUT 0: schedule len 2 on a 4-step plan, now = step 2 (i == len): baseline solar_gain_kw=absent | mutant raised:IndexError | moved 1\nRESULT baseline_value=solar_gain_kw=absent\nRESULT mutant_value=raised:IndexError\nRESULT moved=1 count\nINPUT 1: now = step 1 (i < len) [null]: baseline solar_gain_kw=0.5 | mutant solar_gain_kw=0.5 | moved 0\nRESULT null_moved=0 count\nINPUT 2: now = step 3 (i > len): baseline solar_gain_kw=absent | mutant solar_gain_kw=absent | moved 0\nINPUT 3: now = step 0: baseline solar_gain_kw=0.5 | mutant solar_gain_kw=0.5 | moved 0\nRESULT inputs_tried=4 count\nRESULT moved_any=1 count\nRESULT thread_factor=1.000\nRESULT load1=37.99\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 3.2,
+  "load1": 37.50634765625
+ }
+}

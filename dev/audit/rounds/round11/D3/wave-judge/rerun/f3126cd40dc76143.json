@@ -1,0 +1,12 @@
+{
+ "key": "f3126cd40dc76143",
+ "box": "D3-g25",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g25/probes/probe_f3126cd40dc76143.py",
+ "run": {
+  "rc": 0,
+  "stdout": "INPUT 0: one-step plan, now = t0-300 s: baseline mode=normal,power=2.0,setpoint=21.0 | mutant raised:IndexError | moved 1\nRESULT baseline_value=mode=normal,power=2.0,setpoint=21.0\nRESULT mutant_value=raised:IndexError\nRESULT moved=1 count\nINPUT 1: one-step plan, now = t0-900 s: baseline mode=normal,power=2.0,setpoint=21.0 | mutant raised:IndexError | moved 1\nINPUT 2: one-step plan, now = t0-1200 s: baseline mode=idle,power=0.5,setpoint=21.0 | mutant raised:IndexError | moved 1\nINPUT 3: two-step plan, now = t0-300 s [null]: baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=normal,power=2.0,setpoint=21.0 | moved 0\nRESULT null_moved=0 count\nINPUT 4: one-step plan, now = t0 (not pre-horizon): baseline mode=normal,power=2.0,setpoint=21.0 | mutant mode=normal,power=2.0,setpoint=21.0 | moved 0\nRESULT inputs_tried=5 count\nRESULT moved_any=1 count\nRESULT thread_factor=1.000\nRESULT load1=35.61\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 3.5,
+  "load1": 36.03857421875
+ }
+}

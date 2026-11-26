@@ -1,0 +1,12 @@
+{
+ "key": "4498461fcf451835",
+ "box": "D3-g03",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g03/probes/probe_4498461f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT valve_schedule_baseline=4 steps\nRESULT valve_schedule_mutant=None steps\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=120.32\nRESULT swapins=-1 count\n",
+  "stderr": "",
+  "wall_s": 10.6,
+  "load1": 120.31640625
+ }
+}

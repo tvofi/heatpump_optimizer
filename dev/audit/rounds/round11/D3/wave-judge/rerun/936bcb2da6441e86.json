@@ -1,0 +1,12 @@
+{
+ "key": "936bcb2da6441e86",
+ "box": "D3-g18",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_936bcb2da6441e86.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT calls=1500 count\nRESULT differing_plans=35 count\nRESULT shortfall_ksteps_baseline=57165.329 K\nRESULT shortfall_ksteps_mutant=58050.843 K\nRESULT calls_mutant_more_shortfall=30 count\nRESULT golden_calls=5 count\nRESULT golden_differing=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=53.23\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 89.5,
+  "load1": 53.2265625
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "a66e107749d0ae11",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_a66e107749d0ae11.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT first_differing_hour=5\nRESULT required_now_baseline=55.0 C\nRESULT required_now_mutant=20.0 C\nRESULT hours_differ=4 count\nRESULT differing_hours=5,6,16,17\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=76.47\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 91.7,
+  "load1": 76.4716796875
+ }
+}

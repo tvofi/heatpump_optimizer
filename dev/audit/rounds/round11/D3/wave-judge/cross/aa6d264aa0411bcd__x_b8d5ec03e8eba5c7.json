@@ -1,0 +1,21 @@
+{
+ "a": "b8d5ec03e8eba5c7",
+ "b": "aa6d264aa0411bcd",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1942",
+ "a_new": "if False:",
+ "b_new": "if len(rows) <= 5:",
+ "replacements": 2,
+ "runs": {
+  "base": {
+   "rc": 0,
+   "stdout": "RESULT reached_fit_6=1\nRESULT reached_fit_7=1\nRESULT reached_fit_7_gap=1\nRESULT reason_6='ok'\nRESULT thread_factor=1.000\nRESULT load1=62.28\nRESULT swapins=0\n",
+   "stderr": ""
+  },
+  "mut": {
+   "rc": 0,
+   "stdout": "RESULT reached_fit_6=1\nRESULT reached_fit_7=1\nRESULT reached_fit_7_gap=1\nRESULT reason_6='ok'\nRESULT thread_factor=1.000\nRESULT load1=62.28\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

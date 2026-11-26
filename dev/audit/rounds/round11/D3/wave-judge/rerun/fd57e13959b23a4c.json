@@ -1,0 +1,12 @@
+{
+ "key": "fd57e13959b23a4c",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_fd57e13959b23a4c.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tie_baseline=original\nRESULT tie_mutant=replanned\nRESULT moved=1 count\nRESULT null_delta=0 count\nRESULT below_tie=replanned|replanned\nRESULT above_tie=original|original\nRESULT thread_factor=1.005\nRESULT load1=51.67\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 5.7,
+  "load1": 51.6708984375
+ }
+}

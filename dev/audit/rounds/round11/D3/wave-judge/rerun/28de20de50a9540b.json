@@ -1,0 +1,12 @@
+{
+ "key": "28de20de50a9540b",
+ "box": "D3-g31",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g31/probes/probe_28de20de50a9540b.py",
+ "run": {
+  "rc": 0,
+  "stdout": "INPUTS one week Mon 2026-01-05..Sun 01-11 hourly; Saturday 2026-01-10 03:00\nRESULT weekday_days baseline=5 mutant=6\nRESULT weekend_days baseline=2 mutant=1\nRESULT saturday_profile_index baseline=1 mutant=0\nRESULT saturday_0300_predict_level1 baseline=0.737143 mutant=0.564779\nRESULT null_days_differ=0 count (Mon-Fri, Sun)\nRESULT thread_factor=1.000\nRESULT load1=37.83\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.5,
+  "load1": 37.82568359375
+ }
+}

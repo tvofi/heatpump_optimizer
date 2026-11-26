@@ -1,0 +1,12 @@
+{
+ "key": "13cadf1ab9a2de61",
+ "box": "D3-g30",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_13cadf1ab9a2de61.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT var_loaded_exactly_cap_225_baseline=225.0\nRESULT var_loaded_exactly_cap_225_mutant=0.0\nRESULT null_var_loaded_below_cap_224p9_baseline=224.9\nRESULT null_var_loaded_below_cap_224p9_mutant=224.9\nRESULT null_var_loaded_above_cap_225p1_baseline=0.0\nRESULT null_var_loaded_above_cap_225p1_mutant=0.0\nRESULT null_var_loaded_typical_0p3_baseline=0.3\nRESULT null_var_loaded_typical_0p3_mutant=0.3\nRESULT var_loaded_inputs_moved=1 count\nRESULT null_delta=0 count\nRESULT inputs_tried=exactly_cap_225,below_cap_224p9,above_cap_225p1,typical_0p3\nRESULT reach_max_var_written_adversarial=18.8029 (cap 225.0)\nRESULT thread_factor=1.000\nRESULT load1=36.79\nRESULT swapins=0\n",
+  "stderr": "Persisted price variance exceeds what the learner writes; restarting at zero\nPersisted price variance exceeds what the learner writes; restarting at zero\nPersisted price variance exceeds what the learner writes; restarting at zero\n",
+  "wall_s": 3.7,
+  "load1": 36.791015625
+ }
+}

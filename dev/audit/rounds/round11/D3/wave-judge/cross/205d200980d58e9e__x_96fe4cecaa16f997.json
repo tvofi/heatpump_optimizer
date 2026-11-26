@@ -1,0 +1,16 @@
+{
+ "a": "96fe4cecaa16f997",
+ "b": "205d200980d58e9e",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9390",
+ "a_new": "if False:",
+ "b_new": "if x < 1e-6 or not np.isfinite(y):",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT x1e-6_baseline=(0.0,1.0,0.0,0.0)\nRESULT x1e-6_mutant=(1.0,1.0,2e-08,0.16)\nRESULT cases_moved=1 count\nRESULT null_x0=(0.0,1.0,0.0,0.0)\nRESULT null_x_real=(1.0,1.0,0.0392,0.16)\nRESULT null_moved=1 count\nRESULT thread_factor=1.000\nRESULT load1=100.40\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

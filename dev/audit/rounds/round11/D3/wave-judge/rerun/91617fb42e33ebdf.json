@@ -1,0 +1,12 @@
+{
+ "key": "91617fb42e33ebdf",
+ "box": "D3-g18",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g18/probes/probe_91617fb42e33ebdf.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT crossings_bisected=262 count\nRESULT inputs_tried_at_crossings=524 count\nRESULT exact_ties=262 count\nRESULT differing_at_ties=0 count\nRESULT max_delta_at_ties_kw=0 kW\nRESULT differing_plain_calls=0 count\nRESULT sensor_reading_ties=500 count\nRESULT sensor_reading_differing=3 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=80.16\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 228.6,
+  "load1": 79.02197265625
+ }
+}

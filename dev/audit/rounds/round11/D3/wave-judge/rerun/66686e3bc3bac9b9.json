@@ -1,0 +1,12 @@
+{
+ "key": "66686e3bc3bac9b9",
+ "box": "D3-g30",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g30/probes/probe_66686e3bc3bac9b9.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT predict_0700_5_days_baseline=1.57377\nRESULT predict_0700_5_days_mutant=1.661202\nRESULT predict_0700_7_days_baseline=1.57377\nRESULT predict_0700_7_days_mutant=1.62623\nRESULT predict_0700_1_day_baseline=1.126732\nRESULT predict_0700_1_day_mutant=1.13823\nRESULT null_predict_0700_0_days_baseline=1.0\nRESULT null_predict_0700_0_days_mutant=1.0\nRESULT null_predict_0700_10_days_baseline=1.57377\nRESULT null_predict_0700_10_days_mutant=1.57377\nRESULT predict_0700_inputs_moved=3 count\nRESULT null_delta=0 count\nRESULT inputs_tried=5_days,7_days,1_day,0_days,10_days\nRESULT thread_factor=1.000\nRESULT load1=36.62\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 3.5,
+  "load1": 36.61767578125
+ }
+}

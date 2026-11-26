@@ -1,0 +1,12 @@
+{
+ "key": "72882f2ac25c19b1",
+ "box": "D3-g16",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g16/probes/probe_72882f2ac25c19b1.py",
+ "run": {
+  "rc": 0,
+  "stdout": "# baseline=[2.0, 2.5, 3.0, 3.5] mutant=[3.3333, 2.5, 3.0, 3.5]\nRESULT step0_price_baseline=2.000000 per-kWh\nRESULT step0_price_mutant=3.333333 per-kWh\nRESULT cheapest_step_baseline=0\nRESULT cheapest_step_mutant=1\nRESULT null_inputs_moved=0 of 4 (-)\nRESULT thread_factor=1.000\nRESULT load1=86.88\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 6.7,
+  "load1": 86.8779296875
+ }
+}

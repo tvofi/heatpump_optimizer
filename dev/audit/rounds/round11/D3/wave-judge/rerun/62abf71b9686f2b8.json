@@ -1,0 +1,12 @@
+{
+ "key": "62abf71b9686f2b8",
+ "box": "D3-g28",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g28/probes/probe_62abf71b9686f2b8.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT mean_is_exactly_eps=1\nRESULT guess_baseline_range=0.2000..1.0000\nRESULT guess_mutant_range=0.2000..1.0000\nRESULT guess_max_abs_diff=0.2358\nRESULT null_ordinary_prices_diff=0\nRESULT golden_plan_max_abs_diff=1.591 kW\nRESULT golden_cost_rel_diff=0.0003143\nRESULT thread_factor=1.001\nRESULT load1=39.34\nRESULT swapins=-1\n",
+  "stderr": "",
+  "wall_s": 26.3,
+  "load1": 39.07373046875
+ }
+}

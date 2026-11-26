@@ -1,0 +1,12 @@
+{
+ "key": "7398de952c9d1510",
+ "box": "D3-g08",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_7398de952c9d1510.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT step=15.0_baseline=kwh 3.0 lines 0\nRESULT step=15.0_mutant=kwh 3.0 lines 0\nRESULT step=1.0_baseline=kwh 0.2 lines 0\nRESULT step=1.0_mutant=kwh 0.2 lines 0\nRESULT step=0.5_baseline=kwh 0.2 lines 0\nRESULT step=0.5_mutant=kwh 0.1 lines 0\nRESULT step=0.0_baseline=kwh 0.2 lines 0\nRESULT step=0.0_mutant=kwh 0 lines 0\nRESULT steps_moved=2 count of 4\n",
+  "stderr": "",
+  "wall_s": 10.5,
+  "load1": 131.525390625
+ }
+}

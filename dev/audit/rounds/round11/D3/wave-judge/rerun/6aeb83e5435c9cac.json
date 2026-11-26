@@ -1,0 +1,12 @@
+{
+ "key": "6aeb83e5435c9cac",
+ "box": "D3-g04",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g04/probes/probe_6aeb83e5435c9cac.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline={'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'grid_fee_sek': 3.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}\nRESULT mutant={'month': '2026-11', 'kwh': 10.0, 'hourly_spot_sek': 12.0, 'monthly_avg_spot_sek': 15.0, 'load_profile_value_per_kwh': 0.3, 'cheapest': 'hourly_spot'}\nRESULT grid_fee_sek_baseline=3.0\nRESULT grid_fee_sek_mutant=absent\nRESULT keys_lost=1 count\nRESULT null_delta=0 count\nRESULT thread_factor=1.000\nRESULT load1=139.55\nRESULT swapins=na\n",
+  "stderr": "",
+  "wall_s": 10.4,
+  "load1": 139.5537109375
+ }
+}

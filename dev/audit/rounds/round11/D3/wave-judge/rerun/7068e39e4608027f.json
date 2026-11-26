@@ -1,0 +1,12 @@
+{
+ "key": "7068e39e4608027f",
+ "box": "D3-g43",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g43/probes/probe_7068e39e4608027f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "scenarios=144 errored=0 moved=2\n  moved: twotank wood_just_below_floor_p0 maxdiff=0.00408045\n  moved: smartread_twotank wood_just_below_floor_p0 maxdiff=0.00408045\nRESULT batch_baseline_vs_mutant_max_abs_diff=0.00408045\nRESULT batch_scenarios_moved=2\nRESULT batch_wood_array_dropped_scenarios=0\nRESULT batch_vs_scalar_parity_baseline=0\nRESULT batch_vs_scalar_parity_mutant=0.00408045\n",
+  "stderr": "",
+  "wall_s": 32.7,
+  "load1": 38.5078125
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "cf7be12db1a662c4",
+ "box": "D3-g01",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g01/probes/probe_cf7be12db1a662c4.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT price_shape00_baseline=1.3\nRESULT price_shape00_mutant=1.0\nRESULT fields_moved=1 count ({'price_shape00': (1.3, 1.0)})\nRESULT null_non_dict_payload_delta=0 count\nRESULT null_empty_delta=0 count\nRESULT null_fresh_state_delta=0 count\nRESULT thread_factor=1.000 ratio\nRESULT load1=95.46\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 8.6,
+  "load1": 95.455078125
+ }
+}

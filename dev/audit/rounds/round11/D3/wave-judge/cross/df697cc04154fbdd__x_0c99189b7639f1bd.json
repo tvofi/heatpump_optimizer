@@ -1,0 +1,16 @@
+{
+ "a": "0c99189b7639f1bd",
+ "b": "df697cc04154fbdd",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:9980",
+ "a_new": "if 0.25 * interval_s <= window.seconds < 3.0 * interval_s:",
+ "b_new": "if 0.25 * interval_s < window.seconds <= 3.0 * interval_s:",
+ "replacements": 1,
+ "runs": {
+  "run": {
+   "rc": 0,
+   "stdout": "RESULT calls_tie_i10_baseline=1 calls_tie_i10_mutant=1 seconds=150.0\nRESULT calls_inside_i10_baseline=1 calls_inside_i10_mutant=1 seconds=151.0\nRESULT calls_outside_i10_baseline=0 calls_outside_i10_mutant=0 seconds=149.0\nRESULT calls_tie_i30_baseline=1 calls_tie_i30_mutant=1 seconds=450.0\nRESULT calls_inside_i30_baseline=1 calls_inside_i30_mutant=1 seconds=451.0\nRESULT calls_outside_i30_baseline=0 calls_outside_i30_mutant=0 seconds=449.0\nRESULT calls_tie_i120_baseline=1 calls_tie_i120_mutant=1 seconds=1800.0\nRESULT calls_inside_i120_baseline=1 calls_inside_i120_mutant=1 seconds=1801.0\nRESULT calls_outside_i120_baseline=0 calls_outside_i120_mutant=0 seconds=1799.0\nRESULT thread_factor=1.000\nRESULT load1=75.20\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

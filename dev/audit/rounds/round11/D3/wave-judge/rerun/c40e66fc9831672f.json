@@ -1,0 +1,12 @@
+{
+ "key": "c40e66fc9831672f",
+ "box": "D3-g20",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g20/probes/probe_c40e66fc9831672f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT inputs_tried=117 count (ties constructed: 9)\nRESULT inputs_moved=45 count\nRESULT moved hi=30.0 out=-20.0 ua=None: baseline=30.0 mutant=20.0\nRESULT moved hi=30.0 out=-20.0 ua=0.0: baseline=30.0 mutant=20.0\nRESULT moved hi=30.0 out=-20.0 ua=2.0: baseline=30.0 mutant=20.0\nRESULT moved hi=30.0 out=-30.0 ua=None: baseline=30.0 mutant=20.0\nRESULT max_abs_delta_c=15.0\nRESULT focus hi=70.0 out=-20.0 ua=None: baseline=35.0 mutant=20.0\nRESULT null_delta=0 C\nRESULT from_config_buffer_max_30=30.0\nRESULT thread_factor=1.000\nRESULT load1=53.05\nRESULT swapins=5 count\n",
+  "stderr": "",
+  "wall_s": 6.9,
+  "load1": 52.3232421875
+ }
+}

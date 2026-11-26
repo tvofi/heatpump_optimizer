@@ -1,0 +1,12 @@
+{
+ "key": "36117bb3a189672b",
+ "box": "D3-g44",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_36117bb3a189672b.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT displace_limits=(-20.0,20.0)\nRESULT inputs_tried=125 count\nRESULT inputs_moved=30 count\nRESULT inputs_moved_state_in_range=0 count\nRESULT null_moved=0 count\nRESULT example(eff,cmd,dt,baseline,mutant)=(-25.0, -29.0, 0.0, (-20.0, -20.0), (-20.0, -25.0))\n",
+  "stderr": "",
+  "wall_s": 3.7,
+  "load1": 43.376953125
+ }
+}

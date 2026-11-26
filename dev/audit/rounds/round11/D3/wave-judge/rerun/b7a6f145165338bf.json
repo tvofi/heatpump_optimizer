@@ -1,0 +1,12 @@
+{
+ "key": "b7a6f145165338bf",
+ "box": "D3-g17",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g17/probes/probe_b7a6f145165338bf.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT nan_price_linprog_raised=ValueError\nRESULT nan_price_baseline=None\nRESULT nan_price_mutant=UnboundLocalError\nRESULT finite_differing=0\nRESULT reach=the line IS reachable by a direct call: one NaN price makes linprog raise ValueError on its first pass; whether DhwPlanner.optimize can hand this method a NaN price is not established here (no closure script's traced baseline executes line 1606)\nRESULT inputs_tried=one NaN price at step 3; all-finite prices (null)\nRESULT thread_factor=1.000\nRESULT load1=63.01\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.2,
+  "load1": 63.00537109375
+ }
+}

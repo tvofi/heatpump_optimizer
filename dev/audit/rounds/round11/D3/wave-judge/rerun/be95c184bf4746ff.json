@@ -1,0 +1,12 @@
+{
+ "key": "be95c184bf4746ff",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_be95c184bf4746ff.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT pre_heat_urgency_baseline=0.5\nRESULT pre_heat_urgency_mutant=0.0\nRESULT moved=1 count\nRESULT extra_keys_mutant=3 count\nRESULT null_delta=0 count\nRESULT reach_optimize_horizon_0=IndexError n_seen=0\nRESULT reach_optimize_horizon_0.1=IndexError n_seen=0\nRESULT reach_optimize_empty=1 count\nRESULT wall=5.38 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=57.68\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 6.6,
+  "load1": 57.6787109375
+ }
+}

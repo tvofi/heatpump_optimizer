@@ -1,0 +1,12 @@
+{
+ "key": "6309f3e4a0a6c45f",
+ "box": "D3-g21",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g21/probes/probe_6309f3e4a0a6c45f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT configured_min_kw=0.0\nRESULT pin_on_power_min0_baseline=0.1 kW\nRESULT pin_on_power_min0_mutant=0.0 kW\nRESULT pin_on_power_min005_baseline=0.1 kW\nRESULT pin_on_power_min005_mutant=0.05 kW\nRESULT pinned_on_min_kw_baseline=0.1000 kW\nRESULT pinned_on_min_kw_mutant=0.0000 kW\nRESULT null_delta_kw=0.0000 kW\nRESULT thread_factor=1.000\nRESULT load1=63.91\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 5.5,
+  "load1": 63.90576171875
+ }
+}

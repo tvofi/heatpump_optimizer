@@ -1,0 +1,9 @@
+{
+ "a": "809e8d14f04e1127",
+ "b": "440c0a6d5ee72d19",
+ "site": "custom_components/heatpump_optimizer/sysid.py:2315",
+ "a_new": "if False:",
+ "b_new": "if len(usable) <= 6:",
+ "replacements": 0,
+ "status": "not expressible"
+}

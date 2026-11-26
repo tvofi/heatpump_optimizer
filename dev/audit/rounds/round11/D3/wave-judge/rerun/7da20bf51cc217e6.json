@@ -1,0 +1,12 @@
+{
+ "key": "7da20bf51cc217e6",
+ "box": "D3-g22",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g22/probes/probe_7da20bf5.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT tank45_baseline=11.739 C\nRESULT tank45_mutant=11.739 C\nRESULT null_delta_tank45=0.0 C\nRESULT tank55_baseline=3.121 C\nRESULT tank55_mutant=3.121 C\nRESULT tank60_baseline=0.0 C\nRESULT tank60_mutant=-1.394 C\nRESULT tank65_baseline=0.0 C\nRESULT tank65_mutant=-5.908 C\nRESULT thread_factor=1.000 ratio\nRESULT load1=66.91\nRESULT swapins=0 count\n",
+  "stderr": "",
+  "wall_s": 13.4,
+  "load1": 72.84521484375
+ }
+}

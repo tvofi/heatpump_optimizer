@@ -1,0 +1,12 @@
+{
+ "key": "70791cdb98f8ddd7",
+ "box": "D3-g23",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g23/probes/probe_70791cdb98f8ddd7.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT charge_ceiling=35.000 C\nRESULT buffer_cap_initial60_baseline=60.000 C\nRESULT buffer_cap_initial60_mutant=35.000 C\nRESULT null_initial30_delta=0.000000 C\nRESULT optimize_tank60_differing_fields=20 ['buffer_temp_trajectory','compressor_starts','deferred_energy_cost','displace_schedule','heat_pump_on_schedule','lower_setpoints','lower_temp_trajectory','objective_value']\nRESULT thread_factor=1.000\nRESULT load1=34.94\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 63.1,
+  "load1": 34.94091796875
+ }
+}

@@ -1,0 +1,12 @@
+{
+ "key": "60f673da42f9d671",
+ "box": "D3-g07",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_60f673da42f9d671.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT margin_baseline=2.0 K\nRESULT margin_mutant=0.0 K\nRESULT null_baseline=2.0 K\nRESULT null_mutant=2.0 K\nRESULT thread_factor=1.000\nRESULT load1=139.04\nRESULT swapins=nan\n",
+  "stderr": "",
+  "wall_s": 9.2,
+  "load1": 139.03515625
+ }
+}

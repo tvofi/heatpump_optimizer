@@ -1,0 +1,12 @@
+{
+ "key": "b25e80c59b31c20d",
+ "box": "D3-g14",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g14/probes/probe_b25e80c59b31c20d.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT baseline_shortfall_c=0.2711 C\nRESULT mutant_shortfall_c=6.3719 C\nRESULT baseline_kwh=4.3727 kWh\nRESULT mutant_kwh=3.5974 kWh\nRESULT null_delta_kw=0.000000 kW\nRESULT null_on_only_delta_kw=0.000000 kW\n",
+  "stderr": "",
+  "wall_s": 6.8,
+  "load1": 95.0048828125
+ }
+}

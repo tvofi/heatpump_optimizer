@@ -1,0 +1,12 @@
+{
+ "key": "326b26f53972df61",
+ "box": "D3-g09",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g09/probes/probe_326b26f53972df61.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT default_pv_production_entity=None\nRESULT empty_string_entity_resolves_to=None\nRESULT fake_none_baseline: surplus_sum=8.7200\nRESULT fake_none_mutant: surplus_sum=8.7200\nRESULT fake_empty_baseline: surplus_sum=8.7200\nRESULT fake_empty_mutant: surplus_sum=8.7200\nRESULT ha_none_baseline: surplus_sum=8.7200\nRESULT ha_none_mutant: raised AttributeError: 'NoneType' object has no attribute 'lower'\nRESULT ha_empty_baseline: surplus_sum=8.7200\nRESULT ha_empty_mutant: raised AttributeError: 'NoneType' object has no attribute 'lower'\nRESULT ha_meter_baseline: surplus_sum=11.3200\nRESULT ha_meter_mutant: surplus_sum=11.3200\nRESULT thread_factor=1.000\nRESULT load1=135.96\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 8.6,
+  "load1": 135.95947265625
+ }
+}

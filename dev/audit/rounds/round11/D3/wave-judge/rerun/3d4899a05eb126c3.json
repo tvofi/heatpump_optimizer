@@ -1,0 +1,12 @@
+{
+ "key": "3d4899a05eb126c3",
+ "box": "D3-g44",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_3d4899a05eb126c3.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT total_1e-06_moved=1\nRESULT total_1.000000000001e-06_moved=0\nRESULT total_2e-06_moved=0\nRESULT total_5e-07_moved=0\nRESULT total_0.0_moved=0\nRESULT total_0.5_moved=0\nRESULT inputs_tried=6 count\nRESULT inputs_moved=1 count\nRESULT null_moved=0 count\nRESULT tie_max_baseline_vs_mutant=(1e-06, 24.0)\n",
+  "stderr": "",
+  "wall_s": 3.6,
+  "load1": 44.54150390625
+ }
+}

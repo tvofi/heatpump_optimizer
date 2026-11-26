@@ -1,0 +1,12 @@
+{
+ "key": "df4de55e12588fdf",
+ "box": "D3-g13",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g13/probes/probe_df4de55e12588fdf.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT production_shaped_moved=0 of 144 []\nRESULT baseline_paths joint_shortcut=48 per_slot=96 count\nRESULT slot_at_1e-06_tank_room baseline=1e-06 mutant=0.6\nRESULT slot_at_9.999999999999997e-07_tank_room baseline=9.999999999999997e-07 mutant=9.999999999999997e-07\nRESULT slot_at_1.0000000000000002e-06_tank_room baseline=0.6 mutant=0.6\nRESULT slot_at_1e-06_tank_full baseline=1e-06 mutant=0.0\nRESULT slot_at_9.999999999999997e-07_tank_full baseline=9.999999999999997e-07 mutant=9.999999999999997e-07\nRESULT slot_at_1.0000000000000002e-06_tank_full baseline=0.0 mutant=0.0\nRESULT slot_kw_at_1e-6_baseline=1e-06\nRESULT slot_kw_at_1e-6_mutant=0.6\nRESULT boundary_inputs_moved=2 of 6\nRESULT thread_factor=1.000\nRESULT load1=95.00\nRESULT swapins=n/a\n",
+  "stderr": "",
+  "wall_s": 17.5,
+  "load1": 95.0048828125
+ }
+}

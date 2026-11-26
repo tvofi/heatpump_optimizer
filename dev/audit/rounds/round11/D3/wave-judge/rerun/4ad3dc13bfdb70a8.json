@@ -1,0 +1,12 @@
+{
+ "key": "4ad3dc13bfdb70a8",
+ "box": "D3-g39",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g39/probes/probe_4ad3dc13bfdb70a8.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT f0_state_baseline=('2026-01-10T07:00:00|60', 2.0, 1, 0.0)\nRESULT f0_state_mutant=('', 0.0, 0, 1.0)\nRESULT f0_peaks_baseline=(1.0,)\nRESULT f0_peaks_mutant=(1.0,)\nRESULT f1_state_baseline=('2026-01-10T07:00:00|60', 2.0, 1, 1.0)\nRESULT f1_state_mutant=('2026-01-10T07:00:00|60', 2.0, 1, 1.0)\nRESULT f05_state_baseline=('2026-01-10T07:00:00|60', 2.0, 1, 0.5)\nRESULT f05_state_mutant=('2026-01-10T07:00:00|60', 2.0, 1, 0.5)\nRESULT fneg_state_baseline=('', 0.0, 0, 1.0)\nRESULT fneg_state_mutant=('', 0.0, 0, 1.0)\nRESULT cases_moved=1\nRESULT null_cases_moved=0\n",
+  "stderr": "Persisted capacity-tariff window is outside what the tracker writes; restarting that window empty\nPersisted capacity-tariff window is outside what the tracker writes; restarting that window empty\nPersisted capacity-tariff window is outside what the tracker writes; restarting that window empty\nPersisted capacity-tariff window is outside what the tracker writes; restarting that window empty\n",
+  "wall_s": 3.1,
+  "load1": 54.9326171875
+ }
+}

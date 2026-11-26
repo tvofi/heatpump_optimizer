@@ -1,0 +1,12 @@
+{
+ "key": "d8e588be2e0aba89",
+ "box": "D3-g38",
+ "command": "cd <clean baseline checkout> && HPO_PROBE_ROOT=$PWD PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 <box tree>/dev/audit/rounds/round11/D3/s1/wave/D3-g38/probes/probe_d8e588be2e0aba89.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT refused[tau0.1_exact] baseline=0 mutant=1\nRESULT refused[tau0.1_via_slab] baseline=0 mutant=1\nRESULT refused[null_tau0.2] baseline=0 mutant=0\nRESULT refused[null_tau0.05] baseline=1 mutant=1\nRESULT inputs_differing=2 of 4\n",
+  "stderr": "",
+  "wall_s": 3.0,
+  "load1": 53.513671875
+ }
+}

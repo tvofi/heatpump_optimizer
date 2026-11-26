@@ -1,0 +1,12 @@
+{
+ "key": "5b8e7044ee7974f8",
+ "box": "D3-g42",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5b8e7044ee7974f8.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT draw_from_10.0_baseline='3.0'\nRESULT draw_from_10.0_mutant='3.0'\nRESULT draw_from_10.5_baseline='2.9833333333333334'\nRESULT draw_from_10.5_mutant='2.9833333333333334'\nRESULT draw_from_2.0_baseline='3.0'\nRESULT draw_from_2.0_mutant='3.0'\nRESULT draw_from_30.0_baseline='2.3333333333333335'\nRESULT draw_from_30.0_mutant='2.3333333333333335'\nRESULT draw_from_9.5_baseline='3.0'\nRESULT draw_from_9.5_mutant='3.0'\nRESULT inlet_baseline=10.0\nRESULT inlet_mutant=10.0\nRESULT wood_after_from_10.0_baseline='10.0'\nRESULT wood_after_from_10.0_mutant='10.0'\nRESULT wood_after_from_10.5_baseline='10.492816091954023'\nRESULT wood_after_from_10.5_mutant='10.492816091954023'\nRESULT wood_after_from_2.0_baseline='2.0'\nRESULT wood_after_from_2.0_mutant='10.0'\nRESULT wood_after_from_30.0_baseline='29.71264367816092'\nRESULT wood_after_from_30.0_mutant='29.71264367816092'\nRESULT wood_after_from_9.5_baseline='9.5'\nRESULT wood_after_from_9.5_mutant='10.0'\nRESULT metrics_moved=2\n",
+  "stderr": "",
+  "wall_s": 5.8,
+  "load1": 44.501953125
+ }
+}

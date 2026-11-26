@@ -1,0 +1,21 @@
+{
+ "a": "cf96494341270371",
+ "b": "6e67f128730b3ecd",
+ "site": "custom_components/heatpump_optimizer/sysid.py:1541",
+ "a_new": "if not (cfg.min_outdoor_temp <= outdoor_temp < cfg.max_outdoor_temp):",
+ "b_new": "if not (cfg.min_outdoor_temp < outdoor_temp <= cfg.max_outdoor_temp):",
+ "replacements": 2,
+ "runs": {
+  "base": {
+   "rc": 0,
+   "stdout": "RESULT band_refused=0\nRESULT band_refused_inside=0\nRESULT band_refused_scan=10000\nRESULT thread_factor=1.000\nRESULT load1=65.93\nRESULT swapins=0\n",
+   "stderr": ""
+  },
+  "mut": {
+   "rc": 0,
+   "stdout": "RESULT band_refused=0\nRESULT band_refused_inside=0\nRESULT band_refused_scan=10001\nRESULT thread_factor=1.000\nRESULT load1=65.93\nRESULT swapins=0\n",
+   "stderr": ""
+  }
+ },
+ "status": "ran"
+}

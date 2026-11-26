@@ -1,0 +1,9 @@
+{
+ "a": "88ecd932bc81efec",
+ "b": "3e68dcd55f9567e5",
+ "site": "custom_components/heatpump_optimizer/coordinator.py:3013",
+ "a_new": "if not math.isfinite(value) or not lo <= value < hi:",
+ "b_new": "if not math.isfinite(value) or not lo < value <= hi:",
+ "replacements": 0,
+ "status": "not expressible"
+}

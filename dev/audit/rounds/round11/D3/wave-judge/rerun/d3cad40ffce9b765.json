@@ -1,0 +1,12 @@
+{
+ "key": "d3cad40ffce9b765",
+ "box": "D3-g07",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g07/probes/probe_d3cad40ffce9b765.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT min_samples=30 count\nRESULT scale_baseline_at_min=2.000000 ratio\nRESULT scale_mutant_at_min=1.000000 ratio\nRESULT scale_baseline_at_min_plus_1=2.000000 ratio\nRESULT scale_mutant_at_min_plus_1=2.000000 ratio\nRESULT null_baseline=1.000000 ratio\nRESULT null_mutant=1.000000 ratio\nRESULT thread_factor=1.000\nRESULT load1=162.79\nRESULT swapins=nan\n",
+  "stderr": "",
+  "wall_s": 9.7,
+  "load1": 161.12890625
+ }
+}

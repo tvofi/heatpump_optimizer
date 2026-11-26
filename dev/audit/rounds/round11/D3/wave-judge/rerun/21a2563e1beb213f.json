@@ -1,0 +1,12 @@
+{
+ "key": "21a2563e1beb213f",
+ "box": "D3-g08",
+ "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g08/probes/probe_21a2563e1beb213f.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT n_then_drop_baseline=stat 0.323333333 baseline_cop 2.98 count 21 issues 0\nRESULT n_then_drop_mutant=stat 0.0 baseline_cop 2.98 count 21 issues 0\nRESULT n_then_two_drops_baseline=stat 0.642192394 baseline_cop 2.9604 count 22 issues 0\nRESULT n_then_two_drops_mutant=stat 0.31885906 baseline_cop 2.9604 count 22 issues 0\nRESULT n_minus_1_then_drop_baseline=stat 0.0 baseline_cop 2.95 count 20 issues 0\nRESULT n_minus_1_then_drop_mutant=stat 0.0 baseline_cop 2.95 count 20 issues 0\nRESULT seqs_moved=2 count of 3\nRESULT null_moved=0 count of 2\n",
+  "stderr": "",
+  "wall_s": 10.4,
+  "load1": 134.44580078125
+ }
+}

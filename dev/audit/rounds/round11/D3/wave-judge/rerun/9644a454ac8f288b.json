@@ -1,0 +1,12 @@
+{
+ "key": "9644a454ac8f288b",
+ "box": "D3-g19",
+ "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g19/probes/probe_9644a454ac8f288b.py",
+ "run": {
+  "rc": 0,
+  "stdout": "RESULT rain_anticipation_baseline=1.1500\nRESULT rain_anticipation_mutant=1.3000\nRESULT abs_delta=0.1500\nRESULT pre_heat_urgency=0.7500->1.0000\nRESULT pre_heat_urgency_moved=1 count\nRESULT at_cap_delta=0 count\nRESULT null_delta=0 count\nRESULT wall=3.78 s (provisional)\nRESULT thread_factor=1.000\nRESULT load1=54.03\nRESULT swapins=0\n",
+  "stderr": "",
+  "wall_s": 5.0,
+  "load1": 53.2265625
+ }
+}
