@@ -2,3 +2,4 @@
 1795657613 HB alive
 1795657917 CKPT setup, packet, merge-tree clean, structure ok; slice+mutants running; CI WAIT snapshot 3fc9300f6019
 1795658217 HB alive
+1795658769 CKPT verdict drafted, waiting CI snapshot 80e8c19cd4ac
