@@ -154,3 +154,11 @@
 1795648443 CKPT D3-s1 68 file(s)
 1795648518 CKPT D3-s1 68 file(s)
 1795648522 HB gate 15/15 39041ccf21eedba6 running; stale comms lock cleared twice (instrument)
+1795648626 HB alive
+1795649247 HB alive
+1795649869 HB alive
+1795650491 HB alive
+1795651112 HB alive
+1795651321 CKPT D3-s1 75 file(s)
+1795651321 HB gate done: 39041ccf21eedba6 RED-AS-NULL | gated 15/15 left 0 KILLED=2 RED-AS-NULL=13
+1795651354 CKPT D3-s1 76 file(s)
