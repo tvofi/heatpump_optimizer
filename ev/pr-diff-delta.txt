@@ -1,0 +1,6 @@
+CHANGED dev/audit/rounds/round4/D6/claims.json
+CHANGED dev/audit/rounds/round4/D6/claims.md
+CHANGED dev/audit/rounds/round4/D6/claims.py
+CHANGED docs/architecture.md
+CHANGED tests/deployment_shape.py
+CHANGED tests/structure_budgets.json

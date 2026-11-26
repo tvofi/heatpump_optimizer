@@ -1,0 +1,3 @@
+  FAIL a charge is under way only with the compressor running in a mode serving the step's hot water  [predicate false]
+1 of 161 BLOCK DUTY CHECKS FAILED
+rc=1
