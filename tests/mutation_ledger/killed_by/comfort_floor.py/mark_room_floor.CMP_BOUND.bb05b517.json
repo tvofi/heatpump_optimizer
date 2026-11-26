@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/comfort_floor.py:mark_room_floor CMP_BOUND bb05b517",
+  "killed_by": "tests/features.py",
+  "old": "        and room_temps[min(i + 1, last)] > temp_min_bounds[i] - room_lifts[i] + 0.15 else reason",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`and room_temps[min(i + 1, last)] >= temp_min_bounds[i] - room_lifts[i] + 0.15 else reason`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
