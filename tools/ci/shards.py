@@ -46,6 +46,100 @@ STUB_TIMED = ("tests/golden.py", "tests/env_drift.py")
 FAST_SKIPS = ("tests/arch_score.py", "tests/arch_score_head.py", "tests/rolling.py", "tests/golden.py")
 _RUN_LINE = re.compile(r'^\s*(run|run_always)\s.*?\b(tests/[\w.-]+\.(?:py|mjs))\b')
 _SHARD = re.compile(r"^([1-9][0-9]*)/([1-9][0-9]*)$")
+# The fast lane's job: one `fast (3.14)` unsharded, else one `fast (3.14, K/N)` per shard, each
+# with the caller's `tests / ` prefix when a run's job listing names it. Every reader of the job
+# name reads it through FAST, is_fast or owed_fast; READERS is the census of the files that name it.
+FAST = "fast (3.14)"
+_FAST_JOB = re.compile(r"^(tests / )?fast \(3\.14(?:, ([1-9][0-9]*)/([1-9][0-9]*))?\)$")
+
+
+def is_fast(name: str) -> bool:
+    """Whether a job name is the fast lane's: unsharded or one shard, with or without `tests / `."""
+    return bool(_FAST_JOB.match(name or ""))
+
+
+def owed_fast(listed, prefix: str = "tests / ") -> list[str]:
+    """The fast job names a run owes, from the names its listing holds: every `K/N` of the one N
+    its shards name, else the unsharded name. Fail closed: shards of two different counts owe the
+    unsharded name, which such a run never lists, so it is never read as finished."""
+    counts = set()
+    for x in listed:
+        m = _FAST_JOB.match(x or "")
+        if m and m.group(3) and (m.group(1) or "") == prefix:
+            counts.add(int(m.group(3)))
+    if len(counts) != 1:
+        return [prefix + FAST]
+    n = counts.pop()
+    return [f"{prefix}fast (3.14, {k}/{n})" for k in range(1, n + 1)]
+
+
+# Every file under tools/, tests/ and .github/ whose text names the fast job (`fast (3.14`), and
+# why sharding leaves it correct. The self-test greps the tree and refuses a file missing here or
+# listed here and no longer naming it: a new reader is routed before it merges (#3902 review).
+#   sharded  reads job names through is_fast/owed_fast/FAST, or emits the shard names itself
+#   ruleset  reads the required set from the ruleset, which requires `gate` alone; its own lines
+#            naming the job are self-test fixtures
+#   generic  reads every job name alike (prefix, matrix pattern or listing), so a shard is a job
+#   label    names the lane in text it prints; it never matches a job listing
+#   fixture  self-test data or recorded API shapes only
+#   prose    comments or documentation
+READERS = {
+    ".github/workflows/ci.yml": "sharded",
+    ".github/workflows/tests.yml": "sharded",
+    "tests/README.md": "prose",
+    "tests/ci_ratchet.py": "generic",
+    "tests/doc_claims.py": "fixture",
+    "tests/entities.py": "fixture",
+    "tests/features.py": "prose",
+    "tests/host_probe.py": "prose",
+    "tests/run.sh": "prose",
+    "tests/stress.py": "prose",
+    "tools/audit/seat/ancestry_calls.sh": "fixture",
+    "tools/audit/seat/body_patch.sh": "fixture",
+    "tools/audit/seat/ci-watch.sh": "ruleset",
+    "tools/audit/seat/ci_critpath.py": "generic",
+    "tools/audit/seat/cloud_relay.sh": "fixture",
+    "tools/audit/seat/fixtures/ci_critpath/jobs_39619839750.json": "fixture",
+    "tools/audit/seat/fixtures/ci_critpath/jobs_39625218966.json": "fixture",
+    "tools/audit/seat/fixtures/ci_rerun/pr3836/jobs-44944866503.json": "fixture",
+    "tools/audit/seat/instruments/cloud-setup.sh.md": "prose",
+    "tools/audit/seat/instruments/probe_bridge.py.md": "prose",
+    "tools/audit/seat/merge_train.py": "ruleset",
+    "tools/audit/seat/orchestrator_tick.py": "ruleset",
+    "tools/audit/seat/probe_bridge.py": "sharded",
+    "tools/audit/seat/record_row.py": "ruleset",
+    "tools/ci/fixtures/gate_busy_defer_runs.json": "fixture",
+    "tools/ci/fixtures/gate_requeued_needs_runs.json": "fixture",
+    "tools/ci/fixtures/ruleset/ruleset_23698884.json": "fixture",
+    "tools/ci/gate.py": "sharded",
+    "tools/ci/prelude.py": "sharded",
+    "tools/ci/ruleset_cutover.py": "fixture",
+    "tools/ci/shards.py": "sharded",
+    "tools/ci/sweep.py": "sharded",
+    "tools/ci/sweep_selftest.py": "fixture",
+    "tools/plan/durations.json": "fixture",
+    "tools/plan/replan.py": "sharded",
+    "tools/policy/fixtures/policy-rot/prepr/red-answered.md": "fixture",
+    "tools/policy/fixtures/red-ancestry/green/d01ba036aa210b8c6f2660c8e2985f65c764a779.json": "fixture",
+    "tools/policy/fixtures/red-ancestry/red/12f5d8775e1ebff95b15e4f8ac34a3df86c984fb.json": "fixture",
+    "tools/policy/fixtures/red-ancestry/red/d01ba036aa210b8c6f2660c8e2985f65c764a779.json": "fixture",
+    "tools/policy/fixtures/required-contexts.json": "fixture",
+    "tools/policy/policy_lint.mjs": "generic",
+    "tools/pr/ci_predict.py": "label",
+    "tools/pr/merge_main_bot.py": "fixture",
+    "tools/pr/prepr.sh": "fixture",
+    "tools/release/stamp.py": "fixture",
+}
+
+
+def census() -> tuple[list[str], list[str]]:
+    """(files naming the fast job that READERS does not route, READERS files that no longer name it)."""
+    p = subprocess.run(["git", "grep", "-l", "-F", "fast (3.14", "--", "tools", "tests", ".github"],
+                       cwd=ROOT, capture_output=True, text=True)
+    if p.returncode not in (0, 1):
+        return [f"git grep failed: {p.stderr.strip()[:120]}"], []
+    found = set(p.stdout.split())
+    return sorted(found - set(READERS)), sorted(set(READERS) - found)
 
 
 def _closure():
@@ -202,6 +296,28 @@ def main(argv: list[str]) -> int:
     return 2
 
 
+def run_sh_routes(p: dict, shard: str, scripts: list[str]) -> tuple[int, list[str]]:
+    """(exit status, the scripts that ran) when tests/run.sh's own shard_setup, shard_of, run_always
+    and skip, sourced from the file, route `scripts` under plan `p` as shard `shard` ('' unsharded).
+    Each script is a `true` stand-in; the lease is stubbed to run the command."""
+    import os  # noqa: PLC0415
+    import tempfile  # noqa: PLC0415
+    fns = "".join(re.findall(r"(?ms)^(?:shard_setup|shard_of|scope_script|run_always|skip)\(\) \{.*?^\}\n",
+                             RUN_SH.read_text()))
+    with tempfile.TemporaryDirectory() as td:
+        drive = Path(td) / "drive.sh"
+        drive.write_text("PYTHON=%s; WORKDIR=%s; JOBS=1; LANE=x; step=0; WAIT_UNRUN=; SHARD_TABLE=\n"
+                         'FAST_SHARD="$1"; shift\nleased() { "$@"; }\n%s\nshard_setup || exit 1\n'
+                         'for s in "$@"; do run_always true "$s"; done\n' % (sys.executable, td, fns))
+        env = {**os.environ, "HPO_FAST_PLAN": json.dumps(p)}
+        r = subprocess.run(["bash", str(drive), shard, *scripts], cwd=ROOT, env=env,
+                           capture_output=True, text=True, timeout=60)
+        man = Path(td) / "x.manifest"
+        rows = man.read_text().splitlines() if man.is_file() else []
+    ran = [row.split("\t")[3].split()[-1] for row in rows if not row.split("\t")[3].startswith("#skip")]
+    return r.returncode, ran
+
+
 def self_test() -> int:
     fails, n = 0, 0
 
@@ -262,6 +378,30 @@ def self_test() -> int:
                           ("an empty shard", json.dumps({"n": 2, "s": {"tests/a.py": 1}}), "1/2"),
                           ("a non-test key", json.dumps({"n": 1, "s": {"x.py": 1}}), "1/1")):
         ck(f"route refuses {name}", bool(route(txt, sh)[1]), True)
+    missing, stale = census()
+    ck("#3902: every file naming the fast job is routed in READERS, and every READERS file names it",
+       (missing, stale), ([], []))
+    ck("#3902: is_fast reads the unsharded job, a shard and their caller-prefixed names, and nothing else",
+       [is_fast(x) for x in ("fast (3.14)", "tests / fast (3.14, 2/3)", "fast (3.14, 0/3)",
+                             "fast (3.13)", "tests / fast (3.14, 1/2) x", "fast-lane")],
+       [True, True, False, False, False, False])
+    ck("#3902: owed_fast owes every shard of the one listed count, else the unsharded name",
+       [owed_fast(["tests / fast (3.14, 2/3)", "gate"]), owed_fast(["gate"]),
+        owed_fast(["tests / fast (3.14, 1/2)", "tests / fast (3.14, 1/3)"])],
+       [[f"tests / fast (3.14, {k}/3)" for k in (1, 2, 3)], ["tests / fast (3.14)"], ["tests / fast (3.14)"]])
+    four = ["tests/a.py", "tests/b.py", "tests/c.py", "tests/d.mjs"]
+    two = {"n": 2, "s": {"tests/a.py": 1, "tests/b.py": 2, "tests/c.py": 1}}    # d: unnamed, so shard 1
+    ran = {k: run_sh_routes(two, f"{k}/2", four) for k in (1, 2)}
+    ck("#3902: run.sh's routing over a 2-shard plan runs every script once across the shards, an unnamed "
+       "one in shard 1", (ran[1], ran[2]), ((0, ["tests/a.py", "tests/c.py", "tests/d.mjs"]), (0, ["tests/b.py"])))
+    three = {"n": 3, "s": {"tests/a.py": 3, "tests/b.py": 1, "tests/c.py": 2, "tests/d.mjs": 3}}
+    got3 = [run_sh_routes(three, f"{k}/3", four) for k in (1, 2, 3)]
+    ck("#3902: ... and over a 3-shard plan, each shard exactly its own",
+       got3, [(0, ["tests/b.py"]), (0, ["tests/c.py"]), (0, ["tests/a.py", "tests/d.mjs"])])
+    ck("#3902: run.sh with no shard runs every script (the unsharded job; null control)",
+       run_sh_routes(two, "", four), (0, four))
+    ck("#3902: run.sh refuses a shard its plan does not hold, and runs nothing",
+       run_sh_routes(two, "3/2", four), (1, []))
     print(f"shards self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 

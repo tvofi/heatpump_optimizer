@@ -52,6 +52,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 from tests import ci_ratchet as cr  # noqa: E402
+sys.path.insert(0, str(ROOT / "tools" / "ci"))
+import shards  # noqa: E402  (the fast lane's job names, sharded or not)
 
 HARNESS = ROOT / "dev/audit/harnesses/r10_hotfix_ci_critpath_4"
 FLEET = HARNESS / "fleet.json"
@@ -118,7 +120,9 @@ def bridge(runs: list[dict], scripts_of, ref: dict, unit: float) -> dict:
     """The implied references over runs (newest first); scripts_of(job) ->
     that job's script seconds. A probe step that succeeded measured its
     host whatever the job's later steps did; only a successful fast lane
-    implies a reference (its scripts all ran)."""
+    implies a reference (its scripts all ran). A shard of it (`tests / fast
+    (3.14, K/N)`) is one such job over the scripts its plan gave it, so one
+    of them is enough there (#3902 review)."""
     implied, by_py = [], {}
     for r in runs:
         for j in r.get("jobs") or []:
@@ -126,11 +130,12 @@ def bridge(runs: list[dict], scripts_of, ref: dict, unit: float) -> dict:
             if p is None:
                 continue
             by_py.setdefault(p[0], []).append(p[1])
-            if j.get("name") != LANE or j.get("conclusion") != "success":
+            name = j.get("name") or ""
+            if not (name.startswith("tests / ") and shards.is_fast(name)) or j.get("conclusion") != "success":
                 continue
             secs = scripts_of(j)
             ratios = [secs[k] / ref[k] for k in ref if secs.get(k)]
-            if len(ratios) >= len(ref) // 2:
+            if ratios and len(ratios) >= (len(ref) // 2 if name == LANE else 1):
                 implied.append(p[1] * unit / statistics.median(ratios))
     if not implied:
         raise SystemExit("probe_bridge: no probed fast (3.14) run with its script lines; nothing to derive")
@@ -210,6 +215,20 @@ def self_test() -> int:
                    "gap (38 / 35.5 = 1.070)",
                    abs(rank_ratio(two_class_13, two_class_14) - 0.987) < 0.001
                    and abs(statistics.median(two_class_13) / statistics.median(two_class_14) - 1.070) < 0.001))
+    def shard(i, script, lane):
+        r = run(i, 1.0, 40, lane=lane)
+        r["jobs"][0]["_log"] = f"  [00:00:00] ok     {script} ({round(ref[script])}s)"
+        return r
+    sharded = [shard(6, "python3 tests/a.py", "tests / fast (3.14, 1/2)"),
+               shard(7, "python3 tests/b.py", "tests / fast (3.14, 2/2)")]
+    got_s = bridge(sharded, of({r["id"]: r["jobs"][0]["_log"] for r in sharded}), ref, unit)
+    checks.append(("#3902: two fast shards, each holding one script, each imply 20 s as the unsharded "
+                   "lane does", got_s["3.14"] == 20.0 and got_s["runs"] == 2))
+    try:
+        bridge([shard(8, "python3 tests/a.py", "tests / fast (3.14, 1/2) x")], of({8: "x"}), ref, unit)
+        checks.append(("#3902: a job only resembling a shard name implies nothing (its null)", False))
+    except SystemExit:
+        checks.append(("#3902: a job only resembling a shard name implies nothing (its null)", True))
     try:
         bridge([run(5, 1.0, 40, lane="tests / closures")], of(logs), ref, unit)
         checks.append(("no probed fast lane refuses", False))

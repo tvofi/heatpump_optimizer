@@ -270,18 +270,22 @@ fi
 # shard (tools/ci/shards.py). A script runs here only in its own shard and every
 # other shard skips it by name, so the scope above still decides what runs and
 # the shards only divide it. A refused plan fails the job: never a silent drop.
-# Unset (a local run, an unsharded job) runs every script, as before.
+# Unset (a local run, an unsharded job) runs every script, as before. tools/ci/shards.py's
+# self-test sources shard_setup, shard_of, run_always and skip from this file and drives them
+# over fixture plans: across the shards every script runs exactly once.
 FAST_SHARD="${HPO_FAST_SHARD:-}"
 SHARD_TABLE=""
-if [ -n "$FAST_SHARD" ]; then
+shard_setup() {
+  [ -n "$FAST_SHARD" ] || return 0
   if "$PYTHON" tools/ci/shards.py route --shard "$FAST_SHARD" > "$WORKDIR/shard.tsv"; then
     SHARD_TABLE="$WORKDIR/shard.tsv"
     echo "  SHARD: $FAST_SHARD -- the scripts tools/ci/shards.py assigned this job; the other shards run the rest"
   else
     echo "  SHARD: REFUSED $FAST_SHARD -- tools/ci/shards.py could not route this plan, so nothing runs"
-    exit 1
+    return 1
   fi
-fi
+}
+shard_setup || exit 1
 # The shard a script belongs to; one the plan does not name runs in shard 1.
 shard_of() {
   awk -F'\t' -v s="$1" '$1 == s { print $2; f = 1 } END { if (!f) print 1 }' "$SHARD_TABLE"

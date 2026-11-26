@@ -63,12 +63,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
+import shards  # noqa: E402
 from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title, prior_jobs,  # noqa: E402,F401
                      run_jobs, standing, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet")}      # B3
 # The fast lane's unsharded job name; sharded, `fast (3.14, K/N)` per shard the prelude planned.
-FAST = "fast (3.14)"
+FAST = shards.FAST
 # The push-only job that is graded on its own and never fails the gate: a red
 # ci-ratchet is a debt the follow-up pays, and the merge it grades already
 # happened (tests.yml: "Not a required context"). It still runs, and
@@ -334,10 +335,10 @@ def status(jobs: dict, cls: str) -> tuple[str, str]:
         if any(j is not None and j[0] == "completed" and j[1] not in ("success", "cancelled") for j in ran):
             return RED
         return GREEN if ran and all(j is not None and j[1] == "success" for j in ran) else UNREAD
-    # A sharded run lists `fast (3.14, K/N)` jobs in place of the one fast job (fast_names).
-    shards = sorted(n for n in jobs if n.startswith(f"tests / {FAST[:-1]}, "))
+    # A sharded run lists `fast (3.14, K/N)` jobs in place of the one fast job: every shard of
+    # their one count is owed (shards.owed_fast), so a shard the listing lacks reads UNREAD.
     product = [m for n in REQUIRED[cls] if n not in MACHINERY_JOBS
-               for m in (shards if n == f"tests / {FAST}" and shards else [n])]
+               for m in (shards.owed_fast(jobs) if n == f"tests / {FAST}" else [n])]
     return verdict(product), verdict(MACHINERY_JOBS)
 
 
@@ -548,6 +549,8 @@ def self_test() -> int:
     check("a sharded push run with every shard green reads PRODUCT green", status(sj, "push"), (GREEN, GREEN))
     check("a sharded push run with one shard red reads PRODUCT red",
           status({**sj, f"tests / {FAST[:-1]}, 2/2)": red_job}, "push"), (RED, GREEN))
+    check("#3902: a sharded push run whose listing lacks one shard reads PRODUCT unread, never green",
+          status({k: v for k, v in sj.items() if k != f"tests / {FAST[:-1]}, 2/2)"}, "push"), (UNREAD, GREEN))
     check("a member absent, unfinished or cancelled is unread, never green, in either verdict",
           [st(drop=("tests / typing",)), st(typing=running), st(typing=cancelled),
            st(drop=("tests / briefs",)), st(briefs=running), st(briefs=cancelled)],
