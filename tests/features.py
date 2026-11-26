@@ -92183,6 +92183,16 @@ R.check(
     _ml_enter == ["space", "dhw"],
     str(_ml_enter),
 )
+# A heating minimum of 0 keeps nothing: heating is entered even where the plan's
+# step holds hot water, at the step's start and 5 min into it.
+_ml_zero = [_ds_mod._kept_leg(_ml_old, "space", _DS_T0 + timedelta(minutes=m), _ml_rule(0, 10),
+                              _ds_legs.plan_legs([0.0], [1.0]), _DS_T0) for m in (0, 5)]
+R.check(
+    "with a heating minimum of 0, heating is entered from an old hot-water leg though the plan's step holds hot "
+    "water, at the step's start and 5 min into it",
+    _ml_zero == ["space", "space"],
+    str(_ml_zero),
+)
 # Heating's share of a step never goes below 0: a step whose heating leg the
 # hot-water minimum shortened from 10 to 5 min (1/3 of it moved) and that is
 # charged a stop's lost time of 0.8 of a step keeps 0, not -0.13.
