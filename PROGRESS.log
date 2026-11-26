@@ -23,3 +23,4 @@
 1795670088 DONE verdict merge fe5ff1cc (pending-ci: gate) pushed to probe/rev-3883-763de6c6 9d288e68
 1795677340 INIT r11-rev-3883
 1795677432 HB alive
+1795677630 CKPT delta read, figures re-derived, features base+m3 and gates running snapshot fe917fee0938
