@@ -14,7 +14,7 @@ A `pull_request` `synchronize` run on its first attempt, sent by anyone but `git
 
 ## Head
 
-Measured at code head `7a3c37dafe62217a9d8fe6400e171cc194aeac7d`. Base `origin/main` d9100de781. `origin/main` was dbdc520e86 at 2026-11-26T02:14Z, and `git merge-tree --write-tree origin/main HEAD` reported no conflict.
+Measured at code head `5eb186caa20dd4cba38598f70e8d43e6ebf7333e` (the merge of `origin/main` 70f410e996 into `7a3c37dafe`; conflicts in ci.yml and tests/entities.py unioned). Base `origin/main` 70f410e996, and `git merge-tree --write-tree origin/main HEAD` reported no conflict.
 
 ## Mutation proof
 
