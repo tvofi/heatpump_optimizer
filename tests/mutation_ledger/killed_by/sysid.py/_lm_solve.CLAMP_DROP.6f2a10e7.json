@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:_lm_solve CLAMP_DROP 6f2a10e7",
-  "killed_by": "tests/features.py",
-  "old": "            step = 1e-6 * max(abs(float(x[i])), 1.0)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`step = 1e-6 * (abs(float(x[i])))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}
