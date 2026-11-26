@@ -77,7 +77,6 @@ def leg_minimum(minutes: Any) -> float:
 def leg_rule(
     stop_probability: tuple[float, float], off_seconds: tuple[float, float],
     unlatched: tuple[bool, bool] = (False, False),
-    heat_min: float = 0.0, dhw_min: float = 0.0, before: int = IDLE,
 ) -> LegRule:
     """The leg order and whole-step rule of a both step, from the per-direction pairs.
 
@@ -90,14 +89,25 @@ def leg_rule(
     second duty stops it, a second share shorter than
     :data:`SPLIT_MIN_MINUTES` plus that direction's off time goes to the
     first duty when the next step serves the second. Its delivery then moves
-    one step and is not dropped. With no latched stop and no minimum leg
-    this is :data:`DEFAULT_RULE`.
+    one step and is not dropped. With no latched stop this is
+    :data:`DEFAULT_RULE`; :func:`entry_rule` adds the minimum legs.
     """
     stops = [p > 0 and not free for p, free in zip(stop_probability, unlatched)]
     first = "space" if stops[0] and not stops[1] else "dhw"
     into = 0 if first == "dhw" else 1
-    return LegRule(first, (off_seconds[into] / 60.0 if stops[into] else None),
-                   leg_minimum(heat_min), leg_minimum(dhw_min), before)
+    return LegRule(first, off_seconds[into] / 60.0 if stops[into] else None)
+
+
+def entry_rule(split: LegRule, cfg: Any, before: int) -> LegRule:
+    """``split`` with the entry's minimum legs and ``before``, the leg the pump is in as the plan starts.
+
+    The one reading of ``cfg.mode_leg_heat_min_minutes`` and
+    ``cfg.mode_leg_dhw_min_minutes`` the arbiter (``duty_switch.leg_rule``)
+    and the planner (``optimizer._leg_rule``) share, so the legs a solve
+    prices are the legs the arbiter serves.
+    """
+    return split._replace(heat_min=leg_minimum(cfg.mode_leg_heat_min_minutes),
+                          dhw_min=leg_minimum(cfg.mode_leg_dhw_min_minutes), before=before)
 
 
 def _runs(kw: np.ndarray, floor: float | None) -> np.ndarray:

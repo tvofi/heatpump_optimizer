@@ -266,10 +266,9 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
 
 def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
     """The leg rule the arbiter serves a both step by: the latched pairs and the minimum legs this solve prices."""
-    return duty_legs.leg_rule(
+    return duty_legs.entry_rule(duty_legs.leg_rule(
         _priced_stops(opt) or (0.0, 0.0), duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
-        opt.config.duty_switch_unlatched, opt.config.mode_leg_heat_min_minutes,
-        opt.config.mode_leg_dhw_min_minutes, opt.config.duty_leg_before)
+        opt.config.duty_switch_unlatched), opt.config, opt.config.duty_leg_before)
 
 
 def _stop_availability(

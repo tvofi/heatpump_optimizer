@@ -566,8 +566,7 @@ def leg_rule(rec: _Record, cfg: Any) -> duty_legs.LegRule:
     learner existed), with the entry's minimum legs and the last solve's left
     neighbour, so arbiter and planner read one rule."""
     split = rec.learner.split() if rec.loaded else duty_legs.DEFAULT_RULE
-    return split._replace(heat_min=duty_legs.leg_minimum(cfg.mode_leg_heat_min_minutes),
-                          dhw_min=duty_legs.leg_minimum(cfg.mode_leg_dhw_min_minutes), before=rec.solve_before)
+    return duty_legs.entry_rule(split, cfg, rec.solve_before)
 
 
 def _plan_legs(result: Any, rule: duty_legs.LegRule, step_min: float) -> tuple[duty_legs.Legs, ...]:

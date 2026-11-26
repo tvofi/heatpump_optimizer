@@ -91724,6 +91724,22 @@ R.check(
     _ml_before == (_ds_legs.DHW, _ds_legs.DHW, "dhw:6 space:9", "dhw:10 space:5"),
     str(_ml_before),
 )
+# The solve's own rule carries it (#3869 review, block 2): optimizer._leg_rule's
+# legs, priced from OptimizationConfig.duty_leg_before, are the arbiter's. A rule
+# that dropped the neighbour would price a lengthened hot-water leg the arbiter,
+# which reads rec.solve_before, never serves.
+_ml_solve_legs = {
+    before: " ".join(f"{d}:{m:g}" for d, m in _ds_legs.plan_legs(
+        [1.5, 1.0], [1.0, 0.0], rule=_ml_om._leg_rule(SimpleNamespace(config=_ml_om.OptimizationConfig(
+            mode_leg_heat_min_minutes=0.0, mode_leg_dhw_min_minutes=10.0, duty_leg_before=before))))[0])
+    for before in (_ds_legs.DHW, _ds_legs.SPACE)
+}
+R.check(
+    "the solve's leg rule (optimizer._leg_rule) joins step 0's 6-min hot-water leg to a pump in hot water; "
+    "null control, a pump in heating lengthens it to 10",
+    _ml_solve_legs == {_ds_legs.DHW: "dhw:6 space:9", _ds_legs.SPACE: "dhw:10 space:5"},
+    str(_ml_solve_legs),
+)
 # The leg record: heard from every landed mode write, before the store is loaded.
 _ml_rc = _ds_mod._Record(None, None)
 _ds_mod.note_mode_write(_ml_rc, _DS_T0, None, _ML_H, _ds_mod.SwitchContext())
