@@ -86,7 +86,11 @@ Gate scope: `closure.py select` reads `MODE: FULL` for this diff (`tests/run.sh`
 
 ## Red checks
 
-none
+Both reds are inherited from #3896's own history, at its delivery-row commit `3797b416d9`, which is an ancestor of this head. Neither is red at this head.
+
+- `tests / fast (3.14)` was red at `3797b416d9`: `tests/doc_claims.py`'s comment ratchet refused four sentences of over 40 words in `tests/entities.py` and `tests/case_select.py`. #3896 fixed it at `58c73880ee`, which this branch is built on. Cheaper detector: `python3 tests/comment_ratchet.py --base origin/main`, which runs in seconds and which `prepr.sh` already runs. No new detector is owed here.
+- `tests / closures` was red at `3797b416d9` with `UNDER-SCOPED`: `tests/doc_claims.py` and `tests/entities.py` read `tests/case_select.py`, which their committed closures did not list. #3896 fixed it at `58c73880ee` by adding that path to both closures. Cheaper detector: `tools/ci/ci_predict.py`, which the body push and `prepr.sh` already run. No new detector is owed here.
+- At this PR's merge head `6c222ef249`, the only failure is `tests / nightly-status`, which is not required.
 
 ## Forward-carry
 
