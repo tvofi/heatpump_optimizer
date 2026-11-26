@@ -1524,6 +1524,14 @@ jobs:
           python3 -I tools/ci/prelude.py --self-test | tee "$RUNNER_TEMP/prelude-self-test.txt"
           grep -Eq '^prelude self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/prelude-self-test.txt"
 
+      - name: Show the fast-lane shard planner (tools/ci/shards.py) refusing its own fixtures
+        id: ci-shards
+        if: ${{ !cancelled() && steps.scope.outputs.ci-shards == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/ci/shards.py --self-test | tee "$RUNNER_TEMP/shards-self-test.txt"
+          grep -Eq '^shards self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/shards-self-test.txt"
+
       - name: Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
         id: gate-predicate
         if: ${{ !cancelled() && steps.scope.outputs.gate-predicate == 'true' }}
