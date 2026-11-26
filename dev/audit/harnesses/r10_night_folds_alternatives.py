@@ -9,6 +9,10 @@
 Command (tree root): PYTHONPATH=tests/hastub:custom_components:tests python3 \\
     dev/audit/harnesses/r10_night_folds_alternatives.py
 This is a measurement record, not a gate.
+
+Production dropped the ridge (R11-SEAM-learners, D2-s3-11), so arm (b) applies
+the round-10 step ``g += a*y - ridge*(g - g0)`` here, after the production fold
+has gated the interval; the unridged arms read production as it stands.
 """
 import sys
 from datetime import datetime, timezone
@@ -41,14 +45,21 @@ class Seat:
         self._internal_gains_profile = None
         self._house_heat_loss_samples = 400
 
+    def _learning_frozen(self, *keys, **kw):
+        """The occupied house: no freeze reason (D7-s2-01 asks the predicate)."""
+        return None
 
-def drive(seat, residual_fn, n=400):
+
+def drive(seat, residual_fn, n=400, ridge=None):
     dark = ThermalState(room_temperature=21.0, outdoor_temperature=0.0)
+    cap = co._zone_capacity(seat._thermal_params)
     for _ in range(n):
         held = (seat._internal_gains_profile or [G0] * 24)[19]
-        Coord._fold_internal_gains(
-            seat, T0, dark, residual_fn(held), 0.5
-        )
+        residual = residual_fn(held)
+        Coord._fold_internal_gains(seat, T0, dark, residual, 0.5)
+        if ridge is not None:  # the round-10 step, ridge and all, from the held value
+            g = held + co.INTERNAL_GAINS_ALPHA * residual * cap / 0.5 - ridge * (held - G0)
+            seat._internal_gains_profile[19] = min(max(g, 0.0), co.INTERNAL_GAINS_MAX_FACTOR * max(G0, 0.05))
     prof = seat._internal_gains_profile or [G0] * 24
     return max(abs(g - G0) for g in prof) / G0
 
@@ -72,8 +83,6 @@ print("RESULT net_of_ua_part.positive_rel_dev=%.4f"
 
 # (b) a ridge that keeps the UA-error drive under 5 %.
 for ridge in (0.02, 0.5, 1.0, 1.5, 2.0):
-    co.INTERNAL_GAINS_RIDGE = ridge
-    ua = drive(Seat(), lambda held: ua_error_residual)
-    pos = drive(Seat(), lambda held: (0.6 - held) * DT / C)
+    ua = drive(Seat(), lambda held: ua_error_residual, ridge=ridge)
+    pos = drive(Seat(), lambda held: (0.6 - held) * DT / C, ridge=ridge)
     print(f"RESULT ridge{ridge:.2f}.ua_rel_dev={ua:.4f} positive_rel_dev={pos:.4f}")
-co.INTERNAL_GAINS_RIDGE = 0.02

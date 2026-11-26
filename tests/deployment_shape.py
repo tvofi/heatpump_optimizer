@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 125
+records every read, so this lane's recorded closure is the package: all 126
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (124 until the merge joining R11-OUTSIDE-HONEST-DHW-RUNS's ``dhw_charges.py`` to #3848's ``dhw_start.py``, 123 until the merge joining #3848's ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 122 until either, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+alike (125 until the merge joining R11-OUTSIDE-HONEST-DHW-RUNS's ``dhw_charges.py`` and R11-SEAM-learners's ``learning_freeze.py``, 124 until either, 123 until the merge joining #3848's ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 122 until either, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
 R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
 ``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
@@ -58,8 +58,17 @@ the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
 recording finds 192 of the 561 script pairs (34 choose 2) sharing 0.80 or more
-of their production-module closure (190 on R11-OUTSIDE-HONEST-DHW-RUNS's branch and
+of their production-module closure (192 on each side before the merge joining
+R11-OUTSIDE-HONEST-DHW-RUNS's dhw_charges.py and R11-SEAM-learners's learning_freeze.py;
+on R11-OUTSIDE-HONEST-DHW-RUNS's branch, 190 on that branch and
 190 on main before the merge joining #3848's dhw_start.py to that branch's dhw_charges.py;
+on main, 190 on each side before the merge joining
+R11-SEAM-learners's ``learning_freeze.py`` to main's #3848 ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's
+``comfort_floor.py``, which joined debug_collect.py/doc_claims.py and debug_collect.py/harness_headers.py;
+184 on main before the merge joining
+R11-SEAM-learners's recordings to it, which joined block_duty.py/card.mjs,
+boost_drift_replay.py/config_flow_steps.py, card.mjs/finite_boundary.py,
+card.mjs/structure.py, card.mjs/typing_ruler.py and config_flow_steps.py/plan_view.py;
 186 on #3863's branch and 182 on
 main before the merge joining them, main's R11-SEAM-entity-service services.yaml
 having taken config_flow_steps.py's pairs with debug_collect.py and wood_advisor.py
