@@ -1,31 +1,34 @@
-Fix review: merge 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79
+Fix review: merge 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4
 
-bus-nonce: a230ae65b406c21a56539c52d53a6d26
+bus-nonce: a66b1b136e5cfdd874976cb97d09e4da
 
 ## Scope
 
-Round 5. This is a delta review (the owner's 2026-11-09 rule) from the round-4 merge verdict at `c2e18f3557e9423e9eb6855b8f4a91dbd16e3d63` (probe/rev-3805-12ae4868, commit 9fdd697d46). `review_carry.py c2e18f3557 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79` answers FRESH-REVIEW: the branch's own commit `061890fae9` changes its content. The new commits are `061890fae9`, which splits five long comment sentences in `custom_components/heatpump_optimizer/dhw_planner.py` for main's comment ratchet, and `3883d9bb99`, a merge of that commit onto `c2e18f3557`. The review packet could not be rendered. `review_packet.py render --pr 3805` printed `UNAVAILABLE: git merge-base --is-ancestor b2ce461c origin/handoff/audit-r11-roster: fatal: Not a valid object name b2ce461c` and wrote no file. This review therefore worked without a packet, as rounds 3 and 4 did. The role contract was read from origin/main through `role_pack.py`. Main has changed `fix-review.md` and `fixer.md` since this branch's merge base, and the pack carries main's text.
+This is a later round over the last merge verdict at `b2b6ff8c93` (probe `rev-3805-e9835d83`). `review_carry.py b2b6ff8c93 2003bbb48c` prints `FRESH-REVIEW`. The PR's own diff moved in seven files. None is under `custom_components/`, so the scope is not widened (fix-review.md step 12):
+- `tests/features.py`, commit `4967642106`: the combi exchange-exit check now hands the exchange injected builds (one plan that repeats, one that alternates) instead of relying on whether the unengaged solve converges, which depends on the BLAS build.
+- `docs/architecture.md`, commit `a6d8334a46`: the HA-free module count goes from 66 to 67.
+- Count re-records forced by the main merges: `dev/audit/rounds/round4/D6/claims.{py,md,json}`, `tests/deployment_shape.py` and `tests/closures.json`. These come from main's `flow_limit.py` landing alongside this branch's `dhw_charges.py`.
 
 ## Evidence
 
-- RESULT delta: `git diff c2e18f3557 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79` touches one file, `custom_components/heatpump_optimizer/dhw_planner.py`, with 11 insertions and 10 deletions (`ev/delta-c2e18f35-3883d9bb.diff`). Every changed line is inside a `#:` comment or a docstring.
-- RESULT the delta is comment-only, as an AST check measures it. I compared the file's AST at both heads with each docstring blanked: `ast-equal-modulo-docstrings: True`. Null control: the same comparison after the plant `_STORE_MARGIN_K` 0.02 -> 0.03 prints `False`, so the check detects a code change (`ev/ast-compare.txt`). This comparer is the reviewer's own instrument.
-- RESULT `python3 tests/comment_ratchet.py --text-only HEAD` in a detached worktree at the head: `RESULT code_changed_files=0 line_shifted_hunks=0` (`ev/comment_ratchet.txt`).
-- RESULT nothing widens the review: the production delta is comment-only, so it puts no reviewed behaviour at risk. The round-4 readings carry because no executable line moved. Those readings are: the engaged-guard mutant killed, `env_drift.py --all` clean (56 scenarios), the claim-file resolution, the finder's harness and the null control.
-- RESULT merge with main (step 13): `git merge-tree --write-tree origin/main 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79` against origin/main `608c95decc94a8240565aba68fa8f0e1dece8c3d` gives rc=0. Its stderr shows `LEDGER-MERGE: resolved` for `tests/structure_budgets.json` and `tests/closures.json`, and no `MERGE-CLAIM` line (`ev/merge-tree-origin-main.*`).
-- RESULT version (step 5): the three-dot diff from merge base `80331098f4` touches neither `VERSION`, `custom_components/heatpump_optimizer/manifest.json` nor `RELEASE_NOTES.md`. The CI version-edit step agrees.
-- RESULT CI at this head: `merge_train.py classify 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79 --pr 3805` exited rc=1, `RED 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79 pending: none red: gate` (`ev/classify.log`, `ev/classify-final.txt`). The head is not GREEN, and the relay refuses `merge` over a red (C8). The red jobs are in `ev/ci-reds.txt`:
-  - `governance / policy-docs` (job 137157765280) failed with `REFUSED census registry: a census gates unloaded_package_imports, which is no row of tests/structure_budgets.json or tests/ci_budgets.json`. That row arrived on main with `ebb5b25345` (PR #3729). That commit is not an ancestor of this head's merge base `80331098f4`, and the head tree has no such row. Main's pinned `field_coverage.mjs` is grading a head tree that is behind main, so the red is an artefact of the stale head. It is not a defect of this diff. The merge with main is clean (above), and the merge brings the row in.
-  - `pr-contract / pr-contract` (job 137179279039) failed with `PR-BODY: 3 error(s)`: `## Red checks` does not name `governance / env-matrix`, `governance / policy-docs` or `tests / briefs`. Each was red on an earlier run at this head (run 44996545418). env-matrix and briefs are green on the latest run (45005979443). The other checks the step ran passed: figures (`FIGURES: 18 resolved, 2 not verified, 0 refused`) and `CARRY-AUDIT: 9 finding item(s): 9 routed, 0 unrouted`.
-  - `gate` is the aggregate of these.
-  - Every other check is `success` or `skipped` on run 45005979443. That includes `instrument-self-tests` (round 4's cancelled job), `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / mutation`, `arch-score` and `budget-raise-gate`.
-- RESULT owed reds: `ev/owed-reds.txt`. `governance / policy-docs`, `pr-contract / pr-contract`, `gate`, `governance / env-matrix` and `tests / briefs` are all in the owed set. See the Notes under `## Findings`.
-- RESULT body head (step 7): not re-read from the body in this round. CI's pr-contract ran with `PR_HEAD: 3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79`.
-- RESULT prior findings from round 4: `ci-unreadable` is resolved, because `instrument-self-tests` now concludes success at this head. `review-packet` recurs, so this is the third round without a packet (see `## Findings`).
-- RESULT head re-read before return: `refs/pull/3805/head` = `3883d9bb9974e34cae1a2db6ae1b3d0b44c28e79` (`ev/head-reread.txt`).
+- CI: `merge_train.py classify 2003bbb48c --pr 3805` printed `GREEN 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4 pending: none red: none`, rc 0 (ev/classify.txt). There are no reds, so no `## Red checks` answer is owed.
+- Merge with main: `git merge-tree --write-tree origin/main 2003bbb48c` exits 0 with no conflict, and the ledger driver merges `tests/closures.json` as a set (ev/merge-tree.txt).
+- Mutation proof of the rewritten check, in each case `tests/features.py` run in full on a copy of the head (ev/features-*.txt):
+  - Unmutated: EXIT 0, and the check reads `ok combi: the exchange leaves its rounds ...`. The previous round's note said this check failed in block mode at `[4 of 4]` on this box; it now passes here.
+  - Mutant `optimizer.py:2092` early exit replaced by `if False:` (never leave the rounds): EXIT 1, `FAIL ... [repeating 4, alternating 4 of 4]`. Killed.
+  - Mutant `optimizer.py:2092` early exit replaced by `if True:` (always leave after the first round): EXIT 1, `FAIL ... [repeating 1, alternating 1 of 4]`. Killed.
+  - The check therefore tells a working repeat exit apart from both a missing exit and an unconditional one.
+- Figures re-derived at this head:
+  - `docs/architecture.md` "other 67 modules": an AST census of the package finds 104 `.py` modules. 36 import `homeassistant` at module level, and one, `inputs.py`, imports it only inside a function. 104 - 36 - 1 = 67. Matches.
+  - `claims.py` reports `RESULT arch_modules_on_disk=104`, `arch_map_listed=104` and `claims_false=0`. Matches the C32/C33 rows and the docstring's 104.
+  - `tests/deployment_shape.py`: the counts of 123 files and 186 of 561 pairs are pinned by that script, which ran green in CI at this head. Not re-run here.
+- Prior findings: the round-6 block-mode note on the combi check is settled by `4967642106` (it passes above). The review-packet note is not settled; see Findings.
+- Review packet: `review_packet.py render --pr 3805 --head 2003bbb48c --reviewed-head 2003bbb48c` still refuses with `UNAVAILABLE: git merge-base --is-ancestor b2ce461c origin/handoff/audit-r11-roster: fatal: Not a valid object name b2ce461c`, and writes no packet. This review ran without a packet; its scope was derived by hand as above.
 
 ## Findings
 
-- Note: ci-red: the head is RED (`merge_train.py classify` rc=1, `red: gate`). `governance / policy-docs` refuses main's `unloaded_package_imports` census row, which is absent from a head behind main. A merge of origin/main brings the row in and merges cleanly, and the train re-proves the head on the current main. The relay must not post this `merge` until the head is green. Carry: dismissed: a stale-head CI artefact that the orchestrator's main merge settles; not a defect of the diff
-- Note: root-cause-unanswered: `pr-contract` refuses the body because `## Red checks` does not name `governance / env-matrix`, `governance / policy-docs` and `tests / briefs`, which were red at this head. This is paperwork owed in the body (C5), not a code block. Carry: dismissed: body paperwork for the PR's author to answer in `## Red checks` before the train merges it
-- Note: review-packet: `review_packet.py render --pr 3805` still refuses with `UNAVAILABLE: git merge-base --is-ancestor b2ce461c origin/handoff/audit-r11-roster: fatal: Not a valid object name b2ce461c`. It reads the body's `## Forward-carry` item id `b2ce461c` as a roster commit. This is the third round of this pull request without a packet (rounds 3, 4 and 5), so by CLAUDE.md the next instance is `root-cause.md`'s. Carry: dismissed: dispatch-side instrument state reported to the orchestrator with this verdict; a third instance is owed a root-cause seat, not an issue
+- Note: review-packet: `review_packet.py` still reads the body's roster item id `b2ce461c` as a commit and refuses. This is the fifth round of this PR with no packet. The same defect was reported last round, and its root-cause seat belongs to the orchestrator. Carry: dismissed: dispatch-side instrument defect outside this diff, already reported with round 6's verdict
+
+## Friction
+
+- `fix-review.md`: `cost`: the dispatch names the head itself as the reviewed head. The real previous verdict, at `b2b6ff8c93`, had to be recovered from the probe refs before the delta could be cut. Carry: dismissed: one occurrence in this round
