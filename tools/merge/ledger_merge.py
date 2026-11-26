@@ -94,7 +94,13 @@ LEDGERS = {
     "tests/structure_budgets.json": "sum",
     "tests/closures.json": "max",
     "dev/audit/config/bugclasses.json": "refuse",
+    # R11-CI-CASE-SELECT's per-span table: its spans hold indices into one
+    # path list, so a key-by-key merge would mix two sides' indices. Its own
+    # writer merges it (tests/case_select.py merge_tables, `_TABLE_ARMS`).
+    "tests/case_closures.json": "table",
 }
+#: Ledgers merged by their own writer's three-way function, not by merge3.
+_TABLE_ARMS = {"tests/case_closures.json": ("tests/case_select.py", "merge_tables")}
 #: Ledgers written in tests/closure.py's layout (R9-CI-2b): every table's keys
 #: and string lists sorted, ``sort_keys``. GitHub merges with no driver, so the
 #: layout is what keeps two branches apart there; the driver writes it from
@@ -375,6 +381,19 @@ def merge_text(base: str, ours: str, theirs: str, numbers: str,
     return json.dumps(merged, ensure_ascii=not raw, **fmt) + "\n"
 
 
+def _table_arm(pathname: str, base: str, ours: str, theirs: str) -> str:
+    """Merge a ledger with its own writer's three-way function; ``Refuse`` on any failure."""
+    import importlib.util
+    rel, fn = _TABLE_ARMS[pathname]
+    try:
+        spec = importlib.util.spec_from_file_location("_ledger_arm", os.path.join(ROOT, rel))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return getattr(mod, fn)(base, ours, theirs)
+    except Exception as exc:  # noqa: BLE001 - the text merge is the fallback
+        raise Refuse(f"{rel} {fn} failed: {exc!r}")
+
+
 def run_driver(base_path: str, ours_path: str, theirs_path: str,
                marker_size: str = "7", pathname: str = "") -> int:
     """git merge driver: resolve into ``ours_path``, or leave a conflict there."""
@@ -387,8 +406,12 @@ def run_driver(base_path: str, ours_path: str, theirs_path: str,
         theirs = f.read()
     notes: list = []
     try:
-        merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes,
-                            raw=pathname in RAW, layout=LAYOUT.get(pathname, ()))
+        if pathname in _TABLE_ARMS:
+            merged = _table_arm(pathname, base, ours, theirs)
+            notes.append(f"{pathname}: merged span by span by its writer")
+        else:
+            merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes,
+                                raw=pathname in RAW, layout=LAYOUT.get(pathname, ()))
     except Refuse as why:
         # Fall back to git's own text merge, so the driver is never worse than
         # no driver: a merge the text merge resolves stays resolved.
