@@ -13,3 +13,4 @@
 1795651480 HB alive
 1795652027 CKPT delta read; merge-tree clean; mutants running snapshot 550c68e0e767
 1795652084 HB alive
+1795652154 DONE verdict blocked dbaca057 mutation-vacuous: ledger_unread upper bound survives; probe/rev-3898-06f2f8ee afc002f7
