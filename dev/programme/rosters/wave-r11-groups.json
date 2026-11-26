@@ -7167,7 +7167,7 @@
    ],
    "resume": {
     "stage": "carries-open",
-    "commit": "bdcfee6dcc966d9801d418c2425d88a7cf7a712c",
+    "commit": "bdcfee6dcc",
     "branch": "handoff/r11-outside-rooms-3b",
     "last_step": null,
     "next_step": "designer",
