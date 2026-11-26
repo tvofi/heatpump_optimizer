@@ -21563,7 +21563,9 @@ R.check(
 #     for every modelled event (on `merge_group` with `pr=- base=-`, which no
 #     expression can cut from the queue ref), so a past run's kind, PR, base
 #     and `sha=` read back as the prelude derived them;
-#   - one run per concurrency group, cancelling nothing (rev2, N1);
+#   - one run per concurrency group (rev2, N1), a push to main's included (no
+#     CI-main), but a non-bot `synchronize`'s first attempt (CI-pr-<number>,
+#     #3885 L1, cancelling the PR's older one);
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
@@ -21653,8 +21655,9 @@ _CI_EVENTS = {
 
 def _ci_ctx(ev: str, payload: dict, outputs=None, actor="hpo-author[bot]") -> "tuple[dict, dict]":
     """(the expression context, prelude.context's) for one modelled event;
-    `outputs` are the prelude's: a failed prelude's read as empty strings."""
-    flat = _ghx_flat("github.event", payload, {})
+    `outputs` are the prelude's: a failed prelude's read as empty strings.
+    The event's sender is `actor` unless the payload names one."""
+    flat = _ghx_flat("github.event", {"sender": {"login": actor}, **payload}, {})
     flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
                  "github.repository": "o/r", "github.actor": actor})
     flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
@@ -21731,18 +21734,28 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
-    # Every run and every re-run keeps its run-id group (N1), a push to main's included: no
-    # group serialises main push runs (owner 2026-11-25, retiring CI-5's `CI-main` group);
-    # main-cancel.yml cancels the superseded ones. Rendered per event and attempt, not as text.
+    # #3885 L1: a `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins
+    # its pull request's CI-pr-<number> group and cancels the older run there at creation. Every
+    # other run and every re-run keeps its run-id group (N1: a re-run never cancels a pending
+    # run), a push to main's included: no group serialises main push runs (owner 2026-11-25,
+    # retiring CI-5's `CI-main` group); main-cancel.yml cancels the superseded ones. A bot-sent
+    # run never cancels the run doing the other autofix jobs (cancel_superseded.BOT). Rendered per
+    # event, attempt and sender, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} cancels in progress")
     for (ev, a), payload in _CI_EVENTS.items():
         for attempt in ("1", "2"):
-            want = "CI-99"
-            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
-            if got != want:
-                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
+            for sender in ("hpo-author[bot]", "tvofi", _SELF_ACTOR):
+                ctx = {**_ci_ctx(ev, payload, actor=sender)[0], "github.run_attempt": attempt}
+                pr_group = (ev, a, attempt) == ("pull_request", "synchronize", "1") and sender != _SELF_ACTOR
+                want = "CI-pr-7" if pr_group else "CI-99"
+                got = _ghx(cc.get("group", ""), ctx)
+                if got != want:
+                    out.append(f"concurrency group under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"renders {got!r}, want {want!r}")
+                cancels = _ghx(cc.get("cancel-in-progress", False), ctx)
+                if cancels is not pr_group:
+                    out.append(f"concurrency under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"cancel-in-progress reads {cancels!r}, want {pr_group}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21851,13 +21864,27 @@ _CI_PLANTS = {
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                        "format('CI-{0}', github.event.pull_request.number)", 1),
+    # #3885 L1's own plants: each widens or narrows the CI-pr-<number> arm by one condition.
+    "the PR group on every pull_request action": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize'", "", 2),
+    "the PR group's cancel on every pull_request action": _CI_TEXT.replace(
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize'",
+        "cancel-in-progress: ${{ github.event_name == 'pull_request'", 1),
+    "PR re-runs in the PR group": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize' && github.run_attempt == '1'",
+        " && github.event.action == 'synchronize'", 2),
+    "bot-sent pushes in the PR group": _CI_TEXT.replace(
+        " && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}'", " && format('CI-pr-{0}'", 1),
+    "the PR group cancelling nothing": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: false", _CI_TEXT, count=1),
+    "no PR group": _CI_TEXT.replace(
+        "format('CI-pr-{0}', github.event.pull_request.number)", "format('CI-{0}', github.run_id)", 1),
     "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
-        "group: ${{ format('CI-{0}', github.run_id) }}",
+        "group: ${{ github.event_name == 'pull_request'",
         "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
-        " || format('CI-{0}', github.run_id) }}", 1),
-    "a run-id group cancelling in progress": _CI_TEXT.replace(
-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
+        " || github.event_name == 'pull_request'", 1),
+    "a run-id group cancelling in progress": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21903,7 +21930,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group, a push to main's included (no CI-main), "
+    "run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt "
+    "(CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), "
     "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
