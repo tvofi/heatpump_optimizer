@@ -40,6 +40,13 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
+`1d348a4f10f41090eec6098cf1a3cb462db0551b` answers review `064db266`'s block at `d92bb3a785` (which merges origin/main `dbdc71fa` into `8538142710`, itself bringing in `923fd45df8`). Delta for review: `git diff d92bb3a785 1d348a4f10`, two files, no production code:
+
+- `dev/audit/rounds/round4/D6/claims.py:81`: `RESULT config_ranges_compared` restored to 104. `923fd45df8`'s resolution wrote 105, which neither parent carried and the tree does not measure; only the three `arch_*`/`ha_*` lines move with `fault_hold.py`.
+- `tests/deployment_shape.py`, the #1218 note's exactly-1.00 sentence (the review's finding): re-measured with `tests/entities.py`'s `_d308_pairs` predicate on this head's `tests/closures.json`: 17 pairs (not 18), shared files 124 for the arch_score_head/deployment_shape/entities triple (123 on origin/main), 114 for doc_claims/harness_headers, 105 for the structure/typing_ruler/finite_boundary triple and block_duty with each of the three, 28 for the optimality/validate/edge/backtest six, 122 for golden/env_drift. The plan_view/solar_alignment/boost_drift_replay and card.mjs/card_drift.mjs pairs no longer sit at 1.00 and are dropped.
+
+Every other count the merge commits wrote was re-derived against its measurement (`## Figures`). Measured against origin/main `dbdc71faea358a95a7b33840ed252b0d8a646a31`; `git merge-tree --write-tree origin/main HEAD` rc=0.
+
 `923fd45df80837ac06b4d6490b72d14ab447ab07` merges origin/main `8f22a3b28429` into the PR head `3ec83def21`: conflicts in `docs/architecture.md` (105 modules, 37 importing homeassistant), `dev/audit/rounds/round4/D6/claims.py`/`claims.md` (105, 105, 37; both history clauses) and `tests/deployment_shape.py` (union of both notes; 124 files, 190 of the 561 pairs, 435 comparable, re-derived). Delta: `git diff 3ec83def21 923fd45df8`.
 
 `3be782209e7e54fbf50762efaa82b8288be30cad` merges origin/main `dbdc520e86e4453755f553ab21a39de205a70b34` into the PR head `e4a8523d89`, which did not merge cleanly in `tests/deployment_shape.py`. Resolution delta for review: `git diff e4a8523d89 3be782209e -- tests/deployment_shape.py`. The #1218 selection-cost note is the union of both histories (this branch's fault_hold.py clause and main's entity-service and flow_limit.py clauses); its count is 184 of the 561 pairs and "all 184 among the 435", re-derived from the merged `tests/closures.json` with entities.py's `_d308_pairs` predicate (Jaccard >= 0.80 over the package files). `tests/structure_budgets.json` merged without conflict; `python3 tests/structure.py` `STRUCTURE RATCHET PASSED`; `PYTHONPATH=tests/hastub python3 tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`; `git merge-tree --write-tree origin/main` on the head is clean.
@@ -108,7 +115,15 @@ Round 2: the two-pass unload check fails at `da1f90c785` (above), so the head se
 
 ## Figures
 
-At `0c8d0bd41e6b` (venv `/opt/hpo/venv-ci`, `PYTHONPATH=tests/hastub`):
+At `1d348a4f10` (`PYTHONPATH=tests/hastub`, origin/main `dbdc71faea`):
+
+- `python3 dev/audit/rounds/round4/D6/claims.py`: rc=0, changes no tracked file (claims.json/claims.md byte-identical). Each of the 12 numeric `RESULT` header lines compared with the run's own `RESULT` line by key: `MATCH` for all 12 (`config_ranges_compared=104`, `config_defaults_compared=97`, `arch_modules_on_disk=105`, `arch_map_listed=105`, `arch_map_missing=0`, `ha_module_level_importers=37`, claims 125/125/123/0/0/2). Null control: the same comparison on `d92bb3a785`'s header reads `config_ranges_compared=105` against the run's 104, a `MISMATCH`.
+- #1218 note: `_d308_pairs` over `tests/closures.json` at this head: 190 of 561 pairs at >= 0.80, 17 at exactly 1.00; at origin/main `dbdc71fa`: 184 of 561, 17 at 1.00 (triple sharing 123). Null control: the note's former 100/98 and 88/80 match neither ref.
+- `python3 tests/doc_claims.py` (D6): rc=0, `ALL 443 checks PASSED`.
+- `python3 tests/harness_headers.py`: rc=0, `ALL 114 HARNESS HEADER CHECKS PASSED`.
+- `python3 tests/structure.py`: rc=0, `STRUCTURE RATCHET PASSED`.
+
+Earlier, at `0c8d0bd41e6b` (venv `/opt/hpo/venv-ci`, `PYTHONPATH=tests/hastub`):
 
 - `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=91773476edb3 ./tests/run.sh`: `MODE: SCOPED -- 31 script(s) run, 3 scoped out`; every script passed except `tests/stress.py` and `tests/harness_headers.py`, which ended at 0s with `gate_lock: flock-wrap refused ... holds no lease`. That was this run's own fault: the lease label was set and no lease was taken. Each re-run directly on the same tree passes: `ALL 122 STRESS CHECKS PASSED`, `ALL 115 HARNESS HEADER CHECKS PASSED`.
 - `timeout 2400 python3 tests/entities.py`: `ALL 2766 ENTITY CHECKS PASSED`, with the #1218 note's 186 of 561 and the translation parity rows (each `translations/*.json` has exactly `strings.json`'s keys).
