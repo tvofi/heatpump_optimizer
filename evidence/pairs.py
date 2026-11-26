@@ -1,17 +1,17 @@
-import json,sys,itertools
-d=json.load(open(sys.argv[1]))['closures']
-def prod(v):
-    fs=v if isinstance(v,list) else v.get('files',v.get('closure',[]))
-    return {f for f in fs if f.startswith('custom_components/')}
-C={k:prod(v) for k,v in d.items()}
-n=len(C);ne=[k for k in C if C[k]]
-hi=[];allp=0
-for a,b in itertools.combinations(sorted(C),2):
-    allp+=1
-    A,B=C[a],C[b]
-    if A and B:
-        j=len(A&B)/len(A|B)
-        if j>=0.80: hi.append((a,b,round(j,3)))
-print('scripts',n,'pairs',allp,'nonempty',len(ne),'comparable',len(ne)*(len(ne)-1)//2,'>=0.80',len(hi))
-for p in hi:
-    if 'manual_plan' in p[0]+p[1] or 'config_flow_steps' in p[0]+p[1]: print(p)
+import json,sys,subprocess
+def pairs(ref):
+    c=json.loads(subprocess.check_output(["git","show",f"{ref}:tests/closures.json"]))["closures"]
+    prod={f for fs in c.values() for f in fs if f.startswith("custom_components/heatpump_optimizer/")}
+    n=sorted(c); out=set()
+    for i in range(len(n)):
+        for j in range(i+1,len(n)):
+            a=set(c[n[i]])&prod; b=set(c[n[j]])&prod
+            if a and b and len(a&b)/len(a|b)>=0.80: out.add((n[i],n[j]))
+    return len(n),out
+res={}
+for r in sys.argv[1:]:
+    k,p=pairs(r); res[r]=p; print(r,"scripts",k,"total",k*(k-1)//2,"pairs",len(p))
+r=sys.argv[1:]
+if len(r)>=3:
+    h,m,b=(res[x] for x in r[:3])
+    print("head-main",sorted(h-m)); print("main-head",sorted(m-h)); print("head-prev",sorted(h-b)); print("prev-head",sorted(b-h))
