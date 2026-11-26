@@ -16,3 +16,4 @@
 1795685662 HB alive
 1795686266 HB alive
 1795687039 CKPT stale pins dropped, body repaired; gate+prepr rerun snapshot 2b1c657b03f3
+1795690724 DONE returned: handoff/r11-late-p2-replay-finite 889e901bd3, body d37a05e297
