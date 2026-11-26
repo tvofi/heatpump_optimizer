@@ -129,6 +129,14 @@
    ],
    "findings": 0,
    "votes": {}
+  },
+  {
+   "stage": 10,
+   "boxes": [
+    "D3-g46-h"
+   ],
+   "findings": 0,
+   "votes": {}
   }
  ],
  "votes": [
