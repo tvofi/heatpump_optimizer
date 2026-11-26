@@ -1,0 +1,57 @@
+diff --git a/tests/closures.json b/tests/closures.json
+index 244e2086d3..10d2df2faa 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1580,6 +1580,7 @@
+    "tests/card_browser.mjs",
+    "tests/card_drift.mjs",
+    "tests/card_rig.mjs",
++   "tests/case_select.py",
+    "tests/ci_ratchet.py",
+    "tests/closures.json",
+    "tests/comment_ratchet.py",
+@@ -2002,6 +2003,7 @@
+    "tests/backtest.py",
+    "tests/block_duty.py",
+    "tests/boost_drift_replay.py",
++   "tests/case_select.py",
+    "tests/ci_budgets.json",
+    "tests/ci_ratchet.py",
+    "tests/closures.json",
+@@ -4928,6 +4930,10 @@
+    "dev/audit/harnesses/r11_comments_ratchet_mutants.py",
+    "dev/audit/harnesses/r11_comments_ratchet_reconcile.py",
+    "dev/audit/harnesses/r11_denominator_planted.py",
++   "dev/audit/harnesses/r11_fast_shards_balance.py",
++   "dev/audit/harnesses/r11_fast_shards_mutants.py",
++   "dev/audit/harnesses/r11_fast_shards_random.sh",
++   "dev/audit/harnesses/r11_fast_shards_readers.py",
+    "dev/audit/harnesses/r11_honest_starts_runs.py",
+    "dev/audit/harnesses/r11_kernel_step_agree.py",
+    "dev/audit/harnesses/r11_main_cancel_mutants.py",
+diff --git a/tests/entities.py b/tests/entities.py
+index 2697593345..3ffc926f86 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -44143,4 +44143,21 @@ R.check(
+ )
+ 
+ 
++R.section("The case runner and recorder (R11-CI-CASE-SELECT)")
++# tests/case_select.py cuts features.py and this script into spans, runs them
++# span by span, and records per span what it reads and which earlier spans it
++# needs, into tests/case_closures.json. Its self-test checks the splitter
++# against the R.section line count of both scripts, and that a span-wise run
++# prints what python3 prints. It also checks the recorder's static and dynamic
++# reads, the needs rules (in-place binding, RNG draws, module moves) and the
++# table's merge arm.
++_csel_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_select.py")), "--self-test"],
++                           capture_output=True, text=True, timeout=600)
++R.check(
++    "the case runner's self-test passes: spans match the R.section count, a span-wise run equals the script's "
++    "own output, the recorder sees reads no code runs and moves no store shows, and the table merges per span",
++    _csel_run.returncode == 0 and "CASE-SELECT SELF-TEST: PASSED" in _csel_run.stdout,
++    (_csel_run.stdout + _csel_run.stderr)[-600:],
++)
++
+ sys.exit(R.close("ENTITY CHECKS"))
