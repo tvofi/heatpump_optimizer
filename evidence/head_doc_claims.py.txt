@@ -81,7 +81,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/root/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/tmp/tmp.QfFXrUpk22/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -154,14 +154,14 @@
   ok   the claim check fires on the pre-fix sentence (null control)
 
 -- every prose count of a tree-measurable set is the tree's (R9-RO-PC1, I5)
-  derived: modules=105, modules_importing_homeassistant=36, modules_free_of_homeassistant=68, services=15, options_pages=25, editable_options_pages=24
+  derived: modules=106, modules_importing_homeassistant=36, modules_free_of_homeassistant=69, services=15, options_pages=25, editable_options_pages=24
   ok   every tree-wide quantity a count shape names measured positive (anchor: a measurement that read nothing cannot pass a census)
   ok   exactly one options page renders no field, so 'plus a read-only overview' is still singular (anchor for the editable-page count)
   ok   the census read a positive number of counts (anchor: not green by skipping)
   ok   the corpus states every count shape at least once, so a reader document deleted from it refuses instead of passing
-  FAIL the reader corpus states no module count; entities.py and claims.py derive and print it (FG-1)  [architecture.md:8 modules=105; architecture.md:8 modules_importing_homeassistant=36]
+  ok   the reader corpus states no module count; entities.py and claims.py derive and print it (FG-1)
   ok   a true module count planted in a reader document is refused (null control)
-  ok   every count of a tree-measurable set the reader corpus states is the tree's (14 counts over 11 shapes)
+  ok   every count of a tree-measurable set the reader corpus states is the tree's (12 counts over 11 shapes)
   ok   a narrow shape claims its span first, so the HA-free count is not also read as the module total (null control)
   ok   a stale options-page count planted in the two documents that state it is FALSE in both (null control)
   ok   deleting README.md refuses the shapes only it states (null control: failure-closed, not silent)
@@ -547,9 +547,8 @@
   ok   wear.py says wear is free of Home Assistant imports, and it imports without it (D5-s3-01)
   ok   a module importing no Home Assistant itself imports without it, but for ADR-002's named glue-reached set (D7-s1-06)
   ok   every entry of ADR-002's glue-reached set still needs Home Assistant (a cleared entry leaves the set)
-  RESULT base=1d3077736d4a files=204 long_units_base=2295 long_units_head=2295
+  RESULT base=46d0a521befa files=205 long_units_base=2295 long_units_head=2295
   ok   comment ratchet self-test (40-word rule, per-file and total compares, --text-only arms)
   ok   no tests/ or production comment or docstring gains a sentence over 40 words (comment ratchet)
 
-1 of 445 checks FAILED
-EXIT=1
+ALL 445 checks PASSED

@@ -1,1 +1,0 @@
-carry_audit check rc=0: 1 routed, 0 unrouted (body file: the PR body's Red checks/Forward-carry/Friction sections, each 'none')

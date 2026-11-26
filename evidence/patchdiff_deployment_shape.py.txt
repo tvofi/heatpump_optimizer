@@ -1,0 +1,25 @@
+1c1
+< -records every read, so this lane's recorded closure is the package: all 124
+---
+> -records every read, so this lane's recorded closure is the package: all 125
+3c3
+< -alike (123 until the merge joining #3848's ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 122 until either, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+---
+> -alike (124 until R11-SEAM-learners's ``learning_freeze.py``, 123 until the merge joining #3848's ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 122 until either, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+21,22c21,29
+< -recording finds 190 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+< -of their production-module closure (186 on #3863's branch and 182 on
+---
+> -recording finds 192 of the 561 script pairs (34 choose 2) sharing 0.80 or more
+> -of their production-module closure (190 on each side before the merge joining
+> -R11-SEAM-learners's ``learning_freeze.py`` to main's #3848 ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's
+> -``comfort_floor.py``, which joined debug_collect.py/doc_claims.py and debug_collect.py/harness_headers.py;
+> -184 on main before the merge joining
+> -R11-SEAM-learners's recordings to it, which joined block_duty.py/card.mjs,
+> -boost_drift_replay.py/config_flow_steps.py, card.mjs/finite_boundary.py,
+> -card.mjs/structure.py, card.mjs/typing_ruler.py and config_flow_steps.py/plan_view.py;
+> -186 on #3863's branch and 182 on
+38c45
+< -closures that import the coordinator), all 190 among the 435 pairs whose two
+---
+> -closures that import the coordinator), all 192 among the 435 pairs whose two
