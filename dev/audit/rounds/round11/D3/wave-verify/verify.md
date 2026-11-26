@@ -31,6 +31,7 @@ Not run here, by the brief: the judge, dedup and the class sweep (they wait for 
 | 19 | g46-h, g47-h | 0 | {} |
 | 20 | g46-h, g47-h | 0 | {} |
 | 21 | g46-h, g47-h | 0 | {} |
+| 22 | g46-h, g47-h | 0 | {} |
 
 Total: 426 findings; {'verify': 403, 'weaken': 9, 'unresolved': 14}.
 
