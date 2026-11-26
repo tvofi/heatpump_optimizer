@@ -159,8 +159,6 @@ class FollowerCycle:
 
     async def async_follow_missed(self, lock: asyncio.Lock) -> None:
         """Under the step tail's ``lock``, the follower for a cycle that raised before its tail."""
-        if self.followed:
-            return
         async with lock:
             if not self.followed:
                 await self.async_follow()
