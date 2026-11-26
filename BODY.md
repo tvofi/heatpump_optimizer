@@ -59,7 +59,7 @@ Architecture score: dS +0.0000 NULL
 ## Unpinned sites
 
 Each site below is in `custom_components/`, so `mutation-autofix` pins it. The check named is the one expected to kill it, by reading; none was run per mutant here (step 5 leaves `stress.py` to CI):
-- `custom_components/heatpump_optimizer/dhw_planner.py:107 RETURN_DEL` (`return hours_until_next_window(start, today, tomorrow)`): pinned by mutation-autofix; expected killer `the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow as the ordinary day ...` (expects 19.5 and 10.5).
+- `custom_components/heatpump_optimizer/dhw_planner.py:106 RETURN_DEL` (`return hours_until_next_window(start, today, tomorrow)`): pinned by mutation-autofix; expected killer `the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow as the ordinary day ...` (expects 19.5 and 10.5).
 - `custom_components/heatpump_optimizer/dhw_schedule.py:570 BOOLOP` and `custom_components/heatpump_optimizer/dhw_schedule.py:570 GUARD_OFF` (`if windows and hour_in_windows(h, windows):`): pinned by mutation-autofix; expected killers `inside a demand window the next window is now, not the following one` and `outside one it counts the hours to the next opening, wrapping past midnight`.
 - `custom_components/heatpump_optimizer/dhw_schedule.py:575 GUARD_OFF` (`if not starts:`): pinned by mutation-autofix; expected killer `with no windows configured there is no answer, which is not 'now'` (`min()` of an empty list raises).
 - `custom_components/heatpump_optimizer/dhw_schedule.py:583 RETURN_DEL` (`return utc_elapsed_seconds(opens, now) / 3600.0`): pinned by mutation-autofix; the restoration of this line to `return min(starts)` is killed by the DST countdown check (Mutation proof).
@@ -69,11 +69,13 @@ Each site below is in `custom_components/`, so `mutation-autofix` pins it. The c
 
 - `mutation`: predicted red on the six added `custom_components/` sites listed under `## Unpinned sites`. `mutation-autofix` pins them (`ci: pin killed mutants`, ci-autofix.md); this pin is `unmeasured` until it runs on this head. The cheaper detector already ran: `tools/pr/ci_predict.py` named each site locally before the push, at a standing cost of one predictor run per handoff. No further detector is owed.
 - `budget-raise-gate`: predicted red, because this diff raises `name_kept_members` 38 -> 39 in `tests/structure_budgets.json` (see `## Raise justification`). The gate is the approval mechanism itself, and it clears on an approving review that cites mandate 6893738184. No cheaper detector exists: `tests/structure.py` already refused the breach locally, before any push.
+- `prepr self-test`: `tools/pr/prepr.sh --self-test` reads 569 passed, 2 failed (`an ancestry no commit of which carries any check run skips, never refuses`, `and the skip line names the boundary`). The same two fail on origin/main, reported by the #3908 fixer; this diff does not touch `tools/pr/`. Cheaper detector: none beyond the self-test itself.
+- `governance / wave-script`: `ci_predict.py` printed `AGREEMENT UNMERGED: HEAD does not merge into d66452586467`. `git merge-tree --write-tree origin/main HEAD` exits 0, resolving `tests/structure_budgets.json` and `tests/closures.json` through the `ledgermerge` driver, which the predictor's plain merge does not apply; `prepr.sh` read `wave-script 298 passed, 0 failed` at this head. The cheaper detector is that merge-tree run.
 
 ## Forward-carry
 
 - The trajectory entry points (`simulate_trajectory`, `simulate_trajectory_batch`, `simulate_trajectory_with_dhw`) take `step_hours`, the step clock, and no longer take `start_hour`. `hours_until_next_window` and `vvc_should_run` take an aware `now`, not a float hour. A branch cut before this merge that calls the old keyword or passes a float raises `TypeError` or `AttributeError`. The control is `dev/audit/harnesses/r11_wallclock_dst.py`, exit 1 on either transition day. The constraint detects itself: a stale call raises on its first use, under that group's own gate run. Carry: dismissed: a stale caller fails loudly under its own scoped gate, and the learners group cannot be named (see Friction)
-- The same constraint for the DHW schedule callers: `hours_until_next_window(now, ...)` measures between instants, and a planner horizon must carry `start_time`. Carry: dismissed: the destination brief does not yet hold this line and no roster branch is open to this seat; the orchestrator lands it (opener report)
+- The same constraint for the DHW schedule callers: `hours_until_next_window(now, ...)` measures between instants, and a planner horizon must carry `start_time`. Carry: R11-OUTSIDE-HONEST-DHW-RUNS
 
 ## Friction
 
