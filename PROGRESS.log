@@ -7,3 +7,4 @@
 1795701200 DONE returned: Fix review: blocked 8e0391b0 fix-refuted (replay lane 2505.3 s > 2144.0 s at cap 45) on probe/rev-3912-3f43bca1 6c16819a
 1795735612 HB alive
 1795735691 CKPT packet rendered, worktree at head, CI poll started snapshot 27dec23f4444
+1795735729 CKPT mutants run, CI replay log read snapshot 52cb5a3ad559
