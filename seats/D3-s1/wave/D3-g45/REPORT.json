@@ -946,6 +946,7 @@
   "dev/audit/rounds/round11/D3/s1/wave/D3-g45/probes/probe_fdf5872fd576c405.py"
  ],
  "leads": [
+  "Both KILLED keys (the topology_layout and wood_tank memo guards) are killed only by tests/stress.py, one failing check beyond the null; stress.py reads wall time (a performance budget), so the kill is a timing kill that the judge should re-take on a quiet machine before counting it as a pin.",
   "box_comms.sh left its mkdir lock stale three times (after the container restart at 22:18 and at a gate-start heartbeat 23:11); `comms: lock stuck`, cleared by rmdir of the lock dir. Instrument fault, not pushed.",
   "Probes read a pristine git-archive export of the baseline (~/probe-tree), never the gate's tree, because the tree carries a committed mutant while a gate runs."
  ],
