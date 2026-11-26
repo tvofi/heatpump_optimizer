@@ -235,5 +235,5 @@ finished): 17 and 18.
 
 `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r11-groups.json`,
 run in a checkout of `694d2fad07` with the amended roster in place: the live
-roster reads 0 errors; the amended one is recorded in the commit message of
-this revision.
+roster reads 0 errors and 40 warnings; the amended one reads 0 errors and 40
+warnings.

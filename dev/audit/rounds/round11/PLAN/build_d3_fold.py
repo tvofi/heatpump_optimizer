@@ -25,7 +25,7 @@ import subprocess
 BASE = "92d38ecb640bd462f2e19c0814d0f0b7df1ee692"
 JUDGE_SHA = "a826f55f8c"
 # the commit that carries d3_fnstate.py, D3-FOLD.json and ADR-011, for a brief to cite before the plan lands on main
-PLAN_SHA = "3222bb016d"
+PLAN_SHA = "e8aefbb452"
 PKG = "custom_components/heatpump_optimizer/"
 SEAM_OF_FILE = {"optimizer.py": "solver", "dhw_planner.py": "solver", "sysid.py": "sysid",
                 "thermal_model.py": "plant", "defrost.py": "plant", "flow_lift.py": "plant",
