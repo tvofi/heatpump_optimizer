@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 126
+records every read, so this lane's recorded closure is the package: all 127
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (125 until R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 124 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 123 until R11-OUTSIDE-START-APPROACH's ``approach.py``, 122 until R11-SEAM-learners's ``learning_freeze.py``, 121 until R11-OUTSIDE-HONEST-DHW-RUNS's ``dhw_charges.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+alike (126 until R11-OUTSIDE-HONEST-DHW-RUNS's ``dhw_charges.py``, 125 until R11-OUTSIDE-START-APPROACH's ``approach.py``, 124 until R11-SEAM-learners's ``learning_freeze.py``, 123 until the merge joining #3848's ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 122 until either, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
 R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
 ``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
@@ -58,20 +58,25 @@ the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
 recording finds 192 of the 561 script pairs (34 choose 2) sharing 0.80 or more
-of their production-module closure (195 on R11-OUTSIDE-START-APPROACH's branch and 182 on main
-before the merge joining R11-SEAM-entity-service's services.yaml to approach.py's
-recordings; 184 on main and 180 on R11-SEAM-entity-service's branch before the
-merge joining them, the branch's services.yaml having taken config_flow_steps.py's
-pairs with debug_collect.py and wood_advisor.py under 0.80; 191 on
-R11-OUTSIDE-START-APPROACH's branch and 184 on main
-before the merge joining R11-OWNER-FLOWCAP's flow_limit.py to approach.py's
-recordings; 184 on R11-OUTSIDE-HONEST-DHW-RUNS's and
-R11-SEAM-learners's branches before R11-OUTSIDE-START-APPROACH re-recorded the
-28 closures that read approach.py; 182 on each side before the merge joining
-R11-SEAM-cycle-solve's solve_gate.py and R11-OUTSIDE-HONEST-DHW-RUNS's
-dhw_charges.py, which together lifted tests/golden.py/manual_plan.py and
-tests/env_drift.py/manual_plan.py to 0.80, and on main 182 before
-R11-OWNER-FLOWCAP's flow_limit.py joined its closures, adding the same two pairs; 169 of 528 before R11-SEAM-tests's
+of their production-module closure (192 on each side before the merge joining
+R11-OUTSIDE-START-APPROACH's ``approach.py`` and R11-OUTSIDE-HONEST-DHW-RUNS's
+``dhw_charges.py`` to main's #3848 ``dhw_start.py``, which moved no pair across 0.80;
+190 on each side before the merge joining
+R11-SEAM-learners's ``learning_freeze.py`` to main's #3848 ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's
+``comfort_floor.py``, which joined debug_collect.py/doc_claims.py and debug_collect.py/harness_headers.py;
+184 on main before the merge joining
+R11-SEAM-learners's recordings to it, which joined block_duty.py/card.mjs,
+boost_drift_replay.py/config_flow_steps.py, card.mjs/finite_boundary.py,
+card.mjs/structure.py, card.mjs/typing_ruler.py and config_flow_steps.py/plan_view.py;
+186 on #3863's branch and 182 on
+main before the merge joining them, main's R11-SEAM-entity-service services.yaml
+having taken config_flow_steps.py's pairs with debug_collect.py and wood_advisor.py
+under 0.80, 184 on main and 180 on that branch before it landed; on the #3863
+branch, 184 on each side before the merge joining
+R11-OWNER-FLOWCAP's flow_limit.py and #3848's dhw_start.py (R11-OUTSIDE-ROOMS-3B's comfort_floor.py on that branch), which put
+card_drift.mjs and wood_advisor.py each with features.py at the 0.80 floor; 182
+before flow_limit.py on main and dhw_start.py on its branch (comfort_floor.py on rooms-3b's) each lifted
+env_drift.py/manual_plan.py and golden.py/manual_plan.py to 0.80; 169 of 528 before R11-SEAM-tests's
 cycle_lane.py, whose closure opens the whole package, and 180 on its branch
 before the merge bringing R11-SEAM-actuation-release's three production
 modules; 167 before both; 164 on each side before the merge joining
@@ -125,7 +130,7 @@ input read puts the pump's start hysteresis on the state builds a coordinator,
 which grew that script's closure from 74 to 91 production files (75 to 92
 beside whatif.py): nine pairs joined at the 0.80 floor and one left, the
 count from 154 to 162; #3616's re-record moved it to 163, and
-R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164).
+R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164; 184 on main after R11-OUTSIDE-ROOMS-3B's comfort_floor.py, and 190 on the merge joining that main to #3848's branch, re-derived from the merged closures).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
 (98 shared production files each), doc_claims.py/harness_headers.py
