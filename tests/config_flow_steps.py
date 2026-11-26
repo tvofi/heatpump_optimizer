@@ -8674,6 +8674,14 @@ def stored_options_of_the_wrong_type() -> None:
     R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed area",
             area(140.0) == 140.0, f"{area(140.0)!r}")
 
+    # The quick-setup derive: the options page's baseline copies the stored
+    # questionnaire keys, so a bare post hands it the stored heated area.
+    def derived(v):
+        return quick_setup.derive({const.CONF_HEATED_AREA: v})
+    same(derived, quick_setup.derive({}), "quick_setup.derive on stored heated_area")
+    R.check("R11-LATE-P1-OPTIONS: null -- derive reads a well-typed area",
+            derived(95.0)[const.CONF_HEATED_AREA] == 95.0, f"{derived(95.0).get(const.CONF_HEATED_AREA)!r}")
+
     # The Modbus prefill's ceiling, scaled by the stored nominal COP.
     snap = {"unit_capacity": ("sensor.capacity", "7.0", 1.0)}
 
