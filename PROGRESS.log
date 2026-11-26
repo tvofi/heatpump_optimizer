@@ -19,3 +19,4 @@
 1795656624 CKPT mutants 41/0, env_drift clean, structure ok; drafting verdict, CI WAIT snapshot c9198f89cd33
 1795657021 HB alive
 1795657619 HB alive
+1795657839 DONE verdict merge e4a8523d (pending-ci: gate) pushed to probe/rev-3872-689f1f8c 3a4a6066
