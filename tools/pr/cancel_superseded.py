@@ -64,7 +64,7 @@ main run, a PR the train holds (queue or spool under DIR), the train's current P
 holding a `Fix review: merge` comment. The setting's `priority_cancel` (false) decides
 whether candidates are cancelled; off, the sweep HOLDS (cancels nothing, prints one
 summary line). On, each cancel is recorded in `priority-held.json` and re-run (POST
-.../rerun) once no priority run is queued; one line per cancel and per re-run naming the
+.../rerun-failed-jobs) once no priority run is queued; one line per cancel and per re-run naming the
 PR, the run and the priority PR that caused it.
 
 MAIN (`main --workflow W`, MAIN-CANCEL-BOUNDED, P658) is the one sanctioned path for cancelling
@@ -281,12 +281,23 @@ def held_write(path: "Path | None", held: dict) -> None:
         print(f"CANCEL-SWEEP: held file unwritable: {e}")
 
 
+def rerun_failed_first(api, repo: str, rid) -> object:
+    """Re-run only the failed and cancelled jobs of run <rid> (#3885 L7): a whole-run
+    re-run repeats every job that had already succeeded. Only when GitHub refuses that
+    (a run cancelled before any job was created has none to re-run) is the whole run
+    re-run. Returns the last answer, None or CONFLICT for a refusal."""
+    got = api([f"repos/{repo}/actions/runs/{rid}/rerun-failed-jobs"], "POST")
+    if got is None or got is CONFLICT:
+        got = api([f"repos/{repo}/actions/runs/{rid}/rerun"], "POST")
+    return got
+
+
 def priority_step(api, *, repo: str, plan_: dict, held: dict, allow_cancel: bool, now: float,
                   dry_run: bool = False) -> dict:
     """Act on `priority_plan`'s answer, one line per cancel and per re-run.
 
     With a priority run queued and `allow_cancel`, each victim is cancelled and recorded in
-    `held`. With none queued, each held run is re-run (POST .../rerun) and dropped on success;
+    `held`. With none queued, each held run is re-run (`rerun_failed_first`) and dropped on success;
     a record older than HELD_MAX_AGE_S is dropped unrun. Returns {"cancelled": n, "rerun": n}."""
     out = {"cancelled": 0, "rerun": 0}
     if plan_["priority"]:
@@ -313,7 +324,7 @@ def priority_step(api, *, repo: str, plan_: dict, held: dict, allow_cancel: bool
         if dry_run:
             print(f"cancel_superseded: would re-run run {rid} of #{rec.get('pr')}")
             continue
-        got = api([f"repos/{repo}/actions/runs/{rid}/rerun"], "POST")
+        got = rerun_failed_first(api, repo, rid)
         if got is None or got is CONFLICT:
             print(f"cancel_superseded: could not re-run run {rid} of #{rec.get('pr')}; retried next pass")
             continue
@@ -916,7 +927,18 @@ def self_test() -> int:
     check("priority: the cancel is recorded, then re-run once no priority run is queued",
           (r1["cancelled"], sorted(pposts_cancel), r2["rerun"], sorted(pposts), held),
           (2, sorted(f"repos/{REPO}/actions/runs/{i}/cancel" for i in (501, 503)), 2,
-           sorted(f"repos/{REPO}/actions/runs/{i}/rerun" for i in (501, 503)), {}))
+           sorted(f"repos/{REPO}/actions/runs/{i}/rerun-failed-jobs" for i in (501, 503)), {}))
+    pposts.clear()
+
+    def pstub_refuse(args, method="GET"):  # L7: GitHub refuses a failed-only re-run of a run with no job
+        pposts.append(args[0])
+        return None if args[0].endswith("/rerun-failed-jobs") else {}
+    held = {501: {"pr": 11, "cause_pr": 10, "cause_run": 500, "at": 1000.0}}
+    with contextlib.redirect_stdout(io.StringIO()):
+        r3 = priority_step(pstub_refuse, repo=REPO, plan_=nop, held=held, allow_cancel=True, now=1100.0)
+    check("priority L7: a refused failed-only re-run falls back to the whole run, once",
+          (r3["rerun"], pposts, held),
+          (1, [f"repos/{REPO}/actions/runs/501/rerun-failed-jobs", f"repos/{REPO}/actions/runs/501/rerun"], {}))
     pposts.clear()
     with contextlib.redirect_stdout(io.StringIO()):
         priority_step(pstub2, repo=REPO, plan_=pp, held={}, allow_cancel=False, now=1.0)
