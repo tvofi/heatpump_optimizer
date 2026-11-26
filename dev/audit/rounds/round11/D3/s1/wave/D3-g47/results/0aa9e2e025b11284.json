@@ -1,0 +1,28 @@
+{
+ "key": "0aa9e2e025b11284",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3003 CLAMP_DROP",
+ "patch": "t_in = min(t_in, dhw_setpoint) -> t_in = (t_in)",
+ "function": "dhw_coil_draw_reduction",
+ "cluster": "thermal_model.py:dhw_coil_draw_reduction@2998-3004",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3709.9,
+  "load1_start": 0.79,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_0aa9e2e025b11284.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_0aa9e2e025b11284.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 1)",
+   "RESULT inputs_differing=0 count (of 180)"
+  ],
+  "inputs_tried": "draw {0.5,3} x wood {5,30,60,95,inf,nan} x setpoint {8,10,12,30,55} x inlet {5,10,12}: 180 inputs, 0 differ"
+ },
+ "should_fail": "none: equivalent",
+ "note": "the t_in<=setpoint cap is dead: t_in is local and only enters max(0, setpoint - t_in)"
+}

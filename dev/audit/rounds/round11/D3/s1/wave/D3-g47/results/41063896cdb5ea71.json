@@ -1,0 +1,44 @@
+{
+ "key": "41063896cdb5ea71",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3004 CLAMP_DROP",
+ "patch": "span = max(dhw_setpoint - inlet_temp, 1e-6) -> span = (dhw_setpoint - inlet_temp)",
+ "function": "dhw_coil_draw_reduction",
+ "cluster": "thermal_model.py:dhw_coil_draw_reduction@2998-3004",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3583.0,
+  "load1_start": 0.72,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_41063896cdb5ea71.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_41063896cdb5ea71.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 3)",
+   "RESULT inputs_differing=4 count (of 15)",
+   "RESULT baseline_value=(0.0, 2.0)",
+   "RESULT mutant_value='RAISES ZeroDivisionError'"
+  ],
+  "inputs_tried": "setpoint in {inlet, inlet+1e-9, inlet-1e-3, 9, 12} x wood {10,40,60}"
+ },
+ "should_fail": "tests/features.py (executes line 3004 on the traced baseline): a dhw_coil_draw_reduction call with dhw_setpoint == inlet_temp asserting (0.0, draw) - no check reads it",
+ "title": "dhw_coil_draw_reduction: the 1e-6 span floor has no test; at dhw_setpoint == inlet_temp the unclamped span rai",
+ "claim": "dhw_coil_draw_reduction: the 1e-6 span floor has no test; at dhw_setpoint == inlet_temp the unclamped span raises ZeroDivisionError where the baseline returns (0.0, draw)",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "outcome of dhw_coil_draw_reduction when dhw_setpoint == inlet_temp (span clamp 1e-6 dropped): baseline (0.0, draw) vs mutant exception",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_41063896cdb5ea71.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_41063896cdb5ea71.py",
+ "perturbation": "line 3004: span = max(dhw_setpoint - inlet_temp, 1e-6) -> span = (dhw_setpoint - inlet_temp); the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green; the probe's number moves under it",
+ "null_control": "probe controls (inputs where the edit cannot matter) show null_control_differing=0"
+}

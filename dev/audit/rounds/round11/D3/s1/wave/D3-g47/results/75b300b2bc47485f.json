@@ -1,0 +1,44 @@
+{
+ "key": "75b300b2bc47485f",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2856 CLAMP_DROP",
+ "patch": "t_surface_min = dew_point_for_pressure(e / max(surface_rh_limit, 0.05)) -> t_surface_min = dew_point_for_pressure(e / (surface_rh_limit))",
+ "function": "mold_safe_room_floor",
+ "cluster": "thermal_model.py:mold_safe_room_floor@2851-2856",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3677.4,
+  "load1_start": 0.85,
+  "load1_end": 0.94
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_75b300b2bc47485f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_75b300b2bc47485f.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 3)",
+   "RESULT inputs_differing=4 count (of 4)",
+   "RESULT baseline_value=97.60485573096474",
+   "RESULT mutant_value=104.87082287240334"
+  ],
+  "inputs_tried": "limit {0.04, 0.01, 0.0, -0.1}"
+ },
+ "should_fail": "tests/entities.py / features.py: mold_safe_room_floor(surface_rh_limit=0.0) is finite",
+ "title": "mold_safe_room_floor: the 0.05 floor on surface_rh_limit is untested; limit<0.05 changes the floor and limit==",
+ "claim": "mold_safe_room_floor: the 0.05 floor on surface_rh_limit is untested; limit<0.05 changes the floor and limit==0 raises ZeroDivisionError (the only call passes the constant 0.8, so the clamp pins the function contract)",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "floor for surface_rh_limit < 0.05 and == 0 (`max(limit, 0.05)` clamp dropped)",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_75b300b2bc47485f.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_75b300b2bc47485f.py",
+ "perturbation": "line 2856: t_surface_min = dew_point_for_pressure(e / max(surface_rh_limit, 0.05)) -> t_surface_min = dew_point_for_pressure(e / (surface_rh_limit)); the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green; the probe's number moves under it",
+ "null_control": "probe controls (inputs where the edit cannot matter) show null_control_differing=0"
+}
