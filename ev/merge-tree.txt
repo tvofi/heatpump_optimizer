@@ -1,0 +1,17 @@
+head: 7f4028cb65588d1dde4213e27f4e402b0bcf66fd
+origin/main: 76dd8811d4f9264dd4e6bce94ac93310dd07cdf1
+merge-base: 3ee06864daf26f75a1da135b437c4884a6aff341
+d034313b8d7ac8e885fcab9bcbb80976d905bd8a
+100644 452c2f17c4dadfe1f6092fe3821df401e7331d94 1	.github/workflows/ci.yml
+100644 0c108be76d0f0899b469ebe56575e6d46f99b1b0 2	.github/workflows/ci.yml
+100644 e738de70a29adeb53bd46592bee769b99c2b0764 3	.github/workflows/ci.yml
+100644 50b1b588fd76faa52088cbb3d7da19aa33f6aee9 1	tests/entities.py
+100644 a5678e6a4c859304d2a7a5a19f50d4a1415a95af 2	tests/entities.py
+100644 41523b09496330b8126568944ca2c6f25ce1a624 3	tests/entities.py
+
+Auto-merging .github/workflows/ci.yml
+CONFLICT (content): Merge conflict in .github/workflows/ci.yml
+Auto-merging tests/entities.py
+CONFLICT (content): Merge conflict in tests/entities.py
+exit=1
+merge-tree exit: 1
