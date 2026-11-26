@@ -23,3 +23,4 @@
 1795665380 HB alive
 1795665437 CKPT delta read; docstring marker 184 of the 561 missing; entities.py running snapshot 24abd23661b1
 1795665985 HB alive
+1795666180 DONE blocked 3ec83def merge-resolution: deployment_shape.py lost '184 of the 561' marker; verdict e676163b on probe/rev-3872-268d1e25
