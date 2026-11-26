@@ -72,6 +72,7 @@ OUTDIR=""
 MERGE=1
 SINGLE=""
 SCRIPTS_FROM=""
+CASES=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --out-dir) OUTDIR="$2"; shift 2 ;;
@@ -82,6 +83,12 @@ while [ $# -gt 0 ]; do
     --record-only) MERGE=0; shift ;;
     --single) SINGLE="$2"; shift 2 ;;
     --scripts-from) SCRIPTS_FROM="$2"; shift 2 ;;
+    # R11-CI-CASE-SELECT: record per-span closures into tests/case_closures.json
+    # (tests/case_select.py) instead of the script-level table. With --single
+    # it UNIONS that one script's spans into the table, which is all an
+    # off-Linux host may do; without it every case script is re-derived and
+    # replaced, on Linux only (gate-scoping.md).
+    --cases) CASES=1; shift ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -100,7 +107,14 @@ fi
 # stays a FULL merge, because this roster covers every script it checks.
 FULL_DIR=""
 PARTIAL_ARG="--partial"
-if [ -z "$SINGLE" ] && [ -z "$SCRIPTS_FROM" ]; then
+# The --cases arm refuses a full re-derivation off Linux before it plans or
+# leases anything, and never plans the script-level lanes.
+if [ "$CASES" -eq 1 ] && [ -z "$SINGLE" ] && [ "$(uname -s)" != Linux ]; then
+  echo "derive_closures --cases: a full per-span re-derivation replaces entries and runs on Linux" >&2
+  echo "only; off Linux use --cases --single <script>, which unions (gate-scoping.md)" >&2
+  exit 2
+fi
+if [ "$CASES" -eq 0 ] && [ -z "$SINGLE" ] && [ -z "$SCRIPTS_FROM" ]; then
   PARTIAL_ARG=""
   FULL_DIR=$(mktemp -d "${TMPDIR:-/tmp}/hpo-full-lanes-XXXXXX")
   $PYTHON tests/closure.py lane-plan --all-scripts --out-dir "$FULL_DIR" || {
@@ -179,6 +193,20 @@ rec_special() {
     *) rec "$1" ;;
   esac
 }
+
+if [ "$CASES" -eq 1 ]; then
+  if [ -n "$SINGLE" ]; then
+    echo "  [$(date +%H:%M:%S)] record cases of $SINGLE (union)"
+    $PYTHON tests/case_select.py record "$SINGLE" --union
+    exit $?
+  fi
+  rc=0
+  for s in $($PYTHON tests/case_select.py scripts); do
+    echo "  [$(date +%H:%M:%S)] record cases of $s"
+    $PYTHON tests/case_select.py record "$s" || rc=1
+  done
+  exit $rc
+fi
 
 if [ -n "$SINGLE" ]; then
   rec_special "$SINGLE"
