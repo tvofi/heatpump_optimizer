@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_with_minimums CMP_BOUND a257ad19",
+  "old": "        short = two & (dhw_run < dhw_min)",
+  "reason": "Equivalent (CMP_BOUND, `dhw_run < dhw_min` to `<=`). A hot-water run exactly at its minimum becomes `short` with `longer = dhw_leg + 0`: lengthening leaves first_min unchanged, and the whole-step test reads `step_minutes - dhw_leg`, the step's own heating leg, which _split and every lengthening keep at SPLIT_MIN_MINUTES or more in a split step (a shorter one is made whole), so it never fires. The only change is that the loop no longer breaks early and runs to its cap of 2n+1 passes with nothing changing. Measured by the #3869 round-4 fixer: the mutant SURVIVED the R11-OWNER-MODE-LEGS block of tests/features.py (24 checks) beside five killed mutants of the same drive, and a differential probe of plan_legs and availability, original against mutant, over 3000 seeded random plans (1-8 steps, both leg orders, extra None/0.5/2/5, minimums 0-45 min, before IDLE/SPACE/DHW, lost 0/0.1/0.5) found 0 differing outputs.",
+  "verdict": "equivalent"
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_mode_runs CLAMP_DROP 5ba171ad",
+  "old": "    codes = np.where(known >= 0, np.take_along_axis(codes, np.maximum(known, 0), axis=-1), before)",
+  "reason": "Equivalent (CLAMP_DROP, `np.maximum(known, 0)` to `known`). `known` is -1 only before the first slot with a mode; there np.take_along_axis reads index -1 (numpy wraps it to the last slot, a valid read) and np.where discards that read for `before` under `known >= 0`. The clamp only keeps the index non-negative for a value no output uses. Measured by the #3869 round-4 fixer: the mutant SURVIVED the R11-OWNER-MODE-LEGS block of tests/features.py (24 checks) beside five killed mutants of the same drive, and a differential probe of plan_legs and availability, original against mutant, over 3000 seeded random plans (1-8 steps, both leg orders, extra None/0.5/2/5, minimums 0-45 min, before IDLE/SPACE/DHW, lost 0/0.1/0.5) found 0 differing outputs.",
+  "verdict": "equivalent"
+}
