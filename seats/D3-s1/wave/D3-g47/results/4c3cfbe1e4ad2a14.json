@@ -1,0 +1,44 @@
+{
+ "key": "4c3cfbe1e4ad2a14",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2851 CLAMP_DROP",
+ "patch": "frsi = min(max(frsi, 0.3), 0.98) -> frsi = (max(frsi, 0.3))",
+ "function": "mold_safe_room_floor",
+ "cluster": "thermal_model.py:mold_safe_room_floor@2851-2856",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3397.2,
+  "load1_start": 0.95,
+  "load1_end": 0.92
+ },
+ "provisional": true,
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_4c3cfbe1e4ad2a14.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_4c3cfbe1e4ad2a14.py",
+  "results": [
+   "RESULT null_control_differing=0 count (of 3)",
+   "RESULT inputs_differing=4 count (of 4)",
+   "RESULT baseline_value=15.444961146490353",
+   "RESULT mutant_value=15.238446387434895"
+  ],
+  "inputs_tried": "frsi in {0.99, 1.0, 1.5, 2.0 at outdoor -15}"
+ },
+ "should_fail": "tests/entities.py / features.py: mold_safe_room_floor(frsi=1.5) equals the frsi=0.98 floor",
+ "title": "mold_safe_room_floor: the 0.98 upper fRsi clamp is untested; frsi in {0.99,1,1.5,2} changes the floor",
+ "claim": "mold_safe_room_floor: the 0.98 upper fRsi clamp is untested; frsi in {0.99,1,1.5,2} changes the floor",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low",
+ "stop_rule_class": "hygiene",
+ "metric_definition": "floor (degC) for frsi above the 0.98 clamp",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_4c3cfbe1e4ad2a14.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47/probes/probe_4c3cfbe1e4ad2a14.py",
+ "perturbation": "line 2851: frsi = min(max(frsi, 0.3), 0.98) -> frsi = (max(frsi, 0.3)); the full GATE_SCOPE=full GOLDEN_MODE=drift gate stays green; the probe's number moves under it",
+ "null_control": "probe controls (inputs where the edit cannot matter) show null_control_differing=0"
+}
