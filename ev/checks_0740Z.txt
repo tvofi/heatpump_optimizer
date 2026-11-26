@@ -1,0 +1,7 @@
+check runs at 4ab51be4391657b622ad008c6fb4629846bf39c4, read 2026-11-26 ~07:40Z (get_check_runs)
+in_progress: tests / mutation-pins (1), (2), (3)  [started 06:01-06:02Z]
+failure: tests / mutation (139723540566), gate (139728922084, 139725342861), tests / nightly-status, tests / nightly-ha (stable), tests / nightly-ha (2025.2.0)
+cancelled: tests / replay
+success: tests / fast (3.14), tests / closures, tests / coverage, tests / coverage-ratchet, tests / typing, tests / browser, tests / arch-instrument, tests / briefs, tests / closure-scope, tests / lane-proofs, tests / graders-head-copy, governance / instrument-self-tests, governance / env-matrix, governance / policy-docs, governance / wave-script, arch-score x3, budget-raise-gate x3, codeql (actions, js-ts, python), CodeQL, hassfest, validate-hacs
+owed-reds set (merge_train.py owed-reds) includes: tests / coverage-ratchet, tests / fast (3.14), tests / mutation, tests / typing, validate / validate-hacs (tail)
+classify: WAIT ... pending: gate red: none  (every run 06:03Z..07:34Z)

@@ -1,0 +1,69 @@
+== 8f22a3b284: structure.py
+RESULT module_excess_loc=21753 count
+STRUCTURE RATCHET PASSED
+== 8f22a3b284: archscore score.py | tail -5
+    python3 tools/audit/archscore/score.py --diff BASE_REF [HEAD_REF]       default HEAD_REF: the tree
+
+A vector is ``vector.py``'s output. A metric missing (None) on either side is dropped from that
+comparison and listed.
+
+== 392fe0b7eb: structure.py
+RESULT module_excess_loc=21756 count
+STRUCTURE RATCHET PASSED
+== 392fe0b7eb: archscore score.py | tail -5
+    python3 tools/audit/archscore/score.py --diff BASE_REF [HEAD_REF]       default HEAD_REF: the tree
+
+A vector is ``vector.py``'s output. A metric missing (None) on either side is dropped from that
+comparison and listed.
+
+== 6e1c645f65: structure.py
+RESULT module_excess_loc=21755 count
+STRUCTURE RATCHET PASSED
+== 6e1c645f65: archscore score.py | tail -5
+    python3 tools/audit/archscore/score.py --diff BASE_REF [HEAD_REF]       default HEAD_REF: the tree
+
+A vector is ``vector.py``'s output. A metric missing (None) on either side is dropped from that
+comparison and listed.
+
+== ec6be8dbdf: structure.py
+RESULT module_excess_loc=21756 count
+STRUCTURE RATCHET PASSED
+== ec6be8dbdf: archscore score.py | tail -5
+    python3 tools/audit/archscore/score.py --diff BASE_REF [HEAD_REF]       default HEAD_REF: the tree
+
+A vector is ``vector.py``'s output. A metric missing (None) on either side is dropped from that
+comparison and listed.
+
+== 2dec079b9e: structure.py
+RESULT module_excess_loc=21745 count
+STRUCTURE RATCHET PASSED
+== 2dec079b9e: archscore score.py | tail -5
+    python3 tools/audit/archscore/score.py --diff BASE_REF [HEAD_REF]       default HEAD_REF: the tree
+
+A vector is ``vector.py``'s output. A metric missing (None) on either side is dropped from that
+comparison and listed.
+
+== 4ab51be439: structure.py
+RESULT module_excess_loc=21745 count
+STRUCTURE RATCHET PASSED
+== 4ab51be439: archscore score.py | tail -5
+    python3 tools/audit/archscore/score.py --diff BASE_REF [HEAD_REF]       default HEAD_REF: the tree
+
+A vector is ``vector.py``'s output. A metric missing (None) on either side is dropped from that
+comparison and listed.
+
+== 4ab51be439: score.py --diff 392fe0b7eb
+Architecture score: dS +5.5734 IMPROVES
+  duplication_copies 13 -> 11  +1.9855
+  dead_members 1 -> 0  +1.0000
+  coord_footprint 2530 -> 2525  +0.0029
+  coordinator_private_reach 2 -> 0  +1.5850
+  public_unused 1 -> 0  +1.0000
+  shape_copies 38 -> 32  (gate only)
+== 4ab51be439: score.py --diff 6e1c645f65~2
+Architecture score: dS +3.9884 IMPROVES
+  duplication_copies 13 -> 11  +1.9855
+  dead_members 1 -> 0  +1.0000
+  coord_footprint 2530 -> 2525  +0.0029
+  public_unused 1 -> 0  +1.0000
+  shape_copies 38 -> 32  (gate only)
