@@ -343,9 +343,9 @@ def adopt_plan(coord: _BoostCoord, action: CurrentAction) -> None:
     coord.adopt_action(action)
 
 
-def has_plan_base(coord: Any) -> bool:
-    """Whether a cycle has adopted a plan base the overlay can be laid on."""
-    return bool(_PLAN_BASES.get(coord))
+def plan_base(coord: Any) -> CurrentAction | None:
+    """The plan base the last cycle adopted, which the overlay is laid on; None before any."""
+    return _PLAN_BASES.get(coord)
 
 
 def held_for(coord: Any) -> BoostState:

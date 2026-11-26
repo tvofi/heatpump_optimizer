@@ -33,7 +33,7 @@ action are one refresh, fetch to publish (D17-s3-01): ``async_optimize_now``.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
@@ -169,13 +169,13 @@ async def user_slot(gate: SolveGate, user: bool = True) -> AsyncIterator[bool]:
         freed.set()
 
 
-def overlay_only(gate: SolveGate, refreshing: bool, based: bool) -> bool:
+def overlay_only(gate: SolveGate, refreshing: bool, base: Mapping[str, Any] | None) -> bool:
     """Whether a duty toggle is laid on the plan in hand rather than requesting a refresh.
 
-    Only with a plan base, and with no refresh or solve in flight: one running may
-    have laid its overlay before the toggle, and its trailing refresh lays it after.
+    Only on a non-empty plan base, and with no refresh or solve in flight: one running
+    may have laid its overlay before the toggle, and its trailing refresh lays it after.
     """
-    return based and not refreshing and not gate.solving
+    return bool(base) and not refreshing and not gate.solving
 
 
 async def async_optimize_now(coord: Any) -> str | None:
