@@ -10,7 +10,7 @@ Alternatives not taken: methods on `ExternalHeatDetector` (the design's shape) r
 
 ## Head
 
-80412b13b21110010499820e9799fe7dd4a0b3ce (merge base d3d66c40408e76351ffc528686353cadf815a05c, which is origin/main at 2026-11-25T12:36Z; the PR head dc972220f313, which is cfe3dfce plus a bot merge of main, plus two tests-only commits: b4b8d88a and 80412b13).
+43be23ca34c1d5cc76999455c62562a94712a4a2 (merge base dbdc520e86e4453755f553ab21a39de205a70b34, which is origin/main at 2026-11-26; the PR head 6c750491e110, which is cfe3dfce plus a bot merge of main, plus two tests-only commits: b4b8d88a and 80412b13; 7d395255 merges main into it and records `class_excess_loc` 17281 -> 17274, and 43be23ca merges main again with no row moved).
 
 ## Review repair note
 
@@ -100,9 +100,19 @@ None at cfe3dfcec0a27240d63e182674eee237149541f1: every site below is pinned und
 - `tests / fast (3.14)` at 356bf067: `tests/doc_claims.py`'s comment ratchet refused one tests/features.py comment sentence over 40 words (`long units 465 -> 466`); repaired at 2ebd723f. Cheaper detector: `python3 tests/doc_claims.py`, which this diff's scope already selects, 35 s here at cfe3dfce; it ran in the scoped gate at 5576fd96, before the clock-pin comment was written, and was not re-run after that edit. No new detector is owed: the existing one was in the local path and was not re-run (state b).
 - `tests / mutation` at 356bf067: `MUTATION TABLE REFUSED` on the 14 sites this diff added, and `mutation-autofix` ended `skip-measure-failed` with no commit. Cheaper detector: `python3 tests/mutation_table.py --pin-killed --base origin/main` before the handoff, about 50 minutes wall clock here (00:54Z to 01:44Z for the one site left), and prepr's `ci predict` step, which predicted the red; the body relied on the autofix lane instead of pinning before the handoff, which fixer.md step 2 already requires. No new detector is owed (state b).
 
+Ancestry reds at 7d395255 (76 commits over the merge base: this PR's 24 own commits and 52 commits that came in through its earlier merges of main, each of which is also on origin/main). Those 52 carry other branches' runs; none was run on this diff's code.
+
+- `governance / instrument-self-tests` at dc972220 (own bot merge of main): the policy-rot corpus fixtures read `FIXTURE VACUOUS` in tools/policy, a state main held for that window; the parent main commit d3d66c40 did not run the job to a failure and no later own commit (6c750491 and after) carries it, so it is cleared at the head. This diff touches no tools/policy file. Inherited from main, no repair here.
+- `tests / fast (3.14)` at dc972220: `python3 tests/structure.py` refused the unrecorded `class_excess_loc` improvement, recorded at 80412b13; at 7d395255 the same row moved again (17281 -> 17274) and is recorded in the same commit that merges main. At 356bf067 and ceed1a54: the comment-length ratchet, repaired at 2ebd723f (see the repair note above). The other `tests / fast (3.14)` reds stand on main commits 5ed002a6, b0ee904f, 8b127c6d, 7b76b17f: other branches' runs that main absorbed.
+- `tests / mutation` and `tests / mutation-autofix` at 356bf067 and ceed1a54: this diff's 14 unpinned sites, pinned at 06bc7ce1 and cfe3dfce (see above). The rest (d9d48364, 534bde9f, b53176e2, 6cdee8b0, 5ed002a6, b0ee904f, da1689bb, 8b127c6d, 7b76b17f, a139b341, c6cb6d93) are main commits for other groups' unpinned sites; the diff of this PR is unchanged by them. Inherited from main.
+- `prelude` at ceed1a54: `FAIL dispatch pr=3874 does not name the open PR headed by ceed1a54986f`, a dispatch run for a head the PR no longer had; later heads' prelude passes. The other `prelude` red stands on main commit bf58a82d. Not a defect of the code.
+- `tests / closures` on main commit a139b341: main's own red, from that group's closure recording; this PR's closures are not touched.
+- `codeql / Analyze (actions)`, `codeql / Analyze (javascript-typescript)`, `codeql / Analyze (python)` on main commits d9d48364, 5ed002a6 and 7b76b17f: alerts on files this PR does not touch (the diff is custom_components, tests and the budget file). Inherited from main.
+- `tests / nightly-ha (2025.2.0)`, `tests / nightly-ha (stable)`, `tests / nightly-status`: scheduled nightly runs that fire on every commit main takes; they stand on main commits (de1010ff, 44524f9a, d9d48364, b53176e2, 6cdee8b0, ...) and on this PR's own bot merges 6c750491, 54a978b5, dc972220, 28fa42f7, 495f0c65, where `nightly-status` is main's own red at the same base. Inherited from main.
+
 ## Forward-carry
 
-- The card's `statusPill` external-heat branch must also test `attributes.block_ignored !== true` on the twin binary sensor, with the mutation target "drop the `block_ignored` test, a tests/card.mjs case with the switch effective fails" and this group's switch-off case as the null; this PR publishes `block_ignored` in `binary_sensor.<prefix>_external_heat_source`'s attributes as its input. Landed in the group's `carry` on dev/programme/rosters/wave-r11-groups.json at handoff/audit-r11-roster (58e94013). Carry: dismissed: landed on main at 58e94013 (R11-OWNER-CARD-EXTERNAL-HEAT now carries-open)
+- The card's `statusPill` external-heat branch must also test `attributes.block_ignored !== true` on the twin binary sensor, with the mutation target "drop the `block_ignored` test, a tests/card.mjs case with the switch effective fails" and this group's switch-off case as the null; this PR publishes `block_ignored` in `binary_sensor.<prefix>_external_heat_source`'s attributes as its input. Landed in the group's `carry` on dev/programme/rosters/wave-r11-groups.json at handoff/audit-r11-roster (58e94013). Carry: dismissed: built by #3871 at 34c7a3f610
 
 ## Friction
 
