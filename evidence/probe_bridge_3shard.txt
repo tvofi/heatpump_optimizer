@@ -1,0 +1,4 @@
+3-shard, 6-script ref: 3.14 = 20.0 runs = 3
+-- mutant (floor len(ref)//2 for shards):
+3-shard, 6-script ref: REFUSED probe_bridge: no probed fast (3.14) run with its script lines; nothing to derive
+probe_bridge self-test: 10 checks, 0 failed
