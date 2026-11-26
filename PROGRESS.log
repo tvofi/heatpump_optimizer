@@ -1,2 +1,3 @@
 1795679270 INIT r11-seam-wallclock-dst
 1795679292 HB alive
+1795679582 CKPT probe written; all 4 instances reproduce at merge base; pushed to handoff-wip snapshot 1b665eb87169
