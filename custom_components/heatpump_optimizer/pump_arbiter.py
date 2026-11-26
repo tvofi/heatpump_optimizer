@@ -1347,8 +1347,8 @@ def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: Feedb
 
 
 def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
-    """Record this Control pass on ``held`` and hand it to the window ``inp.draw``."""
-    held.last_pass = _pass_record(held, inp, duty, boosted, now)
+    """Record this Control pass on ``held`` (a frost hold's as ``idle``) and hand it to the window ``inp.draw``."""
+    held.last_pass = _pass_record(held, inp, "idle" if held.frost_holding else duty, boosted, now)
     draw_range.note_pass(inp.draw, held.last_pass)
 
 
@@ -1919,10 +1919,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    served = _served(coord, inp, duty, now)  # a frost hold records no heating
+    served = _served(coord, inp, duty, now)
     await _command(coord, inp, desired(coord, inp, served, now, frost=held.frost_holding), now)
     boosted = _boosted(coord, inp, now)
-    _note_pass(held, inp, "idle" if held.frost_holding else served, boosted, now)
+    _note_pass(held, inp, served, boosted, now)
     await _write_night_schedule(coord, inp, now)
 
 
