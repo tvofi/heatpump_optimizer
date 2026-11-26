@@ -28,7 +28,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[6]
 sys.path.insert(0, str(ROOT / "tests"))
 
 import mutation_table as m  # noqa: E402
