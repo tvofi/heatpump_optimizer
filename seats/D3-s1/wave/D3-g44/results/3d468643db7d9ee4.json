@@ -1,0 +1,32 @@
+{
+ "key": "3d468643db7d9ee4",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:668 GUARD_OFF",
+ "patch": "if cached is not None and cached[0] == key: -> if False:",
+ "function": "ThermalParameters.buffer_tank_heat_loss_coefficient",
+ "cluster": "thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient@668-677",
+ "gate": {
+  "verdict": "KILLED",
+  "killed_by": [
+   "python3 tests/stress.py"
+  ],
+  "gate_rc": 1,
+  "wall_s": 3219.7,
+  "load1_start": 0.34,
+  "load1_end": 0.94,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_3d468643db7d9ee4.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_3d468643db7d9ee4.py",
+  "results": [
+   "RESULT site='if cached is not None and cached[0] == key:'",
+   "RESULT value_equal=1 count",
+   "RESULT bounds_calls_baseline=1 count",
+   "RESULT bounds_calls_mutant=1000 count"
+  ]
+ },
+ "class": "killed",
+ "killed_by": [
+  "python3 tests/stress.py"
+ ]
+}
