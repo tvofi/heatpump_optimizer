@@ -1,0 +1,25 @@
+{
+ "key": "efd15cba428cdcf2",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2939 CMP_BOUND",
+ "patch": "r2 = (~r1) & (hp_temp > flow_set) -> r2 = (~r1) & (hp_temp >= flow_set)",
+ "function": "_wood_share_vec",
+ "cluster": "thermal_model.py:_wood_share_vec@2939-2952",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2660.6,
+  "load1_start": 1.0,
+  "load1_end": 0.93,
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_efd15cba428cdcf2.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_efd15cba428cdcf2.py",
+  "baseline": "max_abs_diff=0.0",
+  "mutant": "max_abs_diff=0.0",
+  "inputs_tried": "1440 vectors: flow_set 30/35.5/45, floor 15/22/29, wood 40 values from 5 to flow-1e-9, margin 1e-6/1/default/10, hp_temp == flow_set exactly; both regions give 0.0 at the tie (hotter=0 because wood<hp, hp_deficiency=0 -> share 0; v2: f_w=0)"
+ },
+ "should_fail": "none: continuous at the tie"
+}

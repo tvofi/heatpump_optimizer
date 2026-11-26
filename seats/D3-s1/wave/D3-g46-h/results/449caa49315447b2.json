@@ -1,0 +1,25 @@
+{
+ "key": "449caa49315447b2",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2998 GUARD_OFF",
+ "patch": "if draw_kw <= 0.0: -> if False:",
+ "function": "dhw_coil_draw_reduction",
+ "cluster": "thermal_model.py:dhw_coil_draw_reduction@2998-3004",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2703.8,
+  "load1_start": 0.79,
+  "load1_end": 0.93,
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_449caa49315447b2.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_449caa49315447b2.py",
+  "baseline": "(-1.5, 0.0) for draw -1.5, wood 60",
+  "mutant": "(-0.6667, -0.8333) for draw -1.5, wood 60 (direct call)",
+  "inputs_tried": "draw 0.0, -0.0, nan, 2.0 (null) at wood 60 and 10: identical; only a negative draw at hot wood differs. Callers pass non-negative draw rates (dhw_planner.py:926, thermal_model.py:5009); negative reachability not shown"
+ },
+ "should_fail": "none shown through production; a direct negative-draw check would kill it"
+}

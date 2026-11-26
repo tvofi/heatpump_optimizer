@@ -1,0 +1,25 @@
+{
+ "key": "c9a7d4d29d08c3b4",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2952 CLAMP_DROP",
+ "patch": "m = max(margin, 1e-6) -> m = (margin)",
+ "function": "_wood_share_vec",
+ "cluster": "thermal_model.py:_wood_share_vec@2939-2952",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 2735.9,
+  "load1_start": 0.85,
+  "load1_end": 0.86,
+  "provisional": true
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_c9a7d4d29d08c3b4.py",
+  "command": "PYTHONPATH=tests/hastub /opt/hpo/venv-ci/bin/python3 dev/audit/rounds/round11/D3/s1/wave/D3-g46-h/probes/probe_c9a7d4d29d08c3b4.py",
+  "baseline": "share=0.0 (margin 0)",
+  "mutant": "share=nan (margin 0, direct call)",
+  "inputs_tried": "margin=0.0 direct call: wood==hp==30, flow 35, floor 20 -> baseline 0.0, mutant nan; default margin WOOD_TANK_MIN_MARGIN > 1e-6 (null delta 0.0). Sole production caller (thermal_model.py:4685) passes no margin, so the clamp is dead there"
+ },
+ "should_fail": "none through production; a direct margin=0 unit check would kill it"
+}
