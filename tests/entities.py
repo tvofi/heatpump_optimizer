@@ -18251,19 +18251,30 @@ R.check(
 # first so a re-wrap of the paragraph cannot flip these.
 _D308_SAME = sorted(
     (_a, _b, _n) for _jac, _a, _b, _n in _D308_PAIRS if _jac == 1.0)
-print(
+_D308_DERIVED = (
     f"  derived (#1218): the lane reaches all {len(_D308_PROD)} production "
     f"files; {len(_D308_PAIRS)} of the {_D308_TOTAL} script pairs share >= 0.80 "
     f"of their production closure, among {_D308_COMPARABLE} comparable pairs; "
     f"{len(_D308_SAME)} at exactly 1.00: "
     + ", ".join(f"{_a}/{_b} ({_n})" for _a, _b, _n in _D308_SAME)
 )
+print(_D308_DERIVED)
 _D308_DS_TEXT = " ".join((_closure.ROOT / _D308_DS).read_text().split())
-_D308_CARRIED = _re.findall(
-    r"\ball \d+ files\b|\b\d+ of the \d+ script pairs\b|\b\d+ pairs\b"
-    r"|\b\d+ until\b|\b\d+ shared production files\b",
-    _D308_DS_TEXT,
+# A count is a number, in digits or spelled out, up to three words before
+# "file(s)" or "pair(s)", or directly before "until". The derived line's own
+# wording ("reaches all 124 production files"), a bare "190 script pairs" and
+# "Eighteen of the pairs" all match; the planted corpus below pins each.
+_D308_NUM = (
+    r"(?:\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven"
+    r"|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen"
+    r"|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)"
 )
+_D308_COUNT_RE = _re.compile(
+    rf"\b{_D308_NUM}(?:[\s-]+[\w./-]+){{0,3}}?\s+(?:files?|pairs?)\b"
+    rf"|\b{_D308_NUM}\s+until\b",
+    _re.IGNORECASE,
+)
+_D308_CARRIED = _D308_COUNT_RE.findall(_D308_DS_TEXT)
 R.check(
     "and the lane's docstring is the selection-cost note, naming this block "
     "as the source of its numbers and carrying none of them (#1218, FG-1)",
@@ -18275,6 +18286,29 @@ R.check(
     "missing markers -> "
     f"{[s for s in ('D3-08', '#1218', 'selection cost', 'tests/entities.py') if s not in _D308_DS_TEXT]}; "
     f"no production closure in {_D308_EMPTY}; hand-kept counts -> {_D308_CARRIED}",
+)
+# The refusal's own null control: every count wording, the derived line
+# printed above included, is matched. Narrowed back to the old phrasings, the
+# pattern lets the derived line be written into the note unrefused.
+_D308_PLANTED = (
+    _D308_DERIVED,
+    "the lane reaches all 124 production files",
+    "all 124 files",
+    "190 script pairs",
+    "190 of the 561 script pairs",
+    "Eighteen of the pairs",
+    "EIGHTEEN PAIRS",
+    "twenty-one shared production files",
+    "1,204 files",
+    "96 until R9 F2.2",
+    "eleven until",
+)
+_D308_MISSED = [_t for _t in _D308_PLANTED if not _D308_COUNT_RE.search(_t)]
+R.check(
+    "the #1218 note's count refusal matches the derived line's wording, a "
+    "bare pair count and a spelled-out one (planted corpus, FG-1)",
+    not _D308_MISSED,
+    f"not refused -> {_D308_MISSED}",
 )
 # The predicate itself, on synthetic closures built from real production
 # names: equal sets count, disjoint and below-boundary do not, an exactly
@@ -21504,8 +21538,8 @@ R.check(
 # `gate_required` is the list the ruleset and the seat readers will key on. The
 # check reads the module itself (loaded by path, as stamp.py is above), never a
 # copy, and pins its sorted union equal to the fixture list, which must hold no
-# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
-# red check, not a truncated run.
+# duplicate; `contexts` is `gate` alone since P2b's cut-over. A load failure
+# is a red check, not a truncated run.
 _CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
 import importlib.util as _cig_util
 try:
