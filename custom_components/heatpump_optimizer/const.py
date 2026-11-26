@@ -1892,6 +1892,15 @@ INPUT_ON_CHANGE_MAX_AGE_MINUTES: Final = {
     CONF_THERMAL_POWER_ENTITY: math.inf,
     # The room probe's own humidity channel: the room's quiet-store bound.
     CONF_INDOOR_HUMIDITY_ENTITY: QUIET_STORE_MAX_AGE_MINUTES,
+    # A pushed pump flag holds for days (defrost off through a mild day,
+    # online on, fault off): a finite limit published a healthy pump as an
+    # Input Problem (D14-s2-01). Only ``unavailable`` says the source is gone.
+    CONF_HEAT_PUMP_FAULT_ENTITY: math.inf,
+    CONF_HEAT_PUMP_DEFROST_ENTITY: math.inf,
+    CONF_HEAT_PUMP_ONLINE_ENTITY: math.inf,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY: math.inf,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY: math.inf,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: math.inf,
 }
 
 # Physical windows, degC, for every temperature key ``InputReader.read``

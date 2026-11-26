@@ -98,6 +98,7 @@ from .const import (
     HOUSE_LOSS_MAX_SAMPLE_HOURS,
     DOMAIN,
     CONF_INDOOR_HUMIDITY_ENTITY,
+    CONF_PV_PRODUCTION_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
@@ -200,6 +201,7 @@ from .inputs import (
     InputReading,
     InputReturnWatch,
     age_of,
+    entry_reader,
     normalize_price_per_kwh,
     parse_bool,
     read_rooms,
@@ -543,9 +545,11 @@ def _parse_ecl110_state(
         if displace_raw is None and isinstance(data.get("command"), dict):
             displace_raw = data["command"].get("displace")
         effective_raw = data.get("effective_displace")
-    elif isinstance(data, (int, float)):
+    elif isinstance(data, (int, float)) and not isinstance(data, bool):
         displace_raw = data
-    parsed = [None if raw is None else float(raw) for raw in (displace_raw, effective_raw)]
+    # A JSON bool is a flag, never a displacement (D1-s3-02; finite_float's rule).
+    parsed = [None if raw is None or isinstance(raw, bool) else float(raw)
+              for raw in (displace_raw, effective_raw)]
     if not all(v is None or math.isfinite(v) for v in parsed):
         raise ValueError(f"non-finite value in {parsed!r}")
     if displace_window is not None:
@@ -734,6 +738,34 @@ async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str 
             "number, input_number and climate entities")
 
 
+def covering_forecast_row(
+    forecast: list[dict[str, Any]], now: datetime
+) -> dict[str, Any] | None:
+    """The forecast row covering ``now``, or ``None`` past the last row's hour.
+
+    Matched by the rows' own timestamps: row 0 is the current hour only while
+    the forecast is fresh, and a held one reads hours out of phase (#2229,
+    D14-s2-02). Before the first row, the first is the best information.
+    """
+    if not forecast:
+        return None
+    timed = sorted(
+        (
+            (ts, entry)
+            for entry in forecast
+            if (ts := _comparable_ts(entry.get("datetime"), now)) is not None
+        ),
+        key=lambda item: item[0],
+    )
+    if not timed:
+        # No timestamps anywhere: the same positional assumption
+        # `_weather_series` falls back to, which starts the series at now.
+        return forecast[0]
+    starts = [ts for ts, _ in timed]
+    index = 0 if now < starts[0] else covering_index(starts, now, timedelta(hours=1))
+    return None if index is None else timed[index][1]
+
+
 def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
     """The outdoor temperature the solve horizon starts on, °C.
 
@@ -757,26 +789,9 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
     back to the same state -- and ``None`` past the last entry's own hour
     (#2229): a forecast that stopped updating is not "now" two days later.
     """
-    if not forecast:
+    entry = covering_forecast_row(forecast, now)
+    if entry is None:
         return None
-    timed = sorted(
-        (
-            (ts, entry)
-            for entry in forecast
-            if (ts := _comparable_ts(entry.get("datetime"), now)) is not None
-        ),
-        key=lambda item: item[0],
-    )
-    if timed:
-        starts = [ts for ts, _ in timed]
-        index = 0 if now < starts[0] else covering_index(starts, now, timedelta(hours=1))
-        if index is None:
-            return None
-        entry = timed[index][1]
-    else:
-        # No timestamps anywhere: the same positional assumption
-        # `_weather_series` falls back to, which starts the series at now.
-        entry = forecast[0]
     temperature = entry.get("temperature")
     return None if temperature is None else finite_float(temperature, 5.0)
 
@@ -5205,12 +5220,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The wood-furnace sensors go through the stale-aware reader: a
         # stalled hot probe would look like an indefinite free fire, which is
         # the expensive failure direction, so staleness maps to absence.
-        reader = InputReader(
-            self.hass,
-            ctx._config,
-            enabled=ctx._config.staleness_watchdog_enabled,
-            scale=ctx._config.staleness_max_age_scale,
-        )
+        reader = entry_reader(self.hass, ctx._config, now=dt_util.utcnow)
         outlet = reader.read(CONF_VALVE_OUTLET_TEMP_ENTITY)
         wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
         wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
@@ -5455,13 +5465,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _current_weather(self) -> tuple[float, float]:
         """Current wind speed (m/s) and precipitation (mm/h) for simulation."""
-        if self._weather_forecast:
-            first = self._weather_forecast[0]
-            return (
-                max(0.0, finite_float(first.get("wind_speed"), 0.0)),
-                max(0.0, finite_float(first.get("precipitation"), 0.0)),
-            )
-        return 0.0, 0.0
+        row = covering_forecast_row(self._weather_forecast, dt_util.utcnow())
+        if row is None:
+            return 0.0, 0.0
+        return (
+            max(0.0, finite_float(row.get("wind_speed"), 0.0)),
+            max(0.0, finite_float(row.get("precipitation"), 0.0)),
+        )
 
     def _buffer_cooling_bounds(self) -> tuple[float, float]:
         """Plausible cooling-rate range for *this* tank, C/h.
@@ -6634,12 +6644,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         that are then persisted.
         """
         ctx = getattr(self, "_ctx", self)
-        reader = InputReader(
-            self.hass,
-            ctx._config,
-            enabled=ctx._config.staleness_watchdog_enabled,
-            scale=ctx._config.staleness_max_age_scale,
-        )
+        reader = entry_reader(self.hass, ctx._config, now=dt_util.utcnow)
         self.currency = figure_currency(self.hass, price_feed(ctx._config), self.currency)
         # Read onto a copy, published whole before the first reader below;
         # ``prior`` is the state the interval started from (the slab seed).
@@ -7003,7 +7008,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 forecast_data = _plausible_forecast_rows(_forecast_in_model_units(
                     self.hass.states.get(weather_entity),
                     result[weather_entity].get("forecast", [])))
-                if forecast_data:
+                if forecast_data and covering_forecast_row(
+                    forecast_data, dt_util.utcnow()
+                ) is None:
+                    # D1-s2-03: every row's hour has ended -- a provider
+                    # serving its last answer, not a recovery.
+                    self._weather_fetch_failed(
+                        f"Forecast for {weather_entity} ends before now"
+                    )
+                elif forecast_data:
                     self._weather_forecast = forecast_data
 
                     # The solar forecast, if present; a non-numeric irradiance is
@@ -7318,6 +7331,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     solar.append(irradiance)
                     humidity.append(rh)
 
+        measured = getattr(self, "_input_health", None)
+        reading = measured.readings.get(CONF_OUTDOOR_TEMP_ENTITY) if measured else None
+        if reading is not None and reading.ok and step_starts:
+            # D17-s2-02: a live outdoor sensor beats the forecast for the
+            # current hour, as the option documents; later hours stay forecast.
+            hour_end = step_starts[0].replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            for i, step_start in enumerate(step_starts[: len(outdoor)]):
+                if step_start >= hour_end:
+                    break
+                outdoor[i] = reading.value
         return outdoor, wind, precipitation, solar, humidity
 
     def _apply_open_meteo(
@@ -9079,13 +9102,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return margins if bool(np.any(margins > 1e-9)) else None
     def _indoor_humidity_value(self) -> float | None:
         """The measured indoor relative humidity, %, or None."""
-        entity_id = getattr(self, "_ctx", self)._config.indoor_humidity_entity
+        config = getattr(self, "_ctx", self)._config
+        entity_id = config.indoor_humidity_entity
         if not entity_id:
             return None
         # A frozen sensor holds a raised mold floor forever; with no live
         # reading the floor vanishes instead — the fail-safe direction the
         # inputs module prescribes for every optional sensor.
-        reading = InputReader(self.hass, {}).read(
+        reading = entry_reader(self.hass, config, now=dt_util.utcnow).read(
             CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id
         )
         value = reading.value if reading.ok else None
@@ -9726,6 +9750,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Live production in kW from the configured entity, if readable."""
         entity_id = config.production_entity
         if not entity_id:
+            return None
+        # The age gate first (D1-s2-02): a silent or future-stamped meter is
+        # no measurement of step 0, whatever value it last held.
+        reading = entry_reader(
+            self.hass, getattr(self, "_ctx", self)._config, now=dt_util.utcnow
+        ).read(CONF_PV_PRODUCTION_ENTITY, entity_id=entity_id)
+        if not reading.ok:
             return None
         return state_power_kw(self.hass.states.get(entity_id), sign="clamp")
 

@@ -40,7 +40,7 @@ import logging
 import math
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from collections.abc import Callable, Collection, Mapping
 from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
@@ -983,6 +983,23 @@ def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
     return None if number is None else number != 0.0
 
 
+def entry_reader(
+    hass: Any, config: EntryConfig, *, now: Callable[[], datetime] | None = None
+) -> InputReader:
+    """The entity reader under the install's staleness rules: its watchdog switch and age scale.
+
+    The one place those two options reach a reader, so a new caller cannot read
+    entities with the watchdog's defaults by leaving them out (D1-s2-52).
+    """
+    return InputReader(
+        hass,
+        config,
+        enabled=config.staleness_watchdog_enabled,
+        scale=config.staleness_max_age_scale,
+        now=now,
+    )
+
+
 class InputReader:
     """Reads configured entities, applying the freshness and unit guards."""
 
@@ -1003,12 +1020,12 @@ class InputReader:
         self.health = InputHealth(read_at=self._utcnow())
 
     def _utcnow(self) -> datetime:
+        # The caller's clock (ADR-002 part 2): the coordinator hands in Home
+        # Assistant's through ``entry_reader``, so this module imports nothing
+        # above the pure layer; the fallback is the standard library's.
         if callable(self._now):
             return self._now()
-        from homeassistant.util import dt as dt_util
-
-        utc_now: datetime = dt_util.utcnow()
-        return utc_now
+        return datetime.now(UTC)
 
     def _age_minutes(self, state: Any) -> float | None:
         """Minutes since the sensor last reported, or ``None`` if not knowable.
