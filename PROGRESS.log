@@ -5,3 +5,4 @@
 1795677165 CKPT sysid fix read, security read done, full-suite hot-dwell mutant running snapshot 67061dc22059
 1795677492 HB alive
 1795678144 HB alive
+1795678733 DONE verdict pushed: blocked 46cdd1f9 introduced-red (check_scopes D5 cap; features.py _fl_coord crash) on probe/rev-3907-d8bf065e b1c82192
