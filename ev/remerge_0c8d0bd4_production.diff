@@ -1,0 +1,18 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/pump_arbiter.py
+index 49e51f3951..ed0e218bb9 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -170,11 +170,7 @@ from homeassistant.helpers.event import (
+ )
+ from homeassistant.util import dt as dt_util
+ 
+-<<<<<<< 3c89b84f7b (Merge remote-tracking branch 'origin/main' into fix/r11-owner-fault-hold)
+-from . import boost, draw_range, duty_ledger, duty_switch, fault_hold, issues, off_restore, pump_mode, quiet_windows
+-=======
+-from . import boost, draw_range, duty_ledger, duty_switch, flow_limit, issues, off_restore, pump_mode, quiet_windows
+->>>>>>> 91773476ed (Merge pull request #3873 from tvofi/fix/r11-arch-cycle-surface)
++from . import boost, draw_range, duty_ledger, duty_switch, fault_hold, flow_limit, issues, off_restore, pump_mode, quiet_windows
+ from .const import (
+     CONF_BUFFER_TANK_TEMP_ENTITY,
+     CONF_FLOOR_RETURN_TEMP_ENTITY,
