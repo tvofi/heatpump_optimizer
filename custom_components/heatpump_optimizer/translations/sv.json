@@ -465,6 +465,12 @@
     "diagnose_interval_failed": {
       "message": "Intervalldiagnosen kunde inte köras för {entry_ids}: {error}"
     },
+    "system_identification_disabled": {
+      "message": "Systemidentifiering är avstängd för {entry_ids}: slå på \"Tillåt ett engångsförsök för att mäta huset\" i alternativen för att aktivera den"
+    },
+    "system_identification_not_armed": {
+      "message": "Systemidentifiering aktiverades inte för {entry_ids}: {reason}"
+    },
     "simulate_plan_failed": {
       "message": "Simuleringen kunde inte köras för {entry_ids}: {error}"
     },
@@ -592,7 +598,8 @@
               "flow_heat_c": "Högsta framledning vid värme (°C)",
               "space_setpoint_power_feedback": "Följ planerad effekt efter uppmätt förbrukning",
               "space_setpoint_low_limit_entity": "Givare för styrenhetens lägsta börvärde (valfri)",
-              "space_setpoint_high_limit_entity": "Givare för styrenhetens högsta börvärde (valfri)"
+              "space_setpoint_high_limit_entity": "Givare för styrenhetens högsta börvärde (valfri)",
+              "space_setpoint_high_limit_c": "Styrenhetens högsta börvärde (°C, valfritt)"
             },
             "data_description": {
               "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
@@ -603,7 +610,8 @@
               "flow_heat_c": "Vattenbörvärdet som skrivs vid full planerad effekt, och det högsta som skrivs medan planen styr. 55 °C passar ett framledningsmål. För en entitet med Returtemperatur väljs det över den högsta retur du ser vid normal uppvärmning plus höjningen, och inte högre än styrenheten accepterar; för en lågtemperatur-golvvärme kan 35–40 °C vara en startpunkt att kontrollera mot mätningar. Under 30 °C erbjuds inte: grinden som betyder av är 25 °C för ett framledningsmål och 20 °C för ett returmål. En rumsvärmeboost eller Boost-läget skriver i stället börvärdesentitetens eget maximum (högst 70 °C) vid varje steg; ett annat värde än 55 °C här begränsar även det, så ange ett för en lågtemperatur-golvvärme.",
               "space_setpoint_power_feedback": "På som standard. Verkar bara med Styrning av pumpens uppgift på Styrning, enheten Framlednings- eller Returtemperatur och en effektgivare för värmepumpen; annars ändras ingenting. Efter 5 minuters starthållning sänks vattenbörvärdet medan den uppmätta förbrukningen ligger över planerad nivå, höjs medan den ligger under och hålls inom 10 %, i stället för att följa det stigande inkommande vattnet. Av skriver inkommande vatten plus höjningen. Krav på styrenheten: dess värmehysteres högst höjningen (0,5 K på till exempel en Luxtronik), annars startas inte en stoppad kompressor; dess lägsta returmål under returen under eldningssäsongen; dess integration läser den minst var 10:e minut och återställer värmeläget efter en omstart av styrenheten, eftersom en styrenhet kan släppa det som satts när den inte läses (ett Luxtronik Smart Home Interface till exempel släpper alla satta värden efter 600 s utan åtkomst); och inget annat verktyg skriver samma register (en Luxtronik till exempel kastar då skrivningar tyst).",
               "space_setpoint_low_limit_entity": "Valfri. En temperaturgivare som rapporterar det lägsta värde styrenheten tar emot för börvärdesentiteten ovan (till exempel en Luxtronik via ha-luxtronik-shi: \"Temperature: return target minimum\", ingång 10104). Med den skickar Följ planerad effekt efter uppmätt förbrukning aldrig ett värde under det, i stället för att hitta gränsen först när styrenheten kapar en skrivning. Används bara av det alternativet; lämnas den tom ändras ingenting.",
-              "space_setpoint_high_limit_entity": "Valfri. En temperaturgivare som rapporterar det högsta värde styrenheten tar emot för börvärdesentiteten ovan (till exempel en Luxtronik via ha-luxtronik-shi: \"Temperature: return limit\", ingång 10103). Med den skickar Följ planerad effekt efter uppmätt förbrukning aldrig ett värde över det, i stället för att hitta gränsen först när styrenheten kapar en skrivning. Används bara av det alternativet; lämnas den tom ändras ingenting."
+              "space_setpoint_high_limit_entity": "Valfri. En temperaturgivare som rapporterar det högsta värde styrenheten tar emot för börvärdesentiteten ovan (till exempel en Luxtronik via ha-luxtronik-shi: \"Temperature: return limit\", ingång 10103). Inget framledningsbörvärde över det skrivs: Följ planerad effekt efter uppmätt förbrukning, en boost och varje uppvärmningssteg håller sig under det, i stället för att hitta gränsen först när styrenheten kapar en skrivning. Med ett högsta börvärde inskrivet nedan också gäller det lägre av de två; lämnas den tom ändras ingenting.",
+              "space_setpoint_high_limit_c": "Valfritt. Det högsta värde pumpen tar emot för börvärdesentiteten ovan, där det är lägre än entitetens eget maximum. Inget framledningsbörvärde över det skrivs, inte heller vid en boost. Med en givare för högsta börvärde också gäller det lägre av de två. Lämnas det tomt gäller entitetens eget maximum."
             }
           },
           "plant": {
@@ -1921,6 +1929,10 @@
       "title": "Börvärdesenheten för rumsuppvärmning rapporterar inte",
       "description": "Enheten du valt som börvärde för rumsuppvärmning ({entity}) saknas eller går inte att läsa, så inget kan sägas om pumpens aktuella mål. Ett rumsuppvärmningsbörvärde rekommenderas aldrig; det här meddelandet säger bara att enheten inte går att läsa. Kontrollera att den fortfarande finns och är tillgänglig, eller töm fältet. Meddelandet försvinner så snart enheten rapporterar en temperatur."
     },
+    "pump_mode_cooling": {
+      "title": "Värmepumpens läge visar kyla medan planen begär värme",
+      "description": "Värmepumpens driftläge visar ”{mode}”, och planen eller en boost begär värme av pumpen. Kyla lämnas åt dig: så länge läget visar kyla slår optimeraren varken på eller av pumpen och ändrar varken dess läge eller börvärden, så pumpen värmer inte huset. Om den ska värma, välj ett värmeläge på pumpen eller i dess app; ett strömavbrott, en återanslutning eller en felåterställning kan lämna pumpen i kylläge. Meddelandet försvinner så snart läget inte längre visar kyla."
+    },
     "pump_write_ignored": {
       "title": "Värmepumpen behåller inte en inställning som optimeraren skrev",
       "description": "Optimeraren skrev ett värde till värmepumpen och skrev det igen, men pumpen visar fortfarande något annat: {detail}. Så länge Optimerare aktiv är på är optimeraren den enda som skriver till pumpen: den skickar värdet igen var femte minut, och meddelandet försvinner så snart pumpen behåller det. Stäng av Optimerare aktiv först om du vill ändra pumpen för hand. Om ingen ändrade det, kontrollera att pumpens entitet tar emot värdet (dess intervall, molnanslutningen, den lokala nyckeln, skrivbehörigheten)."
@@ -2114,6 +2126,7 @@
           "manual_plan": "Ditt eget schema",
           "preheat_weather": "Förvärmning inför kallare väder",
           "pump_mode": "Blockerat av värmepumpens driftläge",
+          "room_floor": "Lyfter golvet för ett rum under sin måltemperatur",
           "scheduled": "Håller huset på önskad temperatur",
           "solar_surplus": "Täcks av solöverskott",
           "terminal_value": "Lämnar huset varmt",
@@ -2300,7 +2313,7 @@
   "services": {
     "run_optimization": {
       "name": "Kör optimering",
-      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen beräknar om det billigaste körschemat för de kommande 24 timmarna utifrån de elpriser och den väderprognos som redan är inlästa (nya hämtas inte) med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
+      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen hämtar elpriser och väderprognos och beräknar sedan om det billigaste körschemat för de kommande 24 timmarna, styr efter det och publicerar det, samma körning som knappen Optimera nu, med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
     },
     "set_away": {
       "name": "Ställ in bortaläge",

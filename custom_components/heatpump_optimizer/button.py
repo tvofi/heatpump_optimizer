@@ -26,18 +26,23 @@ import logging
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import debugger
+from . import debugger, sysid
 from .const import DOMAIN
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+    ProcessWorkerUnavailable,
+)
+from .solve_gate import async_optimize_now
 from .entity import HeatPumpOptimizerEntity, off_the_action
 
 _LOGGER = logging.getLogger(__name__)
 
 # The coordinator is the serialization point, not this semaphore: the solve
-# guards itself on ``_optimization_running`` and every other press's setter
+# guards itself on its solve gate (``solve_gate``) and every other press's setter
 # is a single write. The optimize-now press must await its solve to answer
 # the tap (#1644, D10-s1-02), and under a held slot that wait queues the
 # other buttons' presses behind it -- the v6.6.12 bug-5 shape, where a
@@ -100,14 +105,13 @@ class ForceOptimizationButton(_OptimizerButtonBase):
         The press answers a tap with the same refusal the
         ``run_optimization`` action raises (#1644, D10-s1-02): reporting
         success behind a dead price feed is the silent failure the action
-        was fixed out of (#294). The solve is awaited here -- the platform
-        takes no parallel-updates slot, so nothing queues behind it -- and
-        the fetch-and-actuate cycle still runs off the press, as before
-        (#1641).
+        was fixed out of (#294). The press awaits the action's own path, one
+        fetch-solve-actuate refresh (D17-s3-01): the platform takes no
+        parallel-updates slot, so nothing queues behind it, which is what
+        took the cycle off the press before (#1641).
         """
         _LOGGER.info("Optimization run requested from the dashboard")
-        reason = await self.coordinator.async_run_optimization()
-        off_the_action(self, self.coordinator.async_request_refresh())
+        reason = await async_optimize_now(self.coordinator)
         if reason == "no_prices":
             # The action's own wording, on the action's own translation
             # keys: services.py owns them and this is its sibling surface.
@@ -153,7 +157,28 @@ class SystemIdentificationButton(_OptimizerButtonBase):
         )
 
     async def async_press(self) -> None:
-        off_the_action(self, self.coordinator.async_arm_system_identification())
+        """Arm the experiment, raising when nothing was armed (D10-s1-02).
+
+        The arm is a synchronous decision, so the refusal reaches the press;
+        the refresh that publishes the armed phase runs off the action, as
+        the optimize-now press's does.
+        """
+        refused = self.coordinator.arm_system_identification()
+        off_the_action(self, self.coordinator.async_request_refresh())
+        if refused == sysid.ARM_REFUSED_DISABLED:
+            raise ServiceValidationError(
+                f"System identification is turned off for {self._entry.entry_id}",
+                translation_domain=DOMAIN,
+                translation_key="system_identification_disabled",
+                translation_placeholders={"entry_ids": self._entry.entry_id},
+            )
+        if refused is not None:
+            raise ServiceValidationError(
+                f"System identification was not armed for {self._entry.entry_id}: {refused}",
+                translation_domain=DOMAIN,
+                translation_key="system_identification_not_armed",
+                translation_placeholders={"entry_ids": self._entry.entry_id, "reason": refused},
+            )
 
 
 class ResetComfortWeightButton(_OptimizerButtonBase):
@@ -214,7 +239,17 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
         )
 
     async def async_press(self) -> None:
-        off_the_action(self, self.coordinator.async_diagnose_interval())
+        """Run the diagnosis, raising as the ``diagnose_interval`` action does
+        when the worker cannot run it (D10-s1-02)."""
+        try:
+            await self.coordinator.async_diagnose_interval()
+        except ProcessWorkerUnavailable as err:
+            raise HomeAssistantError(
+                f"The interval diagnosis could not run for {self._entry.entry_id}: {err}",
+                translation_domain=DOMAIN,
+                translation_key="diagnose_interval_failed",
+                translation_placeholders={"entry_ids": self._entry.entry_id, "error": str(err)},
+            ) from err
 
 
 class DebugFinalizeButton(_OptimizerButtonBase):

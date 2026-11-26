@@ -465,6 +465,12 @@
     "diagnose_interval_failed": {
       "message": "The interval diagnosis could not run for {entry_ids}: {error}"
     },
+    "system_identification_disabled": {
+      "message": "System identification is turned off for {entry_ids}: turn on \"Allow a one-off measurement experiment\" in the options to arm it"
+    },
+    "system_identification_not_armed": {
+      "message": "System identification was not armed for {entry_ids}: {reason}"
+    },
     "simulate_plan_failed": {
       "message": "The what-if simulation could not run for {entry_ids}: {error}"
     },
@@ -592,7 +598,8 @@
               "flow_heat_c": "Heating flow ceiling (°C)",
               "space_setpoint_power_feedback": "Follow the planned power on the measured draw",
               "space_setpoint_low_limit_entity": "Controller's minimum set-point sensor (optional)",
-              "space_setpoint_high_limit_entity": "Controller's maximum set-point sensor (optional)"
+              "space_setpoint_high_limit_entity": "Controller's maximum set-point sensor (optional)",
+              "space_setpoint_high_limit_c": "Controller's maximum set-point (°C, optional)"
             },
             "data_description": {
               "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
@@ -603,7 +610,8 @@
               "flow_heat_c": "The water set-point written at full planned power, and the highest one written while the plan is in charge. 55 °C suits a supply target. For a Return temperature entity choose it above the highest return you see in normal heating plus the lift, and no higher than the controller accepts; on a low-temperature floor heating 35–40 °C may be a starting point to check against measurements. Below 30 °C is not offered: the gate that means off is 25 °C for a flow target and 20 °C for a return target. A space boost or Boost mode writes the set-point entity's own maximum (up to 70 °C) on every step instead; a value other than 55 °C set here caps that too, so set one on a low-temperature floor heating.",
               "space_setpoint_power_feedback": "On by default. Acts only with Pump duty control at Control, a Flow or Return temperature unit and a heat-pump power sensor; otherwise nothing changes. After a 5-minute start hold, the water set-point is nudged down while the measured draw is above the planned level and up while it is below, and held while it is within 10 %, instead of following the rising inlet water. Off writes the inlet plus the lift. Requirements on the controller: its heating hysteresis at most the lift (0.5 K on a Luxtronik, for example), or a stopped compressor is not started; its minimum return target below the heating-season return; its integration polling it at least every 10 minutes, and restoring its heating mode after a controller restart, since a controller can drop what was set when it goes unread (a Luxtronik Smart Home Interface, for one, drops every set value after 600 s without access); and no second tool writing the same registers (a Luxtronik, for one, then silently discards writes).",
               "space_setpoint_low_limit_entity": "Optional. A temperature sensor that reports the lowest value the controller accepts for the set-point entity above (for example a Luxtronik through ha-luxtronik-shi: \"Temperature: return target minimum\", input 10104). With it, Follow the planned power never sends a value below it, instead of finding the limit when the controller cuts a write. Used by that option alone; left empty, nothing changes.",
-              "space_setpoint_high_limit_entity": "Optional. A temperature sensor that reports the highest value the controller accepts for the set-point entity above (for example a Luxtronik through ha-luxtronik-shi: \"Temperature: return limit\", input 10103). With it, Follow the planned power never sends a value above it, instead of finding the limit when the controller cuts a write. Used by that option alone; left empty, nothing changes."
+              "space_setpoint_high_limit_entity": "Optional. A temperature sensor that reports the highest value the controller accepts for the set-point entity above (for example a Luxtronik through ha-luxtronik-shi: \"Temperature: return limit\", input 10103). No space water set-point above it is written: Follow the planned power, a boost and every heating step stay under it, instead of finding the limit when the controller cuts a write. With a maximum set-point typed below as well, the lower of the two applies; left empty, nothing changes.",
+              "space_setpoint_high_limit_c": "Optional. The highest value the pump accepts for the set-point entity above, where that is lower than the entity's own maximum. No space water set-point above it is written, a boost's included. With a maximum set-point sensor as well, the lower of the two applies. Left empty, the entity's own maximum applies."
             }
           },
           "plant": {
@@ -1921,6 +1929,10 @@
       "title": "The space-heating set-point entity is not reporting",
       "description": "The entity you chose as the space-heating set-point ({entity}) is missing or unreadable, so nothing can be said about the pump's current target. The space-heating set-point is never recommended; this notice only reports that the entity cannot be read. Check that it still exists and is available, or clear the slot. This notice clears as soon as the entity reports a temperature."
     },
+    "pump_mode_cooling": {
+      "title": "The heat pump's mode reads cooling while the plan asks for heat",
+      "description": "The heat pump's operating mode reads “{mode}”, and the plan or a boost asks the pump for heat. Cooling is left to you: while the mode reads cooling, the optimizer does not switch the pump on or off and does not change its mode or set-points, so the pump makes no heat for the house. If it should heat, set a heating mode on the pump or in its app; a power cut, a reconnect or a fault reset can leave the pump in cooling. This notice clears as soon as the mode no longer reads cooling."
+    },
     "pump_write_ignored": {
       "title": "The heat pump does not hold a setting the optimizer wrote",
       "description": "The optimizer wrote a value to the heat pump and wrote it again, and the pump still reads something else: {detail}. While Optimizer active is on, the optimizer is the pump's only writer: it sends the value again every five minutes, and this notice clears as soon as the pump holds it. To change the pump by hand, turn Optimizer active off first. If nobody changed it, check that the pump's entity accepts the value (its range, the cloud connection, the local key, write permissions)."
@@ -2114,6 +2126,7 @@
           "manual_plan": "Your own schedule",
           "preheat_weather": "Pre-heating before colder weather",
           "pump_mode": "Blocked by the heat pump's mode",
+          "room_floor": "Lifting the floor for a room below its target",
           "scheduled": "Keeping the house at target",
           "solar_surplus": "Covered by solar surplus",
           "terminal_value": "Leaving the house warm",
@@ -2300,7 +2313,7 @@
   "services": {
     "run_optimization": {
       "name": "Run Optimization",
-      "description": "Manually trigger the heat pump cost optimization. This recomputes the optimal heat pump schedule for the next 24 hours from the electricity prices and weather forecast already loaded (it does not fetch new ones) using predictive MPC with solar/wind/rain anticipation and DHW coordination. The call fails with an error when the optimization cannot run — for example fewer than four electricity price steps are available, or the solve failed — instead of returning as if a new plan had been computed."
+      "description": "Manually trigger the heat pump cost optimization. This fetches the electricity prices and weather forecast, then recomputes the optimal heat pump schedule for the next 24 hours, actuates it and publishes it, the same run as the Optimize Now button, using predictive MPC with solar/wind/rain anticipation and DHW coordination. The call fails with an error when the optimization cannot run — for example fewer than four electricity price steps are available, or the solve failed — instead of returning as if a new plan had been computed."
     },
     "set_away": {
       "name": "Set Away",

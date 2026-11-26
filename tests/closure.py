@@ -125,6 +125,9 @@ NOT_A_TEST = {
     # runs, kept out of features.py so CodeQL's extraction of that module
     # fits its job limit. Measured through features.py's closure.
     "worker_deadlines.py",
+    # The case runner and recorder (R11-CI-CASE-SELECT): a gate file below,
+    # never a test of its own; tests/entities.py runs its self-test.
+    "case_select.py",
     # The comment ratchet (R11-SEAM-comments-tests): an arm of doc_claims.py,
     # which imports and runs it. Measured through doc_claims.py's closure.
     "comment_ratchet.py",
@@ -217,8 +220,8 @@ NOT_A_TEST = {
 DRIVEN_BY_OTHERS = {"dst_checks.py": "features.py"}
 
 # Scripts that run only under SLOW=1, and so never run in the `fast` job that
-# scoping applies to. Every other path -- push to main, nightly, dispatch --
-# forces GATE_SCOPE=full, so their closures could never decide anything
+# scoping applies to; the one path that runs them, the nightly's `slow` lane,
+# runs them directly and unscoped, so their closures could never decide anything
 # either. They are excluded from selection rather than recorded because
 # recording them is not free: rolling.py alone takes over an hour under the
 # audit hook (measured 62 min, against 37 unhooked), which was most of the
@@ -519,6 +522,12 @@ GATE_FILES = (
     # run.sh changes what they run. It cannot be a measured closure of
     # itself, so it is a gate file -- the same argument as closure.py.
     "tests/lane_skip.py",
+    # R11-CI-CASE-SELECT (design 25fa1f76): the case splitter, runner and
+    # recorder, and the per-span table it writes. How a long script's cases
+    # are cut, run and recorded is as load-bearing as how its closure is
+    # derived, so a change to either runs everything.
+    "tests/case_select.py",
+    "tests/case_closures.json",
 )
 
 
@@ -2946,13 +2955,15 @@ def proof_consume(expect_tree: str, in_dir: Path) -> int:
 
 def changed_between(base: str, head: str, *, dots: str = "...",
                     cwd: Path | str = ROOT, env: dict | None = None) -> list[str]:
-    """The files `<base><dots><head>` changed, both sides of every rename."""
-    out = subprocess.run(["git", "diff", "--no-renames", "--name-only",
+    """The files `<base><dots><head>` changed, both sides of every rename. `-z`:
+    git C-quotes a non-ASCII or special path in a plain listing, and a quoted
+    name matches no prefix and no closure entry (rev-3888)."""
+    out = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z",
                           f"{base}{dots}{head}"], cwd=cwd, env=env,
                          capture_output=True, text=True)
     if out.returncode != 0:
         raise SystemExit(f"closure: cannot diff {base}{dots}{head}: {out.stderr.strip()}")
-    return sorted({l.strip() for l in out.stdout.splitlines() if l.strip()})
+    return sorted({l for l in out.stdout.split("\0") if l.strip()})
 
 
 def changed_files(diff_ref: str) -> list[str]:
@@ -2965,10 +2976,10 @@ def changed_files(diff_ref: str) -> list[str]:
         raise SystemExit(f"closure: cannot diff against {diff_ref}: {e}") from None
     # Uncommitted work counts too, so a local `run.sh` scopes to what is
     # actually on disk.
-    for extra in (["git", "diff", "--no-renames", "--name-only", "HEAD"],
-                  ["git", "ls-files", "--others", "--exclude-standard"]):
+    for extra in (["git", "diff", "--no-renames", "--name-only", "-z", "HEAD"],
+                  ["git", "ls-files", "-z", "--others", "--exclude-standard"]):
         o = subprocess.run(extra, cwd=ROOT, capture_output=True, text=True)
-        files += [l.strip() for l in o.stdout.splitlines() if l.strip()]
+        files += [l for l in o.stdout.split("\0") if l.strip()]
     return sorted(set(files))
 
 

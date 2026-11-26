@@ -75,9 +75,11 @@
 # worse, because it would look like a pass.
 #
 # The safety net that makes this acceptable: the full unscoped suite still
-# runs on every push to main and on every release (.github/workflows/tests.yml
-# forces GATE_SCOPE=full there). Scoping applies to pull requests only, so a
-# wrong closure turns main red within one gate instead of never.
+# runs on every push to main whose range touches production, and on every
+# release (.github/workflows/tests.yml runs GATE_SCOPE=full there; a light
+# push, touching no production file, is scoped as a pull request is,
+# tools/ci/prelude.py), so a wrong closure turns main red at the next such
+# push instead of never.
 #
 # In lane mode each script's output is captured and replayed in full, one
 # script at a time, after the lanes finish — interleaved output from four
@@ -477,6 +479,9 @@ for f in tests/*.py tests/*.mjs; do
     # recording needs `gh`, verifying needs the floor's own Home Assistant,
     # which the nightly-ha job runs it in. tests/entities.py imports it.
     ha_floor.py) continue ;;
+    # The case runner and recorder (R11-CI-CASE-SELECT): a gate file;
+    # entities.py runs its self-test.
+    case_select.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
@@ -559,6 +564,11 @@ lane_units() {
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
   run "$PYTHON" tests/config_flow_steps.py
+  # The coordinator-cycle lane (D9-s3-02): solves, payload and retained
+  # bytes, optimizer yields and loop-side calls per _async_update_data
+  # cycle, against tests/cycle_budgets.json. Counts and bytes only, so it
+  # runs here with the parallel lanes, not in the stress tail.
+  run "$PYTHON" tests/cycle_lane.py
   # The structural ratchet of the coordinator decomposition program (#193,
   # PR-0): AST counts -- god classes, monster methods, attr bags, seam cut
   # costs -- over the whole integration, each held at or below the budget
@@ -720,7 +730,15 @@ lane_e2e() {
 # machine. stress.py's solve-time guard calibrates against this machine while
 # it runs, and the rest of the suite must not be part of what it measures.
 lane_stress() {
-  run "$PYTHON" tests/stress.py
+  # #3885: not on a pull request. CI's fast job names its event in
+  # HPO_CI_EVENT; a pull-request run under a scoped gate skips stress.py by
+  # name, and the push to main (GATE_SCOPE=full) and nightly.yml's `slow`
+  # job run it. A local run sets no event and runs it as before.
+  if [ "${HPO_CI_EVENT:-}" = pull_request ] && [ "$GATE_SCOPE" != full ]; then
+    skip tests/stress.py "SKIP: tests/stress.py (pull_request: the push to main and the nightly run it, #3885)"
+  else
+    run "$PYTHON" tests/stress.py
+  fi
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
   # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
@@ -784,7 +802,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py) continue ;;
+    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py|case_select.py) continue ;;
   esac
   # The arch part owes the pair and nothing else; `fast` owes the rest, the
   # pair as its two named skips.
@@ -862,8 +880,8 @@ if [ -n "$SCOPE_RUN" ]; then
   echo "  Each line above is a claim that no file changed by this branch is in"
   echo "  that script's MEASURED closure (tests/closures.json, recorded by"
   echo "  tests/derive_closures.sh from real instrumented runs). The claim is"
-  echo "  re-checked in full: every push to main runs this suite unscoped, so"
-  echo "  a closure that is wrong turns main red within one gate."
+  echo "  re-checked in full: every push to main touching production runs this"
+  echo "  suite unscoped, so a closure that is wrong turns main red at that push."
   echo "  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh"
 fi
 

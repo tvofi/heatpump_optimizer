@@ -836,6 +836,7 @@ from homeassistant.helpers import entity_registry as er  # noqa: E402
 from heatpump_optimizer import const as const_mod  # noqa: E402
 from heatpump_optimizer import replay_doc  # noqa: E402
 from heatpump_optimizer.const import PRICE_SOURCE_ENTITY  # noqa: E402
+from heatpump_optimizer.coordinator import CoordinatorDiagnostics  # noqa: E402
 
 _export_spec = importlib.util.spec_from_file_location(
     "hpo_export_under_test", Path("tools/replay/export.py"))
@@ -1538,7 +1539,8 @@ async def _planted_download(value_pass=True):
     (Path(folder) / ".storage" / debugger.store_keys("rp")["accuracy"]).write_text(
         json.dumps({"version": 1, "data": {"note": _leak_text("store"),
                                            "lat": float(EXACT[0])}}))
-    coord.mode = _leak_text("mode")
+    # Diagnostics reads the mode from the published view (ADR-005), so the plant goes there.
+    coord.diagnostics_state = lambda: CoordinatorDiagnostics(mode=_leak_text("mode"))
     coord.data = {"insight": {"last_diagnosis": _leak_text("diagnosis")},
                   "problem_messages": [_leak_text("input")],
                   "current_action": _leak_text("plan"),
@@ -2210,5 +2212,17 @@ R.check(
     "as published",
     all(row["null"] for row in _bounded_rows),
     str([row["row"] for row in _bounded_rows if not row["null"]]),
+)
+# D15-s3-01: the not-run publish after a restart carries solve_time_ms 0, an
+# inert value, never a duration; the solver self-test's week spread is over
+# the rows where a solve ran. The real bundle read min 0 ms and n 662 where
+# 652 solves ran. The control row with no recorded time is left out alike.
+_smoke_rows = [{"payload_solve_time_ms": 9806.0}, {"payload_solve_time_ms": 0},
+               {"payload_solve_time_ms": 12000.0}, {"mode": "auto"}]
+_smoke = asyncio.run(debugger._solver_smoke(_SimCoord(data={}), _smoke_rows))["week_solve_ms"]
+R.check(
+    "the solver self-test spreads only rows where a solve ran: a not-run 0 is no duration (D15-s3-01)",
+    _smoke is not None and _smoke["n"] == 2 and _smoke["min"] == 9806.0,
+    str(_smoke),
 )
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

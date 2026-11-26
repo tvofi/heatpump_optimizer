@@ -855,6 +855,9 @@ DEFAULT_FLOW_HEAT_C: Final = 55.0
 #: _boost_ceiling_c``): above it the entity is no heating-flow set-point
 #: (a generic number helper reads 100), so a boost keeps the planned level.
 FLOW_HEAT_C_MAX: Final = 70.0
+#: The lowest heating-flow ceiling and manual high limit the options flow
+#: offers, °C: above the 25 °C gate, which a ceiling there would write as off.
+FLOW_LIMIT_C_MIN: Final = 30.0
 #: The flow set-point's lift over the measured inlet water at the modulation
 #: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
 #: that takes the set-point as its return-water target modulates on the gap
@@ -875,6 +878,9 @@ DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
 #: register 10001 (#3372 comment 6756915104). Unset, nothing reads them.
 CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: Final = "space_setpoint_low_limit_entity"
 CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: Final = "space_setpoint_high_limit_entity"
+#: The upper limit typed by hand, °C, for a controller that publishes none
+#: (``flow_limit``): with the sensor too, the lower of the two binds.
+CONF_SPACE_SETPOINT_HIGH_LIMIT_C: Final = "space_setpoint_high_limit_c"
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
@@ -1932,8 +1938,9 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
 # --- Entity families (N-name-sort barrier, #1760) ---------------------------
 #
 # A family is a translation key's lead token -- the token the suggested
-# object id is already built from -- plus the explicit overrides below for
-# members homed elsewhere. tests/entities.py holds the one check this
+# object id is built from -- plus the explicit overrides below for members
+# homed elsewhere, whose suggested object id leads with the family
+# (entity._pin_identity). tests/entities.py holds the check this
 # declaration feeds: every family of two or more members must form one
 # contiguous run in the English and Swedish name sorts. Before this table
 # existed, family membership was declared nowhere, and eight fixes (#174,
@@ -1944,9 +1951,10 @@ ENTITY_FAMILY_OVERRIDES: Final[dict[str, str]] = {
     # The accuracy readout sorts with its prediction sensor (#1668), not
     # among the diagnose buttons' other neighbours.
     "diagnose_last_interval": "prediction",
-    # The four lifetime meters left the Cost family: their names lead with
-    # the meters' own token so the name sort keeps them in one run (#1668);
-    # entity ids and translation keys are untouched.
+    # The four lifetime meters left the Cost family. Their names lead with
+    # the meters' own token, so the name sort keeps them in one run (#1668).
+    # Their suggested object ids lead with it too (entity._pin_identity,
+    # D8-s2-02). Translation keys and unique ids are untouched.
     "cost_total_heating": "lifetime",
     "space_heating_cost": "lifetime",
     "space_heating_energy": "lifetime",

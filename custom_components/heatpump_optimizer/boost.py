@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from weakref import WeakKeyDictionary
 
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, admitted, load_mapping
 from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
@@ -38,7 +38,7 @@ from .const import (
     MODE_BOOST,
     SPACE_PUMP_FLOOR_MARGIN_C,
 )
-from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
+from .dhw_schedule import hour_in_windows, windows_in_force
 from .drift import stored_instant
 from .entity import has_hot_water
 from .payload import CurrentAction, REASON_BOOST, REASON_LEGIONELLA
@@ -126,8 +126,6 @@ class _BoostCoord(Protocol):
 
     def adopt_action(self, action: CurrentAction) -> None: ...
 
-    async def async_request_refresh(self) -> None: ...
-
 
 @dataclass
 class BoostState:
@@ -143,9 +141,11 @@ class BoostState:
     #: baseline is gone after a restart, but the slab heat is not, so every
     #: replay after the first one would fold it.
     space_settle_until: datetime | None = None
-    #: When the space overlay, and the global boost mode, went live; ``None``
-    #: unseen (a mode restored as boost), which makes ``space_boosted`` unknown.
+    #: When the space overlay went live; ``None`` unseen.
     space_since: datetime | None = None
+    #: When the global boost mode went live, ``None`` while it is not: the one
+    #: answer to "is the mode live" (ADR-005). A mode restored as boost reads
+    #: its restore, and its unseen start makes ``space_boosted`` unknown.
     mode_since: datetime | None = None
 
     #: The boosted time, over both surfaces, that ended since the learners
@@ -198,11 +198,17 @@ class BoostState:
                 and CHANNEL_SPACE not in self.until and self.mode_since is None):
             self.space_settle_until, self.space_boosted = None, timedelta(0)
 
-    def note_mode(self, live: bool, now: datetime) -> None:
-        """The global boost mode was entered (``live``) or left: leaving starts its tail."""
+    def note_mode(self, live: bool, now: datetime, *, seen: bool = True) -> None:
+        """The global boost mode was entered (``live``) or left: leaving starts its tail.
+
+        An entry not ``seen`` is a restart restoring the mode: its start, and so
+        the boosted sum, is unknown.
+        """
         if live:
             self._clear_spent(now)
             self.mode_since = now
+            if not seen:
+                self.space_boosted = None
         else:
             self.settle(now, self.mode_since)
             self.mode_since = None
@@ -357,8 +363,8 @@ def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
 
 
 def _mode_live(coord: Any) -> bool:
-    """Is the global boost mode selected?"""
-    return getattr(coord, "mode", None) == MODE_BOOST
+    """Is the global boost mode selected? Read from what ``note_mode_change`` was told."""
+    return held_for(coord).mode_since is not None
 
 
 def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
@@ -425,13 +431,13 @@ def note_mode_change(coord: Any, old: str | None, new: str, now: datetime | None
 
     The mode surface diverges the replayed plant state exactly as the
     channel overlay does -- same actuation, same mechanism -- so it owes
-    the same tail, for the time the mode ran.
+    the same tail, for the time the mode ran. ``old`` ``None`` is a restart
+    restoring ``new``, whose start nobody saw (ADR-005).
     """
     if (old == MODE_BOOST) != (new == MODE_BOOST):
-        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now())
+        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now(), seen=old is not None)
         if old == MODE_BOOST:
             _schedule_persist(coord)
-
 
 def overlay(
     action: CurrentAction,
@@ -612,10 +618,13 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> 
     until = _parse_until(tail.get("until"))
     if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):
         held.space_settle_until = until
-        # Unreadable boosted time reads as a start nobody saw: unknown.
+        # Boosted time outside its declaration -- unreadable, or longer than any
+        # run between two instants -- reads as a start nobody saw: unknown (D1-s2-06).
         hours = tail.get("boosted_h")
+        # A restored boost mode's unknown sum stays unknown, whichever restore ran first.
         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
-                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)
+                              and admitted("boost", {"space_settle": {"boosted_h": hours}})
+                              and held.space_boosted is not None else None)
     space = raw.get(CHANNEL_SPACE)
     since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
     if since is not None and CHANNEL_SPACE in held.until:
@@ -736,20 +745,10 @@ def _due_inside_horizon(coord: Any) -> bool:
 
 
 def _window_open(snap: Any, now: datetime) -> bool:
-    info = getattr(snap.plan, "predictive_info", None) or {}
-    planned = info.get("dhw_windows") if snap.plan is not None else None
-    windows = None
-    if planned:
-        try:
-            windows = parse_windows(planned)
-        except DHWWindowError:
-            windows = None
-    if not windows:
-        windows = list(getattr(snap.params, "dhw_demand_windows", None) or [])
-    if not windows:
-        return False
-    hour = now.hour + now.minute / 60.0
-    return hour_in_windows(hour, windows)
+    holidays = away_mode.holiday_dates(
+        getattr(snap, "hass", None), getattr(getattr(snap, "config", None), "holiday_calendar_entity", None), now)
+    windows = windows_in_force(snap.params, snap.plan, now, holidays)
+    return hour_in_windows(now.hour + now.minute / 60.0, windows)
 
 
 def _dhw_floor(coord: Any, snap: Any, now: datetime) -> str | None:
