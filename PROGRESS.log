@@ -4,3 +4,4 @@
 1795679898 HB alive
 1795679913 CKPT mutation proof round 1: 7 of 7 mutants killed snapshot 9cae09e39fe1
 1795680502 HB alive
+1795680893 CKPT round 2: 8 more stored-option readers fixed + tests in wtm f3077877; mutation round 2 running snapshot c7eb6168b41d
