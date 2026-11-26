@@ -1,0 +1,4 @@
+lag=0 CCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCK longest-cancelled-row=3
+lag=1 CCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCK longest-cancelled-row=3
+lag=3 CCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCKCCCK longest-cancelled-row=3
+worst longest row of cancelled runs over 150 sims: 3 (bound MAIN_ROW_MAX = 3 )
