@@ -90685,11 +90685,11 @@ def _fh_take(out, enabled=True):
     return _fh.take_off(held, _fh_inp(out, enabled=enabled), _SA_T0), held.frost_holding
 
 
-def _fh_freeze(power, out=-3.0, at=10, later=None):
+def _fh_freeze(power, out=-3.0, at=10, later=None, mode="auto"):
     """The freeze reason ``at`` minutes after a held OFF; ``later`` is the draw read then."""
-    host = _FhHost(_fh_inp(out, power=power))
+    host = _FhHost(_fh_inp(out, power=power, mode=mode))
     _fh.gate(_sa_pa.state_for(host), host.arbiter_inputs, False, _SA_T0)
-    host.inp = _fh_inp(out, power=power if later is None else later)
+    host.inp = _fh_inp(out, power=power if later is None else later, mode=mode)
     return _fh.freeze_reason(host, _SA_T0 + timedelta(minutes=at))
 
 
@@ -90700,6 +90700,12 @@ for _fh_name, _fh_got, _fh_want in (
     ("a held pump the meter reads running freezes the learners", _fh_freeze(1.5), _fh.FREEZE_FROST),
     ("a held pump with no meter freezes them (fail closed)", _fh_freeze(None), _fh.FREEZE_FROST),
     ("null control: a held pump the meter reads idle does not", _fh_freeze(0.0), None),
+    # ``ran_kw`` is the run's bound, inclusive: a draw exactly on it is a run.
+    ("a held pump drawing exactly ran_kw freezes them", _fh_freeze(_sa_pa.ran_kw(_fh_inp(-3.0))), _fh.FREEZE_FROST),
+    ("null control: a held pump drawing just under ran_kw does not",
+     _fh_freeze(_sa_pa.ran_kw(_fh_inp(-3.0)) - 1e-6), None),
+    # The optimizer Off holds nothing (``holding``), so a latched OFF notes no run.
+    ("the optimizer Off: a latched OFF with no meter does not freeze them", _fh_freeze(None, mode="off"), None),
     ("null control: a write passed above the threshold does not", _fh_freeze(None, out=4.0), None),
     ("a run seen at 06:00 still freezes at 06:59, the meter idle since", _fh_freeze(1.5, at=59, later=0.0), _fh.FREEZE_FROST),
     ("the freeze ends two intervals after the run was last seen", _fh_freeze(1.5, at=60, later=0.0), None),
