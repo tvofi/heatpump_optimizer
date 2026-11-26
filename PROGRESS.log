@@ -6,3 +6,4 @@
 1795664372 HB alive
 1795664930 CKPT all mutants killed; verdict drafted; waiting CI snapshot 2e88d8f2a857
 1795664969 HB alive
+1795665354 DONE verdict merge f9eff1b8 pending-ci gate on probe/rev-3906-da3ed220 (3bb49efa)
