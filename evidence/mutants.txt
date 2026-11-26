@@ -1,0 +1,21 @@
+MUTANT predicate: 40 1 ['control:headroom:over_the_cap']
+MUTANT regex: 40 1 ['control:headroom:reads_the_replay_job']
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; sys.path[:0]=['tests']; import replay as r; c=r.controls(); f=[x for x in c if not x[1]]; print(len(c), len(f), [x[0] for x in f])
+                                                              ~~~~~~~~~~^^
+  File "/root/wt/tests/replay.py", line 1287, in controls
+    pair("headroom:cap_unread", headroom_offenders(1.0, None), headroom_offenders(1.0, 30))
+                                ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/root/wt/tests/replay.py", line 992, in headroom_offenders
+    limit = REPLAY_HEADROOM_SHARE * (cap_minutes * 60 - REPLAY_JOB_SETUP_S)
+                                     ~~~~~~~~~~~~^~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'int'
+MUTANT none_branch: 
+MUTANT share1: 40 0 []
+MUTANT share05: 40 1 ['control:headroom:over_the_cap']
+MUTANT setup0: 40 0 []
+MUTANT lt: 40 0 []
+MUTANT anchor_indent: 40 0 []
+MUTANT tm_any: 40 1 ['control:headroom:reads_the_replay_job']
+RESTORED: 0 dirty; 40 0 []

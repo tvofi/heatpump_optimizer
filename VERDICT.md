@@ -1,0 +1,32 @@
+Fix review: blocked 8e0391b08fa316937564766964e3e13c3a1fb97d fix-refuted: the PR's own headroom check fails on its own replay job at this head, lane 2505.3 s > 2144.0 s at cap 45, asks for at least 53
+
+bus-nonce: 3f43bca1f73dea05efa32b14156bdd15
+
+## Block
+
+The fix is a cap value (tests.yml `replay` `timeout-minutes: 45`) and a check that this cap leaves 20% headroom. The PR's own `tests / replay` job at this head (job 139918878679, run 45821055133, ev/replay-job-139918878679-tail.txt) ran on CI's runner class for 42.2 min of job, and the lane printed `replay lane wall time 2505.3 s` and `FAIL lane wall time within the pull-request replay job's headroom [lane wall time 2505.3 s > 0.8 x (45 min - 20 s) = 2144.0 s; raise the replay job's timeout-minutes to at least 53]`. It was the only failure of 202 replay checks. The sizing in the body (cost budget "allows 38.6 min", "uncensored observed maximum is 34.2 min", "45 leaves headroom over it") is refuted by the first pull-request run at the head. 2505.3 s is 39% over the worst nightly the body tabulates (1798.0 s), so the s/unit spread on `ubuntu-latest` is wider than the 3.83 s/unit the cap was sized from. The job finished about 3 min short of cancellation, so the next slower runner returns no verdict again. That is the failure this PR exists to end.
+
+This is not a block on the red as such: `tests / replay` is outside the `owed-reds` set (ev/owed-reds.txt), and `classify` reads GREEN. The block is on the code value. Its own harness, on its own head, says the value does not meet the PR's stated criterion. Owed to clear it: re-size the cap from the per-unit spread including this run (the check's own floor is 53; the 0.8 share at the 2505.3 s seen here needs >= 53, and some margin over that against the next runner), or state and measure a different criterion. Then a pull-request replay run at the new head inside the check's headroom. The owner sizes a code-owned `.github/` value and approved FG-4. A cap past 53 may need their word on the runner minutes. Carry: dismissed: the block itself, settled by this PR's next head, not a carried finding
+
+## Scope
+
+Round 1, full review (packet `## Review scope: full`). Head 8e0391b08fa316937564766964e3e13c3a1fb97d, merge base and origin/main 1d3077736d4a7ced6ec15d9aec29f6bcf40fbae8. Role contract unchanged against main (`git diff merge-base...origin/main -- dev/governance/roles/` empty). `git merge-tree --write-tree origin/main <head>` exit 0, tree 2b8798355e1f929678790ef50dd195a9616f35bb: no conflict.
+
+## Evidence
+
+- RESULT: controls 40, 0 failing at the head; the three `headroom:*` controls ok (ev/figures.txt).
+- RESULT: cap read 45 at the head, agreeing with PyYAML (`45 45`); 30 from origin/main's tests.yml.
+- RESULT: null-control table reproduced exactly: 772.0 and 836.1 s ok at 30 and 45; 1518.1, 1476.4, 1798.0, 1751.8 s red at 30 (limit 1424.0 s), ok at 45 (limit 2144.0 s = 0.8 x (2700 - 20)).
+- RESULT: sizing arithmetic re-derived: `COST_BUDGETS` owner `cpu_ratio` 589.6842 (tests/replay.py:505) x 3.83 s/unit = 2258 s, + ~60 s = 38.6 min < 45. The 3.83 s/unit (1738.5 s / 454.26) and the six nightly wall times are CI log lines of the named nightly runs, which I did not open: taken as quoted, not re-derived.
+- RESULT: mutation proof re-run against `controls()` (ev/mutants.txt). Killed: predicate `if wall_s <= limit:` -> `if True:` (`headroom:over_the_cap`), the body's job-reader regex mutant (`headroom:reads_the_replay_job`), `\s*timeout-minutes` loosening (`reads_the_replay_job`), the None branch deleted (controls() raises TypeError), `REPLAY_HEADROOM_SHARE` 0.5 (`over_the_cap`). Restored, tree clean, 40/0 after.
+- RESULT: the main() wiring driven end to end on the synthetic fixture with `REPLAY_HEADROOM_SHARE` = 0.0001 (ev/e2e-share0001.log): `FAIL lane wall time within the pull-request replay job's headroom [lane wall time 63.6 s > 0.0001 x (45 min - 20 s) = 0.3 s; raise the replay job's timeout-minutes to at least 10604]`, read from the real tests.yml at 45; at the shipped 0.8 the same check is green on every run the controls drive (the body's own 749.1 s run; mine was 63.6 s, far inside 2144.0 s)
+- RESULT: the nightly `slow` job (.github/workflows/nightly.yml:456, cap 150) runs the same tests/replay.py, which reads tests.yml's `replay` job cap (tests.yml:1453, cap :1460), so the check grades the pull-request cap from the nightly lane as the body states. The only other `replay:` key in tests.yml is the closure-scope output mapping at :1827 (6 spaces, value on the line), which the reader's `\n  replay:\n` anchor cannot match.
+- RESULT: `STRUCTURE RATCHET PASSED`; VERSION, manifest, RELEASE_NOTES.md and tests/golden untouched three-dot; no claim file touched, no `*_budgets.json` touched; no production (`custom_components/`) line in the diff, so the `mutation` lane draws no mutant here by design.
+- CI: `merge_train.py classify 8e0391b08fa316937564766964e3e13c3a1fb97d --pr 3912` exit 0: `GREEN 8e0391b08fa316937564766964e3e13c3a1fb97d pending: none red: none` (ev/classify-final.txt, ev/classify.log). Live check runs re-read after GREEN: red only `tests / replay` (above) and `tests / nightly-status`; neither is in the owed-reds set.
+- Head re-read before return: branch fix/r11-flow-fg4-replay-timeout at 8e0391b08fa316937564766964e3e13c3a1fb97d.
+- carry_audit.py check rc 0. ev/pr-body.txt holds only the body's Red checks, Forward-carry and Friction sections (each `none`), copied from the live body; it is not the whole body.
+- Red checks: `tests / nightly-status` reads failure at this head; it is outside the `merge_train.py owed-reds` set (ev/owed-reds.txt), so it is owed no answer and blocks nothing. `replay` is outside the set too.
+
+## Findings
+
+- Follow-up: four hand mutants of the new headroom check survive `controls()`: `REPLAY_HEADROOM_SHARE` 0.8 -> 1.0 (the check then fires only once the lane already uses the whole job, so its early warning is gone, and no control pins the share between 0.8 and 1.0: a wall time such as 1600 s at cap 30 would), `REPLAY_JOB_SETUP_S` 20 -> 0, `<=` -> `<`, and the job anchor loosened to `\n *replay:\n`. The last three are tuning or boundary with no behaviour a real input separates (the only nested `replay:` key carries a value on its line). Test-only file, nothing on `custom_components/`; not a block. Carry: dismissed: the share survivor is a one-line control strengthening with no stage it constrains; the other three are equivalent on every input the workflow carries
