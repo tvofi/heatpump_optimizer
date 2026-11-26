@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/replay_doc.py b/custom_components/heatpump_optimizer/replay_doc.py
+index 0509269a65..1ac0734017 100644
+--- a/custom_components/heatpump_optimizer/replay_doc.py
++++ b/custom_components/heatpump_optimizer/replay_doc.py
+@@ -241,7 +241,7 @@ def clean_value(node: object, dropped: list[str]) -> object:
+                 continue
+             if _is_coordinate(key) and isinstance(value, (int, float, str)) \
+                     and not isinstance(value, bool):
+-                if numeric(value):
++                if not isinstance(value, str) or numeric(value):
+                     out[key] = round(float(value), MAX_COORDINATE_DECIMALS)
+                     continue
+                 if isinstance(value, str):
