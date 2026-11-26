@@ -208,7 +208,16 @@
     "assigned to box D3-g45",
     "assigned to box D3-g47"
    ],
-   "redispatched": [],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
    "evidence": "fullgate.py run --src complete --key <key> via gate_wave.sh run (GATE_SCOPE=full GOLDEN_MODE=drift GATE_JOBS=1); wave/D3-g46/gates/c0800afec99d22fc.json, wave/D3-g46/gates/e18fa878eae99111.json, wave/D3-g46/gates/2288dfa73cab6c1a.json, wave/D3-g46/gates/b341873adae0cf3c.json, wave/D3-g46/gates/c4e25319de746716.json, wave/D3-g46/gates/02a5c98b8f46f724.json, wave/D3-g46/gates/3b989943cc05b614.json, wave/D3-g46/gates/db984e8d4acfa08b.json, wave/D3-g46/gates/884d2aba2bbd5409.json, wave/D3-g46/gates/a087d5efb15533ce.json, wave/D3-g46/gates/efd15cba428cdcf2.json, wave/D3-g46/gates/968644425a4f97f8.json, wave/D3-g46/gates/c9a7d4d29d08c3b4.json, wave/D3-g46/gates/ca6ae797caf18708.json, wave/D3-g46/gates/449caa49315447b2.json"
   }
  ],
