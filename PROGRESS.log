@@ -2,3 +2,4 @@
 1795695837 HB alive
 1795696115 CKPT mutation+readings verified; archscore re-run snapshot 57d89a9842ef
 1795696171 CKPT verdict drafted; waiting CI classify snapshot 662c3f461afa
+1795696197 DONE Fix review: merge 8d38554a; verdict on probe/rev-3909-7e94e57d b4cea4b1
