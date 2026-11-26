@@ -2045,7 +2045,7 @@ R.check(
 )
 
 # sysid: the 30-day arm gap and the phase clock
-_si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+_si = _sysid.SystemIdentification(_sysid.SysIdConfig())
 _si.last_run = datetime(
     2026, 9, 25, 5, 0, tzinfo=STHLM
 )  # 30 true days and 30 min, 29 d 23 h 30 min wall
@@ -2057,7 +2057,7 @@ R.check(
 
 
 def _sysid_phase(started, now, phase):
-    si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+    si = _sysid.SystemIdentification(_sysid.SysIdConfig())
     si.phase, si.phase_started, si._baseline_temp = phase, started, 20.0
     si.step(
         now=now,
@@ -2285,7 +2285,7 @@ def _sid_samples(label):
 
 
 def _sid_with(label):
-    si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+    si = _sysid.SystemIdentification(_sysid.SysIdConfig())
     si.samples = _sid_samples(label)
     return si
 

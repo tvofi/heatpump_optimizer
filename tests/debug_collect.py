@@ -1192,6 +1192,24 @@ R.check(
     and not any(replay_doc.numeric(v) for v in (True, "nan", "inf", float("nan"))),
     f"{[(v, a, b) for v, a, b in _numeric_split if a != b]}",
 )
+# R11-LATE-P2-REPLAY-FINITE: _number is the shape of every numeric attribute
+# and price-series value. It keeps a real number exactly when numeric does.
+# Its text and bool refusals are its own shape's: the probes compare numbers.
+_number_split = [(v, replay_doc._number(v) is not _D,
+                  isinstance(v, (int, float)) and replay_doc.numeric(v))
+                 for v in _numeric_probes if v is not None]
+_nan_rows = [{"start": "2026-10-18T00:00:00+00:00", "value": v}
+             for v in (float("nan"), float("inf"), float("-inf"), 1.5)]
+R.check(
+    "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric "
+    "admits, so a NaN or infinite attribute or series value is cut",
+    all(a == b for _, a, b in _number_split)
+    and replay_doc._number(None) is None
+    and [replay_doc._number(v) for v in (float("nan"), float("inf"), float("-inf"))]
+    == [_D, _D, _D]
+    and replay_doc._series(_nan_rows) == [{"start": "2026-10-18T00:00:00+00:00", "value": 1.5}],
+    f"{[(v, a, b) for v, a, b in _number_split if a != b]} {replay_doc._series(_nan_rows)}",
+)
 R.check(
     "replay_doc.json_decimal_places counts the JSON spelling's decimals, a string's as "
     "written, and answers None for a bool, a word or a non-number",
@@ -1212,6 +1230,16 @@ R.check(
     and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
     f"kept keys {sorted(_cleaned)}; "
     + _unrecorded(["s3cret-value", "north", "https://nas.example.se/cam"], _dropped),
+)
+_coord_drop: list = []
+R.check(
+    "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses, NaN and "
+    "an infinity in any spelling, and records the text it nulled",
+    replay_doc.clean_value({"latitude": "nan", "lat": float("inf"), "longitude": "1e400",
+                            "lon": float("-inf"), "lng": "north"}, _coord_drop)
+    == {"latitude": None, "lat": None, "longitude": None, "lon": None, "lng": None}
+    and _coord_drop == ["nan", "1e400", "north"],
+    f"{_coord_drop}",
 )
 _secret_drop: list = []
 replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
