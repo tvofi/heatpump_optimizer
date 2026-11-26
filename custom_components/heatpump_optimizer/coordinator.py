@@ -218,6 +218,7 @@ from .external_heat import (
     wood_mean_temperature,
 )
 from . import away as away_mode
+from . import external_heat as extheat
 from . import boost
 from . import circulation
 from . import driving_grade
@@ -5249,7 +5250,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         its answer into the array the optimizer takes.
         """
         ctx = getattr(self, "_ctx", self)
-        if not self._external_heat.suppressing:
+        if not extheat.blocking(self._external_heat, boost.extheat_block_ignored(self)):
             return None
         forecast = self._external_heat.forecast_free_heat(
             n_steps,
@@ -6259,7 +6260,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         state = replace(
             copy.deepcopy(ctx._current_state),
-            external_heat_active=self._external_heat_active,
+            external_heat_active=self._external_heat_active and not extheat.ignore_effective(
+                self._external_heat, boost.extheat_block_ignored(self)),
             # T2: the live guard's suppression and the post-outage DHW queue
             # both ride the same discretionary-DHW gate in the solve (#7/#22).
             peak_guard_active=self._peak_guard.suppressing
@@ -6306,9 +6308,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             caps = env_caps if caps is None else np.minimum(caps, env_caps)
         quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         return SolveRecord(config, params, SolveInputs(
-            state=state,
+            state=pump_signals.with_dhw_under_way(state, self._pump_signals, running := duty_switch.running_now(duty_switch.record_for(self), self._current_action), self._current_action),
             start_time=solve_now,
-            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
+            compressor_running=running,
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -8039,12 +8041,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         }
 
     def _external_heat_view(self) -> ExternalHeatView:
-        """Whether something other than the heat pump is charging the tanks."""
-        return {
-            "external_heat_active": self._external_heat.state.active,
-            "external_heat_suppressing": self._external_heat.suppressing,
-            "external_heat": self._external_heat.state.as_dict(),
-        }
+        return extheat.view(self._external_heat, boost.extheat_block_ignored(self))
 
     def configured_dhw_windows(self) -> str:
         """The hot-water windows as CONFIGURED, in the grammar the config flow
