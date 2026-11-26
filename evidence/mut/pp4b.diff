@@ -1,8 +1,8 @@
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index 82592045cf..21d18ee58f 100755
+index 594c8301d0..c5a52c9ee2 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
-@@ -4417,7 +4417,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
+@@ -4427,7 +4427,7 @@ summary_start() { # -> stdout and stderr to $PREPR_LOG, fd 3 the real stdout; no
  summary_end() { # head sha -> the result line on fd 3, naming the log
    [ -n "$PREPR_LOG" ] || return 0
    [ -z "$ORDER" ] || printf '  !!! %s: the push must follow at once (the full warning is in the log)\n' "$ORDER" >&3

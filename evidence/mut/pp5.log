@@ -540,7 +540,9 @@ tools/pr/prepr.sh: eval: line 4161: syntax error: unexpected end of file
   ok   PREPR_VERBOSE=1 prints the full output on stdout
   ok   a step stubbed to sleep 2 s prints an elapsed of at least 2 (C3)
   ok   and a no-op step after it prints 0 or 1, so the field times the step, not the run (C3's null control)
-  ok   and the result line carries the run's elapsed, at least the 2 s slept
+  ok   and the result line carries the run's elapsed read from the clock: SECONDS set to 1000 before summary_end prints 1000 or 1001, so a constant fails
+  FAIL the main flow's stdout PRE-PR line carries the run's elapsed from the clock (SECONDS=730 prints 730 or 731) (got 1, wanted 0)
+  FAIL and a different clock (SECONDS=40) prints 40 or 41, so the field tracks the clock (got 1, wanted 0)
   ok   the main flow starts the summary after step 1 and ends on its result line
   ok   merged_steps: tests/structure.py passes on HEAD merged with a clean main (the (d) arm's null control)
   ok   (d) a clean merge whose tests/structure.py fails is refused, though HEAD alone passes
@@ -577,5 +579,4 @@ tools/pr/prepr.sh: eval: line 4161: syntax error: unexpected end of file
   ok   (hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority
   ok   (hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE
 
-574 passed, 0 failed
-rc=0
+574 passed, 2 failed
