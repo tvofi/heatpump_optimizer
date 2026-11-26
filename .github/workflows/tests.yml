@@ -160,6 +160,14 @@ on:
         description: "The prelude's push range base (prelude.push_range): the head of the newest earlier push run on main whose units ran; empty on every other event or when unread"
         type: string
         default: ""
+      fast_shards:
+        description: "The prelude's fast-lane shards, a JSON list of K/N (tools/ci/shards.py); empty runs one unsharded `fast (3.14)` job"
+        type: string
+        default: ""
+      fast_plan:
+        description: "The prelude's plan assigning every run.sh script to one shard (tools/ci/shards.py)"
+        type: string
+        default: ""
     # The autofix jobs' push token and the run-approver App, until M-3.
     secrets:
       CLOSURES_PUSH_TOKEN:
@@ -202,6 +210,14 @@ jobs:
         || github.event_name == 'merge_group'
         || github.event_name == 'workflow_dispatch'
       )
+    # R11-CI-CASE-SELECT P2 (#3885): one job per shard the prelude planned (tools/ci/shards.py),
+    # each `fast (3.14, K/N)`, each running only the scripts the plan assigns it; with no plan
+    # (an empty `fast_shards`, e.g. a base whose prelude predates the planner) the one job keeps
+    # its old name and runs everything. `gate` owes every shard the prelude named
+    # (gate.fast_names): a shard missing, skipped or red is a red gate, never a smaller suite.
+    # The literal `fast (` ... `)` keeps the name from rendering any other job's (a name that is
+    # one expression matches every context: entities.py's forgery and producer readers).
+    name: fast (${{ matrix.python-version }}${{ matrix.shard && format(', {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     # The only job that runs the production suite. It was matrixed over both
     # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
@@ -220,15 +236,13 @@ jobs:
     # derived from this matrix alone, so retiring a leg without saying so in
     # the README fails there.
     #
-    # fail-fast is now on, which costs nothing while the matrix is one entry
-    # and is the right default if a second is ever added back: the reason it
-    # was off -- a 3.14 break must not cancel the 3.13 leg, because knowing
-    # which of the two broke was the whole signal -- is a reason that only
-    # exists while there are two.
+    # fail-fast is off for the shards: each runs a disjoint part of the suite, so a red in one
+    # cancelling the rest would hide their failures behind a second push.
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         python-version: ["3.14"]
+        shard: ${{ fromJSON(inputs.fast_shards || '[""]') }}
     # Drift mode captures all 53 scenarios twice (tree + merge-base); the
     # first main run proved 45 min is not enough on GitHub's runners — the
     # step was cancelled mid-suite by its own timeout.
@@ -288,6 +302,23 @@ jobs:
       - name: Probe the runner's speed (python ${{ matrix.python-version }})
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: python3 tests/host_probe.py
+
+      # The drift baseline's cache steps below serve tests/env_drift.py, which runs in one shard
+      # only: the others neither restore nor save it. The owner is read off the same plan run.sh
+      # routes by (a script the plan does not name runs in shard 1); unsharded, this job owns it.
+      - name: Does this shard run the drift capture
+        id: drift
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        env:
+          HPO_FAST_PLAN: ${{ inputs.fast_plan }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SHARD" ]; then echo "owns=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          python3 -I tools/ci/shards.py route --shard "$SHARD" > "$RUNNER_TEMP/shard.tsv"
+          owner=$(awk -F'\t' '$1 == "tests/env_drift.py" { print $2; f = 1 } END { if (!f) print 1 }' "$RUNNER_TEMP/shard.tsv")
+          echo "tests/env_drift.py runs in shard $owner; this is shard $SHARD"
+          echo "owns=$([ "$owner" = "${SHARD%/*}" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Resolve the golden comparison ref
         if: needs.closure-scope.outputs.fast_skip != 'skip'
@@ -351,20 +382,22 @@ jobs:
       - name: Key the drift baseline cache
         id: driftkey
         if: >-
-          github.event_name == 'pull_request'
+          (github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || github.event_name == 'workflow_dispatch'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         env:
           PYTHONPATH: tests/hastub
         run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
 
       - name: Restore the drift baseline
         if: >-
-          github.event_name == 'pull_request'
+          (github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || github.event_name == 'workflow_dispatch'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -382,9 +415,10 @@ jobs:
       - name: Key the warmed drift baseline
         id: warmkey
         if: >-
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          ((github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         env:
           PYTHONPATH: tests/hastub
         run: |
@@ -396,8 +430,15 @@ jobs:
         env:
           # CI-cost metrics (tests/ci_ratchet.py): run.sh appends this run's
           # scope decision here when the variable is set; local runs never
-          # set it and emit nothing.
-          HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-fast.tsv
+          # set it and emit nothing. Every shard takes the same scope decision,
+          # so shard 1 (or the unsharded job) alone writes the run's one row
+          # and uploads the run's one `ci-metrics-fast` artifact.
+          HPO_CI_METRICS: ${{ (matrix.shard == '' || startsWith(matrix.shard, '1/')) && format('{0}/ci-metrics-fast.tsv', runner.temp) || '' }}
+          # This job's shard and the prelude's plan (tools/ci/shards.py); run.sh
+          # runs only the scripts the plan assigns this shard and refuses a plan
+          # it cannot route. Both empty: every script, as before.
+          HPO_FAST_SHARD: ${{ matrix.shard }}
+          HPO_FAST_PLAN: ${{ inputs.fast_plan }}
           GOLDEN_MODE: drift
           # The scope is the prelude's (its "Decide" step moved there, U5):
           # `auto` on a pull request, the merge queue, a dispatch and a light
@@ -436,7 +477,9 @@ jobs:
       # however the suite ended -- a red run's cost is still cost -- and
       # empty on a run whose lane never executed a line.
       - name: Upload the fast lane's CI metrics
-        if: always() && needs.closure-scope.outputs.fast_skip != 'skip'
+        if: >-
+          always() && needs.closure-scope.outputs.fast_skip != 'skip'
+          && (matrix.shard == '' || startsWith(matrix.shard, '1/'))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-fast
@@ -450,9 +493,10 @@ jobs:
       # is computed for a different ref than anything restored here.
       - name: Save the warmed drift baseline
         if: >-
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          ((github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline

@@ -4431,6 +4431,14 @@ _P2_CENSUSES = {
     "replay_numeric_domain": (
         "tests/debug_collect.py",
         "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # R11-LATE-P2-REPLAY-FINITE: replay_doc's number shape and its coordinate
+    # cut keep exactly what numeric admits.
+    "replay_number_finite": (
+        "tests/debug_collect.py",
+        "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric"),
+    "replay_coordinate_finite": (
+        "tests/debug_collect.py",
+        "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses"),
     # D7-s3-03: every reader of the plan step covering now takes plan_step's
     # index; the census drives the four on one plan, past its end included.
     "plan_step_covering": (
@@ -7369,6 +7377,27 @@ R.check(
 R.check(
     "suppression is reported separately from detection",
     heat.extra_state_attributes["suppressing_electric_dhw"] is True,
+)
+R.check(
+    "with the override switch off the sensor publishes no block_ignored key (#3862)",
+    "block_ignored" not in heat.extra_state_attributes,
+    str(sorted(heat.extra_state_attributes)),
+)
+# #3862: the switch on lifts the block; detection stays on and says so.
+_xh_ignored = next(
+    b for b in collect(binary_sensor, data={
+        **DATA,
+        "external_heat_suppressing": False,
+        "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if display_name("binary_sensor", b) == "External Heat Source"
+)
+R.check(
+    "with the override effective the sensor stays on, block_ignored true, nothing suppressed (#3862)",
+    _xh_ignored.is_on
+    and _xh_ignored.extra_state_attributes["block_ignored"] is True
+    and _xh_ignored.extra_state_attributes["suppressing_electric_dhw"] is False,
+    str(_xh_ignored.extra_state_attributes),
 )
 
 away = b_by_name["Away Mode"]
@@ -12034,7 +12063,50 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
+R.check(
+    "the switch platform adds the optimizer, away, boost, block and external-heat override switches",
+    len(switches) == 7,
+    str(len(switches)),
+)
+# #3862: the owner's external-heat block override; identity pinned, and its
+# state is boost's held flag, not a payload field.
+_xh_sw = next(
+    s for s in switches if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch keeps its unique id and object id (#3862)",
+    _xh_sw._attr_unique_id == f"{ENTRY.entry_id}_external_heat_ignore_block"
+    and _xh_sw.entity_id == "switch.heat_pump_optimizer_external_heat_ignore_block"
+    and display_name("switch", _xh_sw) == "External Heat Block Override",
+    f"{_xh_sw._attr_unique_id} {getattr(_xh_sw, 'entity_id', None)} {display_name('switch', _xh_sw)}",
+)
+R.check(
+    "the external-heat override switch is off and not effective on a fresh coordinator (#3862)",
+    _xh_sw.is_on is False
+    and _xh_sw.extra_state_attributes == {"block_ignored": False},
+    str(_xh_sw.extra_state_attributes),
+)
+asyncio.run(_xh_sw.async_turn_on())
+_xh_sw_on = _xh_sw.is_on
+asyncio.run(_xh_sw.async_turn_off())
+R.check(
+    "turning the external-heat override on and off moves boost's held flag (#3862)",
+    _xh_sw_on is True and _xh_sw.is_on is False
+    and _boost_mod.extheat_block_ignored(_xh_sw.coordinator) is False,
+    f"on={_xh_sw_on} off={_xh_sw.is_on}",
+)
+# The attribute reads the published flag, so an effective override reads True.
+_xh_sw_eff = next(
+    s for s in collect(switch_mod, data={
+        **DATA, "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)",
+    _xh_sw_eff.extra_state_attributes == {"block_ignored": True},
+    str(_xh_sw_eff.extra_state_attributes),
+)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -12263,10 +12335,12 @@ _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
                 switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
-                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch,
+                switch_mod.ExternalHeatIgnoreBlockSwitch)
 }
 for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
-                 "BlockDhwSwitch", "BlockSpaceSwitch"):
+                 "BlockDhwSwitch", "BlockSpaceSwitch",
+                 "ExternalHeatIgnoreBlockSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -13631,6 +13705,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "weather_forecast_available"
     }),
     "OptimizerEnableSwitch": frozenset({"mode", "optimization_status"}),
+    "ExternalHeatIgnoreBlockSwitch": frozenset({"block_ignored"}),
     "OutdoorTempSensor": frozenset({"source"}),
     "PVSurplusSensor": frozenset({
         "forecast_production_kwh", "forecast_surplus_kwh",
@@ -21557,7 +21632,9 @@ R.check(
 #     for every modelled event (on `merge_group` with `pr=- base=-`, which no
 #     expression can cut from the queue ref), so a past run's kind, PR, base
 #     and `sha=` read back as the prelude derived them;
-#   - one run per concurrency group, cancelling nothing (rev2, N1);
+#   - one run per concurrency group (rev2, N1), a push to main's included (no
+#     CI-main), but a non-bot `synchronize`'s first attempt (CI-pr-<number>,
+#     #3885 L1, cancelling the PR's older one);
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
@@ -21647,8 +21724,9 @@ _CI_EVENTS = {
 
 def _ci_ctx(ev: str, payload: dict, outputs=None, actor="hpo-author[bot]") -> "tuple[dict, dict]":
     """(the expression context, prelude.context's) for one modelled event;
-    `outputs` are the prelude's: a failed prelude's read as empty strings."""
-    flat = _ghx_flat("github.event", payload, {})
+    `outputs` are the prelude's: a failed prelude's read as empty strings.
+    The event's sender is `actor` unless the payload names one."""
+    flat = _ghx_flat("github.event", {"sender": {"login": actor}, **payload}, {})
     flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
                  "github.repository": "o/r", "github.actor": actor})
     flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
@@ -21725,18 +21803,28 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
-    # Every run and every re-run keeps its run-id group (N1), a push to main's included: no
-    # group serialises main push runs (owner 2026-11-25, retiring CI-5's `CI-main` group);
-    # main-cancel.yml cancels the superseded ones. Rendered per event and attempt, not as text.
+    # #3885 L1: a `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins
+    # its pull request's CI-pr-<number> group and cancels the older run there at creation. Every
+    # other run and every re-run keeps its run-id group (N1: a re-run never cancels a pending
+    # run), a push to main's included: no group serialises main push runs (owner 2026-11-25,
+    # retiring CI-5's `CI-main` group); main-cancel.yml cancels the superseded ones. A bot-sent
+    # run never cancels the run doing the other autofix jobs (cancel_superseded.BOT). Rendered per
+    # event, attempt and sender, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} cancels in progress")
     for (ev, a), payload in _CI_EVENTS.items():
         for attempt in ("1", "2"):
-            want = "CI-99"
-            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
-            if got != want:
-                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
+            for sender in ("hpo-author[bot]", "tvofi", _SELF_ACTOR):
+                ctx = {**_ci_ctx(ev, payload, actor=sender)[0], "github.run_attempt": attempt}
+                pr_group = (ev, a, attempt) == ("pull_request", "synchronize", "1") and sender != _SELF_ACTOR
+                want = "CI-pr-7" if pr_group else "CI-99"
+                got = _ghx(cc.get("group", ""), ctx)
+                if got != want:
+                    out.append(f"concurrency group under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"renders {got!r}, want {want!r}")
+                cancels = _ghx(cc.get("cancel-in-progress", False), ctx)
+                if cancels is not pr_group:
+                    out.append(f"concurrency under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"cancel-in-progress reads {cancels!r}, want {pr_group}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21845,13 +21933,27 @@ _CI_PLANTS = {
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                        "format('CI-{0}', github.event.pull_request.number)", 1),
+    # #3885 L1's own plants: each widens or narrows the CI-pr-<number> arm by one condition.
+    "the PR group on every pull_request action": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize'", "", 2),
+    "the PR group's cancel on every pull_request action": _CI_TEXT.replace(
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize'",
+        "cancel-in-progress: ${{ github.event_name == 'pull_request'", 1),
+    "PR re-runs in the PR group": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize' && github.run_attempt == '1'",
+        " && github.event.action == 'synchronize'", 2),
+    "bot-sent pushes in the PR group": _CI_TEXT.replace(
+        " && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}'", " && format('CI-pr-{0}'", 1),
+    "the PR group cancelling nothing": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: false", _CI_TEXT, count=1),
+    "no PR group": _CI_TEXT.replace(
+        "format('CI-pr-{0}', github.event.pull_request.number)", "format('CI-{0}', github.run_id)", 1),
     "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
-        "group: ${{ format('CI-{0}', github.run_id) }}",
+        "group: ${{ github.event_name == 'pull_request'",
         "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
-        " || format('CI-{0}', github.run_id) }}", 1),
-    "a run-id group cancelling in progress": _CI_TEXT.replace(
-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
+        " || github.event_name == 'pull_request'", 1),
+    "a run-id group cancelling in progress": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21897,7 +21999,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group, a push to main's included (no CI-main), "
+    "run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt "
+    "(CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), "
     "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
@@ -33874,7 +33977,8 @@ R.check(
 # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
 _PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
 _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
-_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+# A chained read, ROOT / "tests" / "run.sh", is the one file tests/run.sh, never the directory.
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT((?:\s*/\s*\"[^\"]+\")+)", re.M)
 
 
 def _pcr_spawned(mjs: str) -> "list[str]":
@@ -33895,7 +33999,7 @@ def _pcr_closure(roots) -> "list[str]":
         text = Path(f).read_text()
         todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
                  if Path(q).is_file()]
-        todo += _PCR_READ.findall(text)
+        todo += ["/".join(re.findall(r'"([^"]+)"', m)) for m in _PCR_READ.findall(text)]
     return sorted(seen)
 
 
@@ -42840,6 +42944,8 @@ _egb3_resolve = {
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
     "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
+    # #3862: a producer that returns its owner's view whole (a listed source only).
+    "extheat.view(self._external_heat, boost.extheat_block_ignored(self))": ("external_heat", "view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
 
@@ -42854,6 +42960,8 @@ def _egb3_energy():
 
 def _egb3_enumerate(fn, unresolved):
     keys, merges = _egb3_top(fn)
+    merges += [n.value for n in ast.walk(fn) if isinstance(n, ast.Return)
+               and isinstance(n.value, ast.Call) and ast.unparse(n.value) in _egb3_resolve]
     for m in merges:
         src = ast.unparse(m)
         if src in _egb3_resolve:

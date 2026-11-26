@@ -264,6 +264,33 @@ if [ -n "$_hpo_ci_metrics" ]; then
   unset _cls _nrun _nskip
 fi
 
+# --- the fast lane's shard (R11-CI-CASE-SELECT P2, #3885) -------------------
+# CI's fast job runs as several shards. HPO_FAST_SHARD is this job's `K/N`, and
+# HPO_FAST_PLAN the prelude's plan, which assigns every script to exactly one
+# shard (tools/ci/shards.py). A script runs here only in its own shard and every
+# other shard skips it by name, so the scope above still decides what runs and
+# the shards only divide it. A refused plan fails the job: never a silent drop.
+# Unset (a local run, an unsharded job) runs every script, as before. tools/ci/shards.py's
+# self-test sources shard_setup, shard_of, run_always and skip from this file and drives them
+# over fixture plans: across the shards every script runs exactly once.
+FAST_SHARD="${HPO_FAST_SHARD:-}"
+SHARD_TABLE=""
+shard_setup() {
+  [ -n "$FAST_SHARD" ] || return 0
+  if "$PYTHON" tools/ci/shards.py route --shard "$FAST_SHARD" > "$WORKDIR/shard.tsv"; then
+    SHARD_TABLE="$WORKDIR/shard.tsv"
+    echo "  SHARD: $FAST_SHARD -- the scripts tools/ci/shards.py assigned this job; the other shards run the rest"
+  else
+    echo "  SHARD: REFUSED $FAST_SHARD -- tools/ci/shards.py could not route this plan, so nothing runs"
+    return 1
+  fi
+}
+shard_setup || exit 1
+# The shard a script belongs to; one the plan does not name runs in shard 1.
+shard_of() {
+  awk -F'\t' -v s="$1" '$1 == s { print $2; f = 1 } END { if (!f) print 1 }' "$SHARD_TABLE"
+}
+
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --
 # env_drift.py takes a ref after its script path.
@@ -383,6 +410,15 @@ leased() {
 # files unchanged, so in_scope skipped card_drift.mjs and env_drift.py, and
 # main went red after squash.
 run_always() {
+  if [ -n "$SHARD_TABLE" ]; then
+    local mine owner
+    mine=$(scope_script "$@")
+    owner=$(shard_of "$mine")
+    if [ -n "$mine" ] && [ "$owner" != "${FAST_SHARD%/*}" ]; then
+      skip "$mine" "SKIP: $mine (fast shard $owner/${FAST_SHARD#*/} runs it)"
+      return 0
+    fi
+  fi
   step=$((step + 1))
   local id started finished rc=0
   id=$(printf '%s-%03d' "$LANE" "$step")
@@ -893,6 +929,10 @@ fi
 # A scoped run whose scope came out empty -- a documentation-only change, say
 # -- is a legitimate pass, but "ALL TEST SCRIPTS PASSED" is the wrong thing to
 # print when none of them ran. Say what actually happened.
+if [ "$ran" -eq 0 ] && [ -n "$SHARD_TABLE" ]; then
+  echo "NO TEST SCRIPT RAN IN SHARD $FAST_SHARD: its scripts were all scoped out; the other shards report theirs."
+  exit 0
+fi
 if [ "$ran" -eq 0 ]; then
   echo "NO TEST SCRIPT RAN: every script was scoped out of this gate."
   echo "Nothing was verified here. The full suite runs unscoped on main."
@@ -904,4 +944,5 @@ if [ -n "$SCOPE_RUN" ]; then
   echo "(see the NOT RUN block above -- this is not a full gate)"
   exit 0
 fi
+[ -n "$SHARD_TABLE" ] && echo "SHARD $FAST_SHARD: $ran TEST SCRIPT(S) PASSED HERE; the other shards' jobs report theirs"
 echo "ALL TEST SCRIPTS PASSED"
