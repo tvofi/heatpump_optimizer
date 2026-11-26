@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor._open_saving RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in MonthlySavingsSensor._open_saving, after a `for` loop whose one arm returns, so deleting it lets the method fall off its own end and return None -- the same value, on every input, to both readers (the state and the availability). Measured by the #3841 fixer's `mutation_table.py --pin-killed --scripts tests/features.py` drive at the merge of 534bde9fe4: the mutant lived (features.py baseline rc=0 failed=0), against the three other added sites of the same drive killed by a failing check, and the NULL_COMMENT control survived.",
+  "verdict": "equivalent"
+}
