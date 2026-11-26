@@ -25,3 +25,4 @@
 1795617094 DONE returned: Fix review: merge 498708251b pending-ci: gate (probe/rev-3863-a0f438d8 @ 4f7536ef84)
 1795661574 HB alive
 1795661694 CKPT delta verified: prod lines identical, 184/561, 67 snapshot 414d30371d45
+1795661783 CKPT verdict drafted; waiting CI classify snapshot fdce750d4592
