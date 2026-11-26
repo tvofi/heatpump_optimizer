@@ -463,6 +463,11 @@ def run_checks():
     ok("stale pin, #3885: a code unit red at the head is no stale verdict: nothing dispatched or re-run, "
        "the red named", rc == 0 and w.posts == [] and "STALE-PIN P0" in out and "tests / fast (3.14)" in out
        and "dispatches=0" in out)
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
+               code_red(name="tests / fast (3.14, 2/3)"), v=2)
+    rc, out = w.sweep()
+    ok("stale pin, #3902: a red fast shard is the fast unit's red: nothing dispatched, the shard named",
+       rc == 0 and w.posts == [] and "tests / fast (3.14, 2/3)" in out and "dispatches=0" in out)
     for label, edit in (("a body unit's red (the fresh run re-reads the body)", dict(name="pr-contract / pr-contract")),
                         ("arch-score's red (a body unit no pin restores)", dict(name="arch-score / arch-score")),
                         ("a code unit red then green in a later run at the head",
