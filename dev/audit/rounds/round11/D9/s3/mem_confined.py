@@ -98,7 +98,9 @@ def main() -> int:
     table = stress.load_budget_table()
     combos = {c["label"]: {k: v for k, v in c.items() if k != "label"}
               for c in stress.sweep_combinations()}
-    top_n = args.top_n if args.top_n is not None else stress.MEMORY_TOP_N
+    # The gate's selector stopped reading MEMORY_TOP_N when D9-s3-01 made it
+    # probe every recorded row, and the constant went with it.
+    top_n = args.top_n if args.top_n is not None else getattr(stress, "MEMORY_TOP_N", None)
     probed = [l for l in gate_probe_labels(table, top_n) if l in combos]
     labels = sorted(combos)
     if args.only:

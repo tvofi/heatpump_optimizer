@@ -1383,19 +1383,28 @@ def ledger_round_self_test():
         no_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")], classes=whole[:1])
         arms["--round: a seat class with no row in the window prints unread (review/3898: a silent pass)"] = (
             no_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in no_cloud[1])
+        # tokens.tsv is cumulative: a class's row from before the window is no row in it (review/3898 round 2).
+        old_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")],
+                        classes=whole[:1] + [("2025-12-31T12:00:00Z", "cloud-x", "cloud")])
+        arms["--round: a seat class whose only row predates the window prints unread"] = (
+            old_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in old_cloud[1])
+        # Grading reads round N-1 after it closed, so the ledger holds later rows: the upper bound needs its own arm.
+        late_cloud = run([("2026-01-02T00:00:00Z", "fixer-r11-x")],
+                         classes=whole[:1] + [("2026-01-03T00:00:00Z", "cloud-x", "cloud")])
+        arms["--round: a seat class whose only row falls at the window's end prints unread"] = (
+            late_cloud[0] == [] and "LEDGER unread: seat classes with no row in the window: cloud" in late_cloud[1])
+        # The lower bound is closed: a class whose only row is the window's first second is read (`a <` survived).
+        arms["--round null: a seat class whose only row is at the window's first second is read"] = run(
+            [("2026-01-02T00:00:00Z", "fixer-r11-x")],
+            classes=[whole[0], ("2026-01-01T00:00:00Z", "cloud-x", "cloud")]) == ([], "")
+        arms["--round null: an unkeyed seat row at the window's end is no unread"] = (
+            run([("2026-01-02T00:00:00Z", "fixer-r11-x"), ("2026-01-03T00:00:00Z", "-")]) == ([], ""))
         unkeyed = run([("2026-01-02T00:00:00Z", "-"), ("2026-01-02T00:00:00Z", "r11-evaluator")])
         arms["--round: an unkeyed seat row prints unread, and a keyed seat found is still refused"] = (
             "LEDGER unread: 1 seat row(s) with no seat key" in unkeyed[1] and len(unkeyed[0]) == 1)
         arms["--round null: every class keyed in the window, an orchestrator's `-` included, prints no unread"] = (
             run([("2026-01-02T00:00:00Z", "fixer-r11-x")]) == ([], ""))
-        # ledger_unread's window is ledger_gaps' own [a, b): a class row at the first second is read,
-        # one at the end is not (prepr diff mutant CMP_BOUND on `a <=` survived without these)
-        edge = lambda t: run([("2026-01-02T00:00:00Z", "fixer-r11-x")], classes=[whole[0], (t, "cloud-x", "cloud")])
-        arms["--round null: a seat class whose only row is at the window's first second is read"] = (
-            edge("2026-01-01T00:00:00Z") == ([], ""))
-        arms["--round: a seat class whose only row is at the window's end prints unread"] = (
-            "seat classes with no row in the window: cloud" in edge("2026-01-03T00:00:00Z")[1])
-        gone =run([("2026-01-01T00:00:00Z", "r11-evaluator")], tokens=str(Path(d) / "none.tsv"))
+        gone = run([("2026-01-01T00:00:00Z", "r11-evaluator")], tokens=str(Path(d) / "none.tsv"))
         arms["--round: an absent ledger prints unread, no gap"] = gone[0] == [] and "LEDGER unread: no token ledger" in gone[1]
     return arms
 

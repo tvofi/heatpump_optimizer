@@ -53,6 +53,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
+import shards  # noqa: E402  (the fast lane's job names: FAST, owed_fast)
 
 CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
 BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
@@ -146,7 +147,7 @@ LIGHT_SKIP_LEGS = ("python",)
 LIGHT_PUSH_LANES = ("closures", "env-matrix")
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
-    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
+    "tests": (shards.FAST, "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
               "closure-scope"),
     "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
     "governance": ("policy-docs", "wave-script", "env-matrix"),
@@ -263,12 +264,16 @@ def run_jobs(get, repo: str, run_id, starts=None) -> dict:
 
 def owed_needs(run: dict) -> list[str]:
     """The unit job names a run's own title owes (judging's workset rule), `tests /
-    closure-scope` aside when the title names no PR; [] for an unreadable title."""
+    closure-scope` aside when the title names no PR; [] for an unreadable title. The fast
+    lane owes the shards its listing names, each `tests / fast (3.14, K/N)` of their one N
+    (shards.owed_fast), else the one unsharded job (#3902 review)."""
     t = parse_title(run.get("title") or "")
     if t is None:
         return []
-    return [f"{u} / {n}" for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
-            if not (u == "tests" and n == "closure-scope" and not t[1])]
+    listed = list(run.get("jobs") or {})
+    return [k for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
+            if not (u == "tests" and n == "closure-scope" and not t[1])
+            for k in (shards.owed_fast(listed) if (u, n) == ("tests", shards.FAST) else [f"{u} / {n}"])]
 
 
 #: A previous attempt's conclusion that still stands while its re-queued need runs again (R4):
@@ -622,8 +627,8 @@ def push_range(ctx: dict, get, diff=None, ancestor=None,
                cwd: Path = HERE.parents[1]) -> "tuple[str, list[str]] | None":
     """(base, the files changed base..head) for a push to main, or None (graded in full).
     The base is the head of the newest EARLIER push run on main that completed, was not
-    cancelled and whose prelude succeeded, so its units ran: CI-5's `CI-main` group
-    replaces a pending run, so HEAD^1 would leave the replaced run's commits graded by no
+    cancelled and whose prelude succeeded, so its units ran: main-cancel.yml cancels a
+    superseded run, so HEAD^1 would leave the cancelled run's commits graded by no
     run, and a production commit among them must never fall into a light range. A run
     whose prelude failed graded nothing, and its range stays in ours. None when the
     listing is unreadable, no such run is on its first page, or its head is not an
@@ -652,8 +657,10 @@ def push_range(ctx: dict, get, diff=None, ancestor=None,
 
 
 def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
-            selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range) -> tuple[dict, str]:
-    """(the outputs, '' or why the prelude fails)."""
+            selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range,
+            fast=None) -> tuple[dict, str]:
+    """(the outputs, '' or why the prelude fails). `fast` is shards.outputs (main passes it):
+    the fast lane's shards, sized by the list the scope reads, its timings read at the base."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
     out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
@@ -693,6 +700,11 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
+    # Both keys always: ci.yml declares them as prelude outputs; empty is one unsharded job.
+    out.update({"fast_shards": "", "fast_plan": ""})
+    if fast is not None:
+        out.update(fast(changed if scoped == "pull_request" else None,
+                        ctx.get("base_sha") or ctx.get("before") or ctx["head"]))
     out["legs"] = json.dumps({leg: "skip" if out["light"] == "true" and leg in LIGHT_SKIP_LEGS
                               else codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
@@ -719,7 +731,7 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
         return 2
     ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
     try:
-        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get)
+        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get, fast=shards.outputs)
     except ghapi.RateLimited as e:
         print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
         return 3
@@ -951,6 +963,23 @@ def self_test() -> int:
     check("C7a: the prelude's output on a product-only pull request", (out["machinery"], out["machinery_rowblind"]),
           ("false", "false"))
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
+    # R11-CI-CASE-SELECT P2: the fast shards are sized by the list the scope reads -- a pull
+    # request's diff, nothing on a full push -- and read their timings at the event's base.
+    seen = []
+
+    def fast(changed, ref):
+        seen.append((changed, ref))
+        return {"fast_shards": '["1/2","2/2"]', "fast_plan": "{}"}
+    bpr = {**pr, "base": {"ref": "main", "sha": "BASE"}}
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=bpr), ["README.md"], g(live), fast=fast)
+    check("P2: the prelude emits the planner's two outputs", (out.get("fast_shards"), out.get("fast_plan")),
+          ('["1/2","2/2"]', "{}"))
+    out, _ = outputs(ctx("push", before="B"), None, g(live), fast=fast)
+    check("P2: a pull request's plan reads its diff at its base; a full push reads all at `before`",
+          seen, [(["README.md"], "BASE"), (None, "B")])
+    check("P2: with no planner both outputs are still printed, empty (one unsharded job)",
+          {k: outputs(ctx("push"), None, g(live))[0].get(k) for k in ("fast_shards", "fast_plan")},
+          {"fast_shards": "", "fast_plan": ""})
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.
@@ -1228,6 +1257,28 @@ def self_test() -> int:
     check("#3885: the step-gated lanes are light lanes", set(STEP_GATED) <= set(LIGHT_LANES), True)
     check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
           sorted(set(LIGHT_GATE.values())), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
+
+    # #3902 review: a sharded run lists `tests / fast (3.14, K/N)` jobs in place of the one fast
+    # job; judging(), owed_needs() and requeued() owe exactly those shards.
+    def shard_run(fast, unfinished=(), attempt=1):
+        jobs = {"prelude": ("completed", "success"), "gate": ("completed", "success")}
+        for u in sorted(workset("code", "7") & set(UNITS)):
+            for nm in UNITS[u]:
+                for f in (fast if (u, nm) == ("tests", shards.FAST) else [nm]):
+                    jobs[f"{u} / {f}"] = ("in_progress", None) if f in unfinished else ("completed", "success")
+        return {"id": 1, "title": title("code", "7", "main", "abc"), "attempt": attempt, "jobs": jobs,
+                "run_started_at": "2026-11-25T10:00:00Z", "starts": {"prelude": "2026-11-25T09:00:00Z"}}
+    three = [f"fast (3.14, {k}/3)" for k in (1, 2, 3)]
+    check("#3902: a completed unsharded run is judging (null control)", judging(shard_run([shards.FAST])), True)
+    check("#3902: a completed sharded run is judging", judging(shard_run(three)), True)
+    check("#3902: a sharded run missing one shard from its listing is not judging",
+          judging(shard_run(three[:2])), False)
+    check("#3902: a sharded run with one shard unfinished is not judging",
+          judging(shard_run(three, unfinished=(three[1],))), False)
+    check("#3902: owed_needs owes every shard of the listed count, not the unsharded name",
+          [k for k in owed_needs(shard_run(three)) if "fast" in k], [f"tests / {f}" for f in three])
+    check("#3902: a re-run's re-queued shard is requeued",
+          requeued(shard_run(three, unfinished=(three[2],), attempt=2)), [f"tests / {three[2]}"])
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 

@@ -183,6 +183,11 @@ def drift_eta(series, n, cday, gain, rel_tol=0.03, abs_tol=0.0):
     return 0.0 if remaining <= tol else tau * math.log(remaining / tol)
 
 
+#: The round-10 gains ridge this study's figure was taken with; production
+#: deleted the term (R11-SEAM-learners, D2-s3-11), so the value lives here.
+_GAINS_RIDGE_R10 = 0.02
+
+
 def score(rec, truth, total, days, rel_tol=0.03):
     out = {}
     end = total - 1
@@ -192,7 +197,7 @@ def score(rec, truth, total, days, rel_tol=0.03):
     a_s = const_mod.SOLAR_APERTURE_ALPHA * f_up
     n90_s = const_mod.SOLAR_APERTURE_MIN_SAMPLES + math.log(0.1) / math.log(1.0 - a_s)
     # gains: g += a*y - ridge*(g - g0), y re-centred ~ upper-area share of the error
-    a_g = const_mod.INTERNAL_GAINS_ALPHA * 0.5 + const_mod.INTERNAL_GAINS_RIDGE
+    a_g = const_mod.INTERNAL_GAINS_ALPHA * 0.5 + _GAINS_RIDGE_R10
     n90_g = math.log(0.1) / math.log(1.0 - a_g)
     gn = np.cumsum(np.ones(len(rec["g"]))) / 24.0   # folds per hour bucket (4/day at 15 min)
     learners = {

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_number GUARD_OFF fe369c32",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    if isinstance(value, (int, float)) and numeric(value):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

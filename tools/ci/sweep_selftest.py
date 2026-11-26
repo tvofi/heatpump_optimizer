@@ -452,6 +452,84 @@ def run_checks():
     w.sweep()
     ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
        w.posts == [dispatch])
+    # #3885: a code unit already red at the head. The fresh run re-grades the same code. On 2026-11-22/23 the 17
+    # STALE-PIN dispatches graded heads a pull_request run had graded already, and none ended green.
+    def code_red(name="tests / fast (3.14)", concl="failure", at="3"):
+        decider = run(3, "1", started="4")
+        decider["units"] = [{"name": name, "conclusion": concl, "started_at": "2", "completed_at": at}]
+        return decider
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(), v=2)
+    rc, out = w.sweep()
+    ok("stale pin, #3885: a code unit red at the head is no stale verdict: nothing dispatched or re-run, "
+       "the red named", rc == 0 and w.posts == [] and "STALE-PIN P0" in out and "tests / fast (3.14)" in out
+       and "dispatches=0" in out)
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
+               code_red(name="tests / fast (3.14, 2/3)"), v=2)
+    rc, out = w.sweep()
+    ok("stale pin, #3902: a red fast shard is the fast unit's red: nothing dispatched, the shard named",
+       rc == 0 and w.posts == [] and "tests / fast (3.14, 2/3)" in out and "dispatches=0" in out)
+    for label, edit in (("a body unit's red (the fresh run re-reads the body)", dict(name="pr-contract / pr-contract")),
+                        ("arch-score's red (a body unit no pin restores)", dict(name="arch-score / arch-score")),
+                        ("a code unit red then green in a later run at the head",
+                         dict(at="3")),
+                        ("a code unit cancelled, not failed", dict(concl="cancelled"))):
+        rs = [run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(**edit)]
+        if label.startswith("a code unit red then green"):
+            later = run(4, "1", started="4")
+            later["units"] = [{"name": "tests / fast (3.14)", "conclusion": "success", "started_at": "3",
+                               "completed_at": "4"}]
+            rs.append(later)
+        w = pinned(*rs, v=2)
+        w.sweep()
+        ok(f"stale pin, #3885 null: {label} still takes one dispatch", w.posts == [dispatch])
+    # #3895: a unit whose workflow restores its grader from the event's base sha is graded by origin/<base>'s copy in
+    # the fresh run (dispatch 45005979443 turned three of four such reds green): one case per pinned kind dispatches.
+    for name in ("tests / briefs", "governance / policy-docs", "governance / env-matrix", "governance / wave-script",
+                 "codeql / Analyze (python)"):
+        w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(name=name), v=2)
+        rc, out = w.sweep()
+        ok(f"stale pin, #3895: {name} red (its grader restored from the stale pin) still takes one dispatch",
+           w.posts == [dispatch] and "left:" not in out)
+    ok("#3895: pinned_graders reads the tree's workflows: briefs, policy-docs, env-matrix, wave-script and codeql's "
+       "analyses are pinned, fast (3.14) and mutation are not",
+       {"tests / briefs", "governance / policy-docs", "governance / env-matrix", "governance / wave-script",
+        "codeql / Analyze ("} <= set(sweep.pinned_graders() or ())
+       and not any(n.startswith(sweep.pinned_graders()) for n in ("tests / fast (3.14)", "tests / mutation")))
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, "u.yml"), "w", encoding="utf-8") as f:
+            f.write("on: push\njobs:\n  plain:\n    runs-on: x\n    env:\n      PINNED: ${{ github.sha }}\n"
+                    "  named:\n    name: Leg (${{ matrix.l }})\n    steps:\n      - env:\n"
+                    "          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}\n"
+                    "  keyed:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha }}\n")
+        ok("#3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED "
+           "naming the event's base sha (null: one naming github.sha alone)",
+           sweep.pinned_graders(d) == ("u / Leg (", "u / keyed"))
+    w = pinned(run(1, "1", started="5", units=["6"]), code_red(), v=1)
+    ok("#3895: unreadable workflows pin nothing and fail closed: code_red reads no red beside a red fast (3.14), "
+       "so the dispatch stands (null: the tree's workflows read it)",
+       sweep.pinned_graders("/nonexistent-hpo-dir") is None
+       and sweep.Sweep("o/r", w.get, w.post).code_red(list(w.runs.values()), workflows="/nonexistent-hpo-dir") == []
+       and sweep.Sweep("o/r", w.get, w.post).code_red(list(w.runs.values())) == ["tests / fast (3.14)"])
+    # M6/M7 (#3895 review): a newer job still running does not hide an older red (only completed jobs read), and
+    # "newest" is the job's start, never the run id (a re-run executes a lower run's unit afresh).
+    rs = [run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red()]
+    busy = run(4, "1", started="4")
+    busy["units"] = [{"name": "tests / fast (3.14)", "status": "in_progress", "conclusion": None, "started_at": "3",
+                      "completed_at": None}]
+    w = pinned(*rs, busy, v=2)
+    w.sweep()
+    ok("stale pin, #3885: a code unit red beside a newer attempt still running is left, nothing dispatched",
+       w.posts == [])
+    lower = code_red(concl="success")
+    lower["units"][0]["started_at"] = "3"
+    higher = run(4, "1", started="4")
+    higher["units"] = [{"name": "tests / fast (3.14)", "conclusion": "failure", "started_at": "2", "completed_at": "3"}]
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), lower, higher, v=2)
+    w.sweep()
+    ok("stale pin, #3885 null: the newest-started job decides, not the highest run id (a lower run's re-run green "
+       "after a higher run's red): one dispatch", w.posts == [dispatch])
     w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
                run(5, "6", g="success", started="7"), v=2)
     w.runs[5]["event"] = "workflow_dispatch"

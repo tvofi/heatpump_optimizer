@@ -836,6 +836,7 @@ from homeassistant.helpers import entity_registry as er  # noqa: E402
 from heatpump_optimizer import const as const_mod  # noqa: E402
 from heatpump_optimizer import replay_doc  # noqa: E402
 from heatpump_optimizer.const import PRICE_SOURCE_ENTITY  # noqa: E402
+from heatpump_optimizer.coordinator import CoordinatorDiagnostics  # noqa: E402
 
 _export_spec = importlib.util.spec_from_file_location(
     "hpo_export_under_test", Path("tools/replay/export.py"))
@@ -1191,6 +1192,24 @@ R.check(
     and not any(replay_doc.numeric(v) for v in (True, "nan", "inf", float("nan"))),
     f"{[(v, a, b) for v, a, b in _numeric_split if a != b]}",
 )
+# R11-LATE-P2-REPLAY-FINITE: _number is the shape of every numeric attribute
+# and price-series value. It keeps a real number exactly when numeric does.
+# Its text and bool refusals are its own shape's: the probes compare numbers.
+_number_split = [(v, replay_doc._number(v) is not _D,
+                  isinstance(v, (int, float)) and replay_doc.numeric(v))
+                 for v in _numeric_probes if v is not None]
+_nan_rows = [{"start": "2026-10-18T00:00:00+00:00", "value": v}
+             for v in (float("nan"), float("inf"), float("-inf"), 1.5)]
+R.check(
+    "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric "
+    "admits, so a NaN or infinite attribute or series value is cut",
+    all(a == b for _, a, b in _number_split)
+    and replay_doc._number(None) is None
+    and [replay_doc._number(v) for v in (float("nan"), float("inf"), float("-inf"))]
+    == [_D, _D, _D]
+    and replay_doc._series(_nan_rows) == [{"start": "2026-10-18T00:00:00+00:00", "value": 1.5}],
+    f"{[(v, a, b) for v, a, b in _number_split if a != b]} {replay_doc._series(_nan_rows)}",
+)
 R.check(
     "replay_doc.json_decimal_places counts the JSON spelling's decimals, a string's as "
     "written, and answers None for a bool, a word or a non-number",
@@ -1211,6 +1230,16 @@ R.check(
     and _dropped == ["s3cret-value", "north", "https://nas.example.se/cam"],
     f"kept keys {sorted(_cleaned)}; "
     + _unrecorded(["s3cret-value", "north", "https://nas.example.se/cam"], _dropped),
+)
+_coord_drop: list = []
+R.check(
+    "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses, NaN and "
+    "an infinity in any spelling, and records the text it nulled",
+    replay_doc.clean_value({"latitude": "nan", "lat": float("inf"), "longitude": "1e400",
+                            "lon": float("-inf"), "lng": "north"}, _coord_drop)
+    == {"latitude": None, "lat": None, "longitude": None, "lon": None, "lng": None}
+    and _coord_drop == ["nan", "1e400", "north"],
+    f"{_coord_drop}",
 )
 _secret_drop: list = []
 replay_doc.clean_value({"api_key": None, "password": True, "auth": {"user": "bob123456"},
@@ -1538,7 +1567,8 @@ async def _planted_download(value_pass=True):
     (Path(folder) / ".storage" / debugger.store_keys("rp")["accuracy"]).write_text(
         json.dumps({"version": 1, "data": {"note": _leak_text("store"),
                                            "lat": float(EXACT[0])}}))
-    coord.mode = _leak_text("mode")
+    # Diagnostics reads the mode from the published view (ADR-005), so the plant goes there.
+    coord.diagnostics_state = lambda: CoordinatorDiagnostics(mode=_leak_text("mode"))
     coord.data = {"insight": {"last_diagnosis": _leak_text("diagnosis")},
                   "problem_messages": [_leak_text("input")],
                   "current_action": _leak_text("plan"),
@@ -2210,5 +2240,17 @@ R.check(
     "as published",
     all(row["null"] for row in _bounded_rows),
     str([row["row"] for row in _bounded_rows if not row["null"]]),
+)
+# D15-s3-01: the not-run publish after a restart carries solve_time_ms 0, an
+# inert value, never a duration; the solver self-test's week spread is over
+# the rows where a solve ran. The real bundle read min 0 ms and n 662 where
+# 652 solves ran. The control row with no recorded time is left out alike.
+_smoke_rows = [{"payload_solve_time_ms": 9806.0}, {"payload_solve_time_ms": 0},
+               {"payload_solve_time_ms": 12000.0}, {"mode": "auto"}]
+_smoke = asyncio.run(debugger._solver_smoke(_SimCoord(data={}), _smoke_rows))["week_solve_ms"]
+R.check(
+    "the solver self-test spreads only rows where a solve ran: a not-run 0 is no duration (D15-s3-01)",
+    _smoke is not None and _smoke["n"] == 2 and _smoke["min"] == 9806.0,
+    str(_smoke),
 )
 sys.exit(R.close("DEBUG COLLECT CHECKS"))
