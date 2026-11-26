@@ -1,0 +1,29 @@
+{
+ "key": "4984532d2907d5c3",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4725 CMP_BOUND",
+ "patch": "zero = np.where(delivered <= 0.0, 0.0, 1.0) -> zero = np.where(delivered < 0.0, 0.0, 1.0)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3751.5,
+  "load1_start": 0.93,
+  "load1_end": 1.0,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_4984532d2907d5c3.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_4984532d2907d5c3.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "delivered<0: delivered==0 with drawn>0 never occurs since drawn>0 implies available>0 (t_mix<=T_buf; C*(T_buf-floor)/dt>0) in all 112 scenarios",
+ "should_fail": "none identified: delivered<0: delivered==0 with drawn>0 never occurs since drawn>0 implies available>0 (t_mix<=T_buf; C*(T_buf-floor)/dt>0) in all 112 scenarios"
+}
