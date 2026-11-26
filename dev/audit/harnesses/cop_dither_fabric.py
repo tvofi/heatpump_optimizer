@@ -42,6 +42,7 @@ every arm, so that row measures the driver, not the dither, and is not printed.
 """
 from __future__ import annotations
 
+import collections
 import asyncio
 import math
 import sys
@@ -55,6 +56,7 @@ from homeassistant.util import dt as dt_util  # noqa: E402
 from profiles import house  # noqa: E402
 
 from heatpump_optimizer import accuracy, draw_range  # noqa: E402
+from heatpump_optimizer import coordinator as coord_module  # noqa: E402
 from heatpump_optimizer.const import CONF_INDOOR_TEMP_ENTITY  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState, WeatherSeries  # noqa: E402
@@ -82,6 +84,18 @@ def run(true: float, cycles: int = CYCLES, outdoor_c: float = 2.0, two_zone: boo
                          dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0)
     coord._current_state = state
     trace = []
+    # R11-SEAM-learners (carry 3): which refusal took each house cycle the fold did not
+    # take, by the house learner's own skip log (``log_skip``); cycles it names none for
+    # are ``unnamed``. Read only; the learners run exactly as before.
+    tally: collections.Counter = collections.Counter()
+    real_skip = coord_module.log_skip
+
+    def _skip(clean, what, why, *args):
+        if what == "house heat loss":
+            tally[(why % args) if args else why] += 1
+        return real_skip(clean, what, why, *args)
+
+    coord_module.log_skip = _skip
     try:
         for step in range(cycles):
             now = START + timedelta(hours=step * DT_H)
@@ -108,7 +122,10 @@ def run(true: float, cycles: int = CYCLES, outdoor_c: float = 2.0, two_zone: boo
             trace.append(coord._house_heat_loss_scale)
     finally:
         dt_util.freeze(None)
+        coord_module.log_skip = real_skip
+    tally["unnamed"] = cycles - coord._house_heat_loss_samples - sum(tally.values())
     return {
+        "refusals": ",".join(f"{k.replace(' ', '_')}:{v}" for k, v in sorted(tally.items()) if v),
         "house_scale": coord._house_heat_loss_scale,
         "house_samples": coord._house_heat_loss_samples,
         "lower_ratio": coord._lower_floor_loss_ratio,
@@ -145,6 +162,8 @@ def main() -> None:
             row(f"dither_{tag}", live, gap)
             row(f"null_dither0_{tag}", null)
             row(f"no_probe_{tag}", off)
+            for name, out in (("dither", live), ("null_dither0", null), ("no_probe", off)):
+                print(f"RESULT refusals_{name}_{tag}={out['refusals']}")
 
 
 if __name__ == "__main__":
