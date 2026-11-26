@@ -21,8 +21,8 @@ memory only: a restart starts unset, and the first pass sets it from the
 reading. It is updated in synchronous code with no ``await`` between its
 read and its write, so it is atomic on the event loop.
 
-**The one writer** of the hold's ``ArbiterState`` fields; ``pump_arbiter``
-only reads them. The coordinator's supply gate calls :func:`gate` last, after
+**The one writer** of the hold's ``ArbiterState`` fields: ``frost_holding``,
+which ``pump_arbiter`` reads, and the :class:`FrostRecord` only this module reads. The coordinator's supply gate calls :func:`gate` last, after
 ``supply_hold.hold_supply``, so the minimum run and pause never delay or
 carry a hold, and a held write (``None``) is never reinterpreted. The early
 cut-off asks :func:`take_off` before it cuts.
@@ -34,6 +34,7 @@ any held interval without a power meter, is frozen.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable
 
@@ -56,6 +57,23 @@ CAUSE_COLD = "frost_hold"
 CAUSE_NO_READING = "frost_hold_no_reading"
 
 
+@dataclass
+class FrostRecord:
+    """The hold's own record on ``ArbiterState.frost``, in memory only."""
+
+    #: The latch (:func:`_active`); ``None`` unset or opted out.
+    latched: bool | None = None
+    #: Until when (UTC) the learners freeze for a held run (:func:`_note_run`).
+    ran_until: datetime | None = None
+
+
+def _record(held: ArbiterState) -> FrostRecord:
+    """``held``'s :class:`FrostRecord`, made on first use."""
+    if held.frost is None:
+        held.frost = FrostRecord()
+    return held.frost
+
+
 def outdoor_reading(health: Any, forecast_c: Callable[[], float | None], config: Any) -> float | None:
     """The outdoor temperature the latch judges, °C, or ``None`` for none.
 
@@ -75,16 +93,16 @@ def _active(held: ArbiterState, inp: ArbiterInputs) -> bool:
 
     Opted out, it is never active, whatever the reading.
     """
-    cfg = EntryConfig.from_mapping(inp.config)
+    cfg, rec = EntryConfig.from_mapping(inp.config), _record(held)
     if not cfg.frost_hold:
-        held.frost = None
+        rec.latched = None
         return False
     out = inp.outdoor_c
     if out is None or out < cfg.frost_hold_below_c:
-        held.frost = True
+        rec.latched = True
     elif out >= cfg.frost_hold_below_c + CLEAR_K:
-        held.frost = False
-    return bool(held.frost)
+        rec.latched = False
+    return bool(rec.latched)
 
 
 def gate(held: ArbiterState, inputs: Callable[[], ArbiterInputs], value: bool | None,
@@ -143,7 +161,7 @@ def _note_run(held: ArbiterState, inp: ArbiterInputs, now: datetime | None) -> N
         return
     power = inp.measured_power_kw
     if power is None or float(power) >= ran_kw(inp):
-        held.frost_ran_until = dt_util.as_utc(now or dt_util.now()) + freeze_span(inp.config)
+        _record(held).ran_until = dt_util.as_utc(now or dt_util.now()) + freeze_span(inp.config)
 
 
 def freeze_reason(coord: Any, now: datetime | None = None) -> str | None:
@@ -157,21 +175,21 @@ def _freeze(held: ArbiterState, inputs: Callable[[], ArbiterInputs], now: dateti
     now = dt_util.as_utc(now or dt_util.now())
     if held.frost_holding:
         _note_run(held, inputs(), now)
-    until = held.frost_ran_until
+    until = _record(held).ran_until
     return FREEZE_FROST if until is not None and now < until else None
 
 
 def diagnostics_view(held: ArbiterState, inp: ArbiterInputs) -> dict[str, Any]:
     """The latch, the hold, its cause, the threshold and the reading."""
-    cfg = EntryConfig.from_mapping(inp.config)
+    cfg, rec = EntryConfig.from_mapping(inp.config), _record(held)
     on = holding(held, inp)
     cause = (CAUSE_NO_READING if inp.outdoor_c is None else CAUSE_COLD) if on else None
     return {
         "enabled": cfg.frost_hold,
         "below_c": cfg.frost_hold_below_c,
         "reading_c": inp.outdoor_c,
-        "latched": held.frost,
+        "latched": rec.latched,
         "holding": on,
         "cause": cause,
-        "learners_frozen_until": None if held.frost_ran_until is None else held.frost_ran_until.isoformat(),
+        "learners_frozen_until": None if rec.ran_until is None else rec.ran_until.isoformat(),
     }

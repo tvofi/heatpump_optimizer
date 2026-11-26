@@ -90423,7 +90423,7 @@ async def _fh_run(duties, switch, events, out, *, until=20, extra=None, sensor=T
                     if hass.states.get("switch.hp").state != new:
                         hass.states.set("switch.hp", FakeState(new, last_updated=now))
             hass.services.calls.clear()
-            if latched is not None and _sa_pa.state_for(coord).frost:
+            if latched is not None and getattr(_sa_pa.state_for(coord).frost, "latched", None):
                 latched.add(m)
         verdicts = [r["verdict"] for r in _sa_pa.diagnostics_view(coord)["ledger"]["steps"]]
         diag = {**dict(_fh_diag._VIEWS)["frost_hold"](coord),

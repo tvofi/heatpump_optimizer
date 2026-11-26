@@ -396,10 +396,9 @@ class ArbiterState:
     cooling_asked: bool = False
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
-    #: ``frost_hold``'s, read here, never persisted: its latch, whether an OFF is held, the learners' freeze end.
-    frost: bool | None = None
+    #: ``frost_hold``'s, never persisted: whether an OFF is held (read here), and its own record (``frost_hold.FrostRecord``).
     frost_holding: bool = False
-    frost_ran_until: datetime | None = None
+    frost: Any = None
 
 
 @dataclass(frozen=True)
@@ -1309,9 +1308,8 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime, *, 
 
 
 def _hold_floor_c(inp: ArbiterInputs) -> float | None:
-    """A frost hold's space set-point, °C: the entity's minimum, raised to the controller's
-    lower limit (:func:`_setpoint_limits_c`). With no stated minimum, the gate on a water unit
-    (:func:`_gate_floor_c`) and the 5 °C a hot-water step writes an indoor one (:func:`desired`)."""
+    """A frost hold's space set-point, °C: the entity's minimum (unstated: :func:`_gate_floor_c` on a water
+    unit, 5 °C indoor, as :func:`desired`), raised to the controller's lower limit (:func:`_setpoint_limits_c`)."""
     low = setpoint_range_c(inp.hass, _entities(inp.config)["space_setpoint"])[0]
     low = (_gate_floor_c(inp.config) if _flow_unit(inp.config) else 5.0) if low is None else low
     limit = _setpoint_limits_c(inp)[0]
