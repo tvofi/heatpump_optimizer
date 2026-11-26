@@ -98744,8 +98744,33 @@ R.check(
     "the what-if solve takes the reading the live plan was solved with, not a "
     "fresh one: the two start counts the card compares share r[-1]",
     "compressor_running=duty_switch.record_for(self).solved_running" in _hsr_inspect.getsource(Coord._whatif_solve)
-    and "compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action)"
+    and "duty_switch.running_now(duty_switch.record_for(self), self._current_action)"
     in _hsr_inspect.getsource(Coord._solve_record),
+)
+# The same reading tells the planner whether a hot-water charge runs now
+# (pump_signals.with_dhw_under_way): the scheduled solve's state carries it.
+from heatpump_optimizer import pump_mode as _hsr_pm, pump_signals as _hsr_ps  # noqa: E402
+
+
+def _hsr_under_way(mode, action):
+    _hsr_live._pump_signals = _hsr_ps.PumpSignals(mode=_hsr_pm.capability(mode), mode_observed=True)
+    _hsr_live._current_action = action
+    now = _hsr_pss(datetime(2026, 1, 10, 12, 0, tzinfo=UTC))
+    return _hsr_live._solve_record(now, _hsr_live._forecast_arrays(now)).inputs.state.dhw_charge_under_way
+
+
+_hsr_under = [
+    _hsr_under_way("DHW", {"power": 0.0, "dhw_power": 2.0}),
+    _hsr_under_way("Heating", {"power": 3.0, "dhw_power": 0.0}),
+    _hsr_under_way("DHW", {}),
+]
+_hsr_live._pump_signals = _hsr_ps.PumpSignals()
+R.check(
+    "the scheduled solve's state holds a hot-water charge under way only while the "
+    "compressor runs in a mode serving hot water: running on hot water, not running "
+    "on heating, not stopped",
+    _hsr_under == [True, False, False],
+    f"{_hsr_under}",
 )
 
 # What the commit program is told is fixed: a forced-on pin and a step hot
@@ -99984,6 +100009,43 @@ R.check(
     and _hdr_dc.charge_refusal(_hdr_c_lift, _hdr_c_below, _hdr_c_rig.temps, np.full(_HDR_N, -np.inf)) == ("start", 16)
     and np.array_equal(_hdr_c_null, np.where(_hdr_c_plan > 0.0, 0.7, 0.0)),
     f"{np.round(_hdr_c_null[_hdr_c_null > 0], 2)}",
+)
+
+# 2d. A charge at the first step (#3863's start rule, dhw_start): the commit
+# judges it as the floor repair does. On a tank at its start temperature it
+# starts only while a charge is under way (ThermalState.dhw_charge_under_way);
+# commit_charges hands that reading to the acceptance and to the program's
+# start mask. Null: under way, the same charge passes. Called without the
+# reading, both take a charge to be under way, as dhw_start's functions do.
+_hdr_d0_plan = np.zeros(8)
+_hdr_d0_plan[0] = 2.0
+_hdr_d0_walk = np.array([52.0, 54.0, 53.8, 53.6, 53.4, 53.2, 53.0, 52.8, 52.6])
+_hdr_d0 = [
+    _hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf), running)
+    for running in (False, True)
+] + [_hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf))]
+_hdr_d0_rig = _hdr_rig(t0=52.0)
+_hdr_d0_seen = []
+_hdr_d0_kept = (_hdr_dc.charge_refusal, _hdr_dc.startable_steps)
+_hdr_dc.charge_refusal = lambda *a: _hdr_d0_seen.append(("refusal", a[4:])) or _hdr_d0_kept[0](*a)
+_hdr_dc.startable_steps = lambda *a: _hdr_d0_seen.append(("mask", a[3:])) or _hdr_d0_kept[1](*a)
+try:
+    for _hdr_d0_running in ((False,), (True,), ()):
+        _hdr_d0_seen.append(("run", _hdr_d0_running))
+        _hdr_dc.commit_charges(
+            _hdr_d0_rig.planner, np.where(np.arange(_HDR_N) < 2, 0.6, 0.0), (_hdr_d0_rig.ctx, *_hdr_d0_rig.tank),
+            (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.full(_HDR_N, 51.0), None, *_hdr_d0_running)
+finally:
+    _hdr_dc.charge_refusal, _hdr_dc.startable_steps = _hdr_d0_kept
+R.check(
+    "a charge at the first step on a tank at its start temperature is refused for its start unless a "
+    "charge is under way, and the commit hands that reading to the acceptance and the program's start mask",
+    _hdr_d0 == [("start", 0), None, None]
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (False,))) + 1 : _hdr_d0_seen.index(("run", (True,)))])
+    == {("refusal", (False,)), ("mask", (False,))}
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (True,))) + 1 :]) - {("run", ())}
+    == {("refusal", (True,)), ("mask", (True,))},
+    f"{_hdr_d0}, {sorted(set(_hdr_d0_seen))}",
 )
 
 # 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
