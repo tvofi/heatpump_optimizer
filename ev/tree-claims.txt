@@ -1,0 +1,60 @@
+== gating_names / required in merge_train
+429:def gating_names(required):
+433:    9, item 11). It names reds; what decides a merge stays `required`."""
+457:    return 0, "\n".join(judged(gating_names(req)))
+894:    None. Owed exactly when (a) every red name over `gating_names(required)`
+904:    red = set(classify(latest_runs(runs), gating_names(required), FINAL)[2])
+4168:    def required(self, pr_head: bool = False) -> list[str]:
+9098:    owed = judged(gating_names([GATE, "nightly-status"]))
+9107:        def required(self, pr_head=False):
+9118:    names = gating_names([GATE])
+9122:          and gating_names(["fast", "closures"]) == ["fast", "closures"] and gating_names(None) is None)
+9332:          rc_o == 0 and out_o.split() and out_o.splitlines() == judged(gating_names([GATE, "nightly-status"]))
+11785:                        "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
+== bus.sh dispatch classify / REPAIR-OWED / K15
+573:  # THE MERGE VERDICT'S HEAD (card C8): refused at a head with a concluded red; only `classify` RED
+578:      cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$hsha" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
+583:        *) printf 'BUS refused %s %s: cannot classify %s, so a merge verdict there is not posted (card C8): %s\n' "$pr" "$c" "$hsha" \
+722:    if [ "$t" -ge "$tries" ] || ! python3 -I "$ROOT/tools/audit/seat/gh_read.py" --classify < "$err"; then
+771:  # THE REVIEWABLE HEAD (K15 (d); the #2577 carry, built by R10-FLOW-MAIN-GATE).
+773:  # reviewable. merge_train.py's `classify`, the one owner of that state, answers
+780:  cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$h" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
+793:    # A red classify --pr reads from merge_train.introduced_at (R10-INTRODUCED-REDS-BARRIER)
+798:       printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: %s -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$why" >&2; exit 5 ;;
+799:    *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
+1115:    || die "orphans: ledger.py landed could not classify the handoff tips"
+1271:  # The head classifier stub (merge_train.py classify): GREEN unless BUS_CLASSIFY_RC says otherwise.
+1752:  expect "card C8: a merge verdict at a head classify calls RED is refused, recorded nowhere and posts nothing (the arm below is its GREEN null control)" $?
+1754:  outhas -q "^BUS refused 9 .*cannot classify" && ! grep -q "^9 " "$W/state/posted"
+2055:  outhas -q "REFUSE: orphans: ledger.py landed could not classify" && [ $rc != 0 ] \
+2335:  # THE REVIEWABLE HEAD (K15 (d)): the classifier's RED refuses and records nothing;
+2339:  [ $rc = 5 ] && outhas -q "^bus: REPAIR-OWED: .*is not reviewable: .*(tests / fast gate)" && ! outhas -q "REFUSE" \
+2340:    && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
+2341:  expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
+2345:  expect "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context" $?
+== pending_checks
+tools/audit/seat/bus.sh:223:  else gh api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100" --jq '.check_runs[] | select(.status != "completed") | .name'
+tools/audit/seat/bus.sh:717:       && out=$(printf '%s' "$raw" | jq -r '.check_runs[] | select(.status != "completed") | .name' 2>>"$err"); then  # mut:completedfilter
+tools/audit/seat/ci_pause.py:219:                                    '.workflow_runs[] | select(.status != "completed") | .id',
+== prepr step 2
+4545:# --- 2. the scoped gate's MODE line, printed rather than inferred.
+214:tests/coverage_ratchet.py needs the coverage payload of a full gate run; graders-head-copy runs the head copy on the pull request
+306:# `tests/harness_headers.py`, which CI's `fast` ran alone, so a harness whose inlined
+327:# Step 6g's whole body: the D6 claims register `tests/harness_headers.py`
+365:tests/harness.py
+366:tests/golden.py
+367:tests/entities.py
+368:tests/rolling.py
+369:tests/profiles.py
+452:    python3 tests/env_drift.py --claims-only "$base"
+460:    *"INHERITED CLAIMS"*) echo "run \`python3 tests/env_drift.py --drop-inherited $base\` and commit what it empties, the commit claims-autofix would push" ;;
+== fixer step5
+77:   **Running locally does not discharge CI.** What `scope.run` names is green,
+== _d308_pairs
+17794:def _d308_pairs(closures: dict, prod: set, floor: float = 0.80) -> list:
+== commits
+9c53c107be 2026-10-29T15:02:39+00:00 merge_train, bus: re-run an infra-only red main once; dispatch refuses an unreviewable head (R10-FLOW-MAIN-GATE carries)
+9262e6f43d 2026-10-23T07:26:44+02:00 ci-layout P2b U9a: the seat readers read the umbrella's gate
+0cd4cd33c5 2026-10-23T08:31:04+02:00 ci: U9b pins and readers follow the gate layout
+7aa6020f2a 2026-11-25T20:17:34+01:00 Merge pull request #3890 from tvofi/fix/r11-seam-tests-c
+== doc_claims HA-free
