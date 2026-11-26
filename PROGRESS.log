@@ -54,3 +54,4 @@
 1795702130 HB alive
 1795702734 HB alive
 1795702795 CKPT CI at b77edaa RED (tests/mutation, bot pinned at 4a6e24c); head moved; awaiting M1 snapshot 774db9d0229e
+1795703233 DONE blocked b77edaac mutant-survived dhw_planner.py:1208 running->commit_charges; verdict 882d3758 on probe/rev-3805-f939cae2
