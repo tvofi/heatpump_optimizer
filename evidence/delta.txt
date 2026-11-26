@@ -1,0 +1,24 @@
+reviewed head 8ec4351288a069c784e7cfa6996b8e1c56c417f6, prior verdict head 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4
+ 180 files changed, 5259 insertions(+), 609 deletions(-)
+
+## PR net contribution: P vs merge-base d9100de7, H vs merge-base 8f22a3b2
+files at P: 124, at H: 124, same set
+differing contribution: claims.json claims.md claims.py docs/architecture.md tests/deployment_shape.py tests/structure_budgets.json
+
+== 42c278fe vs auto-merge of 95b0ce65f276dc70e5523d8af70585122ea58385 bdcfee6dcc966d9801d418c2425d88a7cf7a712c
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+ dev/audit/rounds/round4/D6/claims.json |  4 ++--
+ dev/audit/rounds/round4/D6/claims.md   |  4 ++--
+ dev/audit/rounds/round4/D6/claims.py   | 12 ++----------
+ docs/architecture.md                   |  6 +++---
+ tests/deployment_shape.py              | 27 +++++++--------------------
+ 5 files changed, 16 insertions(+), 37 deletions(-)
+== c20643b8 vs auto-merge of 42c278fec72f76e404b7b5e3ed52aa2e61da21b4 8f22a3b2842987bf6da13dedb08c4b99b7447f1f
+== 8ec4351288a069c784e7cfa6996b8e1c56c417f6 vs auto-merge of 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4 c20643b8e662997cf838069f703ba4015abc8300
+
+  inert_reads.tests/harness_headers.py: merged as a set (1607 entries)
+  re-run the gate that owns this file before pushing
+055b6b26b3551894628f55e5d007ff1d3cd3b63c
+origin/main=dbdc71faea358a95a7b33840ed252b0d8a646a31
+review_carry: FRESH-REVIEW

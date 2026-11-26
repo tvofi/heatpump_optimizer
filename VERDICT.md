@@ -1,34 +1,21 @@
-Fix review: merge 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4
+Fix review: merge 8ec4351288a069c784e7cfa6996b8e1c56c417f6
 
-bus-nonce: a66b1b136e5cfdd874976cb97d09e4da
+bus-nonce: 23372d03c20a033cf3f591023196a5ed
 
-## Scope
-
-This is a later round over the last merge verdict at `b2b6ff8c93` (probe `rev-3805-e9835d83`). `review_carry.py b2b6ff8c93 2003bbb48c` prints `FRESH-REVIEW`. The PR's own diff moved in seven files. None is under `custom_components/`, so the scope is not widened (fix-review.md step 12):
-- `tests/features.py`, commit `4967642106`: the combi exchange-exit check now hands the exchange injected builds (one plan that repeats, one that alternates) instead of relying on whether the unengaged solve converges, which depends on the BLAS build.
-- `docs/architecture.md`, commit `a6d8334a46`: the HA-free module count goes from 66 to 67.
-- Count re-records forced by the main merges: `dev/audit/rounds/round4/D6/claims.{py,md,json}`, `tests/deployment_shape.py` and `tests/closures.json`. These come from main's `flow_limit.py` landing alongside this branch's `dhw_charges.py`.
+Round: delta review over the merge verdict at 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4 (`git diff 2003bbb4 8ec43512`, a merge of origin/main 8f22a3b2, #3838 ROOMS-3B and #3906). `review_carry.py` prints FRESH-REVIEW, because 42c278fe is a hand resolution and not the automatic merge of its parents.
 
 ## Evidence
 
-- CI: `merge_train.py classify 2003bbb48c --pr 3805` printed `GREEN 2003bbb48cc1b0d70edf0a39b2264aa4c9a533b4 pending: none red: none`, rc 0 (ev/classify.txt). There are no reds, so no `## Red checks` answer is owed.
-- Merge with main: `git merge-tree --write-tree origin/main 2003bbb48c` exits 0 with no conflict, and the ledger driver merges `tests/closures.json` as a set (ev/merge-tree.txt).
-- Mutation proof of the rewritten check, in each case `tests/features.py` run in full on a copy of the head (ev/features-*.txt):
-  - Unmutated: EXIT 0, and the check reads `ok combi: the exchange leaves its rounds ...`. The previous round's note said this check failed in block mode at `[4 of 4]` on this box; it now passes here.
-  - Mutant `optimizer.py:2092` early exit replaced by `if False:` (never leave the rounds): EXIT 1, `FAIL ... [repeating 4, alternating 4 of 4]`. Killed.
-  - Mutant `optimizer.py:2092` early exit replaced by `if True:` (always leave after the first round): EXIT 1, `FAIL ... [repeating 1, alternating 1 of 4]`. Killed.
-  - The check therefore tells a working repeat exit apart from both a missing exit and an unconditional one.
-- Figures re-derived at this head:
-  - `docs/architecture.md` "other 67 modules": an AST census of the package finds 104 `.py` modules. 36 import `homeassistant` at module level, and one, `inputs.py`, imports it only inside a function. 104 - 36 - 1 = 67. Matches.
-  - `claims.py` reports `RESULT arch_modules_on_disk=104`, `arch_map_listed=104` and `claims_false=0`. Matches the C32/C33 rows and the docstring's 104.
-  - `tests/deployment_shape.py`: the counts of 123 files and 186 of 561 pairs are pinned by that script, which ran green in CI at this head. Not re-run here.
-- Prior findings: the round-6 block-mode note on the combi check is settled by `4967642106` (it passes above). The review-packet note is not settled; see Findings.
-- Review packet: `review_packet.py render --pr 3805 --head 2003bbb48c --reviewed-head 2003bbb48c` still refuses with `UNAVAILABLE: git merge-base --is-ancestor b2ce461c origin/handoff/audit-r11-roster: fatal: Not a valid object name b2ce461c`, and writes no packet. This review ran without a packet; its scope was derived by hand as above.
-
-## Findings
-
-- Note: review-packet: `review_packet.py` still reads the body's roster item id `b2ce461c` as a commit and refuses. This is the fifth round of this PR with no packet. The same defect was reported last round, and its root-cause seat belongs to the orchestrator. Carry: dismissed: dispatch-side instrument defect outside this diff, already reported with round 6's verdict
+- RESULT fix_unchanged=yes: I compared the PR's net contribution before and after the merge, from merge-base d9100de7 to 2003bbb4 and from merge-base 8f22a3b2 to 8ec43512. Both touch the same 124 files. Only six differ in their contribution, all of them count-bearing: dev/audit/rounds/round4/D6/claims.{py,json,md}, docs/architecture.md, tests/deployment_shape.py and tests/structure_budgets.json. No file under custom_components/ and no test or harness the fix added differs, and the PR's own contribution to tests/closures.json is identical (ev/delta.txt).
+- RESULT resolutions: c20643b8 and 8ec43512 each equal the automatic merge of their parents. 42c278fe differs from the automatic merge only in those five count files, where the automatic merge had conflicts in claims.py and deployment_shape.py. Each resolution keeps both sides: the provenance chains name both R11-OUTSIDE-ROOMS-3B's comfort_floor.py and R11-OUTSIDE-HONEST-DHW-RUNS's dhw_charges.py, and the architecture map lists dhw_charges.py beside main's entries (ev/count-files-vs-main.diff).
+- RESULT closures_set_merge: every entry that main (8f22a3b2) or the PR side (2003bbb4) added to tests/closures.json over the shared base is still present at the head (0 lost).
+- RESULT counts_rederived: I counted 105 modules in custom_components/heatpump_optimizer/*.py and 105 entries in the docs/architecture.md map, and 124 tracked package files, matching the lane closure size of 124. Re-deriving from closures.json at the head with entities.py's predicate gives 190 of 561 script pairs at Jaccard >= 0.80 (435 comparable), matching tests/deployment_shape.py. That script passes at the head: ALL DEPLOYMENT SHAPE CHECKS PASSED.
+- RESULT budgets_rederived_down: tests/structure.py at the head prints STRUCTURE RATCHET PASSED, with every metric equal to its budget, so the budgets were re-measured, not carried (ev/structure.txt). Compared with main (8f22a3b2 and dbdc71fa), only methods_over_200 (7 to 6) and module_excess_loc (21753 to 21706) move, both downward. The drop of 47 equals the PR's drop before the merge (21763 to 21716). No key is raised.
+- RESULT merges_with_main: `git merge-tree --write-tree origin/main 8ec43512` is clean against origin/main dbdc71fa; the ledger driver resolved tests/closures.json.
+- RESULT ci: `merge_train.py classify 8ec43512 --pr 3805` printed `GREEN 8ec4351288a069c784e7cfa6996b8e1c56c417f6 pending: none red: none` (ev/classify.txt). There are no reds, so no `## Red checks` answer is owed.
+- Prior findings: the verdict at 2003bbb4 was merge and carried no blocking finding. This delta reopens none and adds none.
+- Not re-run locally: claims.py and tests/entities.py import homeassistant, which is not in this seat's venv-ci. CI's GREEN at this head covers them. The figures they assert (105 / 124 / 190) I re-derived independently above.
 
 ## Friction
 
-- `fix-review.md`: `cost`: the dispatch names the head itself as the reviewed head. The real previous verdict, at `b2b6ff8c93`, had to be recovered from the probe refs before the delta could be cut. Carry: dismissed: one occurrence in this round
+- review_packet.py render refused with `UNAVAILABLE: git merge-base --is-ancestor b2ce461c origin/handoff/audit-r11-roster`. b2ce461c is a body-item hash in dev/programme/rosters/wave-r11-groups.json, not a commit, so the packet treats an item id as a SHA. I did the delta review by hand from `git diff 2003bbb4 8ec43512`.
