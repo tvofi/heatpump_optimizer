@@ -1,0 +1,44 @@
+{
+ "key": "36117bb3a189672b",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3576 CLAMP_DROP",
+ "patch": "np.clip(effective, p.ecl110_displace_min, p.ecl110_displace_max) -> (effective)",
+ "function": "ThermalModel.update_ecl110_displace_state",
+ "cluster": "thermal_model.py:ThermalModel.update_ecl110_displace_state@3567-3576",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3328.8,
+  "load1_start": 0.82,
+  "load1_end": 1.02,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_36117bb3a189672b.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_36117bb3a189672b.py",
+  "results": [
+   "RESULT displace_limits=(-20.0,20.0)",
+   "RESULT inputs_tried=125 count",
+   "RESULT inputs_moved=30 count",
+   "RESULT inputs_moved_state_in_range=0 count",
+   "RESULT null_moved=0 count",
+   "RESULT example(eff,cmd,dt,baseline,mutant)=(-25.0, -29.0, 0.0, (-20.0, -20.0), (-20.0, -25.0))"
+  ]
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py:9982 ECL110 update test: no case starting from an effective displace outside [min,max] (e.g. after a lowered limit) asserting the result is clipped",
+ "title": "ECL110 final effective-displace clip at thermal_model.py:3576 is unpinned",
+ "claim": "Dropping the final clip leaves a persisted out-of-limit effective displace out of limits (only an in-range state is protected by the EWMA); no script fails. Reach: a state restored under tighter configured limits.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-assertion",
+ "severity_claimed": "low",
+ "metric_definition": "count of inputs where effective displace differs",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_36117bb3a189672b.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_36117bb3a189672b.py",
+ "perturbation": "np.clip(effective, p.ecl110_displace_min, p.ecl110_displace_max) -> (effective) at custom_components/heatpump_optimizer/thermal_model.py:3576; number moves baseline->mutant (see probe results)",
+ "null_control": "probe's old==new recompile: null_moved/null_max_abs_diff = 0; gate null control gates/null.json"
+}

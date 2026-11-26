@@ -1,0 +1,44 @@
+{
+ "key": "9362d5efbe6808c2",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3569 CLAMP_DROP",
+ "patch": "alpha = float(np.clip(dt_hours / tau, 0.0, 1.0)) -> alpha = float((dt_hours / tau))",
+ "function": "ThermalModel.update_ecl110_displace_state",
+ "cluster": "thermal_model.py:ThermalModel.update_ecl110_displace_state@3567-3576",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3380.7,
+  "load1_start": 0.86,
+  "load1_end": 0.96,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_9362d5efbe6808c2.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_9362d5efbe6808c2.py",
+  "results": [
+   "RESULT displace_limits=(-20.0,20.0)",
+   "RESULT inputs_tried=125 count",
+   "RESULT inputs_moved=8 count",
+   "RESULT inputs_moved_state_in_range=2 count",
+   "RESULT null_moved=0 count",
+   "RESULT example(eff,cmd,dt,baseline,mutant)=(-25.0, -29.0, 24.0, (-20.0, -20.0), (-20.0, 20.0))"
+  ]
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py:9982 ECL110 update test: no case with dt_hours/tau > 1 asserting the lag cannot overshoot the command (alpha<=1)",
+ "title": "ECL110 lag-gain clip at thermal_model.py:3569 is unpinned",
+ "claim": "Dropping np.clip(dt/tau,0,1) lets alpha exceed 1 (dt > tau): the effective displace overshoots the command, bounded only by the final limit clip; no script fails.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-assertion",
+ "severity_claimed": "medium",
+ "metric_definition": "count of inputs where (stored command, effective displace) differ",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_9362d5efbe6808c2.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_9362d5efbe6808c2.py",
+ "perturbation": "alpha = float(np.clip(dt_hours / tau, 0.0, 1.0)) -> alpha = float((dt_hours / tau)) at custom_components/heatpump_optimizer/thermal_model.py:3569; number moves baseline->mutant (see probe results)",
+ "null_control": "probe's old==new recompile: null_moved/null_max_abs_diff = 0; gate null control gates/null.json"
+}

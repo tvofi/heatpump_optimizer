@@ -1,0 +1,29 @@
+{
+ "key": "33f34d42b3bd2d73",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4723 CMP_BOUND",
+ "patch": "drawn_safe = np.where(drawn > 0.0, drawn, 1.0) -> drawn_safe = np.where(drawn >= 0.0, drawn, 1.0)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3683.3,
+  "load1_start": 0.72,
+  "load1_end": 1.0,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_33f34d42b3bd2d73.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_33f34d42b3bd2d73.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "drawn>=0: at drawn==0 the divisor is 0 but cond_scale is False there, np.where picks 1.0; only a RuntimeWarning (suppressed in the probe)",
+ "should_fail": "none identified: drawn>=0: at drawn==0 the divisor is 0 but cond_scale is False there, np.where picks 1.0; only a RuntimeWarning (suppressed in the probe)"
+}

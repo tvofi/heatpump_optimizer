@@ -1,0 +1,29 @@
+{
+ "key": "5d07aa6af8490d01",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4740 CLAMP_DROP",
+ "patch": ") / max(dt, 1e-6) -> ) / (dt)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3641.6,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_5d07aa6af8490d01.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_5d07aa6af8490d01.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "max(dt,1e-6) vs dt only differs for dt<1e-6 h and then only if the wood-tank cap binds inside a 1e-6 K window of WOOD_TANK_MAX_TEMP; tried dt 1e-7/5e-7 with T_wood = MAX-5e-7/-1e-7",
+ "should_fail": "none identified: max(dt,1e-6) vs dt only differs for dt<1e-6 h and then only if the wood-tank cap binds inside a 1e-6 K window of WOOD_TANK_MAX_TEMP; tried dt 1e-7/5e-7 with T_wood = MAX-5e-7/-1e-7"
+}

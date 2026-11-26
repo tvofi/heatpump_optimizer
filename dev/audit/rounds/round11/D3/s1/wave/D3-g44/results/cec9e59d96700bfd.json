@@ -1,0 +1,29 @@
+{
+ "key": "cec9e59d96700bfd",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4722 CMP_BOUND",
+ "patch": "cond_scale = (drawn > delivered) & (delivered > 0.0) -> cond_scale = (drawn > delivered) & (delivered >= 0.0)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3688.6,
+  "load1_start": 0.72,
+  "load1_end": 0.93,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cec9e59d96700bfd.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cec9e59d96700bfd.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "delivered>=0: where delivered==0, scale=0 but `zero` (line 4725) already multiplies q by 0, so the product is identical; the earlier M4 answer (draw dropped) misses that",
+ "should_fail": "none identified: delivered>=0: where delivered==0, scale=0 but `zero` (line 4725) already multiplies q by 0, so the product is identical; the earlier M4 answer (draw dropped) misses that"
+}

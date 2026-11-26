@@ -1,0 +1,29 @@
+{
+ "key": "140cd06a7d92f278",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4722 CMP_BOUND",
+ "patch": "cond_scale = (drawn > delivered) & (delivered > 0.0) -> cond_scale = (drawn >= delivered) & (delivered > 0.0)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3540.6,
+  "load1_start": 0.86,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_140cd06a7d92f278.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_140cd06a7d92f278.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "drawn>=delivered: at the tie scale=delivered/drawn=1.0, equal to the else arm",
+ "should_fail": "none identified: drawn>=delivered: at the tie scale=delivered/drawn=1.0, equal to the else arm"
+}

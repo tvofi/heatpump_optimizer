@@ -1,0 +1,42 @@
+{
+ "key": "78b7f2ebcf85c8a1",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4822 GUARD_OFF",
+ "patch": "if wood is not None and T_wood is not None: -> if False:",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3414.1,
+  "load1_start": 0.85,
+  "load1_end": 1.08,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_78b7f2ebcf85c8a1.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_78b7f2ebcf85c8a1.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=28 count",
+   "RESULT max_abs_diff=94.9999999",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py _grad_parity two-tank case (and tests/optimality.py, validate.py): executes thermal_model.py:4822 yet never asserts simulate_trajectory_batch's `wood` output array against the scalar path's wood-tank trajectory",
+ "title": "simulate_trajectory_batch's wood-tank trajectory write is untested",
+ "claim": "Dropping the guarded write `wood[:, i+1] = T_wood` (line 4822 -> `if False:`) leaves the batch path's `wood` output frozen at zeros after step 0 and no gate script fails; the two-tank batch trajectory published to the solver is unpinned.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-assertion",
+ "severity_claimed": "high",
+ "metric_definition": "max |baseline-mutant| of the batch wood array over a 112-scenario grid",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_78b7f2ebcf85c8a1.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_78b7f2ebcf85c8a1.py",
+ "perturbation": "if wood is not None and T_wood is not None: -> if False: at custom_components/heatpump_optimizer/thermal_model.py:4822; number moves baseline->mutant (see probe results)",
+ "null_control": "probe's old==new recompile: null_moved/null_max_abs_diff = 0; gate null control gates/null.json"
+}

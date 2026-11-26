@@ -1,0 +1,29 @@
+{
+ "key": "966c9be1a17c8bea",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4751 CLAMP_DROP",
+ "patch": ") / max(dt, 1e-6) -> ) / (dt)",
+ "function": "ThermalModel.simulate_trajectory_batch",
+ "cluster": "thermal_model.py:ThermalModel.simulate_trajectory_batch@4553-4822",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3586.1,
+  "load1_start": 0.78,
+  "load1_end": 0.96,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_966c9be1a17c8bea.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_966c9be1a17c8bea.py",
+  "results": [
+   "RESULT scenarios_tried=112 count",
+   "RESULT scenarios_moved=0 count",
+   "RESULT max_abs_diff=0",
+   "RESULT null_max_abs_diff=0"
+  ]
+ },
+ "class": "equivalent-candidate",
+ "inputs_tried": "same as 4740 for the buffer cap at buffer_max_temp; tried dt 1e-7/5e-7 and T_buf 69.9999995..70.0000005",
+ "should_fail": "none identified: same as 4740 for the buffer cap at buffer_max_temp; tried dt 1e-7/5e-7 and T_buf 69.9999995..70.0000005"
+}

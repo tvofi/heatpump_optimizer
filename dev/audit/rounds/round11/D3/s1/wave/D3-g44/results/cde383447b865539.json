@@ -1,0 +1,47 @@
+{
+ "key": "cde383447b865539",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:303 CMP_BOUND",
+ "patch": "and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME -> and self.buffer_tank_volume > BUFFER_STORE_MIN_VOLUME",
+ "function": "ThermalParameters.buffer_is_store",
+ "cluster": "thermal_model.py:ThermalParameters.buffer_is_store@303-303",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3262.2,
+  "load1_start": 1.03,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cde383447b865539.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cde383447b865539.py",
+  "results": [
+   "RESULT site='and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME'",
+   "RESULT vol_100.0: baseline=True mutant=False",
+   "RESULT vol_99.999999999: baseline=False mutant=False",
+   "RESULT vol_100.000000001: baseline=True mutant=True",
+   "RESULT vol_5.0: baseline=False mutant=False",
+   "RESULT vol_750.0: baseline=True mutant=True",
+   "RESULT inputs_tried=5 count",
+   "RESULT inputs_moved=1 count",
+   "RESULT null_moved=0 count"
+  ]
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py buffer_is_store tests: no throttling config with buffer_tank_volume == BUFFER_STORE_MIN_VOLUME asserting True",
+ "title": "buffer_is_store threshold tie at thermal_model.py:303 unpinned",
+ "claim": "`>=` -> `>` makes a throttling buffer of exactly 100 L stop being modelled as a store (True -> False); no script fails.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-assertion",
+ "severity_claimed": "low",
+ "metric_definition": "buffer_is_store at volume == BUFFER_STORE_MIN_VOLUME",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cde383447b865539.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_cde383447b865539.py",
+ "perturbation": "and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME -> and self.buffer_tank_volume > BUFFER_STORE_MIN_VOLUME at custom_components/heatpump_optimizer/thermal_model.py:303; number moves baseline->mutant (see probe results)",
+ "null_control": "probe's old==new recompile: null_moved/null_max_abs_diff = 0; gate null control gates/null.json"
+}
