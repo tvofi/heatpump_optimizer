@@ -77,7 +77,16 @@
    "not_reached": [
     "assigned to box D3-g01..D3-g46 and the main box D3-g47 (rows 1-9 of its keys.tsv): every other key of the 742-key wave list"
    ],
-   "redispatched": [],
+   "redispatched": [
+    {
+     "item": "C3",
+     "state": "not_reached"
+    },
+    {
+     "item": "C5",
+     "state": "examined"
+    }
+   ],
    "evidence": "bash gate_wave.sh null; bash gate_wave.sh run (fullgate.py run --src complete --key <key>: GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=92d38ecb640bd462f2e19c0814d0f0b7df1ee692 GATE_JOBS=1 ./tests/run.sh); records dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/gates/<key>.json for keys 5b6489f7860d73b1, 1111a3e5d9c44e3f, 67a0550ee998a213, 75b300b2bc47485f, 92c063e90dafcc35, 6fa8436f09ad7e06; helper half of box D3-g47 (rows 10-15 of 15)"
   },
   {
