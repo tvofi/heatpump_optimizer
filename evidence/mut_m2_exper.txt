@@ -1,3 +1,0 @@
-  FAIL _bootstrap drops the package directory so datetime is stdlib  [here=/root/mut/m2_exper/custom_components/heatpump_optimizer path0='/tmp/g511-6q17epqo']
-  FAIL STEP-KICK T6: a return target and a system-identification step write the same with and without the swap; null control: the record passes the gate on a plain flow target, and no arbiter state (an indoor set-point) is no record  [return=55.0/55.0 probe=44.0]
-2 of 6159 FEATURE CHECKS FAILED
