@@ -63030,9 +63030,9 @@ R.check(
 )
 
 # #3897 review block: the follower runs in the step tail, so a cycle that raises
-# before its tail (the Tibber outage latch's UpdateFailed, or any fetch or solve
-# fault the generic handler turns into one) ran none, and while no cycle
-# succeeded the boost bound and the disabled-disinfection switch-off went
+# before its tail ran none. That is the Tibber outage latch's UpdateFailed, or any
+# fetch or solve fault the generic handler turns into one. While no cycle
+# succeeded, the boost bound and the disabled-disinfection switch-off went
 # unenforced. The cycle's own path is driven, the price fetch made to raise.
 from heatpump_optimizer.const import MODE_COMFORT as _MODE_COMFORT  # noqa: E402
 
