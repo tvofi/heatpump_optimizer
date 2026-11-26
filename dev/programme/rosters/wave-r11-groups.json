@@ -3249,8 +3249,8 @@
    ],
    "brief": "Two remeasured countermeasures from dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md, both in tools/pr/prepr.sh, carried below verbatim: the per-step elapsed field (C3) and the corrected premise over predict_line for step 6d (C4). Re-measure each at your own merge base first; the countermeasures were placed by the round-10 round-end triage (triage: dev/programme/triage/r10-round-end.md#P768). Lands after R10-PREPR-DARWIN-SELFTEST-LANE, which edits the same file.",
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "carries-open",
+    "commit": "fd93aa3e9b161e92ead26e04ba8311b3fc0fc7e5",
     "branch": "handoff/r11-prepr-step-timing",
     "last_step": null,
     "next_step": "dispatch fixer after R10-PREPR-DARWIN-SELFTEST-LANE merges; re-measure first",
@@ -7065,9 +7065,10 @@
    "source": "audit",
    "brief": "Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real hours (743 for the spring-forward March) at origin/main 698eeeb2ab. Open: the sweep instances beyond the findings, dhw_schedule.hours_until_next_window and ThermalModel.simulate_trajectory and simulate_trajectory_batch, each reported by the issue body as exiting 1 on the spring and autumn transition days and 0 on a plain day, plus D15-s2-04 (unreproduced). The sweep probe the issue body names does not exist at any ref of the repository: the fixer's first step is a probe per instance that fails on the transition days and passes on a plain day, measured at its merge base, and an instance that does not reproduce is pinned and recorded, not edited. Each fix reads the one naive-instant zone definition R11-SEAM-kernel-step puts in const, hence the edge. Size S; class tag P7.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab): thermal_model.py: the edit is the trajectory's wall-clock step arithmetic only, which no not-started group's scope touches"
+    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab): thermal_model.py: the edit is the trajectory's wall-clock step arithmetic only, which no not-started group's scope touches",
+    "pr": 3914
    }
   },
   {
