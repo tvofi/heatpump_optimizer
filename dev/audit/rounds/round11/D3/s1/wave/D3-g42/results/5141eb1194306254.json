@@ -1,0 +1,45 @@
+{
+ "key": "5141eb1194306254",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3366 CMP_BOUND",
+ "patch": "if not flow_temp > ref: -> if not flow_temp >= ref:",
+ "function": "ThermalModel.flow_lift_factor",
+ "cluster": "thermal_model.py:ThermalModel.flow_lift_factor@3366-3389",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3511.7,
+  "load1_start": 0.5,
+  "load1_end": 0.92
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5141eb1194306254.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5141eb1194306254.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5141eb1194306254.out",
+  "metrics_moved": "0",
+  "numbers": {
+   "f_[('cop_flow_reference_temp',_baseline": "'0.8034343101141715'",
+   "f_[('cop_flow_reference_temp',_mutant": "'0.8034343101141715'",
+   "f_[('cop_reference_temp',_baseline": "'0.25'",
+   "f_[('cop_reference_temp',_mutant": "'0.25'",
+   "f_[]_-20.0_baseline": "'1.0'",
+   "f_[]_-20.0_mutant": "'1.0'",
+   "f_[]_-5.0_baseline": "'1.0'",
+   "f_[]_-5.0_mutant": "'1.0'",
+   "f_[]_0.0_baseline": "'1.0'",
+   "f_[]_0.0_mutant": "'1.0'",
+   "f_[]_12.0_baseline": "'1.0'",
+   "f_[]_12.0_mutant": "'1.0'",
+   "f_[]_40.0_baseline": "'0.8622522482655535'",
+   "f_[]_40.0_mutant": "'0.8622522482655535'",
+   "f_[]_7.0_baseline": "'1.0'",
+   "f_[]_7.0_mutant": "'1.0'",
+   "metrics_moved": "0"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "",
+ "note": "flow == cop_flow_reference_temp: carnot_flow == carnot_ref exactly, ratio 1.0, so both arms return 1.0; 24 cells over 4 parameter sets x 6 outdoor temps: 0 differences",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json"
+}

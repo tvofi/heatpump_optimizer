@@ -1,0 +1,9 @@
+RESULT grid_cells_baseline=90
+RESULT grid_cells_mutant=90
+RESULT grid_digest_baseline='0c4db310320ec0aac1dc7c82983e909c'
+RESULT grid_digest_mutant='0c4db310320ec0aac1dc7c82983e909c'
+RESULT line_4020_hits_baseline=1170
+RESULT line_4020_hits_mutant=1170
+RESULT refused_nonzero_cells_baseline=53
+RESULT refused_nonzero_cells_mutant=53
+RESULT metrics_moved=0

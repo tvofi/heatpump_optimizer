@@ -1,0 +1,9 @@
+RESULT h_10.0_5.0_20.0_baseline='0.0'
+RESULT h_10.0_5.0_20.0_mutant='168.0'
+RESULT h_15.0_10.0_20.0_baseline='0.0'
+RESULT h_15.0_10.0_20.0_mutant='168.0'
+RESULT h_20.0_10.0_20.0_baseline='0.0'
+RESULT h_20.0_10.0_20.0_mutant='168.0'
+RESULT h_40.0_30.0_20.0_baseline='57.762265046662115'
+RESULT h_40.0_30.0_20.0_mutant='57.762265046662115'
+RESULT metrics_moved=3

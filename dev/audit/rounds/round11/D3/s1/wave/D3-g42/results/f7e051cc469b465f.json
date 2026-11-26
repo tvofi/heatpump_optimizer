@@ -1,0 +1,49 @@
+{
+ "key": "f7e051cc469b465f",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:3517 GUARD_OFF",
+ "patch": "if solar_radiation <= 0: -> if False:",
+ "function": "ThermalModel.compute_solar_gain",
+ "cluster": "thermal_model.py:ThermalModel.compute_solar_gain@3517-3517",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3921.3,
+  "load1_start": 0.49,
+  "load1_end": 0.92
+ },
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_f7e051cc469b465f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_f7e051cc469b465f.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_f7e051cc469b465f.out",
+  "metrics_moved": "1",
+  "numbers": {
+   "gain_0_baseline": "'0.0'",
+   "gain_0_mutant": "'0.0'",
+   "gain_500_baseline": "'2.45'",
+   "gain_500_mutant": "'2.45'",
+   "gain_m10_baseline": "'0.0'",
+   "gain_m10_mutant": "'-0.049'",
+   "metrics_moved": "1"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "any closure script that executes line 3517 (tests/features.py, tests/validate.py, tests/optimality.py): assert compute_solar_gain(-10.0) == 0.0",
+ "note": "The solar sensor path (coordinator.py:6709-6713) and the forecast path (7341-7342) apply no max(0); with the guard off compute_solar_gain(-10) returns a negative kW (heat loss booked as solar) where the baseline returns 0.0.",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1d.json",
+ "title": "compute_solar_gain's `<= 0` early return is the only barrier to negative solar gain, and no test feeds a negative irradiance",
+ "claim": "The solar sensor path (coordinator.py:6709-6713) and the forecast path (7341-7342) apply no max(0); with the guard off compute_solar_gain(-10) returns a negative kW (heat loss booked as solar) where the baseline returns 0.0.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-boundary-test",
+ "severity_claimed": "low",
+ "metric_definition": "probe_f7e051cc469b465f.py RESULT metrics_moved: count of probed outputs that differ between the baseline and the one-line mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_f7e051cc469b465f.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_f7e051cc469b465f.py",
+ "perturbation": "if solar_radiation <= 0: -> if False: (thermal_model.py:3517); numbers move baseline -> mutant as listed in probe output",
+ "null_control": "fullgate.py null (comment-only marker) is red only on the artefact scripts; inputs the line cannot distinguish in the same probe give no movement"
+}

@@ -1,0 +1,37 @@
+{
+ "key": "5a66d572bfdd1491",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:4020 CMP_BOUND",
+ "patch": "if dT_buf > dT_cap: -> if dT_buf >= dT_cap:",
+ "function": "ThermalModel._simulate_step_two_zone",
+ "cluster": "thermal_model.py:ThermalModel._simulate_step_two_zone@4003-4020",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3627.6,
+  "load1_start": 0.66,
+  "load1_end": 1.01
+ },
+ "class": "equivalent-candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5a66d572bfdd1491.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5a66d572bfdd1491.py",
+  "output": "dev/audit/rounds/round11/D3/s1/wave/D3-g42/probes/probe_5a66d572bfdd1491.out",
+  "metrics_moved": "0",
+  "numbers": {
+   "grid_cells_baseline": "90",
+   "grid_cells_mutant": "90",
+   "grid_digest_baseline": "'0c4db310320ec0aac1dc7c82983e909c'",
+   "grid_digest_mutant": "'0c4db310320ec0aac1dc7c82983e909c'",
+   "line_4020_hits_baseline": "1170",
+   "line_4020_hits_mutant": "1170",
+   "refused_nonzero_cells_baseline": "53",
+   "refused_nonzero_cells_mutant": "53",
+   "metrics_moved": "0"
+  },
+  "provisional_machine": "4 vCPU, see MACHINE.txt"
+ },
+ "should_fail": "",
+ "note": "dT_buf == dT_cap writes identical values in both branches: refused=(dT_buf-dT_cap)*C=0 and dT_buf=dT_cap. 1170 line hits over a 90-cell grid incl. T_buf at buffer_max_temp: 0 output differences; 53 cells have refused>0",
+ "carried_m4": "dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json"
+}
