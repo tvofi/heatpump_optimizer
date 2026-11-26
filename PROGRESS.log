@@ -148,3 +148,9 @@
 1795652337 CKPT D3-s1 66 file(s)
 1795652406 CKPT D3-s1 66 file(s)
 1795652411 HB lock was stale after container restart; cleared; 14/15 gated
+1795654923 CKPT D3-s1 68 file(s)
+1795654923 HB gate done: 05b5a15efaaf70de RED-AS-NULL | gated 15/15 left 0 KILLED=1 RED-AS-NULL=14
+1795654981 CKPT D3-s1 69 file(s)
+1795655097 CKPT D3-s1 73 file(s)
+1795655167 HB alive
+1795655167 CKPT D3-s1 73 file(s)

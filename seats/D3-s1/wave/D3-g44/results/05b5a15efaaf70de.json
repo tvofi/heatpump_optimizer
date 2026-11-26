@@ -1,0 +1,43 @@
+{
+ "key": "05b5a15efaaf70de",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:677 CLAMP_DROP",
+ "patch": "rate = min(max(float(rate), low), high) -> rate = (max(float(rate), low))",
+ "function": "ThermalParameters.buffer_tank_heat_loss_coefficient",
+ "cluster": "thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient@668-677",
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3162.9,
+  "load1_start": 0.58,
+  "load1_end": 0.92,
+  "provisional": true
+ },
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_05b5a15efaaf70de.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_05b5a15efaaf70de.py",
+  "results": [
+   "RESULT site='rate = min(max(float(rate), low), high)'",
+   "RESULT inputs_tried=21 count",
+   "RESULT inputs_moved=9 count",
+   "RESULT null_moved=0 count",
+   "RESULT example_rate50_vol750_baseline_vs_mutant=(0.03967968346149723, 1.74)"
+  ]
+ },
+ "class": "candidate",
+ "should_fail": "tests/features.py buffer heat-loss tests: no config with buffer_cooling_rate above buffer_cooling_rate_bounds(volume)[1] asserting the coefficient is capped",
+ "title": "buffer loss-rate upper clamp at thermal_model.py:677 unpinned",
+ "claim": "Dropping the `high` clamp lets a configured/learned buffer_cooling_rate above bound produce an uncapped UA (0.0397 -> 1.74 kW/K at 750 L, rate 50); no script fails.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "missing-assertion",
+ "severity_claimed": "medium",
+ "metric_definition": "buffer_tank_heat_loss_coefficient at rate > bound",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_05b5a15efaaf70de.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g44/probes/probe_05b5a15efaaf70de.py",
+ "perturbation": "rate = min(max(float(rate), low), high) -> rate = (max(float(rate), low)) at custom_components/heatpump_optimizer/thermal_model.py:677; number moves baseline->mutant (see probe results)",
+ "null_control": "probe's old==new recompile: null_moved/null_max_abs_diff = 0; gate null control gates/null.json"
+}

@@ -28,5 +28,9 @@
  "class": "killed",
  "killed_by": [
   "python3 tests/stress.py"
- ]
+ ],
+ "failing_check_lines": [
+  "FAIL a3:roster  [1 registered, 82 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_source', 'binary_sensor.heat_pump_optimizer_input_problem', 'binary_sensor.heat_pump_optimizer_mold_floor_breach', 'binary_sen"
+ ],
+ "note": "KILLED by tests/stress.py (a wall/CPU budget check, so provisional: the mutant disables the heat-loss-coefficient cache; value identical). Probe: bounds calls 1 -> 1000 per 1000 reads."
 }
