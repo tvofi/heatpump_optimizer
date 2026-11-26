@@ -9,3 +9,4 @@
 1795671619 HB alive
 1795671943 CKPT full entities.py at head: 2779 pass; awaiting CI snapshot 802605979d67
 1795672217 HB alive
+1795672266 DONE merge 2e3a13f0 (pending-ci: gate) on probe/rev-3905-cdfe0617 7a9ffd70
