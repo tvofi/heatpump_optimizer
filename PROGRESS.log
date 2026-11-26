@@ -5,3 +5,4 @@
 1795683268 CKPT head self-tests rc=0 (114 ok / 574 passed); mutants running snapshot 633d9dfbfe02
 1795683417 HB alive
 1795684013 HB alive
+1795684333 DONE verdict pushed: blocked mutation-survivor (run elapsed unpinned), probe/rev-3908-94003d9d cbb3aa60a3
