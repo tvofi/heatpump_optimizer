@@ -94428,6 +94428,26 @@ R.check(
             and isinstance(r.get("lower_temp"), float) for r in _zg_rows_two),
     f"rows={len(_zg_rows_two)}",
 )
+from heatpump_optimizer.payload import ScheduleStep as _zg_Step  # noqa: E402
+
+_zg_res_two = _pm_svc_two.runtime_data._optimization_result
+_zg_up = [round(v, 9) for v in _zg_res_two.upper_temp_trajectory[1:]]
+_zg_lo = [round(v, 9) for v in _zg_res_two.lower_temp_trajectory[1:]]
+R.check(
+    "R11-LATE-P2-ZONE-GATE: each floor's column is that floor's trajectory "
+    "(precondition: the two floors differ somewhere)",
+    _zg_up != _zg_lo
+    and [round(r["upper_temp"], 9) for r in _zg_rows_two] == _zg_up
+    and [round(r["lower_temp"], 9) for r in _zg_rows_two] == _zg_lo,
+    f"up[:2]={_zg_up[:2]} lo[:2]={_zg_lo[:2]} "
+    f"rows[:2]={[(r['upper_temp'], r['lower_temp']) for r in _zg_rows_two[:2]]}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a schedule row publishes exactly the keys "
+    "ScheduleStep declares, on either topology",
+    all(set(r) == set(_zg_Step.__annotations__) for r in _zg_rows_one + _zg_rows_two),
+    f"declared={sorted(_zg_Step.__annotations__)} row={sorted(_zg_rows_one[0]) if _zg_rows_one else None}",
+)
 
 # D17-s2-03: quick setup's wood answers record the furnace and the tank; the
 # page says what else the plan needs, as buffer_tank's sentence does.
