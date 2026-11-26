@@ -9,3 +9,4 @@
 1795637033 HB alive
 1795637504 CKPT mutants run: D5 window survives; writing blocked verdict snapshot 1365bf42e747
 1795637557 DONE blocked e60d25b9: mutation-vacuous ledger_unread window filter; verdict 41afbb25 on probe/rev-3898-8f5a11f8
+1795651381 INIT r11-rev-3898
