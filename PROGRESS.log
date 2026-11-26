@@ -1,2 +1,3 @@
 1795657602 INIT r11-rev-3904
 1795657613 HB alive
+1795657917 CKPT setup, packet, merge-tree clean, structure ok; slice+mutants running; CI WAIT snapshot 3fc9300f6019
