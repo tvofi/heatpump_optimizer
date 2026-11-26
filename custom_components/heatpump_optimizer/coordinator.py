@@ -6099,7 +6099,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         finally:
             self._refresh_task = None
             if not self._entry_released:  # a cycle that raised before its step tail still follows (#3897)
-                await _best_effort_cycle_step(functools.partial(self._legionella.async_follow_missed, pump_arbiter.state_for(self).tail_lock), "Disinfection follower skipped: %s")
+                await _best_effort_cycle_step(functools.partial(self._legionella.follower.async_follow_missed, pump_arbiter.state_for(self).tail_lock), "Disinfection follower skipped: %s")
             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
                 self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
 
@@ -7681,7 +7681,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _async_step_tail(self, boundary: bool = False, reason: str = "scheduled_update") -> bool:
         """The step-derived writers the cycle and the step tick run, each best-effort; True
         where the frequency's rate limit refused a changed target (the tick retries it)."""
-        await _best_effort_cycle_step(self._legionella.async_follow, "Disinfection follower skipped: %s")
+        await _best_effort_cycle_step(self._legionella.follower.async_follow, "Disinfection follower skipped: %s")
         await _best_effort_cycle_step(
             functools.partial(self.async_publish_current_action, reason, boundary=boundary), "ECL110 publish skipped: %s")
         pending = await _best_effort_cycle_step(self._command_frequency, "Frequency command skipped: %s")

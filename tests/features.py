@@ -62566,7 +62566,7 @@ def _g5_tick(coord, reason):
     async def _cycle():
         await coord._update_current_state()
         # The follower runs in the step tail since observe stopped driving it.
-        await coord._legionella.async_follow()
+        await coord._legionella.follower.async_follow()
 
     _asyncio.run(_cycle())
 
