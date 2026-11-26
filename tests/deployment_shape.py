@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 122
+records every read, so this lane's recorded closure is the package: all 123
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
+alike (122 until R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
 R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
 ``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
@@ -58,9 +58,15 @@ the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
 recording finds 184 of the 561 script pairs (34 choose 2) sharing 0.80 or more
-of their production-module closure (182 before R11-OWNER-FLOWCAP's flow_limit.py
-joined main's closures, adding env_drift.py/manual_plan.py and
-golden.py/manual_plan.py; 169 of 528 before R11-SEAM-tests's
+of their production-module closure (186 on R11-OUTSIDE-ROOMS-3B's branch and 182 on
+main before the merge joining them, main's R11-SEAM-entity-service services.yaml
+having taken config_flow_steps.py's pairs with debug_collect.py and wood_advisor.py
+under 0.80, 184 on main and 180 on that branch before it landed; on the rooms-3b
+branch, 184 on each side before the merge joining
+R11-OWNER-FLOWCAP's flow_limit.py and R11-OUTSIDE-ROOMS-3B's comfort_floor.py, which put
+card_drift.mjs and wood_advisor.py each with features.py at the 0.80 floor; 182
+before flow_limit.py on main and comfort_floor.py on its branch each lifted
+env_drift.py/manual_plan.py and golden.py/manual_plan.py to 0.80; 169 of 528 before R11-SEAM-tests's
 cycle_lane.py, whose closure opens the whole package, and 180 on its branch
 before the merge bringing R11-SEAM-actuation-release's three production
 modules; 167 before both; 164 on each side before the merge joining

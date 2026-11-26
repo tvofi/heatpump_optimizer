@@ -109,7 +109,9 @@ jobs:
         if: github.ref_type != 'tag'
         run: |
           set -euo pipefail
-          tag=$(git ls-remote --tags --refs --sort=-v:refname origin 'refs/tags/v*' | head -n 1 | sed 's#.*refs/tags/##')
+          # awk reads to the end: `| head -n 1` closed the pipe early, and the listing's
+          # SIGPIPE failed the step under pipefail (exit 141, run 45663211757).
+          tag=$(git ls-remote --tags --refs --sort=-v:refname origin 'refs/tags/v*' | awk 'NR == 1 { sub(/.*refs\/tags\//, ""); print }')
           if [ -z "$tag" ]; then
             echo "::warning title=No release tag::no v* tag; the docs are the dispatched ref's"
             exit 0
