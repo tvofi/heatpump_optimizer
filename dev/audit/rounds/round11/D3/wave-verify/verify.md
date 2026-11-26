@@ -16,8 +16,9 @@ Not run here, by the brief: the judge, dedup and the class sweep (they wait for 
 | 4 | g43 | 2 | {'verify': 2} |
 | 5 | g45 | 11 | {'unresolved': 11} |
 | 6 | g44 | 7 | {'verify': 7} |
+| 7 | g42 | 7 | {'verify': 7} |
 
-Total: 419 findings; {'verify': 396, 'weaken': 9, 'unresolved': 14}.
+Total: 426 findings; {'verify': 403, 'weaken': 9, 'unresolved': 14}.
 
 ## Method
 
@@ -492,3 +493,10 @@ Carry: R11-D3-JUDGE
 | 6 | 9362d5efbe6808c2 | D3-g44 | thermal_model.py:3569 | verify | medium | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
 | 6 | cde383447b865539 | D3-g44 | thermal_model.py:303 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('vol_100.0', ['True', 'False']) | faithful by construction |
 | 6 | f66c6e9cf9d1f84a | D3-g44 | thermal_model.py:3567 | verify | medium | V1 0 arm pair(s) moved, null moved 0; e.g. None | faithful by construction |
+| 7 | 5b8e7044ee7974f8 | D3-g42 | thermal_model.py:5012 | verify | low | V1 2 arm pair(s) moved, null moved 0; e.g. ('wood_after_from_2.0', ["'2.0'", "'10.0'"]) | faithful by construction |
+| 7 | f7e051cc469b465f | D3-g42 | thermal_model.py:3517 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('gain_m10', ["'0.0'", "'-0.049'"]) | faithful by construction |
+| 7 | 402ffd06ddbd856a | D3-g42 | thermal_model.py:3649 | verify | low | V1 3 arm pair(s) moved, null moved 0; e.g. ('h_20.0_10.0_20.0', ["'0.0'", "'168.0'"]) | faithful by construction |
+| 7 | d90533f4d17cfa14 | D3-g42 | thermal_model.py:3649 | verify | low | V1 3 arm pair(s) moved, null moved 0; e.g. ('h_10.0_5.0_20.0', ["'0.0'", "'168.0'"]) | faithful by construction |
+| 7 | 011b9e2e975b5e98 | D3-g42 | thermal_model.py:3654 | verify | medium | V1 4 arm pair(s) moved, null moved 0; e.g. ('config_coast_hours_cooling_rate_0.0', ["'168.0'", "'346.573590279 | faithful by construction |
+| 7 | 9df41596c4fa89c6 | D3-g42 | thermal_model.py:3479 | verify | low | V1 1 arm pair(s) moved, null moved 0; e.g. ('u_0.1', ["'0.1'", "'0.10075'"]) | faithful by construction |
+| 7 | 029c040224dc4e38 | D3-g42 | thermal_model.py:3483 | verify | medium | V1 3 arm pair(s) moved, null moved 0; e.g. ('u_10.0', ["'0.11499999999999999'", "'0.17499999999999996'"]) | faithful by construction |

@@ -103,6 +103,16 @@
    "votes": {
     "verify": 7
    }
+  },
+  {
+   "stage": 7,
+   "boxes": [
+    "D3-g42"
+   ],
+   "findings": 7,
+   "votes": {
+    "verify": 7
+   }
   }
  ],
  "votes": [
@@ -12338,6 +12348,211 @@
    "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3567 `cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max))` -> `cmd = float((displace_command))` (production file)",
    "missing_fields": [],
    "stage": 6
+  },
+  {
+   "id": "D3-wave-5b8e7044ee7974f8",
+   "key": "5b8e7044ee7974f8",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:5012",
+   "patch": "if q_coil > 0.0: -> if q_coil >= 0.0:",
+   "title": "apply_dhw_coil lifts a wood tank colder than the DHW inlet up to the inlet when no coil heat flows (q_coil == 0)",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 2 arm pair(s) moved, null moved 0; e.g. ('wood_after_from_2.0', [\"'2.0'\", \"'10.0'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 48.4 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if q_coil >= 0.0:', '        if q_coil > 0.0:')), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 2 of 11 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 3 (header)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if q_coil >= 0.0:', '        if q_coil > 0.0:')), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 3 script(s); 3 production reference(s) to apply_dhw_coil outside its definition (e.g. ['custom_components/heatpump_optimizer/thermal_model.py:2996', 'custom_components/heatpump_optimizer/thermal_model.py:4937']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:5012 `if q_coil > 0.0:` -> `if q_coil >= 0.0:` (production file)",
+   "missing_fields": [],
+   "stage": 7
+  },
+  {
+   "id": "D3-wave-f7e051cc469b465f",
+   "key": "f7e051cc469b465f",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3517",
+   "patch": "if solar_radiation <= 0: -> if False:",
+   "title": "compute_solar_gain's `<= 0` early return is the only barrier to negative solar gain, and no test feeds a negative irradiance",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 1 arm pair(s) moved, null moved 0; e.g. ('gain_m10', [\"'0.0'\", \"'-0.049'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 48.4 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if False:', '        if solar_radiation <= 0:')), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 1 of 3 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if False:', '        if solar_radiation <= 0:')), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 18 script(s); 10 production reference(s) to compute_solar_gain outside its definition (e.g. ['custom_components/heatpump_optimizer/coordinator.py:7882', 'custom_components/heatpump_optimizer/coordinator.py:9388']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3517 `if solar_radiation <= 0:` -> `if False:` (production file)",
+   "missing_fields": [],
+   "stage": 7
+  },
+  {
+   "id": "D3-wave-402ffd06ddbd856a",
+   "key": "402ffd06ddbd856a",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3649",
+   "patch": "if hot <= 0.0: -> if hot < 0.0:",
+   "title": "dhw_coast_hours returns 168 h instead of 0 for a tank at exactly ambient",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 3 arm pair(s) moved, null moved 0; e.g. ('h_20.0_10.0_20.0', [\"'0.0'\", \"'168.0'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 48.4 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if hot < 0.0:', '        if hot <= 0.0:')), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 3 of 4 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 0 (record)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if hot < 0.0:', '        if hot <= 0.0:')), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 16 script(s); 1 production reference(s) to dhw_coast_hours outside its definition (e.g. ['custom_components/heatpump_optimizer/thermal_model.py:3622']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3649 `if hot <= 0.0:` -> `if hot < 0.0:` (production file)",
+   "missing_fields": [],
+   "stage": 7
+  },
+  {
+   "id": "D3-wave-d90533f4d17cfa14",
+   "key": "d90533f4d17cfa14",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3649",
+   "patch": "if hot <= 0.0: -> if False:",
+   "title": "dhw_coast_hours's hot<=0 guard has no test: a tank at or below ambient coasts 168 h",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 3 arm pair(s) moved, null moved 0; e.g. ('h_10.0_5.0_20.0', [\"'0.0'\", \"'168.0'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 48.4 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if False:', '        if hot <= 0.0:')), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 3 of 4 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 0 (record)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if False:', '        if hot <= 0.0:')), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 16 script(s); 1 production reference(s) to dhw_coast_hours outside its definition (e.g. ['custom_components/heatpump_optimizer/thermal_model.py:3622']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3649 `if hot <= 0.0:` -> `if False:` (production file)",
+   "missing_fields": [],
+   "stage": 7
+  },
+  {
+   "id": "D3-wave-011b9e2e975b5e98",
+   "key": "011b9e2e975b5e98",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3654",
+   "patch": "return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0)) -> return float(((c_dhw / ua) * np.log(hot / cold)))",
+   "title": "dhw_coast_hours's [0,168] clip has no test; at the config's minimum cooling rate the coast reads 346.6 h",
+   "vote": "verify",
+   "severity": "medium",
+   "severity_claimed": "medium",
+   "value": "V1 4 arm pair(s) moved, null moved 0; e.g. ('config_coast_hours_cooling_rate_0.0', [\"'168.0'\", \"'346.5735902799726'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 47.5 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        return float(((c_dhw / ua) * np.log(hot / cold)))', '        return float(np.clip((c_dhw / ua)), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)",
+    "severity: claimed medium, kept: not re-graded beyond reach in this stage"
+   ],
+   "reproduced": "rc 0; 4 of 11 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 1 (header)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        return float(((c_dhw / ua) * np.log(hot / cold)))', '        return float(np.clip((c_dhw / ua)), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 16 script(s); 1 production reference(s) to dhw_coast_hours outside its definition (e.g. ['custom_components/heatpump_optimizer/thermal_model.py:3622']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3654 `return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))` -> `return float(((c_dhw / ua) * np.log(hot / cold)))` (production file)",
+   "missing_fields": [],
+   "stage": 7
+  },
+  {
+   "id": "D3-wave-9df41596c4fa89c6",
+   "key": "9df41596c4fa89c6",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3479",
+   "patch": "if precipitation > 0.1:  # threshold for \"raining\" -> if precipitation >= 0.1:  # threshold for \"raining\"",
+   "title": "Rain threshold boundary: precipitation == 0.1 mm/h is dry on the baseline",
+   "vote": "verify",
+   "severity": "low",
+   "severity_claimed": "low",
+   "value": "V1 1 arm pair(s) moved, null moved 0; e.g. ('u_0.1', [\"'0.1'\", \"'0.10075'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 47.5 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if precipitation >= 0.1:  # threshold for \"raining\"', '        if precipitation > 0.1:  # thre), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)"
+   ],
+   "reproduced": "rc 0; 1 of 6 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 3 (header)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('        if precipitation >= 0.1:  # threshold for \"raining\"', '        if precipitation > 0.1:  # thre), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 17 script(s); 14 production reference(s) to effective_heat_loss_coefficient outside its definition (e.g. ['custom_components/heatpump_optimizer/optimizer.py:842', 'custom_components/heatpump_optimizer/optimizer.py:844']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3479 `if precipitation > 0.1:  # threshold for \"raining\"` -> `if precipitation >= 0.1:  # threshold for \"raining\"` (production file)",
+   "missing_fields": [],
+   "stage": 7
+  },
+  {
+   "id": "D3-wave-029c040224dc4e38",
+   "key": "029c040224dc4e38",
+   "box": "D3-g42",
+   "site": "custom_components/heatpump_optimizer/thermal_model.py:3483",
+   "patch": "rain_intensity = min(precipitation / 2.0, 1.0) -> rain_intensity = (precipitation / 2.0)",
+   "title": "Heavy-rain heat-loss multiplier is uncapped without the min(.., 1.0): no test has rain above 2 mm/h",
+   "vote": "verify",
+   "severity": "medium",
+   "severity_claimed": "medium",
+   "value": "V1 3 arm pair(s) moved, null moved 0; e.g. ('u_10.0', [\"'0.11499999999999999'\", \"'0.17499999999999996'\"])",
+   "metric_definition": "V1: baseline vs mutant arm values the probe prints (RESULT lines), counted as moved pairs; V2: of those moving arms, how many read the mutant value in the baseline arm with the one-line mutant written to the source file",
+   "method": "V1 finder probe re-run as its header says in baseline tree 92d38ecb64 (+ D3 evidence from the harvest); V2 own on-disk patcher; V3 REACH.tsv, reference scan, ha_contract DIVERGENT scan; gate record RED-AS-NULL from the box (not re-taken)",
+   "attacks": [
+    "perturbation: moves the probe's metric",
+    "null control: holds (0 null pair(s) moved 0; null lines [])",
+    "contention: load1 47.5 on an 8-core macOS host; counts only, no timing claim relied on",
+    "perturbation fidelity (V2): faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('            rain_intensity = (precipitation / 2.0)', '            rain_intensity = min(precipitation /), so its mutant arm is the literal source edit of that line",
+    "gate mode: box gate RED-AS-NULL with failed 0 script(s), new vs null [], more fail lines than null None; the stripped tree's null is red on closure.py selftest, entities.py and harness_headers.py, so a kill by those three shows only as a rising fail count -- not re-taken here (full gate owed to the judge's runners)",
+    "severity: claimed medium, kept: not re-graded beyond reach in this stage"
+   ],
+   "reproduced": "rc 0; 3 of 6 arm pairs moved (+1 moved= lines); null pairs moved 0 of 0; finder's stated values matched 0 of 0 (record)",
+   "independent_value": "faithful by construction: with the mutant on disk the probe refuses (AssertionError: ('            rain_intensity = (precipitation / 2.0)', '            rain_intensity = min(precipitation /), so its mutant arm is the literal source edit of that line",
+   "reachable": "traced reach executed by 6 script(s); 14 production reference(s) to effective_heat_loss_coefficient outside its definition (e.g. ['custom_components/heatpump_optimizer/optimizer.py:842', 'custom_components/heatpump_optimizer/optimizer.py:844']); divergent stub symbols in the function: none",
+   "class": "I1 (a guard or behaviour whose mutation leaves the gate green); class_guess 'missing-boundary-test' names the product mechanism, the suite gap itself is I1",
+   "seam_rule_enumerates": "no seam_rule on the record",
+   "test_gap_mutation": "custom_components/heatpump_optimizer/thermal_model.py:3483 `rain_intensity = min(precipitation / 2.0, 1.0)` -> `rain_intensity = (precipitation / 2.0)` (production file)",
+   "missing_fields": [],
+   "stage": 7
   }
  ]
 }
