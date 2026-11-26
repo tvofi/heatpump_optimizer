@@ -4821,7 +4821,7 @@ R.check(
 )
 # Null controls: the pre-fix countdown, a flat set returned and tested by a
 # caller, and a parameter carrying it into an instant test each fail alone.
-_FW_FIXED = "next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)"
+_FW_FIXED = "next_window = _dhw_next_window_hours(h.start_time, hours_mod, step_weekdays, windows, params, holiday_flags)"
 _fw_plants = {
     "pre-fix countdown": _P2_SOURCES["dhw_planner.py"].replace(
         _FW_FIXED, "next_window = hours_until_next_window(\n"
