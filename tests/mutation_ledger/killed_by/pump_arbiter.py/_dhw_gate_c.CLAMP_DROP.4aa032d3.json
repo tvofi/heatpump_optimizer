@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_dhw_gate_c CLAMP_DROP 4aa032d3",
+  "killed_by": "tests/features.py",
+  "old": "    return DHW_GATE_C if tank is None else min(DHW_GATE_C, tank + hysteresis)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return DHW_GATE_C if tank is None else (DHW_GATE_C)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

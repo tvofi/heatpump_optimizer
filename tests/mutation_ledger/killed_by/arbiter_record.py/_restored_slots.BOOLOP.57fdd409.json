@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/arbiter_record.py:_restored_slots BOOLOP 57fdd409",
+  "killed_by": "tests/features.py",
+  "old": "    return {k: v for k, v in raw.items() if k in slots and writable(k, v)} if isinstance(raw, dict) else {}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return {k: v for k, v in raw.items() if k in slots or writable(k, v)} if isinstance(raw, dict) else {}`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

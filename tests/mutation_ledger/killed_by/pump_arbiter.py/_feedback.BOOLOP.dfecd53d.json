@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_feedback BOOLOP dfecd53d",
+  "killed_by": "tests/features.py",
+  "old": "    stopped = power is not None and power < _ran_kw(inp)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`stopped = power is not None or power < _ran_kw(inp)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}
