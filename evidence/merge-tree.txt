@@ -3,4 +3,5 @@ LEDGER-MERGE: resolved tests/closures.json
   closures.tests/entities.py: merged as a set (603 entries)
   re-run the gate that owns this file before pushing
 LEDGER-MERGE: resolved tests/closures.json
-e5acd9d885b43128b367fec5c204830ec1dd7c9a
+bb3bda8b9451ea23b1012f051ac2ccc4b59a478a
+rc=0
