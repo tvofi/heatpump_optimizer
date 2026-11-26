@@ -4354,7 +4354,7 @@ class ThermalModel:
         *,
         dt_hours: float = 0.25,
         valve_targets: np.ndarray | None = None,
-        start_hour: float | None = None,
+        step_hours: np.ndarray | None = None,
     ) -> tuple[
         np.ndarray,
         np.ndarray,
@@ -4402,7 +4402,7 @@ class ThermalModel:
         # this loop runs thousands of times per solve, so the per-step
         # modulo is not paid on the default path.
         hours_matter = (
-            start_hour is not None
+            step_hours is not None
             and self.params.internal_gains_profile is not None
         )
 
@@ -4430,9 +4430,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
                 hour_of_day=(
-                    (start_hour + i * dt_hours) % 24.0
-                    if start_hour is not None and hours_matter
-                    else None
+                    float(step_hours[i]) % 24.0 if hours_matter else None
                 ),
                 buffer_exo_kw=0.0 if buffer_exo is None else float(buffer_exo[i]),
             )
@@ -4534,7 +4532,7 @@ class ThermalModel:
         *,
         dt_hours: float = 0.25,
         valve_targets: np.ndarray | None = None,
-        start_hour: float | None = None,
+        step_hours: np.ndarray | None = None,
     ) -> dict[str, np.ndarray]:
         """Simulate B trajectories at once: ``power_matrix`` is [B, n].
 
@@ -4597,7 +4595,7 @@ class ThermalModel:
             and initial_state.wood_tank_temperature is not None
         )
         hours_matter = (
-            start_hour is not None and p.internal_gains_profile is not None
+            step_hours is not None and p.internal_gains_profile is not None
         )
         # Configuration constants hoisted out of the step (uniform per batch).
         C_buf = _buffer_capacity(p)
@@ -4650,11 +4648,7 @@ class ThermalModel:
             ext = np.maximum(0.0, ext_i)
             exo_i = 0.0 if buffer_exo is None else float(buffer_exo[i])
             hum_i = float(humidity[i]) if humidity is not None else None
-            hour_i = (
-                (start_hour + i * dt_hours) % 24.0
-                if start_hour is not None and hours_matter
-                else None
-            )
+            hour_i = float(step_hours[i]) % 24.0 if hours_matter else None
 
             n_sub, u_first, u_second = self._substeps_and_loss(
                 wind_i, rain_i, dt_hours, ua_valve, C_buf
@@ -4858,7 +4852,7 @@ class ThermalModel:
         dhw_power_schedule: np.ndarray,
         weather: WeatherSeries,
         *,
-        start_hour: float = 0.0,
+        step_hours: np.ndarray | None = None,
         dt_hours: float = 0.25,
         dhw_draw_rates: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
@@ -4899,8 +4893,15 @@ class ThermalModel:
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
         )
+        # Each step's hour of day is the caller's step clock (P7, issue
+        # 3786): an hour extrapolated from the first one runs an hour off the
+        # zone's clock past a DST change. No clock is a day from midnight.
+        hours = (
+            np.arange(n_steps) * dt_hours
+            if step_hours is None
+            else np.asarray(step_hours, dtype=float)
+        ) % 24.0
         if dhw_draw_rates is None:
-            hours = (start_hour + np.arange(n_steps) * dt_hours) % 24.0
             dhw_draw_rates = self.dhw_draw_rates(hours)
 
         (room_temps, slab_temps, upper_temps, lower_temps, buffer_temps,
@@ -4909,7 +4910,6 @@ class ThermalModel:
         dhw_temps[0] = initial_state.dhw_temperature
 
         state = initial_state
-        current_hour = start_hour
         # The DHW refill coil (v3.15.1): active only with the two-tank
         # model, and only while the wood state is real. Hoisted so the
         # feature-off path stays byte-identical inside the loop.
@@ -4946,7 +4946,7 @@ class ThermalModel:
                 ),
                 humidity=_step_humidity(humidity, i),
                 hour_of_day=(
-                    current_hour % 24.0 if gains_hours_matter else None
+                    float(hours[i]) if gains_hours_matter else None
                 ),
                 buffer_exo_kw=exo_i,
             )
@@ -4971,7 +4971,7 @@ class ThermalModel:
                     dhw_power_thermal=dhw_charge_kw(
                         self, state.dhw_temperature, dhw_power_schedule[i],
                         outdoor_temps[i], _step_humidity(humidity, i)),
-                    hour_of_day=current_hour % 24.0,
+                    hour_of_day=float(hours[i]),
                     ambient_temp=TANK_ROOM_AMBIENT_TEMP,
                     dt_hours=dt_hours,
                     draw_power=draw_i,
@@ -4987,7 +4987,6 @@ class ThermalModel:
             if wood_temps is not None:
                 wood_temps[i + 1] = state.wood_tank_temperature
 
-            current_hour += dt_hours
 
         if end_state is not None:
             end_state.append(state)

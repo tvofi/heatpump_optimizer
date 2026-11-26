@@ -60,6 +60,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Final
 
 from . import const
+from .drift import utc_elapsed_seconds
 
 # (start_hour, end_hour) as floats in [0, 24); end may be <= start when the
 # window wraps past midnight.
@@ -551,22 +552,31 @@ def overlap_fraction(
 
 
 def hours_until_next_window(
-    hour: float, windows: list[Window], tomorrow: list[Window] | None = None
+    now: datetime, windows: list[Window], tomorrow: list[Window] | None = None
 ) -> float | None:
-    """Hours from ``hour`` until the next window starts (0.0 when inside one).
+    """Real hours from ``now`` until the next window starts (0.0 when inside one).
 
     ``windows`` are today's; a start already passed reads in ``tomorrow``'s,
     the next day's windows in force (``windows_in_force``), or today's again
     when ``None`` -- the every-day schedule. Returns None when neither day
     has a window.
+
+    A window start is a wall-clock time in ``now``'s zone, so the gap is
+    walked on that clock and measured between the two instants (P7, issue
+    3786): 2.5 h from 00:30 to a 04:00 window on a spring-forward day, not
+    the 3.5 the two wall times differ by. A naive ``now`` is UTC
+    (``drift.utc_instant``), whose days are all 24 h.
     """
-    if windows and hour_in_windows(hour, windows):
+    h = now.hour + now.minute / 60.0
+    if windows and hour_in_windows(h, windows):
         return 0.0
-    h = hour % 24.0
     starts = [start - h for start, _ in windows if start > h] + [
         start + 24.0 - h for start, _ in (windows if tomorrow is None else tomorrow)
     ]
-    return min(starts, default=None)
+    if not starts:
+        return None
+    # Aware + timedelta is wall-clock arithmetic in ``now``'s zone.
+    return utc_elapsed_seconds(now + timedelta(hours=min(starts)), now) / 3600.0
 
 
 def is_valid_spec(spec: str) -> bool:
