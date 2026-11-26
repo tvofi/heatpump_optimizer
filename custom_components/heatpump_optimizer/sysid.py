@@ -2505,7 +2505,7 @@ def arm_refusal(
     """
     if arm_from_config(ident, now, config, plant, learner_samples, draw):
         return None
-    if not ident.config.enabled:
+    if not config.system_identification_enabled:
         return ARM_REFUSED_DISABLED
     if ident.active:
         return "an experiment is already armed or running"
