@@ -809,7 +809,7 @@ def hysteresis_checks() -> None:
 
     import numpy as np
 
-    from heatpump_optimizer import dhw_planner as planner
+    from heatpump_optimizer import dhw_start as start
     from heatpump_optimizer import inputs as inputs_mod
     from heatpump_optimizer import thermal_model as tm
 
@@ -867,16 +867,16 @@ def hysteresis_checks() -> None:
     check("null control: with no cycle active a cycle step holds the everyday set-point",
           lambda: tm.dhw_step_target_c(nocyc, True) == 55.0)
     check("each step's start temperature is its own target less the hysteresis, the cycle step the cycle's",
-          lambda: list(planner.dhw_start_temps(cyc, _start_state(4.0), 6, 3)) == [51, 51, 51, 56, 51, 51]
-          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 6, None)) == [51.0] * 6)
+          lambda: list(start.dhw_start_temps(cyc, _start_state(4.0), 6, 3)) == [51, 51, 51, 56, 51, 51]
+          and list(start.dhw_start_temps(cyc, _start_state(4.0), 6, None)) == [51.0] * 6)
     check("a cycle on the first step is judged against its own target; one past the horizon moves no step",
-          lambda: list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 0)) == [56, 51, 51]
-          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 3)) == [51, 51, 51]
-          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 2)) == [51, 51, 56])
+          lambda: list(start.dhw_start_temps(cyc, _start_state(4.0), 3, 0)) == [56, 51, 51]
+          and list(start.dhw_start_temps(cyc, _start_state(4.0), 3, 3)) == [51, 51, 51]
+          and list(start.dhw_start_temps(cyc, _start_state(4.0), 3, 2)) == [51, 51, 56])
     check("with no or zero hysteresis no step has a start temperature",
-          lambda: planner.dhw_start_temps(cyc, _start_state(None), 6, 3) is None
-          and planner.dhw_start_temps(cyc, _start_state(0.0), 6, 3) is None
-          and planner.dhw_start_temps(cyc, _start_state(0.0, _step(5)), 6, 3) is None)
+          lambda: start.dhw_start_temps(cyc, _start_state(None), 6, 3) is None
+          and start.dhw_start_temps(cyc, _start_state(0.0), 6, 3) is None
+          and start.dhw_start_temps(cyc, _start_state(0.0, _step(5)), 6, 3) is None)
 
     # 5. One owner of the target: what the arbiter writes.
     check("the arbiter writes dhw_step_target_c: the everyday set-point with no cycle booked",
@@ -937,17 +937,17 @@ def hysteresis_checks() -> None:
     check("precondition: an everyday 58 on a 5 degC step is written 55, its cycle of 62 written 60",
           lambda: arb._dhw_write(five) == 55.0 and arb._dhw_write(five_cycle) == 60.0)
     check("on a stepped entity each step's start temperature is the written target less the hysteresis",
-          lambda: list(planner.dhw_start_temps(stepped, _start_state(4.0, _step(5)), 4, 2))
+          lambda: list(start.dhw_start_temps(stepped, _start_state(4.0, _step(5)), 4, 2))
           == [arb._dhw_write(five) - 4.0] * 2 + [arb._dhw_write(five_cycle) - 4.0, arb._dhw_write(five) - 4.0]
           == [51.0, 51.0, 56.0, 51.0])
     check("null control: with no set-point entity the same parameters start below 58 and 62 less the hysteresis",
-          lambda: list(planner.dhw_start_temps(stepped, _start_state(4.0), 4, 2)) == [54.0, 54.0, 58.0, 54.0])
+          lambda: list(start.dhw_start_temps(stepped, _start_state(4.0), 4, 2)) == [54.0, 54.0, 58.0, 54.0])
     check("the ledger's start temperature on the stepped entity is the planner's",
           lambda: arb._dhw_start_below_c(replace(five, state=_start_state(4.0, _step(5)))) == 51.0
           and arb._dhw_start_below_c(replace(five_cycle, state=_start_state(4.0, _step(5)))) == 56.0)
 
     # 6. Which steps the pump starts.
-    startable = planner.startable_steps
+    startable = start.startable_steps
     check("a step is startable where it opens on a tank below its start temperature or follows a charge under way",
           lambda: list(startable(np.array([0, 0, 1, 0, 0.]), np.array([54, 52, 50, 53, 50.9, 50.]),
                                  np.full(5, 51.0))) == [False, False, True, True, True])
@@ -981,7 +981,7 @@ def hysteresis_checks() -> None:
 
     plan = np.array([1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0])
     kept = plan.copy()
-    drop = planner.drop_unstartable
+    drop = start.drop_unstartable
     check("a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept",
           lambda: list(drop(plan, np.full(8, 51.0), temps_of)) == [1, 0, 0, 0, 0, 0, 0, 1])
     check("a tank exactly at the start temperature does not start",
@@ -995,6 +995,27 @@ def hysteresis_checks() -> None:
           lambda: list(drop(np.array([0.0, 1.0, 0.0]), np.full(3, 51.0), temps_of)) == [0, 0, 0])
     check("a run at the first step is kept on a warm tank, with nothing planned at the horizon's end",
           lambda: list(drop(np.array([1.0, 0.0, 0.0]), np.full(3, 51.0), temps_of)) == [1, 0, 0])
+    check("a first-step charge on a warm tank with no charge under way is dropped, and nothing carries it on",
+          lambda: list(drop(np.array([1.0, 1.0, 0.0]), np.full(3, 51.0), temps_of, False)) == [0, 0, 0]
+          and list(startable(np.array([1.0, 0.0, 0.0]), warm, np.full(3, 51.0), False)) == [False] * 3
+          and list(start.place_startable(np.array([1.0, 0.0]), np.full(2, 51.0), temps_of,
+                                           lambda plan, start_below: plan, False)) == [0, 0])
+    check("with no charge under way a first-step charge on a cold tank starts and carries on",
+          lambda: list(startable(np.array([1.0, 0.0, 0.0]), np.array([50.0, 53.0, 52.0]), np.full(3, 51.0), False))
+          == [True, True, False])
+
+    from heatpump_optimizer import pump_mode, pump_signals
+    from heatpump_optimizer.thermal_model import ThermalState
+
+    def under_way(running, mode, dhw_kw=0.0):
+        signals = pump_signals.PumpSignals(mode=pump_mode.capability(mode or "?"), mode_observed=mode is not None)
+        return pump_signals.with_dhw_under_way(ThermalState(), signals, running,
+                                               {"dhw_power": dhw_kw}).dhw_charge_under_way
+
+    check("a charge is under way only with the compressor running in a mode serving the step's hot water",
+          lambda: [under_way(False, "DHW", 2.0), under_way(True, "Heating"), under_way(True, "DHW"),
+                   under_way(True, "Heating + DHW", 2.0), under_way(True, "Heating + DHW"),
+                   under_way(True, None)] == [False, False, True, True, False, True])
 
     # 8. The repair loop.
     def raises(_plan):
@@ -1002,7 +1023,7 @@ def hysteresis_checks() -> None:
 
     marker = np.array([0.0, 1.0])
     check("with no start temperature the repair's own answer stands and no trajectory is read",
-          lambda: planner.place_startable(plan, None, raises, lambda plan: marker) is marker)
+          lambda: start.place_startable(plan, None, raises, lambda plan: marker) is marker)
     calls, original = [], plan
 
     def stubborn(plan, start_below):
@@ -1010,16 +1031,16 @@ def hysteresis_checks() -> None:
         return original.copy()
 
     check("a repair that keeps re-placing the unstartable plan still leaves a plan with none, in bounded rounds",
-          lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, stubborn))
+          lambda: list(start.place_startable(plan, np.full(8, 51.0), temps_of, stubborn))
           == list(drop(plan, np.full(8, 51.0), temps_of))
-          and 1 <= len(calls) <= planner.STARTABLE_ROUNDS)
+          and 1 <= len(calls) <= start.STARTABLE_ROUNDS)
     rounds = []
 
     def counting(plan, start_below):
         rounds.append(1)
         return plan
 
-    planner.place_startable(plan, np.full(8, 51.0), temps_of, counting)
+    start.place_startable(plan, np.full(8, 51.0), temps_of, counting)
     check("a repair that changes nothing ends the loop: one round to drop, one to see the plan stand",
           lambda: len(rounds) == 2)
     turns = []
@@ -1031,13 +1052,25 @@ def hysteresis_checks() -> None:
         out[4] = float(len(turns) % 2)
         return out
 
-    settled = planner.place_startable(plan, np.full(8, 51.0), temps_of, restless)
+    settled = start.place_startable(plan, np.full(8, 51.0), temps_of, restless)
     check("a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge",
-          lambda: planner.STARTABLE_ROUNDS == 8 and len(turns) == 8
+          lambda: start.STARTABLE_ROUNDS == 8 and len(turns) == 8
           and np.array_equal(settled, drop(settled, np.full(8, 51.0), temps_of)))
     check("an identity repair leaves the dropped plan",
-          lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
+          lambda: list(start.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
           == list(drop(plan, np.full(8, 51.0), temps_of)))
+
+    def replaces_first(plan, start_below):
+        # A repair that puts back the first-step charge on a 54 degC tank every round.
+        out = plan.copy()
+        out[0] = 1.0
+        return out
+
+    first = np.array([1.0, 0.0, 0.0])
+    check("with no charge under way a repair that keeps re-placing a first-step charge on a warm tank "
+          "still leaves a plan without it; null control, with one under way the charge stands",
+          lambda: list(start.place_startable(first, np.full(3, 51.0), temps_of, replaces_first, False)) == [0, 0, 0]
+          and list(start.place_startable(first, np.full(3, 51.0), temps_of, replaces_first, True)) == [1, 0, 0])
 
     # 8b. The clamp-then-zero step the placement stages share.
     from heatpump_optimizer.dhw_planner import DhwPlanner
@@ -1088,6 +1121,24 @@ def hysteresis_checks() -> None:
           "a 5 degC entity's pump starts below", lambda: stepped_late(None) > 0)
     check("handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC",
           lambda: stepped_late(_step(5)) == 0)
+
+    windowed = {}
+
+    def window_plan(hysteresis, under_way):
+        # A 00:15 demand window at a 53 degC minimum on a 52 degC tank: the cheapest cover is a
+        # charge in step 0, which the pump makes only if one is under way (start below 51 with 4 K).
+        if (hysteresis, under_way) not in windowed:
+            windowed[hysteresis, under_way] = _solve_winter_mild(
+                hysteresis, under_way=under_way, window="00:15-02:00", min_c=53.0, tank_c=52.0)[0]
+        return windowed[hysteresis, under_way]
+
+    check("with no charge under way the planner drops a step-0 hot water run on a tank at or above "
+          "its start temperature and re-buys from step 1; null control, with one under way it charges step 0",
+          lambda: window_plan(4.0, False)[0] == 0.0 and window_plan(4.0, False)[1] > 0.0
+          and window_plan(4.0, True)[0] > 0.0)
+    check("null control: with no hysteresis read the step-0 run stands whether or not a charge is under way",
+          lambda: window_plan(None, False)[0] > 0.0
+          and np.array_equal(window_plan(None, False), window_plan(None, True)))
 
     pinned_plan, pinned_temps = _solve_winter_mild(None, dhw_pins=np.ones(96))
     check("a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC",
@@ -1262,8 +1313,13 @@ def hysteresis_checks() -> None:
           and gridded.dhw_setpoint_grid.step == 5.0 and none.dhw_setpoint_grid is None)
 
 
-def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None):
-    """The 24 h solve of ``dev/audit/harnesses/r10_dhw_start_hysteresis.py`` (winter_typical, winter_mild, 53 degC)."""
+def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None, under_way=True,
+                       window=None, min_c=None, tank_c=53.0):
+    """The 24 h solve of ``dev/audit/harnesses/r10_dhw_start_hysteresis.py`` (winter_typical, winter_mild, 53 degC).
+
+    ``under_way`` is the state's ``dhw_charge_under_way``; ``window`` (a ``parse_windows`` spec) and
+    ``min_c`` set a hot-water demand window and its usable minimum; ``tank_c`` is the tank at the start.
+    """
     import numpy as np
     from profiles import house, prices, solve_inputs, weather
     from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
@@ -1275,15 +1331,21 @@ def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None):
     params.dhw_enabled = True
     if setpoint_c is not None:
         params.dhw_setpoint = setpoint_c
+    if window is not None:
+        from heatpump_optimizer.dhw_schedule import parse_windows
+        params.dhw_schedule_enabled, params.dhw_windows = True, parse_windows(window)
+    if min_c is not None:
+        params.dhw_min_temp = min_c
     opt = HeatPumpOptimizer(ThermalModel(params), OptimizationConfig(
         horizon_hours=24, time_step_minutes=15, target_temp=cfg["target_temperature"],
         min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"]))
     outdoor, wind, rain, sun = weather("winter_mild", begin)
     state = ThermalState(
         room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(outdoor[0]),
-        dhw_temperature=53.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=21.0,
+        dhw_temperature=tank_c, dhw_hours_since_legionella=20.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, buffer_tank_temperature=40.0)
     state.dhw_start_hysteresis_k = hysteresis
+    state.dhw_charge_under_way = under_way
     if attrs:
         state.dhw_setpoint_grid = _start_state(hysteresis, attrs).dhw_setpoint_grid
     result = opt.optimize(inputs=solve_inputs(
