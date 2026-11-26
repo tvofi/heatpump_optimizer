@@ -37,3 +37,4 @@
 1795624752 DONE verdict merge b2b6ff8c (pending-ci: gate) pushed to probe/rev-3805-e9835d83 at 64bba058
 1795654733 INIT r11-rev-3805
 1795654870 HB alive
+1795654948 CKPT setup done; delta = tests/features.py combi check + docs/claims counts; no custom_components delta snapshot 88e3ef21b768
