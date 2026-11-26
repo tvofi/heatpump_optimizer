@@ -1,0 +1,3 @@
+RED 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none introduced: 2
+INTRODUCED Show a planted owner-only canary reaching no public path of the audit pipeline
+INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
