@@ -1,18 +1,2 @@
-== tools/audit/seat/token_ledger.py --self-test
-  ok   a day's `t` is its latest stamp, not its last-written one
-  ok   round_metrics reads the ledger and prints unread while the cloud class has no row
-  ok   one cloud row makes it read, summing `tokens` (null control for the unread arm)
 token_ledger self-test: 18 passed, 0 failed
-rc=0
-== tools/audit/seat/cloud_dispatch.py --self-test
-  ok   the --group CLI passes --role, --group, --model, --pr and --nonce through
-  ok   a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
-  ok   a re-dispatch from a second clone fast-forwards the existing ref
 cloud_dispatch self-test: 188 checks, 0 failed
-rc=0
-== tools/audit/check_scopes.py --repo . --self-test
-   yardstick records: covered=True, refused without the exclusion=True
-   evaluation arms: 68/68 held; --round 1 rc=1; --open-cards rc=2, marked rc=0, unmarked rc=1 ['UNMARKED C2', 'UNMARKED C3']
-   population arms: 28/28 held
-SELF-TEST passed (every perturbed scope refused)
-rc=0

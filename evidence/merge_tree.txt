@@ -1,4 +1,2 @@
-LEDGER-MERGE: resolved tests/closures.json
-26a507d4733c6f0c63e6cf07ca16503778ced7de
+8a6121f57ee809d7b49ca7ea9dada8c8b4aca7dd
 rc=0
-origin/main 7aa6020f2a25c569edba1c64e2c0c4c2663a428d
