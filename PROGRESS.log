@@ -37,3 +37,4 @@
 1795679816 HB alive
 1795680195 DONE merge 3da16553 pending-ci: gate; verdict at probe/rev-3845-0a30ac48 cdaef825
 1795685371 HB alive
+1795685719 CKPT delta reviewed: resolutions union, merge-tree clean, CI GREEN; awaiting features/structure runs snapshot e1101b1fbe5b
