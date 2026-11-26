@@ -66,14 +66,14 @@ permissions: {}
 
 # A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
-# let a re-run cancel a pending run. Supersession is cancel-superseded's alone.
-# Except a push to main's first attempt (CI-5, owner 2026-11-21): one `CI-main`
-# group, cancelling nothing in progress, so one push run executes at a time and
-# GitHub replaces a pending one with the newest before it starts; a burst of
-# merges is graded once, at its last tip, and no started run is cancelled. A
-# re-run (attempt 2+) keeps its run-id group, so it never displaces that tip.
+# let a re-run cancel a pending run. A push to main's run is no exception
+# (owner 2026-11-25, retiring CI-5's `CI-main` group): every main push run
+# starts at once, and supersession is the cancellers' alone -- this file's
+# cancel-superseded job for a pull request, and for main main-cancel.yml, which
+# cancels the older active main push runs when the new push is graded in full,
+# never past three main runs with no concluded verdict.
 concurrency:
-  group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main' || format('CI-{0}', github.run_id) }}
+  group: ${{ format('CI-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
