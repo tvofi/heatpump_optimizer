@@ -2961,7 +2961,6 @@ def kernel_routes(arm: str, hours: float) -> dict:
 
         async def armed(self):
             if self._sysid.phase == sysid.PHASE_IDLE:
-                self._sysid.config.enabled = True
                 self._sysid.config.min_days_between_runs = 0.0
                 self._sysid.arm(cm.dt_util.now(), plant=self._thermal_params)
             out = await real_update(self)
