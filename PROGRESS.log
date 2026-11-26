@@ -1,3 +1,4 @@
 1795735579 INIT r11-owner-cooling-guard
 1795735589 HB alive
 1795735658 CKPT BLOCKED pushed c744a96247: group already landed as #3864, no carry snapshot 64d655f63454
+1795735663 DONE blocked: R11-OWNER-COOLING-GUARD landed as #3864, roster has no carry; BLOCKED.md at c744a96247
