@@ -1,0 +1,13 @@
+d25d469cf9f1860f5b3e241efcd1a63193e6e58b
+dev/audit/rounds/round4/D6/claims.py
+tests/deployment_shape.py
+
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging dev/audit/rounds/round4/D6/claims.py
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.py
+Auto-merging docs/architecture.md
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
