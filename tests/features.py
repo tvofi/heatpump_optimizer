@@ -92535,9 +92535,9 @@ R.check(
     _ml_zero == ["space", "space"],
     str(_ml_zero),
 )
-# Heating's share of a step never goes below 0: a step whose heating leg the
-# hot-water minimum shortened from 10 to 5 min (1/3 of it moved) and that is
-# charged a stop's lost time of 0.8 of a step keeps 0, not -0.13.
+# Heating's share of a step never goes below 0. Take a step whose heating leg
+# the hot-water minimum shortened from 10 to 5 min, moving 1/3 of it. Charged a
+# stop's lost time of 0.8 of a step, it keeps 0, not -0.13.
 _ml_avail = [float(_ds_legs.availability([2.0], [1.0], lost, rule=_ml_rule(0, 10))[0]) for lost in (0.8, 0.2)]
 R.check(
     "a step that loses 1/3 to the hot-water minimum and 0.8 to a stop leaves heating a share of 0, never negative; "
