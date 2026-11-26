@@ -1,0 +1,7 @@
+key	src	file	line	function	cluster	slice	fullnet	kind	reach	m4_source
+5b6489f7860d73b1	complete	custom_components/heatpump_optimizer/thermal_model.py	2852	mold_safe_room_floor	thermal_model.py:mold_safe_room_floor@2851-2856	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+1111a3e5d9c44e3f	complete	custom_components/heatpump_optimizer/thermal_model.py	2854	mold_safe_room_floor	thermal_model.py:mold_safe_room_floor@2851-2856	u1a	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_u1a_part*.json
+67a0550ee998a213	complete	custom_components/heatpump_optimizer/thermal_model.py	2854	mold_safe_room_floor	thermal_model.py:mold_safe_room_floor@2851-2856	u1b	SURVIVED	GUARD_OFF	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+75b300b2bc47485f	complete	custom_components/heatpump_optimizer/thermal_model.py	2856	mold_safe_room_floor	thermal_model.py:mold_safe_room_floor@2851-2856	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json
+92c063e90dafcc35	complete	custom_components/heatpump_optimizer/thermal_model.py	2903	wood_share	thermal_model.py:wood_share@2903-2906	u1c	SURVIVED	CMP_BOUND	executed	dev/audit/rounds/round11/D3/s1/m4_answers-D3-u1c.json
+6fa8436f09ad7e06	complete	custom_components/heatpump_optimizer/thermal_model.py	2906	wood_share	thermal_model.py:wood_share@2903-2906	u1b	SURVIVED	CLAMP_DROP	executed	dev/audit/rounds/round11/D3/s1/m4_answers_u1b.json

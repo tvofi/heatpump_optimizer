@@ -1,0 +1,54 @@
+{
+ "key": "75b300b2bc47485f",
+ "site": "custom_components/heatpump_optimizer/thermal_model.py:2856 CLAMP_DROP",
+ "patch": "t_surface_min = dew_point_for_pressure(e / max(surface_rh_limit, 0.05)) -> t_surface_min = dew_point_for_pressure(e / (surface_rh_limit))",
+ "function": "thermal_model",
+ "cluster": null,
+ "gate": {
+  "verdict": "RED-AS-NULL",
+  "killed_by": [],
+  "gate_rc": 1,
+  "wall_s": 3187.4,
+  "load1_start": 0.72,
+  "load1_end": 0.92,
+  "failed_scripts": [
+   "python3 tests/closure.py selftest",
+   "python3 tests/entities.py",
+   "python3 tests/harness_headers.py"
+  ]
+ },
+ "gate_json": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/gates/75b300b2bc47485f.json",
+ "class": "candidate",
+ "probe": {
+  "path": "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_75b300b2bc47485f.py",
+  "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_75b300b2bc47485f.py",
+  "output": [
+   "INPUT (20.0, 50.0, 0.0, 0.7, 0.8) base 18.02454114208337 mut 18.02454114208337",
+   "INPUT (20.0, 50.0, 0.0, 0.7, 0.05) base 90.49033855922843 mut 90.49033855922843",
+   "INPUT (20.0, 50.0, 0.0, 0.7, 0.04) base 90.49033855922843 mut 97.59274302524308",
+   "INPUT (20.0, 50.0, 0.0, 0.7, 0.01) base 90.49033855922843 mut 147.45844384031514",
+   "INPUT (20.0, 50.0, 0.0, 0.7, 0.0) base 90.49033855922843 mut EXC ZeroDivisionError",
+   "INPUT (20.0, 50.0, 0.0, 0.7, -0.5) base 90.49033855922843 mut -194.90728051942975",
+   "RESULT floor_at_limit0.01_base=90.49033855922843 mutant=147.45844384031514"
+  ],
+  "baseline_value_and_mutant_value": [
+   "RESULT floor_at_limit0.01_base=90.49033855922843 mutant=147.45844384031514"
+  ]
+ },
+ "should_fail": "tests/features.py/entities.py execute line 2856; no check asserts the 0.05 floor on surface_rh_limit (limit 0.01: 90.49 vs 147.46; limit 0: ZeroDivisionError)",
+ "provisional": true,
+ "title": "mold_safe_room_floor surface_rh_limit floor of 0.05 is unpinned",
+ "claim": "Without max(limit,0.05): limit 0.01 gives 147.46 vs 90.49, limit 0 raises ZeroDivisionError; no check asserts it.",
+ "step": "D3.M3",
+ "scope": "D3-s1",
+ "class_guess": "new",
+ "severity_claimed": "low: the function is reachable only with out-of-range inputs unless a caller passes them; consequence is a wrong mold floor or a ZeroDivisionError on a degenerate config",
+ "metric_definition": "fullgate.py verdict: KILLED / SURVIVED / RED-AS-NULL; the probe number is the function return on one input, baseline vs mutant",
+ "harness_paths": [
+  "dev/audit/rounds/round11/D3/s1/fullgate.py",
+  "dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_75b300b2bc47485f.py"
+ ],
+ "evidence_command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round11/D3/s1/wave/D3-g47-h/probes/probe_75b300b2bc47485f.py",
+ "perturbation": "the one-line mutant t_surface_min = dew_point_for_pressure(e / max(surface_rh_limit, 0.05)) -> t_surface_min = dew_point_for_pressure(e / (surface_rh_limit)) (custom_components/heatpump_optimizer/thermal_model.py:2856 CLAMP_DROP); baseline moves to mutant value as shown in probe output",
+ "null_control": "fullgate.py null on this box: gate_rc 1, failed_scripts ['python3 tests/closure.py selftest', 'python3 tests/entities.py', 'python3 tests/harness_headers.py'] (artefact checks of the stripped tree), wall 3358.4s; every key here is RED-AS-NULL with no script beyond them"
+}
