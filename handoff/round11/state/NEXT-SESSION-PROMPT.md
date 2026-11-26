@@ -13,7 +13,7 @@ git show origin/handoff/audit-r11-roster:dev/programme/rosters/wave-r11-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
-- R11-PRE-TOKEN-LEDGER (stage in-progress, branch `handoff/r11-pre-token-ledger`): `git fetch origin handoff/r11-pre-token-ledger && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRE-TOKEN-LEDGER (stage carries-open, branch `handoff/r11-pre-token-ledger`): `git fetch origin handoff/r11-pre-token-ledger && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SHARED-FILES (stage carries-open, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
