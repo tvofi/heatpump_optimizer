@@ -1,0 +1,22 @@
+class_excess_loc last_reviewed= 17227 main= 17221 head= 17220
+const_modules_over_50 last_reviewed= 4 main= 4 head= 4
+coordinator_attrs last_reviewed= 134 main= 134 head= 134
+coordinator_multiassigned_attrs last_reviewed= 101 main= 101 head= 101
+coordinator_private_reach last_reviewed= 0 main= 0 head= 0
+dead_methods last_reviewed= 0 main= 0 head= 0
+dead_top_level_symbols last_reviewed= 0 main= 0 head= 0
+duplication_copies last_reviewed= 3 main= 3 head= 3
+functions_cc_over_15 last_reviewed= 26 main= 26 head= 26
+functions_cc_over_25 last_reviewed= 7 main= 7 head= 7
+import_cycle_modules last_reviewed= 0 main= 0 head= 0
+in_function_copies last_reviewed= 11 main= 11 head= 11
+max_cc last_reviewed= 44 main= 44 head= 44
+max_class_loc last_reviewed= 7766 main= 7817 head= 7762
+max_method_loc last_reviewed= 373 main= 373 head= 373
+methods_over_150 last_reviewed= 14 main= 14 head= 14
+methods_over_200 last_reviewed= 7 main= 7 head= 7
+module_excess_loc last_reviewed= 21752 main= 21647 head= 21646
+name_kept_members last_reviewed= 38 main= 38 head= 38
+seam_cut_total last_reviewed= 413 main= 413 head= 413
+unloaded_package_imports last_reviewed= 5 main= 5 head= 5
+RESULT rises_vs_both_parents= []

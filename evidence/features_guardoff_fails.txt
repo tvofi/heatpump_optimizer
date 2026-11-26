@@ -1,4 +1,0 @@
-  FAIL a refused system-identification press raises a translated refusal; an armed one returns (D10-s1-02)  [option off -> ('ServiceValidationError', 'system_identification_not_armed') phase 'idle'; ran just now -> ('ServiceValidationError', 'system_identification_not_armed'); option on -> (None, None) phase 'armed']
-  FAIL arm_refusal answers a press on an armed experiment with 'already armed or running', not the result's reason (null control: the switch off answers ARM_REFUSED_DISABLED)  [True '']
-2 of 6249 FEATURE CHECKS FAILED
-rc=1
