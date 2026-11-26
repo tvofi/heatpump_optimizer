@@ -3,3 +3,4 @@
 1795695132 HB alive
 1795695201 CKPT packet rendered; head moved to ea316e99 (bot pin commit); reviewing code at 454abc83 snapshot abe207dfb8b3
 1795695390 CKPT verdict pushed probe/rev-3910-6cac33f2 8552b73d snapshot 284f1a0707c0
+1795695393 DONE blocked head-moved 454abc83 -> ea316e99 (ledger-pin delta, review_carry CARRY); code review clean; verdict 8552b73d
