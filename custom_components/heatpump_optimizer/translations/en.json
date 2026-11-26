@@ -2300,6 +2300,9 @@
       "block_space": {
         "name": "Block Space Heating"
       },
+      "external_heat_ignore_block": {
+        "name": "External Heat Block Override"
+      },
       "optimizer_active": {
         "name": "Optimizer Active"
       }
