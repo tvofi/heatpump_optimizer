@@ -141,7 +141,7 @@ except Exception as e:
     print(f"  FAIL two-tank nulls {type(e).__name__}: {e}")
 
 # -- #3616 R11-OUTSIDE-ROOMS-P2: the room lift through the production solve ----
-# rooms.lifted's own array as SolveLimits.min_temp_margins, on the mild
+# rooms.floor_limits' margins as SolveLimits.min_temp_margins, on the mild
 # day of dev/audit/harnesses/room_lift_solve.py: floor 19.5, target 20.0, the
 # house at 19.6, room A three kelvin under its target.
 from datetime import UTC  # noqa: E402
@@ -165,7 +165,7 @@ def _rl_margins(**signals):
     gated = _rooms.gate(**dict(dict(enabled=True, economy=False, open_window=False, away=False,
                                     manual_pin=False, two_zone=False), **signals))
     held = _rooms.resolve(_rooms.readings_of(owner), None, gated, _RL_OC, 19.6, _RL_START)
-    return _rooms.lifted(held, None, _RL_OC, _RL_START, N)
+    return _rooms.floor_limits(held, None, _RL_OC, _RL_START, N)["min_temp_margins"]
 
 
 def _rl_run(margins, pins=None):
@@ -213,6 +213,48 @@ try:
 except Exception as e:
     FAIL.append(f"[room lift] EXCEPTION {type(e).__name__}: {e}")
     print(f"  FAIL room lift {type(e).__name__}: {e}")
+
+# -- #3616 R11-OUTSIDE-ROOMS-3B: the room lift named on the production solve ----
+# The note's cold day (winter_cold from 00:00): rooms.floor_limits' two halves
+# into SolveLimits. The plan is the margins' alone (invariant iii), and the
+# floor steps only the lift holds are labelled room_floor.
+_R3_START = datetime(2026, 1, 15, 0, 0, tzinfo=UTC)
+
+
+def _r3_run(limits):
+    params = ThermalParameters.from_config(house(target_temperature=20.0, min_temperature=19.5))
+    ot, wi, ra, so = weather("winter_cold", _R3_START)
+    st = ThermalState(room_temperature=19.6, slab_temperature=20.6,
+                      outdoor_temperature=float(ot[0]), dhw_temperature=50.0,
+                      dhw_hours_since_legionella=20.0, upper_floor_temperature=19.6,
+                      lower_floor_temperature=19.6, buffer_tank_temperature=40.0)
+    return HeatPumpOptimizer(ThermalModel(params), _RL_OC).optimize(inputs=solve_inputs(
+        initial_state=st, prices=prices("winter_typical", _R3_START), outdoor_temps=ot,
+        wind_speeds=wi, precipitation=ra, solar_radiation=so, start_time=_R3_START, **limits))
+
+
+try:
+    _r3_lim = _rooms.floor_limits(_rooms.HeldLift(0.5, "climate.a", None, 0.1), None, _RL_OC, _R3_START, N)
+    _r3_on = _r3_run(_r3_lim)
+    _r3_margins_only = _r3_run({"min_temp_margins": _r3_lim["min_temp_margins"]})
+    _r3_off = _r3_run(_rooms.floor_limits(None, None, _RL_OC, _R3_START, N))
+    _r3_n = lambda r, c: sum(1 for x in r.space_reasons if x == c)  # noqa: E731
+    check("room lift named", _r3_lim["room_lifts"] is not None
+          and _r3_on.power_schedule == _r3_margins_only.power_schedule
+          and _r3_n(_r3_on, "room_floor") > 0 and _r3_n(_r3_margins_only, "room_floor") == 0
+          and _r3_n(_r3_off, "room_floor") == 0 and "room_lift" in _r3_on.space_drivers
+          and "room_lift" not in _r3_off.space_drivers
+          and _r3_n(_r3_on, "room_floor") + _r3_n(_r3_on, "comfort_floor")
+          == _r3_n(_r3_margins_only, "comfort_floor"),
+          f"room_floor {_r3_n(_r3_on, 'room_floor')} with the lift, "
+          f"{_r3_n(_r3_margins_only, 'room_floor')} on the margins alone, {_r3_n(_r3_off, 'room_floor')} unlifted; "
+          f"plan equal {_r3_on.power_schedule == _r3_margins_only.power_schedule}")
+    print(f"  ok  {'room lift: named, plan unmoved':<38} "
+          f"room_floor={_r3_n(_r3_on, 'room_floor')} comfort_floor={_r3_n(_r3_on, 'comfort_floor')} "
+          f"of {_r3_n(_r3_margins_only, 'comfort_floor')}")
+except Exception as e:
+    FAIL.append(f"[room lift named] EXCEPTION {type(e).__name__}: {e}")
+    print(f"  FAIL room lift named {type(e).__name__}: {e}")
 
 print()
 print(f"{len(FAIL)} FAILURES" if FAIL else "ALL EDGE CASES PASS")

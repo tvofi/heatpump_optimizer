@@ -190,6 +190,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -323,6 +324,7 @@
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_planner.py",
@@ -375,6 +377,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -506,6 +509,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -622,6 +626,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -752,6 +757,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -881,6 +887,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -957,6 +964,7 @@
    "custom_components/heatpump_optimizer/runs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
+   "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/slab_seed.py",
@@ -1030,6 +1038,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -1145,6 +1154,7 @@
    "custom_components/heatpump_optimizer/button.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -1280,6 +1290,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -1430,6 +1441,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -1716,6 +1728,7 @@
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_planner.py",
@@ -1828,6 +1841,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -2381,6 +2395,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -2591,6 +2606,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -2759,6 +2775,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -2916,6 +2933,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -3124,6 +3142,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -3302,6 +3321,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -3712,6 +3732,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -3855,6 +3876,7 @@
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_planner.py",
@@ -3904,6 +3926,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -4021,6 +4044,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -4128,6 +4152,7 @@
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_planner.py",
@@ -4185,6 +4210,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -4294,6 +4320,7 @@
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/config_flow.py",
    "custom_components/heatpump_optimizer/const.py",
@@ -4394,6 +4421,7 @@
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
    "custom_components/heatpump_optimizer/dhw_planner.py",
@@ -4443,6 +4471,7 @@
    "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/circulation.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_floor.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/coordinator.py",
@@ -4639,6 +4668,7 @@
    "tools/audit/seat/sweep_gantt.py",
    "tools/audit/seat/sweep_render.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/audit/seat/token_ledger.py",
    "tools/audit/seat/toolchain.py",
    "tools/audit/seat/toolchain_selftest.py",
    "tools/audit/seat/topic_grammar.py",
@@ -6334,7 +6364,7 @@
   },
   "tests/finite_boundary.py": {
    "rc": 0,
-   "seconds": 193.8
+   "seconds": 96.8
   },
   "tests/frontend.py": {
    "rc": 0,
@@ -6342,7 +6372,7 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 1.1
+   "seconds": 0.5
   },
   "tests/guard_pins.py": {
    "rc": 0,
@@ -6350,7 +6380,7 @@
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 0.2
   },
   "tests/harness_headers.py": {
    "rc": 0,
@@ -6378,7 +6408,7 @@
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.8
+   "seconds": 0.8
   },
   "tests/solar_alignment.py": {
    "rc": 0,
@@ -6386,7 +6416,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 928.7
+   "seconds": 434.9
   },
   "tests/structure.py": {
    "rc": 0,
@@ -6394,7 +6424,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 0.6
+   "seconds": 37.7
   },
   "tests/validate.py": {
    "rc": 0,
