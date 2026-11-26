@@ -2,3 +2,4 @@
 1795735074 HB alive
 1795735089 CKPT read brief, design, verdict snapshot 6628a9190bd2
 1795735128 CKPT BLOCKED.md pushed: waits on #3872 snapshot 9fd0e0125e99
+1795735131 DONE blocked: design requires #3872 (FAULT-HOLD) merged; it is open; BLOCKED.md on handoff-wip/r11-owner-cooling-autoreturn-fix
