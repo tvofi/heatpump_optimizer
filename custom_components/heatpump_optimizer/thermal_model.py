@@ -4401,9 +4401,8 @@ class ThermalModel:
         # The hour only matters when a learned gains profile exists (#53);
         # this loop runs thousands of times per solve, so the per-step
         # modulo is not paid on the default path.
-        hours_matter = (
-            step_hours is not None
-            and self.params.internal_gains_profile is not None
+        gains_clock = (
+            step_hours if self.params.internal_gains_profile is not None else None
         )
 
         state = initial_state
@@ -4430,7 +4429,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
                 hour_of_day=(
-                    float(step_hours[i]) % 24.0 if hours_matter else None
+                    float(gains_clock[i]) % 24.0 if gains_clock is not None else None
                 ),
                 buffer_exo_kw=0.0 if buffer_exo is None else float(buffer_exo[i]),
             )
@@ -4594,9 +4593,7 @@ class ThermalModel:
             and p.two_tank_modelled
             and initial_state.wood_tank_temperature is not None
         )
-        hours_matter = (
-            step_hours is not None and p.internal_gains_profile is not None
-        )
+        gains_clock = step_hours if p.internal_gains_profile is not None else None
         # Configuration constants hoisted out of the step (uniform per batch).
         C_buf = _buffer_capacity(p)
         rad_fraction = p.radiator_power_fraction
@@ -4648,7 +4645,7 @@ class ThermalModel:
             ext = np.maximum(0.0, ext_i)
             exo_i = 0.0 if buffer_exo is None else float(buffer_exo[i])
             hum_i = float(humidity[i]) if humidity is not None else None
-            hour_i = float(step_hours[i]) % 24.0 if hours_matter else None
+            hour_i = float(gains_clock[i]) % 24.0 if gains_clock is not None else None
 
             n_sub, u_first, u_second = self._substeps_and_loss(
                 wind_i, rain_i, dt_hours, ua_valve, C_buf

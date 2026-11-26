@@ -56,7 +56,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Collection, Mapping
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any, Final
 
 from . import const
@@ -561,11 +561,10 @@ def hours_until_next_window(
     when ``None`` -- the every-day schedule. Returns None when neither day
     has a window.
 
-    A window start is a wall-clock time in ``now``'s zone, so the gap is
-    walked on that clock and measured between the two instants (P7, issue
-    3786): 2.5 h from 00:30 to a 04:00 window on a spring-forward day, not
-    the 3.5 the two wall times differ by. A naive ``now`` is UTC
-    (``drift.utc_instant``), whose days are all 24 h.
+    A window start is a wall-clock time in ``now``'s zone, and the answer is
+    the time between the two instants (P7, issue 3786). On a spring-forward
+    day that is 2.5 h from 00:30 to a 04:00 window, not the 3.5 h the wall
+    times differ by. A naive ``now`` is UTC (``drift.utc_instant``).
     """
     h = now.hour + now.minute / 60.0
     if windows and hour_in_windows(h, windows):
@@ -575,8 +574,13 @@ def hours_until_next_window(
     ]
     if not starts:
         return None
-    # Aware + timedelta is wall-clock arithmetic in ``now``'s zone.
-    return utc_elapsed_seconds(now + timedelta(hours=min(starts)), now) / 3600.0
+    # The window's own wall time in ``now``'s zone, built from its date and
+    # minute: no ``+ timedelta`` walks a zoned stamp.
+    day, minute = divmod(round((h + min(starts)) * 60.0), 24 * 60)
+    opens = datetime.combine(
+        now.date() + timedelta(days=day), time(minute // 60, minute % 60), now.tzinfo
+    )
+    return utc_elapsed_seconds(opens, now) / 3600.0
 
 
 def is_valid_spec(spec: str) -> bool:
