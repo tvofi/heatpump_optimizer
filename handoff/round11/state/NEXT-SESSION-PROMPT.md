@@ -18,6 +18,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PREPR-STEP-TIMING (stage in-progress, branch `handoff/r11-prepr-step-timing`): `git fetch origin handoff/r11-prepr-step-timing && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-store (stage carries-open, branch `handoff/r11-seam-store`): `git fetch origin handoff/r11-seam-store && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-writes (stage in-progress, branch `handoff/r11-seam-actuation-writes`): `git fetch origin handoff/r11-seam-actuation-writes && git worktree add --detach $SEAT/wt FETCH_HEAD`
