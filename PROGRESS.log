@@ -8,3 +8,4 @@
 1795684333 DONE verdict pushed: blocked mutation-survivor (run elapsed unpinned), probe/rev-3908-94003d9d cbb3aa60a3
 1795703156 HB alive
 1795703259 CKPT setup done, worktree at head snapshot 2ec4ac354c52
+1795703300 CKPT mutant runs started (null, pp4b, pp5, pp4c, pp5c) snapshot a6128add4e91
