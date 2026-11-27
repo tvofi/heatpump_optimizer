@@ -9,3 +9,4 @@
 1795741013 HB alive
 1795741203 CKPT ledger repaired, head dc3d55e; rerunning prepr snapshot c7c578e2ca5e
 1795741611 HB alive
+1795741719 DONE returned: handoff/r11-repair-3914 at dc3d55e, body 08a4b25; fold/gap/jump countdown fixed, census 0 cells off
