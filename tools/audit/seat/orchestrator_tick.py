@@ -755,7 +755,7 @@ class Tick:
         carried = self._carried(S)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
-            if head and str(n) in carried:  # mut:carriedline
+            if head and carried.get(str(n), ("", ""))[1] == head:  # mut:carriedline
                 self.line(S, f"CARRIED: #{n} {head[:8]} from {carried[str(n)][0][:8]}")
             path = f"repos/{self.repo}/issues/{n}/comments?per_page=100"
             code, o = self.conditional(path)
