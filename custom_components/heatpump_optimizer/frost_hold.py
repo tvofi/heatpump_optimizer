@@ -14,12 +14,14 @@ verdict, never ``state.outdoor_temperature``, which the coordinator
 back-fills from the forecast, the prior value or a default. With no sensor
 configured, the forecast's value for now is the reading.
 
-**The latch** (:func:`_active`): no reading (stale, unavailable, missing,
-no sensor and no forecast) sets it; a reading below the threshold sets it;
-only a reading at or above the threshold plus :data:`CLEAR_K` clears it. In
-memory only: a restart starts unset, and the first pass sets it from the
-reading. It is updated in synchronous code with no ``await`` between its
-read and its write, so it is atomic on the event loop.
+**The latch** (:func:`_active`): never set with no power switch configured,
+where the option is hidden and the hold has nothing to keep on. No reading
+(stale, unavailable, missing, no sensor and no forecast) sets it; a reading
+below the threshold sets it; only a reading at or above the threshold plus
+:data:`CLEAR_K` clears it. In memory only: a restart starts unset, and the
+first pass sets it from the reading. It is updated in synchronous code
+with no ``await`` between its read and its write, so it is atomic on the
+event loop.
 
 **The one writer** of the hold's ``ArbiterState`` fields: ``frost_holding``,
 which ``pump_arbiter`` reads, and the :class:`FrostRecord` only this module reads. The coordinator's supply gate calls :func:`gate` last, after
@@ -92,10 +94,11 @@ def outdoor_reading(health: Any, forecast_c: Callable[[], float | None], config:
 def _active(held: ArbiterState, inp: ArbiterInputs) -> bool:
     """Update the latch from this pass's reading; whether a hold applies.
 
-    Opted out, it is never active, whatever the reading.
+    Opted out, or with no power switch to hold (the option is hidden
+    there), it is never active, whatever the reading.
     """
     cfg, rec = EntryConfig.from_mapping(inp.config), _record(held)
-    if not cfg.frost_hold:
+    if not (cfg.frost_hold and cfg.heat_pump_switch_entity):
         rec.latched = None
         return False
     out = inp.outdoor_c
