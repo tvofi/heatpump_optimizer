@@ -1,8 +1,8 @@
 """Hot-water charges the pump would run, for the planner's plan.
 
 The stage ``DhwPlanner._build_dhw_requirements`` calls after the floor
-repair under the start condition (``dhw_start.place_startable``): the commit
-(:func:`commit_charges`), on a solve that plans runs (:class:`ChargeRuns`),
+repair under the start condition (``dhw_start.place_startable``). The commit
+(:func:`commit_charges`), on a solve that plans runs (:class:`ChargeRuns`):
 the plan as charges that run at the pump's floor or above, chosen between
 the store program's plan (:class:`_StoreProgram`) and the lifted one. The
 start condition it judges candidates by is ``dhw_start``'s.
