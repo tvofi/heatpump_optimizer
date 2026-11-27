@@ -8811,7 +8811,6 @@ class _LearnPersist:
     _thermal_learning_payload = Coord._thermal_learning_payload
     _load_t4b_learners = Coord._load_t4b_learners
     _apply_cop_scale = Coord._apply_cop_scale
-    _house_heat_loss_anchor = Coord._house_heat_loss_anchor
     _heat_loss_anchors = Coord._heat_loss_anchors
     _reanchor_house_heat_loss_scale = Coord._reanchor_house_heat_loss_scale
     _void_heat_loss_learners = Coord._void_heat_loss_learners
@@ -53199,6 +53198,249 @@ R.check(
 )
 
 
+# -- fabric_learning: the fabric folds as functions of interval values -----
+# The buffer, gains and house folds and the re-anchor law's tail are handed
+# values and return the new parameter; the coordinator keeps the clock, the
+# freeze question, the counters and the applies. Every expectation below is a
+# literal worked from the documented constants, never the module's own
+# expression: -ln(30/40) * 25 °C is the 60 -> 50 °C decay of one hour against
+# the 20 °C ambient at the 25 °C reference difference.
+import dataclasses as _fab_dc  # noqa: E402
+from datetime import datetime as _fab_datetime  # noqa: E402
+from types import SimpleNamespace as _fab_ns  # noqa: E402
+
+from heatpump_optimizer import fabric_learning as _fab  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalParameters as _FabParams,
+    learner_newton_step as _fab_newton,
+)
+
+_FAB_OBSERVED = 7.192051811294522
+_FAB_BOUNDS = (0.5, 30.0)
+
+
+def _fab_near(got, want, tol=1e-9):
+    return got is not None and all(abs(g - w) <= tol for g, w in zip(got, want, strict=True))
+
+
+_fab_up = _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 1.0, _FAB_BOUNDS)
+_fab_down = _fab.fold_buffer_cooling(20.0, 60.0, 50.0, 1.0, _FAB_BOUNDS)
+R.check(
+    "fabric: the buffer envelope adopts a lower observation fast and a higher one slowly",
+    _fab_near(_fab_up, (_FAB_OBSERVED, 0.98 * 6.0 + 0.02 * _FAB_OBSERVED))
+    and _fab_near(_fab_down, (_FAB_OBSERVED, 0.75 * 20.0 + 0.25 * _FAB_OBSERVED)),
+    f"up {_fab_up} down {_fab_down}",
+)
+_fab_gates = {
+    "dt at the minimum": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 0.15, (0.5, 60.0)),
+    "dt below the minimum": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 0.1499, (0.5, 60.0)),
+    "dt at the maximum": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 3.0, _FAB_BOUNDS),
+    "dt above the maximum": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 3.0001, _FAB_BOUNDS),
+    "dt not a number": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, float("nan"), _FAB_BOUNDS),
+    "tank level": _fab.fold_buffer_cooling(6.0, 50.0, 50.0, 1.0, (-1.0, 30.0)),
+    "tank warmed": _fab.fold_buffer_cooling(6.0, 50.0, 50.01, 1.0, (-1.0, 30.0)),
+    "end at the useful difference": _fab.fold_buffer_cooling(6.0, 30.0, 24.0, 1.0, _FAB_BOUNDS),
+    "end below the useful difference": _fab.fold_buffer_cooling(6.0, 30.0, 23.99, 1.0, _FAB_BOUNDS),
+    "observed at both bounds": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 1.0, (_FAB_OBSERVED, _FAB_OBSERVED)),
+    "observed under the low bound": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 1.0, (7.2, 30.0)),
+    "observed over the high bound": _fab.fold_buffer_cooling(6.0, 60.0, 50.0, 1.0, (0.5, 7.19)),
+}
+_FAB_GATES_WANT = {
+    "dt at the minimum": (47.94701207529682, 6.838940241505936),
+    "dt below the minimum": None,
+    "dt at the maximum": (2.3973506037648407, 5.0993376509412105),
+    "dt above the maximum": None,
+    "dt not a number": None,
+    "tank level": (0.0, 4.5),
+    "tank warmed": None,
+    "end at the useful difference": (22.907268296853875, 6.338145365937077),
+    "end below the useful difference": None,
+    "observed at both bounds": (_FAB_OBSERVED, 0.98 * 6.0 + 0.02 * _FAB_OBSERVED),
+    "observed under the low bound": None,
+    "observed over the high bound": None,
+}
+_fab_gate_wrong = sorted(
+    label for label, want in _FAB_GATES_WANT.items()
+    if (want is None) != (_fab_gates[label] is None)
+    or (want is not None and not _fab_near(_fab_gates[label], want))
+)
+R.check(
+    "fabric: each buffer gate refuses past its edge and folds on it",
+    not _fab_gate_wrong and len(_fab_gates) == len(_FAB_GATES_WANT),
+    f"wrong: {_fab_gate_wrong} got {[(k, _fab_gates[k]) for k in _fab_gate_wrong]}",
+)
+
+# The gains fold. Defaults: 0.3 kW of gains, a 10 kWh/°C room. A 0.01 °C
+# residual over a quarter hour is 0.4 kW, and a twentieth of it is folded.
+_fab_p = _FabParams()
+_fab_p2 = _fab_dc.replace(_fab_p, two_zone_enabled=True)
+_FAB_T3 = _fab_datetime(2026, 1, 1, 3, 30)
+_fab_seeded = _fab.fold_internal_gains(None, _fab_p, _FAB_T3, 0.01, 0.25)
+R.check(
+    "fabric: the gains fold seeds 24 hours at the configured gain and moves the interval's hour",
+    _fab_seeded is not None
+    and len(_fab_seeded) == 24
+    and abs(_fab_seeded[3] - 0.32) < 1e-12
+    and all(g == 0.3 for h, g in enumerate(_fab_seeded) if h != 3)
+    and _fab.fold_internal_gains(None, _fab_p, _fab_datetime(2026, 1, 1, 23, 59), 0.01, 0.25)[23] != 0.3,
+    f"profile {_fab_seeded}",
+)
+_fab_held = [0.3] * 24
+_fab_held[3] = 0.6
+_fab_before = list(_fab_held)
+_fab_rest = _fab.fold_internal_gains(_fab_held, _fab_p, _FAB_T3, 0.0, 0.25)
+_fab_nan_new = _fab.fold_internal_gains(None, _fab_p, _FAB_T3, float("nan"), 0.25)
+_fab_nan_held = _fab.fold_internal_gains(_fab_held, _fab_p, _FAB_T3, float("nan"), 0.25)
+R.check(
+    "fabric: a zero residual leaves a learned hour where it is, and a non-finite one folds nothing",
+    _fab_rest == _fab_before
+    and _fab_nan_new == [0.3] * 24
+    and _fab_nan_held == _fab_before,
+    f"rest {_fab_rest[3]} nan-new {_fab_nan_new} nan-held {_fab_nan_held}",
+)
+_fab_moved = _fab.fold_internal_gains(_fab_held, _fab_p, _FAB_T3, 0.01, 0.25)
+R.check(
+    "fabric: the gains fold returns a new list and never writes the one it was handed",
+    _fab_held == _fab_before
+    and _fab_moved is not _fab_held
+    and abs(_fab_moved[3] - 0.62) < 1e-12,
+    f"held {_fab_held[3]} moved {_fab_moved[3]}",
+)
+R.check(
+    "fabric: the gains fold clips an hour to [0, three times the configured gain], floored at 0.05 kW",
+    abs(_fab.fold_internal_gains(None, _fab_p, _FAB_T3, 1.0, 0.25)[3] - 0.9) < 1e-12
+    and _fab.fold_internal_gains(None, _fab_p, _FAB_T3, -1.0, 0.25)[3] == 0.0
+    and abs(
+        _fab.fold_internal_gains(
+            None, _fab_dc.replace(_fab_p, internal_gains=0.0), _FAB_T3, 1.0, 0.25
+        )[3]
+        - 0.15
+    )
+    < 1e-12,
+    "clip",
+)
+# `ThermalParameters` floors a thermal mass, so the mass gate is driven with a
+# stand-in carrying the three fields the fold reads.
+_FAB_MASSLESS = _fab_ns(
+    two_zone_enabled=False, heat_loss_coefficient=0.15, room_thermal_mass=1e-6, internal_gains=0.3
+)
+R.check(
+    "fabric: no interval start, no elapsed time or no thermal mass hands the profile back unseeded",
+    _fab.fold_internal_gains(None, _fab_p, None, 0.01, 0.25) is None
+    and _fab.fold_internal_gains(_fab_held, _fab_p, None, 0.01, 0.25) is _fab_held
+    and _fab.fold_internal_gains(None, _fab_p, _FAB_T3, 0.01, 1e-6) is None
+    and _fab.fold_internal_gains(None, _fab_p, _FAB_T3, 0.01, 2e-6) is not None
+    and _fab.fold_internal_gains(None, _FAB_MASSLESS, _FAB_T3, 0.01, 0.25) is None,
+    "gates",
+)
+
+# The house step: the Newton step about the fitted zone's terms. One zone
+# fits 0.15 kW/°C on 10 kWh/°C, two zones the upper floor's 0.08 on 3.0; the
+# 0.5 trust region and the 0.02 alpha are stated here, not read back.
+_fab_house_1 = _fab.fold_house_heat_loss(1.0, _fab_p, 0.02, 15.0, 0.25)
+_fab_house_2 = _fab.fold_house_heat_loss(1.0, _fab_p2, 0.02, 15.0, 0.25)
+R.check(
+    "fabric: the house step is learner_newton_step on the fitted zone's terms",
+    _fab_near(_fab_house_1, (0.6444444444444444, 0.9928888888888888))
+    and _fab_near(_fab_house_2, (0.8, 0.996))
+    and _fab_house_1
+    == _fab_newton(1.0, 0.15, 10.0, 0.02, 15.0, 0.25, trust_region=0.5, alpha=0.02)
+    and _fab_house_2
+    == _fab_newton(1.0, 0.08, 3.0, 0.02, 15.0, 0.25, trust_region=0.5, alpha=0.02)
+    and _fab_near(_fab.fold_house_heat_loss(1.0, _fab_p, 0.05, 15.0, 0.25), (0.5, 0.99)),
+    f"one zone {_fab_house_1} two zones {_fab_house_2}",
+)
+
+# The anchors: one zone is the coefficient; two zones the upper nameplate
+# plus the lower one at the learned ratio, 0.08 + 0.07 * 1.7.
+_fab_anchor_1 = _fab.heat_loss_anchors(_fab_p, {}, False, 1.7)
+_fab_anchor_2 = _fab.heat_loss_anchors(_fab_p2, {}, False, 1.7)
+R.check(
+    "fabric: the stored anchors in one zone and in two",
+    set(_fab_anchor_1)
+    == {"house_heat_loss_anchor", "lower_floor_loss_anchor", "house_heat_loss_basis", "heat_loss_zone_entities"}
+    and _fab_anchor_1["house_heat_loss_anchor"] == 0.15
+    and _fab_anchor_1["lower_floor_loss_anchor"] is None
+    and _fab_anchor_2["house_heat_loss_anchor"] == 0.199
+    and _fab_anchor_2["lower_floor_loss_anchor"] == 0.07
+    and _fab.heat_loss_anchors(_fab_p2, {}, False, 1.23456789)["house_heat_loss_anchor"] == 0.16642
+    and _fab_anchor_1["house_heat_loss_basis"] == "commanded",
+    f"one {_fab_anchor_1} two {_fab_anchor_2}",
+)
+
+
+def _fab_live(total, lower=None, basis="commanded"):
+    return {
+        "house_heat_loss_anchor": total,
+        "lower_floor_loss_anchor": lower,
+        "house_heat_loss_basis": basis,
+        "heat_loss_zone_entities": None,
+    }
+
+
+_FabL = _fab.HeatLossLearned
+_fab_ra = {
+    "below the gate": _fab.reanchor_learned(_FabL(1.3, 200, 1.0, 0), (0.15, 0.0), "commanded", _fab_live(0.156)),
+    "no stored anchor": _fab.reanchor_learned(_FabL(1.3, 200, 1.0, 0), (0.0, 0.0), "commanded", _fab_live(0.30)),
+    "unmoved, same basis": _fab.reanchor_learned(_FabL(1.3, 200, 1.0, 50), (0.15, 0.0), "commanded", _fab_live(0.15)),
+    "unmoved, later basis": _fab.reanchor_learned(
+        _FabL(1.3, 200, 1.0, 50), (0.15, 0.0), "commanded", _fab_live(0.15, basis="measured_heat")
+    ),
+    "doubled": _fab.reanchor_learned(_FabL(1.3, 200, 1.0, 0), (0.15, 0.0), "commanded", _fab_live(0.30)),
+    "doubled, no evidence": _fab.reanchor_learned(_FabL(1.3, 0, 1.0, 0), (0.15, 0.0), "commanded", _fab_live(0.30)),
+    "scale inexpressible": _fab.reanchor_learned(_FabL(1.3, 2000, 1.0, 0), (0.15, 0.0), "commanded", _fab_live(0.015)),
+    "two zones, lower doubled": _fab.reanchor_learned(
+        _FabL(1.2, 300, 1.5, 300), (0.08 + 0.07 * 1.5, 0.07), "commanded", _fab_live(0.08 + 0.14 * 1.5, 0.14)
+    ),
+    "ratio inexpressible": _fab.reanchor_learned(
+        _FabL(1.2, 3000, 2.5, 3000), (0.08 + 0.07 * 2.5, 0.07), "commanded", _fab_live(0.08 + 0.002 * 2.5, 0.002)
+    ),
+}
+_FAB_RA_WANT = {
+    "below the gate": None,
+    "no stored anchor": None,
+    "unmoved, same basis": None,
+    "unmoved, later basis": (1.0, 0, 1.0, 0),
+    "doubled": (0.6561557813120026, 200, 1.0, 0),
+    "doubled, no evidence": (1.0, 0, 1.0, 0),
+    "scale inexpressible": (1.0, 0, 1.0, 0),
+    "two zones, lower doubled": (1.1977141903286788, 300, 0.7520111453210727, 300),
+    "ratio inexpressible": (1.0, 0, 1.0, 0),
+}
+_fab_ra_wrong = sorted(
+    label for label, want in _FAB_RA_WANT.items()
+    if (want is None) != (_fab_ra[label] is None)
+    or (
+        want is not None
+        and not (
+            _fab_near(_fab_ra[label], want)
+            and (_fab_ra[label].scale_samples, _fab_ra[label].ratio_samples) == (want[1], want[3])
+        )
+    )
+)
+R.check(
+    "fabric: the re-anchor is None below its gate, zeroes evidence a later basis voids, and resets with the count",
+    not _fab_ra_wrong and len(_fab_ra) == len(_FAB_RA_WANT),
+    f"wrong: {[(k, _fab_ra[k]) for k in _fab_ra_wrong]}",
+)
+
+# The coordinator still answers under the names its readers import.
+from heatpump_optimizer import coordinator as _fab_coord  # noqa: E402
+
+R.check(
+    "fabric: the coordinator holds the module's own objects, not copies",
+    _fab_coord.house_loss_confidence is _fab.house_loss_confidence
+    and _fab_coord._house_loss_terms is _fab.house_loss_terms
+    and _fab_coord._zone_capacity is _fab.zone_capacity
+    and _fab_coord._learned_zone_temperature is _fab.learned_zone_temperature
+    and _fab_coord.HOUSE_LOSS_ALPHA == _fab.HOUSE_LOSS_ALPHA == 0.02
+    and _fab_coord.HOUSE_LOSS_MAX_STEP == _fab.HOUSE_LOSS_MAX_STEP == 0.05
+    and _fab_coord._LEARNER_TRUST_REGION == _fab.LEARNER_TRUST_REGION == 0.5
+    and not hasattr(Coord, "_house_heat_loss_anchor"),
+    "identity",
+)
+
+
 # -- `_record_quiet_comfort_period`: the only half that lowers the weight --
 # An override is the only evidence a user ever produces, and every override
 # pushes the comfort weight UP. Without this method the learner is a
@@ -56688,7 +56930,7 @@ R.check(
 # The return value gates the one persistence write, because `updated_at`
 # moves on every save and defeats the store's own content-hash skip.
 _t4_ra = _t4_coord()
-_T4_RA_CURRENT = _t4_ra._house_heat_loss_anchor()
+_T4_RA_CURRENT = _t4_ra._heat_loss_anchors()["house_heat_loss_anchor"]
 _t4_ra_refusals = {
     "absent": _t4_call(_t4_ra._reanchor_house_heat_loss_scale, {}),
     **{
