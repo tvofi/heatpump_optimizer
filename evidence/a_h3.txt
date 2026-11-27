@@ -1,0 +1,6 @@
+custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 65785e02
+custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum GUARD_OFF 6bee434a
+custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP e202a9d1
+custom_components/heatpump_optimizer/tariff.py:_stored_peaks CMP_BOUND 6d475b09
+custom_components/heatpump_optimizer/tariff.py:metering_windows GUARD_OFF eb0a46c5
+custom_components/heatpump_optimizer/tariff.py:realised_peak GUARD_OFF eb0a46c5

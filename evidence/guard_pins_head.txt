@@ -1,0 +1,137 @@
+Stale DSO catalog row stale_row failed parse; not writing
+Stale DSO catalog row stale_row failed parse; not writing
+Persisted price shape hold a bin outside what the learner writes; clipped to [0.2, 3.0] and renormalised
+
+=== Guard pins (#805 non-coordinator) ===
+  ok   an idle interval teaches the tank cooling rate
+  ok   a wood-coil install captions the hot-water tank
+  ok   a tz-aware wood slot against naive stamps still places energy
+  ok   a tenfold hour does not remain tenfold in the learned shape
+  ok   a legionella run-up stops once the ordinary floor already covers it
+  ok   a starting guess below a pinned bound is lifted to the bound
+  ok   an unchanged ceiling signature does not re-raise the notice
+  ok   a draw is folded, and skipped while external heat drives the tank
+  ok   the disinfection write-failed notice is raised once and cleared once
+  ok   #1913 GCHV prefix
+  ok   #1913 GCHV ids
+  ok   #1913 GCHV ready
+  ok   #1913 GCHV fits
+  ok   #1913 GCHV next
+  ok   #1913 GCHV one_window
+  ok   #1913 GCHV two_windows
+  ok   #1913 GCHV writes
+  ok   #1913 GCHV off_d1
+  ok   #1913 GCHV optimizer_off
+  ok   #1913 GCHV unset
+  ok   #1913 GCHV daytime
+  ok   #1913 GCHV hold
+  ok   #1913 GCHV observed_none
+  ok   #1913 GCHV writable
+  ok   #1913 GCHV unenforceable
+  ok   #1913 GCHV domain
+  ok   #1913 GCHV suffix
+  ok   #1913 GCHV mode_slot
+  ok   #1913 GCHV differs_none
+  ok   #1913 GCHV differs_frac
+  ok   #1913 GCHV observed_int
+  ok   #1913 GCHV write_ints
+  ok   #1913 GCHV zero_window
+  ok   #1913 GCHV garbage_write
+  ok   #1913 GCHV observed_frac
+  ok   #1913 GCHV listeners
+  ok   #1913 GCHV switch_compose
+  ok   #1913 GCHV unread_compose
+  ok   #1913 GCHV off_only_dropped
+  ok   #1913 GCHV at_noon_end
+  ok   #1913 GCHV at_wrap_end
+  ok   #1913 GCHV inside_wrap_two
+  ok   #1913 GCHV weekday_sat
+  ok   #1913 GCHV yesterday_day
+  ok   #1913 GCHV same_day_finish
+  ok   #1913 GCHV empty_merge
+  ok   #1913 GCHV garbage_spec
+  ok   R9-SW-2 mode writes its option
+  ok   R9-SW-2 silent writes turn_on and turn_off
+  ok   R9-SW-2 a set-point writes set_value
+  ok   R10-ARCH-SHAPES an accuracy sample's zero planned draw is kept (bound lo inclusive)
+  ok   R10-ARCH-SHAPES an unreadable tank volume has no surface, not a raise
+  ok   R10-ARCH-SHAPES a stored aperture sum at its floor is kept, below it defaulted
+  ok   R10-ARCH-SHAPES three contiguous days render as a range, two as a list
+  ok   R10-ARCH-SHAPES a window ending at midnight keeps 24:00, a later hour folds
+  ok   R10-ARCH-SHAPES a channel drawing exactly the active line is not heating
+  ok   R10-ARCH-SHAPES a measured ceiling of zero is no measurement
+  ok   R10-ARCH-SHAPES a measured ceiling exactly at the nameplate is admitted
+  ok   R10-ARCH-SHAPES the DHW minimum ceiling is the setpoint less the margin
+  ok   R10-ARCH-SHAPES a pump hour costing exactly wood's price is not cheaper wood
+  ok   R10-ARCH-SHAPES a COP series shorter than the horizon reads as no COP, not a raise
+  ok   R10-DISINFECTION-STEP-NOTICE 55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step
+  ok   R10-DISINFECTION-STEP-NOTICE the slider grid raises 201 of 1750 under the instant rule
+  ok   R10-DISINFECTION-STEP-NOTICE the slider grid raises 436 of 1750 under the hold rule
+  ok   R10-DISINFECTION-STEP-NOTICE the instant rule's 201 are all at step 5
+  ok   R10-DISINFECTION-STEP-NOTICE null: the 1314 on-step slider rows raise none, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE null: steps 0.1 and 0.5 raise none, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE the harness grid raises 34 / 71 of 330 (instant / hold)
+  ok   R10-DISINFECTION-STEP-NOTICE null: the 169 on-step harness grid rows raise none, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE the off-step notice shows, not the unreachable notice's hardware advice
+  ok   R10-DISINFECTION-STEP-NOTICE an unchanged off-step signature does not re-raise the notice
+  ok   R10-DISINFECTION-STEP-NOTICE the notice clears once the disinfection temperature is on the step
+  ok   R10-DISINFECTION-STEP-NOTICE instant credit counts target less 1.0 and not 0.01 under
+  ok   R10-DISINFECTION-STEP-NOTICE hold credit counts target less 0.5 and not 0.01 under
+  ok   R10-DISINFECTION-STEP-NOTICE null: the cycle disabled raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: hot water disabled raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: no set-point entity raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: an arbiter that writes nothing (observe) raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: the stock 55/60 raises none on any step
+  ok   R10-DISINFECTION-STEP-NOTICE 63 on step 5 is named below 60 and above 65, the step down and up, not the nearest
+  ok   R10-DISINFECTION-STEP-NOTICE a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE a range-capped write leaves the unreachable notice's hardware advice standing
+  ok   R10-DISINFECTION-STEP-NOTICE a hard-cap shortfall (75 over the 70 C hard maximum, step 5) raises no off-step notice, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE a hard-cap shortfall (75 over the 70 C hard maximum, step 1) raises no off-step notice, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE a hard-cap shortfall leaves the unreachable notice's hardware advice standing
+  ok   R10-DISINFECTION-STEP-NOTICE 68 on step 5 is named: the step above, 70, is the hard maximum and writable
+  ok   R10-DISINFECTION-STEP-NOTICE null: the same 65 on a max-80 step-5 entity off the step (62) still raises
+  ok   R10-DISINFECTION-STEP-NOTICE entity-range census: 277 of 2856 rows raise, each with below < target <= above <= max
+  ok   R11-OUTSIDE-HONEST-STARTS-RUNS uncapped headroom is p_max less the hot water (null control)
+  ok   R11-OUTSIDE-HONEST-STARTS-RUNS a space cap bounds the scope's headroom
+  ok   R11-OUTSIDE-HONEST-STARTS-RUNS a total cap bounds it less the hot water beside it
+  ok   R11-D3-PINS-money de935c38 non-finite window_factor keeps window
+  ok   R11-D3-PINS-money 7fcaf91c non-finite/negative sample dropped
+  ok   R11-D3-PINS-money 3e9a439b zero stored peaks survive restart
+  ok   R11-D3-PINS-money 9297f123 none/empty product no warning
+  ok   R11-D3-PINS-money 911f3cf5 stale catalog row returns None
+  ok   R11-D3-PINS-money b5f0a732 max_abs tie labelled fixed
+  ok   R11-D3-PINS-money 68cc141b min_component tie labelled fixed
+  ok   R11-D3-PINS-money 2043855e parse_rules None is empty
+  ok   R11-D3-PINS-money 24604339 zero peaks_averaged marginal 0
+  ok   R11-D3-PINS-money 4ad3dc13 window_factor 0.0 kept
+  ok   R11-D3-PINS-money 37b3c9a0 undated peaks all kept
+  ok   R11-D3-PINS-money 6536ff6b smooth topk k<=0 is 0
+  ok   R11-D3-PINS-money 5371ee2b smooth topk no positive is 0
+  ok   R11-D3-PINS-money 2d037a10 realised_peak empty is 0
+  ok   R11-D3-PINS-money 5f094dbc smooth topk tiny plateau value
+  ok   R11-D3-PINS-money 996dce51 smooth topk batch tiny plateau value
+  ok   R11-D3-PINS-money 1894e6dc metering_windows empty stays empty
+  ok   R11-D3-PINS-money b9b6cf1d expected_daily_min guard
+  ok   R11-D3-PINS-money c4697335 shape seed on first day
+  ok   R11-D3-PINS-money 3a064c11 summary weekday sigma
+  ok   R11-D3-PINS-money efa02472 summary weekend sigma
+  ok   R11-D3-PINS-money 28de20de saturday is weekend
+  ok   R11-D3-PINS-money e5eea05f tibber non-200 no json
+  ok   R11-D3-PINS-money 0d159d7d zero-confidence flat tail
+  ok   R11-D3-PINS-money 0ea7620c SHAPE_ALPHA
+  ok   R11-D3-PINS-money 213a122a SHAPE_CONFIDENCE_DAYS
+  ok   R11-D3-PINS-money b10967dd SHAPE_MIN
+  ok   R11-D3-PINS-money 7e5493bc QUARTER_ALPHA
+  ok   R11-D3-PINS-money 66686e3b QUARTER_CONFIDENCE_DAYS
+  ok   R11-D3-PINS-money 5bf50f5d QUARTER_FACTOR_MIN
+  ok   R11-D3-PINS-money cc96ce9e QUARTER_FACTOR_MAX
+  ok   R11-D3-PINS-money b5aef007 VAR_ALPHA
+  ok   R11-D3-PINS-money a5c9796d five days trusted
+  ok   R11-D3-PINS-money 13cadf1a residual var max kept
+  ok   R11-D3-PINS-money 0b10a7c7 residual var seed
+  ok   R11-D3-PINS-money 4e79ba6e hour mean 1e-6 unusable
+  ok   R11-D3-PINS-money 12cd6ddd quarter seed
+  ok   R11-D3-PINS-money a38612ad zero shape renormalised
+  ok   R11-D3-PINS-money b539d450 empty attrs reason
+
+ALL 130 GUARD PIN CHECKS PASSED

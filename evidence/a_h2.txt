@@ -1,0 +1,7 @@
+custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state BOOLOP 44f0178f
+custom_components/heatpump_optimizer/tariff.py:CapacityTariff.marginal_price_per_kw CMP_BOUND 9b86f195
+custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict CMP_BOUND 55d61241
+custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict GUARD_OFF b770da79
+custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe GUARD_OFF 84e98156
+custom_components/heatpump_optimizer/tariff.py:_one_per_day GUARD_OFF b1117b0c
+custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CLAMP_DROP 39986157
