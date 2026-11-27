@@ -33063,7 +33063,7 @@ R.check(
                       # no source. Listed in full: a new job here is named.
                       "ci.yml": ["arch-score", "budget-raise-gate", "cancel-superseded",
                                  "codeql", "gate", "governance", "hassfest",
-                                 "kernel-points", "pr-contract", "prelude", "refresh",
+                                 "kernel-points", "pr-contract", "prelude",
                                  "sweep-self", "tests", "validate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
@@ -33324,17 +33324,58 @@ _CC_UMB_RUNS = [{"id": 11, "head_sha": _CC_OLD_SHA, "event": "pull_request", "st
                 {"id": 12, "head_sha": _CC_NEW_SHA, "event": "pull_request", "status": "in_progress",
                  "head_branch": "b"}]
 _CC_UMB_CANCELS = _CS.candidates(_CC_UMB_RUNS, live_sha=_CC_NEW_SHA, branch="b", run_id=13)
+# #3885 L5: the job also carries the refresh step (formerly its own `refresh`
+# job): one allocation per event. The cancel condition is the cancel STEP's;
+# the job admits the review events the refresh step serves.
+_CC_UMB_STEPS = _CC_UMB_JOB.get("steps") or []
+
+
+def _cc_step(needle: str) -> "tuple[int, dict]":
+    hit = [(i, st) for i, st in enumerate(_CC_UMB_STEPS) if needle in str(st.get("run") or "")]
+    return hit[0] if len(hit) == 1 else (-1, {})
+
+
+_CC_CANCEL_AT, _CC_CANCEL = _cc_step("python3 -I tools/pr/cancel_superseded.py run")
+_CC_REFRESH_AT, _CC_REFRESH = _cc_step("python3 -I tools/ci/gate.py --refresh")
+_CC_RESTORE_AT, _CC_RESTORE = _cc_step('git checkout "$PINNED" --')
+
+
+def _cc_cancel_if(ctx: dict) -> "bool | None":
+    return _if_under(_CC_UMB_JOB.get("if"), ctx) is True and _if_under(_CC_CANCEL.get("if"), ctx)
+
+
 R.check(
     "ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, "
     "on a non-bot same-repo pull_request run only",
-    "python3 -I tools/pr/cancel_superseded.py run" in str(_CC_UMB_JOB)
-    and "--workflow ci.yml" in str(_CC_UMB_JOB)
+    "--workflow ci.yml" in str(_CC_CANCEL.get("run"))
     and (_CC_UMB_JOB.get("permissions") or {}).get("actions") == "write"
-    and _if_under(_CC_UMB_JOB.get("if"), _CC_UMB_IF) is True
-    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"}) is False
-    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": "push"}) is False
+    and _cc_cancel_if(_CC_UMB_IF) is True
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event_name": "push"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event_name": "pull_request_review"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event.pull_request.head.repo.full_name": "fork/r"})
     and _CC_UMB_CANCELS == [11],
-    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)}",
+    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)} cancel step at {_CC_CANCEL_AT}",
+)
+_CC_REFRESH_IF = str(_CC_REFRESH.get("if") or "")
+R.check(
+    "#3885 L5: the same job re-runs the stale green gates on pull_request and review events, "
+    "fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, "
+    "and never past a failed restore (null: push and dispatch run no housekeeping)",
+    "refresh" not in (_RC_DOCS["ci.yml"].get("jobs") or {})
+    and 0 <= _CC_RESTORE_AT < _CC_CANCEL_AT < _CC_REFRESH_AT
+    and "tools/ci/*.py" in str(_CC_RESTORE.get("run"))
+    and "tools/pr/cancel_superseded.py" in str(_CC_RESTORE.get("run"))
+    and all(_if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": e}) is True
+            for e in ("pull_request", "pull_request_review"))
+    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.pull_request.head.repo.full_name": "fork/r"}) is True
+    and all(_if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": e}) is False
+            for e in ("push", "workflow_dispatch"))
+    and "!cancelled()" in _CC_REFRESH_IF
+    and f"steps.{_CC_RESTORE.get('id')}.outcome == 'success'" in _CC_REFRESH_IF
+    and "GH_TOKEN" in (_CC_REFRESH.get("env") or {}),
+    f"steps at restore={_CC_RESTORE_AT} cancel={_CC_CANCEL_AT} refresh={_CC_REFRESH_AT} "
+    f"refresh if={_CC_REFRESH_IF!r} jobs={sorted(_RC_DOCS['ci.yml'].get('jobs') or {})}",
 )
 R.check(
     "and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)",
@@ -33908,8 +33949,8 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
     "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
     "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
-    "workflow) and on ci.yml's cancel-superseded, refresh and sweep-self jobs (null control)",
-    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "ci.yml:sweep-self", "tests.yml:claims-autofix",
+    "workflow) and on ci.yml's cancel-superseded and sweep-self jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:sweep-self", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
