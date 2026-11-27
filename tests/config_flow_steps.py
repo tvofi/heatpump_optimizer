@@ -8595,6 +8595,11 @@ def stored_options_of_the_wrong_type() -> None:
             config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 99.0,
                                            const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
             == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"})
+    # The bound is strict, a design choice: a floor equal to the ceiling is a
+    # fixed-output pump, which the solver's bounds admit.
+    R.check("R11-LATE-P1-OPTIONS: a stored floor equal to the ceiling is not refused",
+            config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 5.0,
+                                           const.CONF_HEAT_PUMP_MAX_POWER: 5.0}) == {})
 
     # The setup description's wood-tank volume.
     def volume(v):
@@ -8611,6 +8616,10 @@ def stored_options_of_the_wrong_type() -> None:
          "topology._slot_extras")
     R.check("R11-LATE-P1-OPTIONS: null -- _slot_extras reads a well-typed setpoint",
             setpoint(21.5) == {"manual_setpoint": 21.5}, f"{setpoint(21.5)!r}")
+    R.check("R11-LATE-P1-OPTIONS: an unset mixing-valve target publishes a 0.0 setpoint",
+            topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {})
+            == {"manual_setpoint": 0.0},
+            f"{topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {})!r}")
 
     # The measured quiet-window ceiling, off a compressor-frequency reading.
     def states(entity_id):
