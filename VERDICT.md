@@ -1,25 +1,39 @@
-Fix review: blocked 4ab51be4391657b622ad008c6fb4629846bf39c4 ci-red: required gate red on tests / mutation, 9 added production sites survive with no killing check or survivor_triage
+Fix review: merge 6d2f691972e5ef7ab122c521fa357e73b3040c50
 
-bus-nonce: 7f6d23a1ebc7e2efbf8f4d492667714c
+bus-nonce: 32d236412e4c2c646be48ba6e786bf9c
+pending-ci: gate
 
-## Block
+## Summary
 
-- Required `gate` is red at 4ab51be4 (classify: `RED 4ab51be4391657b622ad008c6fb4629846bf39c4 pending: none red: gate`). The gate fails on `tests / mutation`, which is in the owed-reds set. The table refuses 14 unpinned sites this diff adds. `tests / mutation-autofix` (job 139793015722) pinned the kills and reports 9 sites still alive: duty_legs.py:160 CLAMP_DROP; duty_legs.py:168 CLAMP_DROP; duty_legs.py:169 CMP_BOUND; duty_legs.py:196 CMP_BOUND; duty_legs.py:201 GUARD_OFF; duty_legs.py:370 CLAMP_DROP; duty_switch.py:616 GUARD_OFF; duty_switch.py:621 CMP_BOUND; duty_switch.py:631 CLAMP_DROP (all under custom_components/heatpump_optimizer/). Each needs a killing check or a `survivor_triage` verdict written by a seat (ci-autofix.md). A red head takes no merge verdict (C8). None of the nine is on the round-3 payment: both of the delta's own sites, duty_legs.py:98 and duty_switch.py:569 RETURN_DEL, are killed. The bot pinned them in 39771d9c33, which is the PR's head now.
+This is a later-round delta review. The packet names 1d3b7925 as the reviewed head, but `verdict/3869` and `review/3869` carry two later verdicts: blocked at 392fe0b7 (metric-gamed) and blocked at 4ab51be4 (ci-red, nine surviving added sites). The latest is 18a5d67f7f at 4ab51be4. So I reviewed `git diff 4ab51be4 6d2f6919`, restricted to this branch's own commits, and confirmed the 4ab51be4 block is resolved. 392fe0b7's block was already confirmed resolved in 18a5d67f7f. Every merge in the range is git-clean.
 
-## Delta review (392fe0b7..4ab51be4)
+- Production delta: one line, 5b7ae2ff89 (duty_switch.py `_kept_leg`). `need > 0 and _kept_minutes(...) < need` becomes `_kept_minutes(...) < need`. `_kept_minutes` returns `max(at, 0.0)` or `inf`, so it is never negative, and `need` is `leg_minimum`-clamped to 0..15. When need is 0, both forms are false. When need is above 0, they are identical. No behaviour moves, and the change takes out a mutant no check could kill.
+- Test delta: 49d3e2692a adds four checks to the R11-OWNER-MODE-LEGS block. 5b7ae2ff89 adds a heating-minimum-0 check. 55f4f5d1c2 only splits a comment.
+- Ledger delta: 1190b420e7 triages five survivors as equivalent. The bot commits 39771d9c33 and bdefc611d2 add killed_by pins.
+- Other delta: 928dcb1ac3 re-cuts the D5-s7 scope under max_units.
 
-- Round: this is the third round on this PR. The packet printed `Review scope: full` because the dispatch rendered it with `--reviewed-head` equal to the head. I reviewed the delta and the previous verdict's finding, as dispatched.
-- Previous block, metric-gamed (re-wrap of optimizer._leg_rule): resolved. At the head, `_leg_rule`'s call has main's three-line layout (main optimizer.py:270-272), wrapped in `duty_legs.entry_rule(...)`. The payment is real sharing, not a re-spelling. Before, the minimum legs and `before` were read twice: the arbiter `_replace`d them in duty_switch.leg_rule, and the planner passed them through three extra `duty_legs.leg_rule` parameters. Now `duty_legs.entry_rule` is the single reading, and `leg_rule`'s signature is back to main's. Without the mechanism, optimizer.py's line comes back. This is not a layout move that leaves the code no better.
-- Previous block 2 (the neighbour unchecked through the planner): resolved. The added features.py check drives `optimizer._leg_rule` with `duty_leg_before` DHW and SPACE, and the m3 and m6 mutants show it kills a dropped neighbour at either site.
-- Re-record is downward: 6e1c645f65 moves module_excess_loc 21756 -> 21755. Against main (three-dot, merge base 8f22a3b2), the PR's budget moves 21753 -> 21745. At the head, structure.py measures `module_excess_loc 21745 <= 21745`, and no other key rises.
-- Merges after 392fe0b7: bf6c487691, 2dec079b9e and 4ab51be439 have trees identical to `git merge-tree --write-tree` of their parents, so none has a hand resolution. c51360d13b hand-resolves only tests/golden/claimed_drift.txt (the driver printed `MERGE-CLAIM: refused`, both sides changed claims). The resolution keeps main's side and adds the branch's own config_flow claim and comment. The branch claims config_flow alone, three-dot.
-- `git merge-tree --write-tree origin/main 4ab51be4` exits 0, so it merges cleanly. VERSION, the manifest and RELEASE_NOTES.md are untouched (three-dot).
+## Findings
+
+none
 
 ## Evidence
 
-- Mutants on the shared rule (features.py at 4ab51be4; the m0 control adds no failure beyond the host-path `_bootstrap` FAIL also seen at the unmutated head). m1 entry_rule heat_min=0: 3 checks fail. m2 dhw_min=0: 7 fail. m3 drop before=: 2 fail. m4 duty_switch.leg_rule returns split: 6 fail. m5 arbiter before=IDLE: 1 fails (T9). m6 planner before=IDLE: 1 fails (the new solve-rule check). m7 planner drops entry_rule: 3 fail. m8 leg_rule returns DEFAULT_RULE: 5+ fail, and the run aborts with a TypeError. m9 swapped minimums: 3 fail. All are killed. Diffs and logs: ev/mut-*.diff, ev/mut-*.log.
-- archscore (ev/archscore.txt): c51360d13b..6e1c645f65 gives dS +0.0000 NULL, matching the body's NULL across the payment. 8f22a3b2..4ab51be4 gives dS +0.0006 IMPROVES (coord_footprint 2526 -> 2525), matching the body's +0.0006 against main. 392fe0b7..6e1c645f65 reads +1.5850 because that range carries main's own commits, so I do not use it.
-- Baseline features.py at the head: 1 of 6243 checks fails (`_bootstrap drops the package directory so datetime is stdlib`, a /tmp worktree path artifact). It is the same at the m0 control (ev/features-head-tail.txt).
-- Head moved during review: PR head is now 39771d9c333d5af4c94f3625c7e6e91362d07f8f (github-actions[bot] `ci: pin killed mutants`; it adds only two killed_by pins). Everything above was measured at 4ab51be4. The nine survivors are not pinned by that commit.
-- Live checks at 4ab51be4: also red are nightly-ha (stable, 2025.2.0) and nightly-status, which are not in owed-reds. `tests / replay` was cancelled.
-- This verdict supersedes 9b9842e3a6 on this probe ref, a `Fix review: merge` at the same head and nonce pushed at 07:53 UTC by an earlier fire of this seat. That was before `gate` concluded RED (classify first read RED at 08:52:35 UTC, ev/classify-polls.txt). A red head takes no merge (C8). This commit is its child, so the earlier one stays on the ref's history.
+- Head: 6d2f691972e5ef7ab122c521fa357e73b3040c50 (`HEAD.txt`). It is still the PR head when this verdict is written.
+- RESULT 4ab51be4 block resolved. Each of the nine named survivors is now disposed:
+  - Killed, by CI's own mutation-autofix pins (bdefc611d2): duty_legs.py:370 CLAMP_DROP (`availability.CLAMP_DROP.b7002cce`), duty_switch.py:616 GUARD_OFF and 621 CMP_BOUND (`_kept_leg.GUARD_OFF.b99e4db9` / `e54ba5a2`, `_kept_leg.CMP_BOUND.e54ba5a2`), and duty_switch.py:631 CLAMP_DROP (`_kept_minutes.CLAMP_DROP.c344d965`).
+  - Triaged as equivalent (1190b420e7): duty_legs.py:160, 168, 169, 196 and 201, as `_mode_runs` 5ba171ad, 66bb4d09 and a4744748 and `_with_minimums` a257ad19 and 463d143f.
+- RESULT equivalence re-derived independently. `probe_triaged_mutants.txt` holds my own differential probe (`probe.py`, seed 3869, my own generator, not the fixer's). It ran plan_legs and availability, original against each mutant, over 4000 random plans: 1-8 steps, both orders, extra None/0.5/2/5, minimums 0-45, before IDLE/SPACE/DHW, lost 0/0.1/0.5, floor None/0.5. All five triaged mutants show 0 differing. The null control is a killable mutant (`dhw_run < dhw_min + 1.0`), which differs on 42 of 4000, so the probe separates.
+- I also read the code against each triage reason:
+  - a4744748: `right` is read only at a two-step's SPACE slot, so the mutant's own-code neighbour is never DHW.
+  - a257ad19: at equality, `longer` equals `dhw_leg`, which is a no-op. The whole-step test reads a heating leg that `_split` and lengthening keep at 5 min or more.
+  - 463d143f: a pass that changes nothing is a fixed point.
+  - 5ba171ad and 66bb4d09: the wrapped index is discarded by the `np.where` around it.
+- Merges (`merges_structure.txt`): all 11 first-parent merges since 4ab51be4 have trees equal to `git merge-tree --write-tree` of their parents, so none has a hand resolution. `git merge-tree --write-tree origin/main HEAD` exits 0 (`MERGE-CLAIM: resolved`).
+- Three-dot against merge base 43ec8e32: VERSION, the manifest and RELEASE_NOTES.md are untouched.
+- `tests/structure.py` at the head prints `module_excess_loc 21599 <= 21599`, `STRUCTURE RATCHET PASSED`.
+- Step 12 widening: none. The only production line is behaviour-preserving, for the reason given in the Summary.
+- Step 11, live checks at the head:
+  - `gate` is red only on `FAIL tests / mutation` (`gate.txt`).
+  - The mutation table's sole refusal is `flow_lift.py:FlowCurveBias.observe_temps BOOLOP 04143c3f: disposition names no site the inventory generates` (`mutation_refusal.txt`). That pin is on origin/main, and flow_lift.py is byte-identical to main's. It is main's inherited red, with its fix in flight as #3939 (open). It is not this PR's.
+  - `nightly-ha` (stable, 2025.2.0) and `nightly-status` are red and are not in the owed-reds set. Every other check is green or skipped.
+- Note: ci-red-inherited: required `gate` is red at this head on main's stale flow_lift 04143c3f pin alone (#3939). The `pending-ci: gate` line hands the post to the relay once #3939 lands and the gate re-runs.

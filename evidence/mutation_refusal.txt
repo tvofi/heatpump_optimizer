@@ -1,0 +1,3 @@
+tests / mutation	UNKNOWN STEP	2026-11-27T16:34:25.6127647Z MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:
+tests / mutation	UNKNOWN STEP	2026-11-27T16:34:25.6128628Z     - custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe_temps BOOLOP 04143c3f: disposition names no site the inventory generates (old pin '            if return_temp is not None and np.isfinite(return_temp)')
+tests / mutation	UNKNOWN STEP	2026-11-27T16:34:25.6331546Z ##[error]Process completed with exit code 1.

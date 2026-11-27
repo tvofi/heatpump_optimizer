@@ -1,0 +1,29 @@
+commit 5b7ae2ff896d1ab40bf7103c00c244f52aa7fe82
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Thu Nov 26 12:11:20 2026 +0100
+
+    fix(mode-legs): _kept_leg reads the plan's kept minutes against every minimum
+    
+    need > 0 guarded a comparison that cannot hold at a minimum of 0 (the
+    kept minutes are never negative), so its CMP_BOUND twin was an
+    equivalent mutant no check could kill, and it hid max(at, 0.0) in
+    _kept_minutes from every check. Without it the line reads the plan for
+    both minimums, and the floor at 0 is what keeps a 0 minimum from holding
+    a leg: a new check enters heating at a heating minimum of 0 inside a
+    hot-water step. The two pins on the old line text (BOOLOP, GUARD_OFF
+    d7e66a4a) go with it: the BOOLOP site no longer exists, and the
+    GUARD_OFF site is re-pinned under its new anchor by mutation-autofix.
+
+diff --git a/custom_components/heatpump_optimizer/duty_switch.py b/custom_components/heatpump_optimizer/duty_switch.py
+index d9a89b2524..70c9c98a24 100644
+--- a/custom_components/heatpump_optimizer/duty_switch.py
++++ b/custom_components/heatpump_optimizer/duty_switch.py
+@@ -618,7 +618,7 @@ def _kept_leg(rec: _Record, wanted: str | None, now: datetime, rule: duty_legs.L
+     age_min = utc_elapsed_seconds(now, since) / 60.0
+     keep = rule.dhw_min if current == "dhw" else rule.heat_min if previous == pump_mode.MODE_DHW else 0.0
+     need = rule.dhw_min if wanted == "dhw" else rule.heat_min
+-    if 0.0 <= age_min < keep or (need > 0 and _kept_minutes(legs, start, now, wanted) < need):
++    if 0.0 <= age_min < keep or _kept_minutes(legs, start, now, wanted) < need:
+         return current
+     return wanted
+ 
