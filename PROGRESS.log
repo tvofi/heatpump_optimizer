@@ -4,3 +4,4 @@
 1795742472 CKPT killing checks + triage committed 2b571e7cec, step-pushed snapshot 74ba4c506150
 1795742781 CKPT merged origin/main 8890fc2b (count conflicts -> main), pushed wip 0e4f7f97ed snapshot 8b0f4e7891bd
 1795742848 HB alive
+1795743366 DONE blocked: body_push REFUSED CARRY-LANDED (3 carries); code at handoff/r11-repair-3882 0e4f7f97, prepr rc=0
