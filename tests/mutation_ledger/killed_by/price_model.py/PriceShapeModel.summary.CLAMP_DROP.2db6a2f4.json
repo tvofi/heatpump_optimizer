@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.summary CLAMP_DROP 2db6a2f4",
+  "killed_by": "tests/guard_pins.py",
+  "old": "                round(float(np.sqrt(max(0.0, v))), 4)",
+  "reason": "Recorded by `mutation_table.py --anchor`: CLAMP_DROP (`round(float(np.sqrt((0.0))), 4)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=3."
+}
