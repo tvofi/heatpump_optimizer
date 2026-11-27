@@ -1,0 +1,13 @@
+custom_components/heatpump_optimizer/optimizer.py:6154 GUARD_OFF
+custom_components/heatpump_optimizer/optimizer.py:5590 CLAMP_DROP
+custom_components/heatpump_optimizer/thermal_model.py:4171 GUARD_OFF
+custom_components/heatpump_optimizer/dhw_planner.py:1756 CMP_BOUND
+custom_components/heatpump_optimizer/thermal_model.py:267 GUARD_OFF
+custom_components/heatpump_optimizer/optimizer.py:4642 GUARD_OFF
+custom_components/heatpump_optimizer/thermal_model.py:665 GUARD_OFF
+custom_components/heatpump_optimizer/optimizer.py:2945 GUARD_OFF
+custom_components/heatpump_optimizer/coordinator.py:8969 CMP_BOUND
+custom_components/heatpump_optimizer/thermal_model.py:401 GUARD_OFF
+custom_components/heatpump_optimizer/coordinator.py:5387 GUARD_OFF
+custom_components/heatpump_optimizer/thermal_model.py:4700 CLAMP_DROP
+custom_components/heatpump_optimizer/thermal_model.py:695 GUARD_OFF

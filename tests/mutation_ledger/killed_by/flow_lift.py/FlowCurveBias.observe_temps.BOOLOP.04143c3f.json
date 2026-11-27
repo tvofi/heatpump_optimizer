@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe_temps BOOLOP 04143c3f",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "            if return_temp is not None and np.isfinite(return_temp)",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if return_temp is not None or np.isfinite(return_temp)`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}
