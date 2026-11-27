@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP 1455713b",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "                    if wood is not None and T_wood is not None:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if wood is not None or T_wood is not None:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}
