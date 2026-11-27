@@ -1,14 +1,9 @@
-Fix review: blocked 21b920ba64892ade1446b8c7e804461cfb12b41b mutation-vacuous: tools/ci/sweep.py:400 (judge's `or run["id"] in self.deferred_ids` guard), tools/ci/sweep.py:463 (completion's `v["status"] != "completed"` clause)
-bus-nonce: 11ef1d499411e7039e8468fa0020807c
+Fix review: merge 88da7f9bc11961a25be34db44d990efa7383ce9c
+bus-nonce: 02dbcc149a5062483eb300d7aaac2711
 
-Round 1, full scope (the packet names no reviewed head). Measured at 21b920ba64892ade1446b8c7e804461cfb12b41b, which is the head the body names.
-
-RESULT self-tests at head: sweep 145/0 failed, prelude 162/0, gate 133/0 (evidence/selftests.txt).
-RESULT reviewer mutants, 9 run (evidence/mutants.txt): undefer ignoring busy, attempt cap, stale pin; busy_sources ignoring judging, and failing open: each killed by 1-3 rows.
-RESULT survivors:
-- tools/ci/sweep.py:400: dropping `or run["id"] in self.deferred_ids` from `Sweep.judge` leaves all 145 rows passing. The module doc states that "a deferred run's gate is never re-run alone", and no row pins it. I checked that the case is reachable with evidence/probe_deferred_gate.py, which uses the self-test's own World and run helpers. The world is a deferred run 1, a busy run 5 and a green V 9. At the head the sweep posts nothing. With the guard removed it posts `jobs/10/rerun`, so it re-runs run 1's gate alone while its sources are busy. Carry: #3885
-- tools/ci/sweep.py:463: dropping `v["status"] != "completed"` from `Sweep.completion` leaves all 145 rows passing. I did not probe whether the case is reachable: a sweep-self of a V still in progress would return True and skip `settle`. Add a row that pins it, or record it as equivalent with the reason. Carry: #3885
-- Two equivalent mutants, not blocking. The `rerun_ids` skip in `undefer` is equivalent because undefer runs first and rerun_ids is empty at that point. The prelude-conclusion clause in `deferred` is equivalent because a failed step fails its job. Carry: dismissed: equivalent mutants
-RESULT finder's harness: dev/audit/harnesses/ci3885_queue.py `fetch 2026-11-26` stopped on an HTTP 502 from GitHub, so there is no base reading. The head reading is an after-merge census by construction. Carry: dismissed: evidence, not a finding
-RESULT merge-tree origin/main HEAD: rc 0. VERSION, the manifest version and the notes heading are not touched.
-Note: root-cause-unanswered: there are two `gate` runs at this head. In the edit run 45955022697, the gate is red because it deferred to code run 45955023499. That run's gate went green at 08:41Z, and a gate-sweep (45967617920) was still queued when I read it at 08:44Z. Required `gate` should clear once that sweep runs. `tests / nightly-status` is red and not required. Carry: dismissed: evidence, not a finding
+Round 2, delta scope (owner ruling: later rounds review the delta only). Prior verdict: blocked at 21b920ba64892ade1446b8c7e804461cfb12b41b, mutation-vacuous, two survivors. Delta 21b920ba64..88da7f9bc11961a25be34db44d990efa7383ce9c is tools/ci/sweep_selftest.py, +11 lines (two rows); no production change (evidence/delta.txt).
+RESULT sweep self-test at head: 147 checks, 0 failed (null control: both new rows pass on unmutated code).
+RESULT prior survivor tools/ci/sweep.py:400 (judge's deferred_ids guard): re-applied, now killed by row "W1: a deferred run left while its sources are busy is not re-judged by its gate alone from a green sweep" (evidence/mutants.txt). Resolved.
+RESULT prior survivor tools/ci/sweep.py:463 (completion's v status clause): re-applied, now killed by row "W2 completion arm null: a run still in progress is no completion; settle re-runs the red that judged early". Resolved.
+RESULT finder's harness: none named in the packet; the delta is test-only, so a reading of dev/audit/harnesses/ci3885_queue.py cannot move against round 1's. Carry: dismissed: evidence, not a finding
+RESULT merge-tree origin/main HEAD: rc 0. Live checks: every required check passes; tests / nightly-status red and not required. Carry: dismissed: evidence, not a finding

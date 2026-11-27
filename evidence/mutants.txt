@@ -1,10 +1,9 @@
-head 21b920ba64892ade1446b8c7e804461cfb12b41b
-MUTANT judge-ignores-deferred_ids: sweep self-test: 145 checks, 0 failed
-MUTANT undefer-ignores-busy: sweep self-test: 145 checks, 1 failed
-MUTANT undefer-ignores-attempt-cap: sweep self-test: 145 checks, 1 failed
-MUTANT undefer-skips-stale-pin: sweep self-test: 145 checks, 2 failed
-MUTANT deferred-ignores-prelude-conclusion: sweep self-test: 145 checks, 0 failed
-MUTANT undefer-twice: sweep self-test: 145 checks, 0 failed
-MUTANT busy-ignores-judging: prelude self-test: 162 checks, 3 failed
-MUTANT busy-fail-open: prelude self-test: 162 checks, 1 failed
-MUTANT completion-ignores-V-status: sweep self-test: 145 checks, 0 failed
+head: 88da7f9bc11961a25be34db44d990efa7383ce9c
+mutant 1: sweep.py:400 drop 'or run["id"] in self.deferred_ids'
+FAIL W1: a deferred run left while its sources are busy is not re-judged by its gate alone from a green sweep
+sweep self-test: 147 checks, 1 failed
+mutant 2: sweep.py:463 drop 'v["status"] != "completed" or'
+FAIL W2 completion arm null: a run still in progress is no completion; settle re-runs the red that judged early
+sweep self-test: 147 checks, 1 failed
+null control at head:
+sweep self-test: 147 checks, 0 failed
