@@ -3,3 +3,4 @@
 1795736974 CKPT worktree cut from origin/main 7194ff84 snapshot 2b8040aa8f64
 1795737071 CKPT P1 probe at base: 6 of 7 loaders admit bool; scouting P1/P2/D3 snapshot 28c9ab0d2800
 1795737555 HB alive
+1795737600 CKPT P1 boundary fix + features block + D3 pins; mutation proofs done snapshot a36797e763ed
