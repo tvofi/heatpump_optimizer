@@ -148,5 +148,17 @@
   "file": "custom_components/heatpump_optimizer/thermal_model.py",
   "old": "        hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))\n",
   "new": "        hp_draw = (drawn - wood_draw)\n"
+ },
+ {
+  "name": "c5e678a5d1812e40",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)\n",
+  "new": "            dT_cap = max(0.0, p.buffer_max_temp - T_buf) / (dt_hours)\n"
+ },
+ {
+  "name": "c5e678a5d1812e40-outer-max",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)\n",
+  "new": "            dT_cap = (0.0) / max(dt_hours, 1e-6)\n"
  }
 ]
