@@ -64,3 +64,4 @@
 1795786167 CKPT fixer: clean sample at 14 rows snapshot 1e15ab085646
 1795787193 CKPT fixer: clean sample at 20 rows snapshot ab9e091f9569
 1795789252 CKPT fixer: BLOCKED.md pushed at handoff-wip 6d50d97e (C2 gate: >=2554253 CPU-s extrapolated vs 100000) snapshot 36e6c563dc3b
+1795789256 DONE blocked: C2 sample extrapolates re-key drive to >=2554253 CPU-s (gate 100000); question in BLOCKED.md at handoff-wip/r11-owner-features-split 6d50d97e
