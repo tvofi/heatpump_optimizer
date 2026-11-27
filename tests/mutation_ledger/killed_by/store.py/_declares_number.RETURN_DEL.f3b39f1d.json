@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_declares_number RETURN_DEL f3b39f1d",
+  "killed_by": "tests/features.py",
+  "old": "    return domain.kind == \"choice\" and bool(domain.choices) and all(_number(m, real) for m in domain.choices)",
+  "reason": "Recorded by hand before the handoff (R11-SEAM-store-p2 repair of #3932): RETURN_DEL (`pass`) took the features.py block `# R11-SEAM-store-p2 (round-11 sweep P1` from 0 failed to 2 failed."
+}
