@@ -29,3 +29,4 @@
 1795771041 CKPT rev3: diff and line-reach tools written; runs in progress snapshot 0cf671eb69f8
 1795771166 CKPT rev3: V3 classifier passes 1151/1151; swap runs at span 104/253 snapshot 3cedc51ef630
 1795771259 HB alive
+1795771280 CKPT rev3: planted control passes (3 families); swap rerun + line-reach recording started snapshot cda4235e1153
