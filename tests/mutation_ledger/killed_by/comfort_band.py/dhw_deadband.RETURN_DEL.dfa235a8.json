@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/comfort_band.py:dhw_deadband RETURN_DEL dfa235a8",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return minimum, setpoint, setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}
