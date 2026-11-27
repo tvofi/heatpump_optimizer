@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """The harvest's disposition of every box-reported kill, one line per anchor.
 
-    summarise.py CANDIDATES.json SPLIT.json DECLINED.json OUT_ROOT > DISPOSITIONS.tsv
+    summarise.py CANDIDATES.json SPLIT.json DECLINED.json OUT_ROOT BATCHES > DISPOSITIONS.tsv
 
 CANDIDATES.json, DECLINED.json: enumerate.py's outputs. SPLIT.json: collide.py's.
 OUT_ROOT holds one pin_harvest.py drive output directory per batch (pins.json,
-survivors.txt, status). Prints `<disposition>\t<anchor>\t<detail>` per anchor
+survivors.txt, status); BATCHES holds <script>.json, the anchors
+driven with --scripts tests/<script> (pass2.json: re-driven with the default
+drivers after their own drive drove nothing). Prints `<disposition>\t<anchor>\t<detail>` per anchor
 and, on stderr, one count per disposition; every count the PR body quotes is
 `cut -f1 DISPOSITIONS.tsv | sort | uniq -c`.
 """
@@ -15,6 +17,12 @@ from pathlib import Path
 
 cand, split, declined, root = (json.load(open(sys.argv[1])), json.load(open(sys.argv[2])),
                                json.load(open(sys.argv[3])), Path(sys.argv[4]))
+driven = {}
+for b in sorted(Path(sys.argv[5]).glob("*.json")):
+    status = (root / b.stem / "status")
+    st = status.read_text().strip() if status.exists() else "not-run"
+    for a in json.loads(b.read_text()):
+        driven.setdefault(a, []).append(f"{b.stem}={st}")
 pinned, survived = {}, {}
 for d in sorted(p for p in root.iterdir() if p.is_dir()):
     pins = d / "pins.json"
@@ -41,7 +49,8 @@ for a in split["drive"]:
     if a in pinned:
         rows.append(("pinned", a, pinned[a]))
     else:
-        rows.append(("dropped-not-reproduced", a, f"box {boxes}"))
+        how = ";".join(driven.get(a, ["no-driver: no box killer is a mutation_table driver"]))
+        rows.append(("dropped-not-reproduced", a, f"box {boxes} | drive {how}"))
 for r in rows:
     print("\t".join(r))
 counts = {}
