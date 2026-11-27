@@ -653,10 +653,10 @@ def _refuse_zone_fields_on_one_zone(hass: HomeAssistant, params: Mapping[str, An
     """Refuse a floor's mass, the inter-zone transfer or the radiator share
     for a one-zone model (R11-LATE-P2-ZONE-GATE), the mirror of the rule below.
 
-    Only a two-zone model reads them (``TWO_ZONE_FIELDS``). Judged on the
-    config the call leaves: under "auto" these keys are the presence that
-    turns the model two-zone, so there the call is the switch and is taken;
-    only an install whose mode keeps it one zone would acknowledge a write
+    Only a two-zone model reads them (``TWO_ZONE_FIELDS``). It is judged on
+    the config the call leaves. Under "auto" these keys are the presence that
+    turns the model two-zone, so there the call is the switch and is taken.
+    Only an install whose mode keeps it one zone would acknowledge a write
     that changes nothing.
     """
     asked = {k: v for k, v in params.items() if k in TWO_ZONE_FIELDS and v is not None}
