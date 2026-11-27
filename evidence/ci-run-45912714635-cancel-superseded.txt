@@ -1,0 +1,7 @@
+CI run 45912714635 (pull_request, head 4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de, ci.yml from refs/pull/3923/merge 626f323e), job cancel-superseded id 140224635795: success, 23:53:07Z-23:53:20Z (13 s)
+steps: Set up job / checkout 7 s / Restore the programs from the base 0 s (success) / Cancel this branch's runs at superseded heads 2 s (success) / Re-run the stale green gates at this head 1 s (success)
+log lines (get_job_logs):
+2026-11-26T23:53:17.3506742Z cancel_superseded: 0 superseded run(s) of ci.yml on fix/r11-ci-3885-queue-l5
+2026-11-26T23:53:17.3620260Z ##[group]Run python3 -I tools/ci/gate.py --refresh
+2026-11-26T23:53:18.7930133Z NOTICE no green gate to refresh
+No job named `refresh` in this run's job listing (10 jobs).

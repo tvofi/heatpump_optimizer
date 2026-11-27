@@ -1,0 +1,33 @@
+== M2
+>   FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['set_away__dup', 'set_thermal_parameters__dup', 'simulate_plan__dup']; missing=[]]
+>   FAIL hb:positive_control  [a 600 ms spin read as 742.3 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL hb:positive_control  [a 600 ms spin read as 607.4 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL #3885 L5: the same job re-runs the stale green gates on pull_request and review events, fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, and never past a failed restore (null:
+== M3
+>   FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_topology__dup', 'clear_manual_plan__dup', 'set_away__dup']; missing=[]]
+>   FAIL hb:positive_control  [a 600 ms spin read as 743.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL hb:positive_control  [a 600 ms spin read as 600.6 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, on a non-bot same-repo pull_request run only  [cancels=[11] job=['if', 'permissions', 'runs-on', 'steps', 'timeout-minutes'] cancel step 
+== M4
+>   FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_schedule__dup', 'apply_topology__dup', 'set_away__dup']; missing=[]]
+>   FAIL hb:positive_control  [a 600 ms spin read as 744.8 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL hb:positive_control  [a 600 ms spin read as 600.1 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt (CI-pr-<number>, cancelling in progress, #3885 L1), a push
+>   FAIL #3885 L5: the same job re-runs the stale green gates on pull_request and review events, fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, and never past a failed restore (null:
+== M5
+>   FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_manual_plan__dup', 'apply_topology__dup', 'set_thermal_parameters__dup']; missing=[]]
+>   FAIL hb:positive_control  [a 600 ms spin read as 717.6 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL hb:positive_control  [a 600 ms spin read as 603.6 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL #3885 L5: the same job re-runs the stale green gates on pull_request and review events, fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, and never past a failed restore (null:
+>   FAIL no job holding a write grant on pull_request runs the pull request's own program or leaves its token on disk (D11-s1-03)  [defects: ['ci.yml:cancel-superseded runs tools/ci/gate.py unrestored']]
+>   FAIL and codeql.yml's D-5 step is exempt only by its `if:` and the base restore: without both the step is refused (null control)  [['ci.yml:cancel-superseded runs tools/ci/gate.py unrestored', 'codeql.yml:analyze runs tools/pr
+== M6
+>   FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['factory_reset__dup', 'run_optimization__dup', 'simulate_plan__dup']; missing=[]]
+>   FAIL hb:positive_control  [a 600 ms spin read as 757.3 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL hb:positive_control  [a 600 ms spin read as 604.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL #3885 L5: the same job re-runs the stale green gates on pull_request and review events, fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, and never past a failed restore (null:
+== M7
+>   FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_topology__dup', 'run_optimization__dup', 'set_away__dup']; missing=[]]
+>   FAIL hb:positive_control  [a 600 ms spin read as 761.9 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL hb:positive_control  [a 600 ms spin read as 602.7 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+>   FAIL #3885 L5: the same job re-runs the stale green gates on pull_request and review events, fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, and never past a failed restore (null:

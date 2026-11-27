@@ -1,5 +1,0 @@
-PASS ci.yml's cancel-superseded cancels a superseded older SHA, from the ba
-PASS #3885 L5: the same job re-runs the stale green gates on pull_request a
-PASS and a run at the live SHA is never cancelled, a gate attempt at this h
-PASS no job holding a write grant on pull_request runs the pull request's o
-PASS and the same ci.yml and tests.yml with their restores and token hygien

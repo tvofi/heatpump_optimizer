@@ -1,26 +1,34 @@
 Fix review: merge 4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de
 
-bus-nonce: 2d64a4b1339cc077151b3445b5840a7e
+bus-nonce: 92fef8dda7b41ea375ac5fc1a2b15f25
+pending-ci: gate
 
-Round 1 (first review; no reviewed head). Head measured = body head = 4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de.
+Round 1 (first review of #3923; scope full). Head reviewed: 4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de, the body's stated head (step 7).
+
+Note: figure-unverified: the body's per-job timings for runs 45907700288 and 45891233921 (refresh 75 s / 49 s, cancel-superseded 13 s / 12 s) were not re-derived; the census-arm figure is quoted by the body as not re-run. Neither is load-bearing for the change.
+Note: design-trace: the design's L5 test ("a run that shows both steps' lines") is met by this head's own CI run 45912714635 (ev/ci-run-45912714635-cancel-superseded.txt), which the body does not cite.
 
 ## Evidence
 
-- RESULT: classify `GREEN 4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de pending: none red: none` (ev/classify.txt).
-- RESULT: `git merge-tree --write-tree origin/main <head>` exits 0, no conflict (ev/merge-tree.txt).
-- RESULT: roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` empty.
-- RESULT: VERSION, manifest and RELEASE_NOTES.md untouched in the three-dot diff (ev/version.txt); no golden or claim file in the diff, so env_drift has nothing to compare (diff: ci.yml, tests/entities.py, dev/programme/delivery/3923.md; ev/diffstat.txt).
-- RESULT: mutation proof re-run on the real script (`PYTHONPATH=tests/hastub tests/entities.py`, partial run to the rows): at the head every diff row is ok (ev/entities-head-rows.txt); with ci.yml set back to the base the three rows the body names FAIL (body-edit caller set, `#3885 L5 ...`, token-hygiene null control) and the supersession row stays ok (ev/entities-m1-base-ciyml.log), as the body states.
-- RESULT: reviewer-built driver (ev/drv.py, ev/mut.py; the reviewer's instrument, not the finder's) evaluating the five supersession/refresh/token rows verbatim from tests/entities.py: baseline 5/5 PASS; ten mutants each caught (ev/mutants.txt): cancel step `if:` deleted -> supersession row; refresh `if:` losing the restore guard or `!cancelled()`, restore dropping `tools/ci/*.py`, refresh step deleted or moved before restore, job `if:` narrowed to pull_request or to same-repo heads, GH_TOKEN dropped, a second `refresh` job re-added -> the L5 row (plus the write-grant row, or its null control, where the restore or the extra job is the mutant).
-- RESULT: design trace: design.md at 43ff5ae6 §L5 ("two steps of one job, keeping their order and conditions; refresh keeps running on review events"; test: the entities caller-set pin plus a run showing both steps) is met: step order restore -> cancel -> refresh, cancel step keeps the old job condition, job admits pull_request and pull_request_review including fork heads, caller-set pin updated, and the body cites run 45912926553 with both steps `success` in one job.
-- RESULT: figure `Housekeeping jobs per pull_request event: base 2, head 1` re-derived with the body's rule at base 7194ff84 and head (ev/figure-jobs.txt): base lists `cancel-superseded` and `refresh`, head `cancel-superseded` only.
-- Not re-derived: the per-run job timings (runs 45907700288, 45891233921) and the census arm figure; GitHub API history not read from this seat. The body states the census after-figure is owed on the first busy day past the merge.
-- RESULT: red checks: classify reports none at the head; the body answers the earlier `gate` deferral red and names `tests / nightly-status` as outside the owed set.
-- RESULT: finder's harness: none named (CI-cost lever from an approved design; no audit finding harness). Mutation lane draws no diff mutant (no production Python); the hand mutants above are the proof.
-- RESULT: self-audit: `carry_audit.py check` over this verdict rc=0 (1 routed, 0 unrouted); over the body, the packet's `CARRY-AUDIT: 0 finding item(s)`.
-- RESULT: refusal-on-actuator-write (step 16): not applicable, no `custom_components/` change.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 4a07b1ec` exits 0 (tree 5ff61e43b2); merges cleanly. Role files unchanged between merge base and origin/main.
+- RESULT head suite: `PYTHONPATH=tests/hastub python3 tests/entities.py` in a detached worktree at the head: ALL 2788 ENTITY CHECKS PASSED, rc=0 (ev/entities-head.log).
+- RESULT mutation proof (step 1), six ci.yml mutants of my own at the head, each killed by a top-level check (ev/mutants-summary.txt, ev/entities-M*.log; indented FAIL lines are the suite's planted negatives and timing self-tests, present at the head too):
+  - M2 refresh step `if:` deleted: FAIL `#3885 L5: the same job re-runs the stale green gates ...`
+  - M3 cancel step `if:` deleted: FAIL `ci.yml's cancel-superseded cancels a superseded older SHA ... on a non-bot same-repo pull_request run only`
+  - M4 restore guard dropped from the refresh `if:` (`!cancelled()` only): FAIL the #3885 L5 row and the CI umbrella row
+  - M5 restore no longer restores `tools/ci/*.py`: FAIL the #3885 L5 row, D11-s1-03 (`ci.yml:cancel-superseded runs tools/ci/gate.py unrestored`) and the codeql D-5 null control
+  - M6 job `if:` no longer admits `pull_request_review`: FAIL the #3885 L5 row
+  - M7 refresh made dependent on the cancel step (`success()` for `!cancelled()`): FAIL the #3885 L5 row
+  No survivor. The fixer's M1-M3 are a subset of the same shape; M2 and M3 reproduce their quoted failing rows.
+- RESULT figure (step 8): job list at base 7194ff84 includes `refresh` and `cancel-superseded`; at the head only `cancel-superseded` (ev/jobs-figure.txt, the body's own rule). Housekeeping jobs per pull_request event 2 -> 1: re-derived.
+- RESULT live trace: CI run 45912714635 at this head ran job cancel-superseded (13 s) with steps restore (success, 0 s: base already in the depth-2 clone), cancel (`cancel_superseded: 0 superseded run(s) ...`) and refresh (`NOTICE no green gate to refresh`); no `refresh` job in the run.
+- RESULT name dependence: no program under `tools/` or `.github/` keys on a job named `refresh` (only recorded fixtures and merge_train.py's self-test listing, which are historical data); `gate.py --refresh` skips its own run by run id, not job name, and refuses fork heads itself.
+- RESULT steps 4-5: the diff touches only `.github/workflows/ci.yml`, `tests/entities.py`, `dev/programme/delivery/3923.md`; no claim file, golden fixture, VERSION, manifest or notes heading. Step 14: no budget, closure, INERT or ledger moves; the new delivery file passes the head's classification checks (entities rc=0).
+- RESULT step 6 (other configurations): fork head (job admitted, cancel step false, refresh a notice), review event (cancel false, refresh runs), bot sender (cancel false), push / workflow_dispatch (job false) are each evaluated by the L5 and cancel rows; M3/M6 show they bind. One-seam class (one job fold); no enumeration rule owed.
+- RESULT permissions: the folded job keeps `contents: read`, `pull-requests: read`, `actions: write`, the grant both old jobs held; `persist-credentials: false`; restore precedes every token-holding step.
+- RESULT step 16: no actuator path; not applicable. Step 15: matches the approved design's L5 (same grant, order and conditions kept, review events kept).
+- CI: `merge_train.py classify 4a07b1ec --pr 3923` polled ~30 min, last line `WAIT 4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de pending: gate red: none`; no red at the head, so no `## Red checks` answer owed.
 
 ## Findings
 
-- Note: body-stale: the `## Head` section carries two paragraphs for two repairs and a garbled base line (`4f0c7af... on origin/main 8890fc2...`); paperwork only. Carry: dismissed: body paperwork, no code effect
-- Follow-up: the design's `census` arm after-figure (ci3885_queue.py) is owed on the first busy day past the merge, as the body states. Carry: dismissed: owed and stated by the body's Figures section for the group's own lever measurement, not a finding of this review
+- Follow-up: the L5 saving (one allocation and checkout fewer per PR event, design ~150-200 runner-min/day) is measured only after the merge, by the design harness `census` arm on the first busy day; the body states it owed. Carry: #3885
