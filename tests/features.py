@@ -6966,6 +6966,45 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
             f"entry has to be an exact 0.0 rather than scipy's 0/0",
         )
 
+# R11-D3-PINS-plant: the floored draw and the carried wood reading of the batch.
+def _r11pp_batch(extra, buf, wood_t, zone=True, n=24):
+    p = ThermalParameters.from_config({**_grad_house(two_zone=zone), **extra})
+    m = ThermalModel(p)
+    ot, wi, ra, so = (x[:n] for x in _grad_weather("winter_cold", _dt_grad(2026, 1, 15)))
+    st = ThermalState(
+        room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=float(ot[0]),
+        upper_floor_temperature=21.2, lower_floor_temperature=20.1,
+        buffer_tank_temperature=buf, wood_tank_temperature=wood_t)
+    ws = _WS(ot, wi, ra, so, np.full(n, 78.0), np.zeros(n))
+    powers = np.zeros((2, n))
+    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0),
+            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0))
+
+
+_r11pp_res, _r11pp_scal = _r11pp_batch(
+    {"mixing_valve_mode": "manual", "two_zone_mode": "on",
+     "wood_furnace_enabled": True, "wood_tank_top_entity": "sensor.w_top"},
+    20.8, 20.9)
+_r11pp_parity = all(
+    np.allclose(_r11pp_res[_k][0], np.asarray(_r11pp_scal[_i], dtype=float), rtol=0, atol=1e-9)
+    for _k, _i in (("buffer", 4), ("wood", 6), ("room", 0)))
+R.check(
+    "batch two-tank wood draw is floored at zero, matching the scalar trajectory (D3-wave-7068e39e4608027f)",
+    _r11pp_parity,
+    "buffer, wood and room rows of the batch must equal the scalar trajectory",
+)
+R.check(
+    "batch two-tank heat-pump draw is floored at zero, matching the scalar trajectory (D3-wave-6462c28df2f973e0)",
+    _r11pp_parity,
+    "buffer, wood and room rows of the batch must equal the scalar trajectory",
+)
+_r11pp_res, _ = _r11pp_batch({"mixing_valve_mode": "manual"}, 48.0, 85.0, zone=False)
+R.check(
+    "a single-zone batch carries a wood-tank reading through its trajectory (D3-wave-78b7f2ebcf85c8a1)",
+    _r11pp_res["wood"] is not None
+    and np.allclose(_r11pp_res["wood"], 85.0, rtol=0, atol=1e-6),
+    "the wood row stays at the 85 C it started at",
+)
 
 import heatpump_optimizer.optimizer as _grad_optmod
 
@@ -11048,6 +11087,14 @@ R.check(
     "a 35 L tank behind a valve is not a store",
     not _p_tiny.buffer_is_store,
     "the default volume must land below the threshold decisively",
+)
+R.check(
+    "a buffer of exactly the minimum store volume behind a valve is a store (D3-wave-cde383447b865539)",
+    ThermalParameters(
+        buffer_tank_volume=_r9f41_const.BUFFER_STORE_MIN_VOLUME,
+        mixing_valve_mode="manual",
+    ).buffer_is_store is True,
+    "the threshold itself counts as a store",
 )
 _caps_tiny = _opt_tiny._settlement_caps(_outdoor)
 R.check(
@@ -20231,6 +20278,27 @@ _tp_grey = ThermalParameters(greywater_recovery=0.3)
 R.check(
     "greywater recovery scales the draw chain down by its effectiveness",
     abs(_tp_grey.dhw_draw_power - 0.7 * _old_draw) < 1e-12,
+)
+
+_r11pp_base_draw = ThermalParameters(greywater_recovery=0.0).dhw_draw_power
+R.check(
+    "greywater recovery is clipped to [0, 0.9] in the DHW draw (D3-wave-1b476993921016f9)",
+    abs(_r11pp_base_draw - 0.32625000000000004) < 1e-6
+    and abs(ThermalParameters(greywater_recovery=0.9).dhw_draw_power - 0.032625000000000005) < 1e-6
+    and abs(ThermalParameters(greywater_recovery=5.0).dhw_draw_power - 0.032625000000000005) < 1e-6
+    and abs(ThermalParameters(greywater_recovery=-0.5).dhw_draw_power - _r11pp_base_draw) < 1e-6,
+    "recovery 0.9 and 5.0 both draw 0.032625 kW, -0.5 draws the 0.32625 kW base",
+)
+R.check(
+    "a DHW setpoint below the mains inlet draws no power, not negative (D3-wave-ea888783bb621669)",
+    ThermalParameters(dhw_setpoint=5.0).dhw_draw_power == 0.0,
+    f"{ThermalParameters(dhw_setpoint=5.0).dhw_draw_power}",
+)
+R.check(
+    "a negative seasonal inlet amplitude leaves the inlet at its mean (D3-wave-b098598faf0d87dc)",
+    ThermalParameters(dhw_inlet_seasonal_amplitude=-3.0).seasonal_inlet_temp(60)
+    == ThermalParameters().dhw_inlet_temp,
+    f"{ThermalParameters(dhw_inlet_seasonal_amplitude=-3.0).seasonal_inlet_temp(60)}",
 )
 
 # --- the presence rule ignores None (the phantom-enable fix) --------------------

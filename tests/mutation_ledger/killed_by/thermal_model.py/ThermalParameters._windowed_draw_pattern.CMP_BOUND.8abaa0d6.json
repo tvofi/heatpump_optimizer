@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters._windowed_draw_pattern CMP_BOUND 8abaa0d6",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if total <= 1e-6:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CMP_BOUND (`if total < 1e-6:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 3d4899a05eb126c3)."
+}

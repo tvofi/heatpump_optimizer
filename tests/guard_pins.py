@@ -1204,8 +1204,6 @@ def _valve_batch_params_pins() -> dict[str, bool]:
     import heatpump_optimizer.thermal_model as tmod
     from heatpump_optimizer import const, dhw_schedule, mixing_valve
     from heatpump_optimizer.thermal_model import ThermalState
-    from heatpump_optimizer.thermal_model import WeatherSeries
-    from profiles import house, weather
 
     def near(got, want, tol=1e-6):
         return bool(np.allclose(np.asarray(got, dtype=float), want, rtol=0, atol=tol))
@@ -1221,24 +1219,6 @@ def _valve_batch_params_pins() -> dict[str, bool]:
         except ZeroDivisionError:
             return (float("nan"),) * 5
 
-    def batch(extra, wood, buf, wood_t, zone=True, n=24):
-        p = ThermalParameters.from_config({**house(two_zone=zone), **extra})
-        m = ThermalModel(p)
-        ot, wi, ra, so = (x[:n] for x in weather("winter_cold", datetime(2026, 1, 15)))
-        st = ThermalState(
-            room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=float(ot[0]),
-            upper_floor_temperature=21.2, lower_floor_temperature=20.1,
-            buffer_tank_temperature=buf, wood_tank_temperature=wood_t if wood else None)
-        ws = WeatherSeries(outdoor_temps=ot, wind_speeds=wi, precipitation=ra,
-                           solar_radiation=so, humidity=np.full(n, 78.0),
-                           external_heat_kw=np.zeros(n))
-        powers = np.zeros((2, n))
-        res = m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0)
-        scal = m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0)
-        return res, scal
-
-    two_tank = {"mixing_valve_mode": "manual", "two_zone_mode": "on",
-                "wood_furnace_enabled": True, "wood_tank_top_entity": "sensor.w_top"}
     out: dict[str, bool] = {}
     # _valve_two_zone_delivery
     r = valve(False, 0.0, 0.25)
@@ -1255,15 +1235,6 @@ def _valve_batch_params_pins() -> dict[str, bool]:
     r = valve(True, 0.0, 1.0)
     out["a partly starved two-tank step scales both emitters down in proportion (D3-wave-39041ccf21eedba6)"] = (
         near(r[:3], [3.1525414441895445, 5.915606973478468, 8.662148417668012]))
-    # simulate_trajectory_batch
-    res, scal = batch(two_tank, True, 20.8, 20.9)
-    parity = all(near(res[k][0], np.asarray(scal[i]), 1e-9)
-                 for k, i in (("buffer", 4), ("wood", 6), ("room", 0)))
-    out["batch two-tank wood draw is floored at zero, matching the scalar trajectory (D3-wave-7068e39e4608027f)"] = parity
-    out["batch two-tank heat-pump draw is floored at zero, matching the scalar trajectory (D3-wave-6462c28df2f973e0)"] = parity
-    res, _ = batch({"mixing_valve_mode": "manual"}, True, 48.0, 85.0, zone=False)
-    out["a single-zone batch carries a wood-tank reading through its trajectory (D3-wave-78b7f2ebcf85c8a1)"] = (
-        res["wood"] is not None and near(res["wood"], 85.0))
     # apply_dhw_coil: a wood tank colder than the mains is left alone
     pm = ThermalParameters()
     cold = pm.dhw_inlet_reference - 0.5
@@ -1283,28 +1254,12 @@ def _valve_batch_params_pins() -> dict[str, bool]:
         and loss(750.0, 1e-9) < loss(750.0, hi))
     out["an absurd buffer cooling rate is capped at the tank's upper bound (D3-wave-05b5a15efaaf70de)"] = (
         loss(750.0, 50.0) == loss(750.0, hi) and loss(750.0, hi) > loss(750.0, lo))
-    def draw(**kw):
-        return ThermalParameters(**kw).dhw_draw_power
-    base_draw = draw(greywater_recovery=0.0)
-    out["greywater recovery is clipped to [0, 0.9] in the DHW draw (D3-wave-1b476993921016f9)"] = (
-        near(base_draw, 0.32625000000000004)
-        and near(draw(greywater_recovery=0.9), 0.032625000000000005)
-        and near(draw(greywater_recovery=5.0), 0.032625000000000005)
-        and near(draw(greywater_recovery=-0.5), base_draw))
-    out["a DHW setpoint below the mains inlet draws no power, not negative (D3-wave-ea888783bb621669)"] = (
-        draw(dhw_setpoint=5.0) == 0.0)
-    out["a negative seasonal inlet amplitude leaves the inlet at its mean (D3-wave-b098598faf0d87dc)"] = (
-        ThermalParameters(dhw_inlet_seasonal_amplitude=-3.0).seasonal_inlet_temp(60)
-        == ThermalParameters().dhw_inlet_temp)
     pat = [0.0] * 24
     pat[3] = 1e-6
     pw = ThermalParameters(dhw_schedule_enabled=True, dhw_windows=[dhw_schedule.FULL_DAY],
                            dhw_hourly_draw_pattern=pat)
     out["a windowed draw pattern whose masked total is exactly 1e-6 keeps its base shape (D3-wave-3d4899a05eb126c3)"] = (
         pw.effective_dhw_draw_pattern()[3] == 1e-6)
-    out["a buffer of exactly the minimum store volume behind a valve is a store (D3-wave-cde383447b865539)"] = (
-        ThermalParameters(buffer_tank_volume=const.BUFFER_STORE_MIN_VOLUME,
-                          mixing_valve_mode=mixing_valve.MODE_MANUAL).buffer_is_store is True)
     return out
 
 
