@@ -9,3 +9,4 @@
 1795743043 HB alive
 1795743107 CKPT L3: worktree on L4 head 77f41cbb0d; reading sweep.py for W1/W2 snapshot b686d13d1264
 1795743520 CKPT L3 W1 committed (prelude defer + sweep undefer), pushed to handoff-wip snapshot cc97e7d9ab53
+1795743531 CKPT L3 W1 committed (prelude defer + sweep undefer), pushed to handoff-wip snapshot 51f7229d3d90
