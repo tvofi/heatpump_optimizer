@@ -1,6 +1,6 @@
 Closes #3855
 
-R11-OWNER-FROST-HOLD, built on the approved design e91a4e30 (design-verdict 774250ff). On every install with a heat-pump power switch, an OFF the integration would write on an idle step is held while the outdoor reading is below the *Frost hold below* option (+2 °C by default), or stale or missing; the hold clears at threshold + 1 K. The new module `frost_hold.py` is the one writer of the hold's `ArbiterState` fields and gates last in `coordinator._write_supply`, after `supply_hold.hold_supply`. The early cut-off asks `frost_hold.take_off` before it cuts. With Pump duty at Control, the arbiter serves the hold as space at `pump_arbiter._hold_floor_c`. The opt-out is `frost_hold` (default on).
+R11-OWNER-FROST-HOLD, built on the approved design e91a4e30 (design-verdict 774250ff). On every install with a heat-pump power switch, an OFF the integration would write on an idle step is held while the outdoor reading is below the *Frost hold below* option (+2 °C by default), or stale or missing; the hold clears at threshold + 1 K. The new module `frost_hold.py` is the one writer of the hold's `ArbiterState` fields and gates last in `coordinator._write_supply`, after `supply_hold.hold_supply`. The early cut-off asks `frost_hold.take_off` before it cuts. With Pump duty at Control, the arbiter serves the hold as space at `pump_arbiter._hold_floor_c`. The opt-out is `frost_hold` (default on). With no power switch configured the hold never applies: `frost_hold._active` reads a missing `heat_pump_switch_entity` as opted out, so `gate` and `take_off` leave the latch unset there, where the option is hidden.
 
 Release note: On every install with a heat pump power switch, the optimizer no longer switches the pump off on idle steps while it is below +2 °C outdoors (option *Frost hold below*), or while the outdoor reading is stale or missing: the pump stays on so it can defrost and protect itself. With *Pump duty* in control it is held at its own minimum set-point; otherwise it runs on its own curve while held, which can use energy the plan does not price, and learning pauses for those runs, and for the whole hold on an install without a power sensor. Quiet off windows are held too. Turn *Frost hold* off to keep the old behaviour; with it off, the pump can stay off for hours in freezing weather, and the heat pump and water-filled pipework can freeze.
 
@@ -14,6 +14,32 @@ Where this departs from the design's text (no departure in behaviour):
 All four shapes were chosen on measurement; see `## Architecture score`.
 
 ## Head
+
+e2e3c17253b105ff624a378610950fe88b271940
+
+Merge repair: frost-hold: budget re-recorded; unloaded_package_imports -2 -> 0 measured
+
+`18652435ffdbd12e9921bff46a6e194250051ba2` merges the authored code head `581d10e09ad32f80df3052ecf6c54ed7094fd8bd`.
+
+`581d10e09ad32f80df3052ecf6c54ed7094fd8bd` is this PR's head. It is fast-forward from `1d027949b899f6f1491de54d1908a73d8d28c581`, the head review/3882 blocked at 20172e18 (`frost_hold.gate runs on an install with no power switch`), and adds three commits, nothing rebased:
+
+- cee9cdf908, failing first: two checks in the R11-OWNER-FROST-HOLD block of `tests/features.py`, `frost hold gate: no power switch configured: an OFF at -3 °C is not held` (an OFF at -3 °C, then with no reading) and `frost hold: no power switch configured: the cut-off cuts`. `_fh_take` gains `switch=`, as `_fh_inp` already had. Their null controls are the block's existing switch.hp checks (`an OFF at -3 °C is held, the switch left on`; `the cut-off below the threshold is refused and the hold takes over`). At cee9cdf908 the block prints `2 of 66 FEATURES BLOCK FAILED` (`[(None, True), (None, True)] != [(False, False), (False, False)]` and `(True, True) != (False, False)`).
+- b78d9c35a2, the fix, one predicate. `_active` returns not active, with the latch unset, unless both `frost_hold` and `heat_pump_switch_entity` are set. `gate` and `take_off` both read `_active`, so neither sets `frost_holding` on a no-switch install, and `_served`, `_note_pass`, `_observe` and `freeze_reason` see no hold there. `coordinator._write_supply` keeps calling `gate` before its own switch check; the gate now returns the OFF unchanged and the coordinator writes nothing, as on main. The module docstring's latch paragraph states the switch condition. At b78d9c35a2 the block prints `ALL 66 FEATURES BLOCK PASSED`.
+- 581d10e09a deletes the mutation-ledger pin `frost_hold.py/_active.GUARD_OFF.6ce0bc82`, keyed on the old `if not cfg.frost_hold:` line that b78d9c35a2 rewrote (`## Unpinned sites`).
+
+The reviewer's harness, `ev/probe_noswitch.py` on review/3882, run at both ends from the worktree root:
+
+- At 1d027949: `switch=None out=-3.0 gate(False)->None frost_holding=True`, and end to end `switch=None -3C idle OFF: frost_holding=True _served(duty=None)->'space' freeze_reason->'frost_hold'`.
+- At b78d9c35a2: `switch=None out=-3.0 gate(False)->False frost_holding=False ran_until=None`, and end to end `switch=None -3C idle OFF: frost_holding=False _served(duty=None)->None freeze_reason->None`.
+- Controls, the same at both ends: switch.hp at -3 °C `gate(False)->None frost_holding=True`, `_served`->'space', `freeze_reason`->'frost_hold'; the +5 °C null control prints `null control, no switch +5C: False False`.
+
+At this head: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (max_class_loc 7763 <= 7763, module_excess_loc 21644 <= 21644; the table is unchanged from 1d027949, so the approved raise is not exceeded); `python3 tools/audit/archscore/score.py --diff 1d027949b899f6f1491de54d1908a73d8d28c581` prints `Architecture score: dS +0.0000 NULL`, and `--diff origin/main` (9ffb388f) prints `Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2533->2534)`, unchanged from 1d027949 (`## Architecture score`); `python3 tests/closure.py select --diff 1d027949b899f6f1491de54d1908a73d8d28c581` prints `MODE: SCOPED -- 23 script(s) run, 11 scoped out.` `PYTHONPATH=tests/hastub python3 tests/features.py` on a `git archive` copy of b78d9c35a2 prints `1 of 6340 FEATURE CHECKS FAILED`; the one failure, `and the path that proceeds still stamps a resolvable recorded_at (#363)` (`recorded_at = 'unknown'`), reads the copy's git HEAD, which an archive copy does not have, and touches nothing this repair changes. CI's `tests / fast (3.14)` is the authority for the whole script. VERSION, `manifest.json` and the `RELEASE_NOTES.md` heading are untouched.
+
+The `## Head` paragraph for 22802e44 below quoted module_excess_loc 21663 <= 21663; since the re-record at 1d027949 the table and the measure are 21644.
+
+Earlier heads, as the previous body recorded them:
+
+`1d027949b899f6f1491de54d1908a73d8d28c581` merges the authored code head `07a4dd93591966da1f0735121c4256607d92a937` and then merges origin/main `e84856520d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `40d8b2d031043f4ef6417a5d4f3b6c30bbefc89f` merges the authored code head `22802e44fba9b84a77d3c07ea7e3f6a549142aee`.
 
@@ -98,6 +124,16 @@ At this head `python3 tests/features.py` prints `ALL 6170 FEATURE CHECKS PASSED`
 
 ## Mutation proof
 
+Repair at b78d9c35a2. `MUTANT_CMD` is `python3 tools/audit/seat/features_block.py --prelude 'exec(open(P).read())' 'R.section("R11-OWNER-FROST-HOLD' 'R.section("duty-switch restart learning, part A'`, P from `--emit-prelude` with the same markers: `ALL 66 FEATURES BLOCK PASSED` at b78d9c35a2. Each mutant is on the new line `if not (cfg.frost_hold and cfg.heat_pump_switch_entity):` in `frost_hold._active`, made one at a time on a `git archive` copy:
+
+- the switch term dropped (`if not cfg.frost_hold:`, the line at 1d027949): `2 of 66 FEATURES BLOCK FAILED`, the two no-switch checks; their switch.hp null controls pass under it.
+- BOOLOP (`and` to `or`): `7 of 66 FEATURES BLOCK FAILED`, among them `frost hold gate: no power switch configured: an OFF at -3 °C is not held` and `frost hold gate: null control: the same OFF with the option off is written`.
+- GUARD_OFF (`if False:`): `7 of 66 FEATURES BLOCK FAILED`, the same checks and `frost hold, real coordinator: null control: the same step with the option off switches it off`.
+
+`python3 tools/audit/seat/mutant_run.py --diff cee9cdf908...b78d9c35a2 --cmd "$MUTANT_CMD" --max-mutants 0 --path custom_components/heatpump_optimizer/frost_hold.py` draws one mutant, `frost_hold.py:101 GUARD_OFF`, and printed no SURVIVED line.
+
+Earlier heads:
+
 Repair at 2b571e7c. `MUTANT_CMD` is `python3 tools/audit/seat/features_block.py --prelude 'exec(open(P).read())' '# The early cut-off asks before it cuts (``take_off``)' "# The cut-off's own path"`, P from `--emit-prelude` with the same markers: `ALL 15 FEATURES BLOCK PASSED` at this head. Each mutant made by hand in `frost_hold.py`, one at a time, the file restored after each:
 
 - `_note_run:164 CMP_BOUND` (`>=` to `>`): `1 of 15 FEATURES BLOCK FAILED`, `frost hold: a held pump drawing exactly the meter's run threshold (ran_kw) runs and freezes the learners  [None != 'frost_hold']`. Its null control (a draw 1e-6 kW under `ran_kw`) passes under the mutant and at the head.
@@ -137,6 +173,8 @@ Failing first: at the merge base the new block cannot run, because `frost_hold` 
 Diff mutants at this head: `python3 tools/audit/seat/mutant_run.py --diff "$(git merge-base origin/main HEAD)...HEAD" --cmd "$MUTANT_CMD" --max-mutants 40 --report-only`, with `MUTANT_CMD` the block run above (prelude from `--emit-prelude`). It printed one line, `SURVIVED custom_components/heatpump_optimizer/duty_ledger.py:49 GUARD_OFF  elif False:`, pinned in the ledger as `duty_ledger.py/step_verdict.GUARD_OFF.af4ac328` and killed outside the block. The scoped prepr (`PREPR_SKIP_CODE=1`) skips its own diff-mutant step, so this run stands in for it. Two mutants on the lines 3b9d76f7 moved were also run by hand. `freeze_reason`'s RETURN_DEL fails 4 checks. Dropping `_note_pass`'s idle choice passed all 55 until f519eaeb's check; it now fails 1 of 56.
 
 ## Null control
+
+The no-switch checks pair with the block's switch.hp checks at the same -3 °C reading: with a switch the OFF is held and the cut-off refused, with none the OFF is written and the cut-off cuts. The reviewer's probe adds the +5 °C no-switch null control, False/False at both ends.
 
 Every check in the block pairs with its null control: the same input with `frost_hold` off, or on the warm side of the latch, gives main's OFF. The 24 h replay also runs main itself, the same coordinator with `frost_hold.gate` replaced by a pass-through. Opted out, the switch calls are byte-equal to main's. The existing switch tests that run with no outdoor reading and no forecast, or at -5 °C, now opt out explicitly: `_LC_DATA`, `_solve_coord`, `_r9egb9_make`, `_ac_calls` and `_ec_cycle_writes` in `tests/features.py`. A missing reading sets the latch, so those tests would otherwise pin the hold instead of the mechanism each was written for. The skip-log checks moved to `frost_hold._LOGGER`, where `log_skip` now logs. Their null control (the blocked-mode skip is heard once) shows that logger is the one that hears it.
 
@@ -195,12 +233,16 @@ Architecture score: dS -0.0006 WORSENS, `python3 tools/audit/archscore/score.py 
 
 ## Unpinned sites
 
+At 581d10e09ad32f80df3052ecf6c54ed7094fd8bd: `python3 tests/mutation_table.py --scope changed --base 1d027949b899f6f1491de54d1908a73d8d28c581 --max 0` names 2 added unpinned sites, both on the fix's line: `frost_hold.py:101 BOOLOP` and `frost_hold.py:101 GUARD_OFF`. Both are killed by the block (`## Mutation proof`, 7 of 66 each) and are pinned by `mutation-autofix` (`ci-autofix.md`). The pin `_active.GUARD_OFF.6ce0bc82` on the old line is deleted in 581d10e09a. The rows below name lines as they stood before this repair; the `frost_hold.py` lines after line 17 now sit four lower.
+
 At 2b571e7c: `frost_hold.py:161 GUARD_OFF` and `frost_hold.py:164 CMP_BOUND` are killed by the new checks under `## Mutation proof` and pinned by `mutation-autofix`; `frost_hold.py:134 RETURN_DEL` is equivalent, under `survivor_triage`. The list below said the three were pinned by `mutation-autofix`; at f6557ec5c it reported them alive (`skip-nothing-killed`), so those three rows are corrected here and the rest stand.
 
 At 2404b03e `prepr.sh` step 7d names the same seven sites, the first six one line lower because c80ab260 adds a line to `_record` (`frost_hold.py:73` to `:164`), `:170` unmoved. Earlier, `ci predict` named seven sites the diff adds with no pin: the first six are on lines 654e7b55's FrostRecord moved, and the seventh, `frost_hold.py:170`, is `freeze_reason`'s new return, whose kill by the block is under `## Head`. The diff-mutant run under `## Mutation proof` drew one survivor, the GUARD_OFF on `duty_ledger.step_verdict`'s `elif planned is None:`, already pinned in the ledger (`step_verdict.GUARD_OFF.af4ac328`); its list row is dropped at 22802e44 as a stale duplicate, the frost guard's row being the pinned `duty_ledger.py:47 GUARD_OFF` below.
 
 Every site is under `custom_components/`, so `mutation-autofix` pins each one (`ci-autofix.md`). At 96523195 it reported `skip-measure-failed` and pushed no commit, because the drivers' baseline was red (`tests/features.py`). This head makes that baseline green, so the autofix's next run measures the kills. Most are killed by `tests/features.py`, chiefly its R11-OWNER-FROST-HOLD block. At 8ea9f282, `prepr.sh` step 6d ran the diff's first 40 added-line mutants under that block, and none survived. The merge repair adds none beyond the `_served` return 00be81ff reshaped, whose existing pin is re-keyed in c1d2fd75 and 86a472ee; the list below is `prepr.sh`'s step 7d inventory at c1d2fd75.
 
+- `custom_components/heatpump_optimizer/frost_hold.py:101 BOOLOP`: killed by the block (7 of 66), pinned by `mutation-autofix`
+- `custom_components/heatpump_optimizer/frost_hold.py:101 GUARD_OFF`: killed by the block (7 of 66), pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/frost_hold.py:73 GUARD_OFF`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/frost_hold.py:75 RETURN_DEL`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/frost_hold.py:106 RETURN_DEL`: pinned by `mutation-autofix`
@@ -247,6 +289,16 @@ Every site is under `custom_components/`, so `mutation-autofix` pins each one (`
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1318 RETURN_DEL`: pinned by `mutation-autofix`
 
 ## Red checks
+
+At this head 581d10e09ad32f80df3052ecf6c54ed7094fd8bd:
+
+- `budget-raise-gate / budget-raise-gate`: red by construction until the raise (module_excess_loc 21627 -> 21644, max_class_loc 7762 -> 7763 over main 9ffb388f) is approved at this head. This repair leaves `tests/structure_budgets.json` unchanged from 1d027949. No cheaper detector exists: the gate is the approval itself.
+- `tests / mutation`: it may refuse the 2 added sites under `## Unpinned sites` until `mutation-autofix` pins them; the block kills both. No detector owed (`ci-autofix.md`).
+- `tests / nightly-ha (2025.2.0)`, `tests / nightly-ha (stable)` and `tests / nightly-status`, red at 1d027949: not required checks; they report main's scheduled nightly runs, not this head's code.
+- The review block at 1d027949 (review/3882 20172e18) is not a check run, but it is answered here. The defect reached review because the block's `_fh_inp` accepted `switch=None` and no check drove it. The cheaper detector is that pair of checks, now in the block.
+- Scoped `tools/pr/prepr.sh` at this head (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`): `PRE-PR: 581d10e09ad32f80df3052ecf6c54ed7094fd8bd 00000000000 rc=0`; `merged structure` printed `STRUCTURE RATCHET PASSED`, and `ci predict` printed `CI PREDICT: no closures, fast, governance or instrument red predicted against 9ffb388f7ec8`. `unpinned sites` warned on the 2 sites under `## Unpinned sites`. Its `claim files` check names `tests/golden/claimed_drift.txt`, whose one added line is this PR's own claim from earlier heads; this repair does not touch it.
+
+Earlier heads:
 
 At 2dcff40e, the previous head (run 45936195299):
 
@@ -306,6 +358,8 @@ Earlier heads' reds, as the previous body recorded them:
 ## Friction
 
 none
+
+
 
 
 
