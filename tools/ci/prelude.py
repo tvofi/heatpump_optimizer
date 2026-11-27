@@ -83,17 +83,18 @@ SOURCE_READERS = frozenset({"pr-contract"})
 # infrastructure, a new or unmeasured script, an unknown root file -- runs
 # them, and every push runs them.
 #
-# R10-CI-OWN-DELIVERY-ROW: every pull request carries its own delivery row
-# (DELIVERY_ROW with its number), which is not product, so the rule above
-# idled no pull request. `machinery_rowblind` ignores exactly that row, for
-# the lanes that read no row; another pull request's row stays machinery.
+# R10-CI-OWN-DELIVERY-ROW: every pull request carries its own delivery row,
+# which is not product, so the rule above idled no pull request.
 # dev/audit/harnesses/lane_reads_delivery.recording.json traced each lane's
-# steps: tests / arch-instrument reads no row, while tests / closures (its
-# re-record), governance / env-matrix and governance / instrument-self-tests do
-# (policy_lint and its tree-wide `git grep`), so those three keep `machinery`.
+# steps: tests / arch-instrument reads no path under DELIVERY_DIR, while tests /
+# closures (its re-record), governance / env-matrix and governance /
+# instrument-self-tests do (policy_lint and its tree-wide `git grep`), so those
+# three keep `machinery`. #3885 L4: a lane that reads no row is blind to every
+# row, its own pull request's or another's, so `machinery_rowblind` ignores every
+# path under DELIVERY_DIR -- and a record branch's list (rows only) idles it.
 PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
 PRODUCT_FILES = frozenset({"README.md"})
-DELIVERY_ROW = "dev/programme/delivery/{}.md"
+DELIVERY_DIR = "dev/programme/delivery/"
 # (workflow, job) -> the prelude output its steps gate on; the split is
 # lane_reads_delivery.py's recording, above. `lane_gates` pins it.
 LANE_GATE = {("tests.yml", "arch-instrument"): "machinery_rowblind",
@@ -406,14 +407,15 @@ def _product(closures_json: Path):
     return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
 
 
-def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, pr: str = "") -> bool:
-    """Whether the machinery lanes run: False only for a changed list that,
-    less pull request `pr`'s own delivery row, is non-empty and all product
-    (C7(a)); an unreadable script table runs them."""
-    own = DELIVERY_ROW.format(pr) if pr.isdigit() else None
-    files = [f for f in (changed or []) if f.strip() and f != own]
+def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, rowblind: bool = False) -> bool:
+    """Whether the machinery lanes run: False only for a non-empty changed list
+    whose every file is product (C7(a)) or, for the lanes that read no row
+    (`rowblind`), a path under DELIVERY_DIR; an unreadable script table runs them."""
+    files = [f for f in (changed or []) if f.strip()]
     is_product = _product(closures_json)
-    return not files or is_product is None or not all(map(is_product, files))
+    if not files or is_product is None:
+        return True
+    return not all(is_product(f) or (rowblind and f.startswith(DELIVERY_DIR)) for f in files)
 
 
 #: (workflow, job) -> the `stand_down` lane name its steps gate on; `light_gates` pins it.
@@ -699,7 +701,7 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     # scoped; every other event, a push touching production above all, runs every step
     # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
-    out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
+    out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, rowblind=True) else "false"
     # Both keys always: ci.yml declares them as prelude outputs; empty is one unsharded job.
     out.update({"fast_shards": "", "fast_plan": ""})
     if fast is not None:
@@ -930,31 +932,45 @@ def self_test() -> int:
             check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
         check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
         check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
-        # The pull request's own delivery row is ignored: neither product nor
-        # machinery. Exactly that row, keyed on the number the event names.
+        # The row-blind lanes ignore every delivery row (#3885 L4): the lane reads no
+        # path under DELIVERY_DIR (lane_reads_delivery.recording.json), so no row's
+        # change can move it, whichever pull request the row belongs to.
         own = "dev/programme/delivery/3300.md"
-        check("C7a-row: a package file plus its own delivery row idles them",
-              machinery([cc, own], cj, "3300"), False)
+        other = "dev/programme/delivery/3299.md"
+        check("C7a-row: a package file plus its own delivery row idles the row-blind lanes",
+              machinery([cc, own], cj, rowblind=True), False)
+        check("C7a-row: ... and ANOTHER pull request's row idles them too",
+              machinery([cc, other], cj, rowblind=True), False)
         check("C7a-row: ... the row beside tools/ still runs them (null control)",
-              machinery([cc, own, "tools/ci/gate.py"], cj, "3300"), True)
-        check("C7a-row: ANOTHER pull request's row still counts as machinery",
-              machinery([cc, "dev/programme/delivery/3299.md"], cj, "3300"), True)
-        check("C7a-row: ... and so does the row when the event names no number",
-              machinery([cc, own], cj, ""), True)
-        check("C7a-row: the own row alone is nothing product to stand on: runs them",
-              machinery([own], cj, "3300"), True)
-        check("C7a-row: an empty list still runs them", machinery([], cj, "3300"), True)
-        check("C7a-row: an unread changed list still runs them", machinery(None, cj, "3300"), True)
+              machinery([cc, own, "tools/ci/gate.py"], cj, rowblind=True), True)
+        check("C7a-row: a row runs the row-READING lanes (rowblind off)", machinery([cc, own], cj), True)
+        check("L4: a record branch's list (rows only) idles the row-blind lanes",
+              machinery([own, other], cj, rowblind=True), False)
+        check("L4: ... and runs the row-reading lanes", machinery([own, other], cj), True)
+        check("L4: ... a file beside the rows outside product runs them (null control)",
+              machinery([own, other, "dev/programme/HANDOVER.md"], cj, rowblind=True), True)
+        check("L4: ... and so does a path beside delivery/ that only shares its stem (null control)",
+              machinery([own, "dev/programme/delivery.md"], cj, rowblind=True), True)
+        check("C7a-row: an empty list still runs them", machinery([], cj, rowblind=True), True)
+        check("C7a-row: an unread changed list still runs them", machinery(None, cj, rowblind=True), True)
         check("C7a-row: an unreadable script table still runs them",
-              machinery([cc, own], Path(td) / "none.json", "3300"), True)
+              machinery([own], Path(td) / "none.json", rowblind=True), True)
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                      ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"], g(live))
-    check("C7a-row: the prelude passes the event's number: package + row 7 on pull request 7 idles the row-blind lanes",
+    check("C7a-row: package + row 7 on pull request 7 idles the row-blind lanes",
           out["machinery_rowblind"], "false")
     check("C7a-row: ... and runs the lanes that read rows", out["machinery"], "true")
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                      ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/8.md"], g(live))
-    check("C7a-row: ... and row 8 on pull request 7 runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
+    check("C7a-row: ... and row 8 on pull request 7 idles them too", (out["machinery_rowblind"], out["machinery"]), ("false", "true"))
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["dev/programme/delivery/8.md", "dev/programme/delivery/9.md"], g(live))
+    check("L4: a record pull request (other PRs' rows only) is light, idles the row-blind lanes, runs the row readers",
+          (out["light"], out["machinery_rowblind"], out["machinery"]), ("true", "false", "true"))
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["dev/programme/delivery/8.md", "tools/ci/gate.py"], g(live))
+    check("L4: ... the same list plus tools/ci/gate.py runs them (null control)",
+          (out["light"], out["machinery_rowblind"]), ("true", "true"))
     out = outputs(ctx("push"), ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"],
                   g(live))[0]
     check("C7a-row: a push with the row still runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
