@@ -260,7 +260,6 @@ from .const import (
     DEFAULT_DHW_TANK_VOLUME,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_MIN_TEMP,
-    DHW_MIN_TEMP_SETPOINT_MARGIN,
     DEFAULT_DHW_DAILY_CONSUMPTION,
     DEFAULT_DHW_COOLING_RATE,
     DEFAULT_DHW_SCHEDULE_ENABLED,
@@ -950,19 +949,6 @@ class _StoredValuesAlwaysFit:
         return parent.async_show_form(**forwarded)
 
 
-def _effective(
-    candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
-) -> float:
-    """The value a save would leave in force for one field.
-
-    Cross-field rules must judge the *pair that would be stored*, not just
-    the submitted form: the options pages save partial pages over existing
-    data, so a form that only carries one half of a pair can still create a
-    contradiction with the stored other half.
-    """
-    return float(candidate.get(key, current.get(key, default)))
-
-
 def _band_errors(
     candidate: dict[str, Any], current: dict[str, Any]
 ) -> dict[str, str]:
@@ -987,9 +973,9 @@ def _power_errors(
     candidate: dict[str, Any], current: dict[str, Any]
 ) -> dict[str, str]:
     """A modulation floor above the ceiling inverts the solver's power bounds."""
-    if _effective(
+    if comfort_band.effective(
         candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER
-    ) > _effective(
+    ) > comfort_band.effective(
         candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER
     ):
         return {CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"}
@@ -1002,10 +988,10 @@ def _partload_errors(
     """A part-load derate at or above its band's limit makes delivered heat
     fall with power at the top of the band (``partload_derate_limit``), and
     the model would refuse it to 0 unseen; the form says so on the field."""
-    derate = _effective(candidate, current, CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.0)
+    derate = comfort_band.effective(candidate, current, CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.0)
     limit = partload_derate_limit(
-        _effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
-        _effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
+        comfort_band.effective(candidate, current, CONF_HEAT_PUMP_MIN_POWER, DEFAULT_HEAT_PUMP_MIN_POWER),
+        comfort_band.effective(candidate, current, CONF_HEAT_PUMP_MAX_POWER, DEFAULT_HEAT_PUMP_MAX_POWER),
     )
     if derate >= limit:  # the limit is positive, so 0 always passes
         return {CONF_HEAT_PUMP_COP_PARTLOAD_DERATE: "partload_derate_above_limit"}
@@ -1070,13 +1056,8 @@ def _dhw_min_too_close(candidate: dict[str, Any], current: dict[str, Any]) -> bo
     impossible minimum is not rejected downstream, the plan just sits in
     permanent slight violation.
     """
-    setpoint = candidate.get(
-        CONF_DHW_SETPOINT, current.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
-    )
-    minimum = candidate.get(
-        CONF_DHW_MIN_TEMP, current.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
-    )
-    return float(minimum) > float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
+    minimum, _setpoint, ceiling = comfort_band.dhw_deadband(candidate, current)
+    return minimum > ceiling
 
 
 def _dhw_legionella_warning(
@@ -1103,15 +1084,15 @@ def _dhw_legionella_warning(
     )
     if not bool(enabled):
         return None
-    setpoint = _effective(
+    setpoint = comfort_band.effective(
         candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT
     )
-    legionella = _effective(
+    legionella = comfort_band.effective(
         candidate, current, CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP
     )
     if legionella <= setpoint:
         return None
-    interval = _effective(
+    interval = comfort_band.effective(
         candidate,
         current,
         CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
@@ -2468,8 +2449,10 @@ def _uncapped_schedule_errors(saved: Mapping[str, Any], current: Mapping[str, An
     (``_PREFILL_PAIRED``), so the refusal lands on that field."""
     if not saved.get(CONF_SILENT_MODE_WINDOWS):
         return {}
-    fraction = {**current, **saved}.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
-    if float(fraction) >= 1.0:
+    fraction = comfort_band.effective(
+        saved, current, CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+    )
+    if fraction >= 1.0:
         return {CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"}
     return {}
 

@@ -5058,6 +5058,7 @@
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/start_counter_edges.py",
    "dev/audit/harnesses/start_counter_edges_mutants.py",
+   "dev/audit/harnesses/stored_option_coercions.py",
    "dev/audit/harnesses/superseded_runs.py",
    "dev/audit/harnesses/thermal_parity.py",
    "dev/audit/harnesses/throwaway_git_sites.sh",
