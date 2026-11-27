@@ -1,4 +1,6 @@
-Design review: revise 7b9c5331fe94aa8e35295413ef5367aa24975f5c architecture-unsound
+Design review: revise 7b9c5331fe94aa8e35295413ef5367aa24975f5c
+
+Class: architecture-unsound (R1, R3), class-open (R2), cost (R4).
 
 Group R11-OWNER-FEATURES-SPLIT. The note is at design/r11-owner-features-split 7b9c5331fe94aa8e35295413ef5367aa24975f5c (an orphan commit holding design.md). Base re-read at origin/main ef797d794017c98f7fb2d8a168d7de63d435ef3b, which is the note's base. Review worktree: /tmp/hpo-dr-features-split/base. Re-measurement scripts: /tmp/hpo-dr-features-split/tools/{part,join2,join3}.py (local only).
 
