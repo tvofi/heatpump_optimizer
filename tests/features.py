@@ -53202,9 +53202,9 @@ R.check(
 # The buffer, gains and house folds and the re-anchor law's tail are handed
 # values and return the new parameter; the coordinator keeps the clock, the
 # freeze question, the counters and the applies. Every expectation below is a
-# literal worked from the documented constants, never the module's own
-# expression: -ln(30/40) * 25 °C is the 60 -> 50 °C decay of one hour against
-# the 20 °C ambient at the 25 °C reference difference.
+# literal worked from the documented constants, never the module's expression.
+# The buffer's: -ln(30/40) * 25 °C is one hour's 60 -> 50 °C decay against the
+# 20 °C ambient, at the 25 °C reference difference.
 import dataclasses as _fab_dc  # noqa: E402
 from datetime import datetime as _fab_datetime  # noqa: E402
 from types import SimpleNamespace as _fab_ns  # noqa: E402
