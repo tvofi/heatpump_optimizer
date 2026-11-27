@@ -7097,8 +7097,9 @@ def _r11pp_batch(extra, buf, wood_t, zone=True, n=24):
         buffer_tank_temperature=buf, wood_tank_temperature=wood_t)
     ws = _WS(ot, wi, ra, so, np.full(n, 78.0), np.zeros(n))
     powers = np.zeros((2, n))
-    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0),
-            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0))
+    hours = (7.0 + np.arange(n) * 0.25) % 24.0
+    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, step_hours=hours),
+            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, step_hours=hours))
 
 
 _r11pp_res, _r11pp_scal = _r11pp_batch(
