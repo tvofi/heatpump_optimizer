@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate._decide CMP_BOUND 6dd9fd41",
+  "killed_by": "tests/features.py",
+  "old": "        if inferred < measured:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'Defrost derate (item 14)'): CMP_BOUND (`if inferred <= measured:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave d1197dfed14a6927)."
+}
