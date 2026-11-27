@@ -728,12 +728,20 @@ class LegionellaGuard:
         if days == self.overdue_notice:
             return
         self.overdue_notice = days
+        self._interval_notice("dhw_legionella_overdue", "days", days, params)
+
+    def _interval_notice(self, key: str, field: str, days: int | None, params: Any) -> None:
+        """Raise notice ``key`` while ``days`` is a number, clear it while it is None.
+
+        The two day-count notices carry the same placeholders: the count under its own
+        name and the configured interval, formatted once here.
+        """
         set_issue(
             self.hass,
-            "dhw_legionella_overdue",
+            key,
             days is not None,
             placeholders={
-                "days": f"{days}",
+                field: f"{days}",
                 "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
             },
         )
@@ -776,12 +784,4 @@ class LegionellaGuard:
             )
         # Not persistent: it is derived from the live mode reading, so it is
         # re-raised on the next cycle for as long as the mode stands.
-        set_issue(
-            self.hass,
-            "dhw_legionella_mode_blocked",
-            overdue_days is not None,
-            placeholders={
-                "overdue_days": f"{overdue_days}",
-                "interval_days": f"{float(params.dhw_legionella_interval_days):.0f}",
-            },
-        )
+        self._interval_notice("dhw_legionella_mode_blocked", "overdue_days", overdue_days, params)

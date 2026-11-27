@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.2
+# claims-for: 10.1.5
 #
-# v10.1.2: one place per config entry key, room history, solver start set, comment ratchet. The stamp empties the list; the
+# v10.1.5: set-point clamp and high limit, external-heat override, honest DHW start. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
@@ -795,3 +795,14 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
+# R11-SEAM-two-zone-slab (#3713): behind a two-zone valve that feeds the slab,
+# the curve counts the slab in series with the floor circuit, weighs the two
+# floors as the steady two-zone solution weighs them in the room the thermostat
+# reads, and counts the house's internal gains (`_valve_flow_set`). Measured
+# with tests/env_drift.py --all against the merge base e3cb5c019b46 in one
+# environment: exactly these eight fixtures, each a two-zone install whose valve
+# feeds the slab, move; every other fixture is byte-identical, which is the null
+# (valve_upper_direct_slab, whose slab bypasses the valve, among them). Five
+# carry a may-drift entry whose judged key, baseline_cost, it cannot excuse, so
+# those five are suspended above for this release. Direction per fixture,
+# baseline_cost base -> head:

@@ -75,9 +75,11 @@
 # worse, because it would look like a pass.
 #
 # The safety net that makes this acceptable: the full unscoped suite still
-# runs on every push to main and on every release (.github/workflows/tests.yml
-# forces GATE_SCOPE=full there). Scoping applies to pull requests only, so a
-# wrong closure turns main red within one gate instead of never.
+# runs on every push to main whose range touches production, and on every
+# release (.github/workflows/tests.yml runs GATE_SCOPE=full there; a light
+# push, touching no production file, is scoped as a pull request is,
+# tools/ci/prelude.py), so a wrong closure turns main red at the next such
+# push instead of never.
 #
 # In lane mode each script's output is captured and replayed in full, one
 # script at a time, after the lanes finish — interleaved output from four
@@ -262,6 +264,33 @@ if [ -n "$_hpo_ci_metrics" ]; then
   unset _cls _nrun _nskip
 fi
 
+# --- the fast lane's shard (R11-CI-CASE-SELECT P2, #3885) -------------------
+# CI's fast job runs as several shards. HPO_FAST_SHARD is this job's `K/N`, and
+# HPO_FAST_PLAN the prelude's plan, which assigns every script to exactly one
+# shard (tools/ci/shards.py). A script runs here only in its own shard and every
+# other shard skips it by name, so the scope above still decides what runs and
+# the shards only divide it. A refused plan fails the job: never a silent drop.
+# Unset (a local run, an unsharded job) runs every script, as before. tools/ci/shards.py's
+# self-test sources shard_setup, shard_of, run_always and skip from this file and drives them
+# over fixture plans: across the shards every script runs exactly once.
+FAST_SHARD="${HPO_FAST_SHARD:-}"
+SHARD_TABLE=""
+shard_setup() {
+  [ -n "$FAST_SHARD" ] || return 0
+  if "$PYTHON" tools/ci/shards.py route --shard "$FAST_SHARD" > "$WORKDIR/shard.tsv"; then
+    SHARD_TABLE="$WORKDIR/shard.tsv"
+    echo "  SHARD: $FAST_SHARD -- the scripts tools/ci/shards.py assigned this job; the other shards run the rest"
+  else
+    echo "  SHARD: REFUSED $FAST_SHARD -- tools/ci/shards.py could not route this plan, so nothing runs"
+    return 1
+  fi
+}
+shard_setup || exit 1
+# The shard a script belongs to; one the plan does not name runs in shard 1.
+shard_of() {
+  awk -F'\t' -v s="$1" '$1 == s { print $2; f = 1 } END { if (!f) print 1 }' "$SHARD_TABLE"
+}
+
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --
 # env_drift.py takes a ref after its script path.
@@ -381,6 +410,15 @@ leased() {
 # files unchanged, so in_scope skipped card_drift.mjs and env_drift.py, and
 # main went red after squash.
 run_always() {
+  if [ -n "$SHARD_TABLE" ]; then
+    local mine owner
+    mine=$(scope_script "$@")
+    owner=$(shard_of "$mine")
+    if [ -n "$mine" ] && [ "$owner" != "${FAST_SHARD%/*}" ]; then
+      skip "$mine" "SKIP: $mine (fast shard $owner/${FAST_SHARD#*/} runs it)"
+      return 0
+    fi
+  fi
   step=$((step + 1))
   local id started finished rc=0
   id=$(printf '%s-%03d' "$LANE" "$step")
@@ -477,6 +515,9 @@ for f in tests/*.py tests/*.mjs; do
     # recording needs `gh`, verifying needs the floor's own Home Assistant,
     # which the nightly-ha job runs it in. tests/entities.py imports it.
     ha_floor.py) continue ;;
+    # The case runner and recorder (R11-CI-CASE-SELECT): a gate file;
+    # entities.py runs its self-test.
+    case_select.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
@@ -559,6 +600,11 @@ lane_units() {
   # and invalid submissions, the duplicate abort and the reauth round
   # trip, against the real validation code over the fake Tibber session.
   run "$PYTHON" tests/config_flow_steps.py
+  # The coordinator-cycle lane (D9-s3-02): solves, payload and retained
+  # bytes, optimizer yields and loop-side calls per _async_update_data
+  # cycle, against tests/cycle_budgets.json. Counts and bytes only, so it
+  # runs here with the parallel lanes, not in the stress tail.
+  run "$PYTHON" tests/cycle_lane.py
   # The structural ratchet of the coordinator decomposition program (#193,
   # PR-0): AST counts -- god classes, monster methods, attr bags, seam cut
   # costs -- over the whole integration, each held at or below the budget
@@ -720,7 +766,15 @@ lane_e2e() {
 # machine. stress.py's solve-time guard calibrates against this machine while
 # it runs, and the rest of the suite must not be part of what it measures.
 lane_stress() {
-  run "$PYTHON" tests/stress.py
+  # #3885: not on a pull request. CI's fast job names its event in
+  # HPO_CI_EVENT; a pull-request run under a scoped gate skips stress.py by
+  # name, and the push to main (GATE_SCOPE=full) and nightly.yml's `slow`
+  # job run it. A local run sets no event and runs it as before.
+  if [ "${HPO_CI_EVENT:-}" = pull_request ] && [ "$GATE_SCOPE" != full ]; then
+    skip tests/stress.py "SKIP: tests/stress.py (pull_request: the push to main and the nightly run it, #3885)"
+  else
+    run "$PYTHON" tests/stress.py
+  fi
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
   # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
@@ -784,7 +838,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py) continue ;;
+    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py|case_select.py) continue ;;
   esac
   # The arch part owes the pair and nothing else; `fast` owes the rest, the
   # pair as its two named skips.
@@ -862,8 +916,8 @@ if [ -n "$SCOPE_RUN" ]; then
   echo "  Each line above is a claim that no file changed by this branch is in"
   echo "  that script's MEASURED closure (tests/closures.json, recorded by"
   echo "  tests/derive_closures.sh from real instrumented runs). The claim is"
-  echo "  re-checked in full: every push to main runs this suite unscoped, so"
-  echo "  a closure that is wrong turns main red within one gate."
+  echo "  re-checked in full: every push to main touching production runs this"
+  echo "  suite unscoped, so a closure that is wrong turns main red at that push."
   echo "  Run everything here and now with: GATE_SCOPE=full ./tests/run.sh"
 fi
 
@@ -875,6 +929,10 @@ fi
 # A scoped run whose scope came out empty -- a documentation-only change, say
 # -- is a legitimate pass, but "ALL TEST SCRIPTS PASSED" is the wrong thing to
 # print when none of them ran. Say what actually happened.
+if [ "$ran" -eq 0 ] && [ -n "$SHARD_TABLE" ]; then
+  echo "NO TEST SCRIPT RAN IN SHARD $FAST_SHARD: its scripts were all scoped out; the other shards report theirs."
+  exit 0
+fi
 if [ "$ran" -eq 0 ]; then
   echo "NO TEST SCRIPT RAN: every script was scoped out of this gate."
   echo "Nothing was verified here. The full suite runs unscoped on main."
@@ -886,4 +944,5 @@ if [ -n "$SCOPE_RUN" ]; then
   echo "(see the NOT RUN block above -- this is not a full gate)"
   exit 0
 fi
+[ -n "$SHARD_TABLE" ] && echo "SHARD $FAST_SHARD: $ran TEST SCRIPT(S) PASSED HERE; the other shards' jobs report theirs"
 echo "ALL TEST SCRIPTS PASSED"

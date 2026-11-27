@@ -522,7 +522,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 82 entities appear and the first plan is solved within one
+- **Immediately.** All 83 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -719,6 +719,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Boost Space Heating | switch | Maximum space heat for two hours |
 | Block DHW | switch | Holds hot water heating at zero for two hours |
 | Block Space Heating | switch | Holds space heating at zero for two hours |
+| External Heat Block Override | switch | Lets the plan heat while external heat is detected |
 | Heat Pump Optimizer | climate | A virtual thermostat for your comfort target |
 
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
@@ -744,6 +745,12 @@ due or a disinfection hold, the tank at its minimum inside a demand window,
 the room at the economy floor, the house below its plan while it is cold
 outside, a measurement experiment, or a stale plan. A block does not switch
 the heat pump's supply off.
+
+**External Heat Block Override** keeps the plan from holding back while
+external heat (a wood fire) is detected: the fire stays detected and shown, but
+hot water and space heating are planned as if there were none. It stays on
+until you turn it off, survives a restart, and does nothing while external heat
+detection is off. See [How it works](./docs/how-it-works.md#wood-furnaces-and-other-external-heat).
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*
@@ -1085,6 +1092,7 @@ Each clears itself once the cause is gone.
 - **Valve target above comfort** — the mixing-valve target is read as the room temperature the circuit holds, not a water temperature, and it is above the top of your comfort band. Nothing is changed (it can be deliberate, for example slab charging); if it is a flow temperature, set the room temperature or 0 on **Mixing valve**.
 - **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
 - **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.
+- **The heat pump's mode reads cooling while the plan asks for heat** — the pump is in Cooling or Cooling + DHW, which a power cut, a reconnect or a fault reset can leave it in, and the plan or a boost asks for heat. The optimizer leaves a cooling pump alone, its power switch included, and never changes the mode back. Set a heating mode on the pump; the notice clears when the mode leaves cooling.
 - **The heat pump does not hold a setting the optimizer wrote** — the pump reads back something else after two writes. To change the pump by hand, turn **Optimizer Active** off first.
 - **Stored learning could not be read** — stored data from another version could not be read, so that part of what was learned starts again from defaults. The integration keeps running.
 - **Silent windows are not enforced** — the capacity-limited slot is not a switch the integration can hold. Assign the pump's own night-mode switch, or remove the silent windows.

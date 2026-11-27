@@ -136,14 +136,15 @@ def entity_id_prefix_literals() -> dict[str, str]:
     Returns ``{module_name: prefix_token}`` for every module that assigns
     ``entity_id = f"<domain>.<prefix>_{translation_key}"``, or the entity
     base's one rule (``object_id = f"<prefix>_{self._attr_translation_key}"``,
-    R9-EG-B2) that every platform now pins through. A prefix that followed
+    R9-EG-B2) that every platform now pins through, with the declared
+    family's ``{lead}`` between them (D8-s2-02). A prefix that followed
     the entry name would be written as an expression (``{slug(entry title)}``)
     or omit the assignment; the shipped form is a hard-coded literal, which
     is the fact #1393's prose contradicts.
     """
     pattern = re.compile(
         r'(?:entity_id|object_id)\s*=\s*f"(?:[a-z_]+\.)?([a-z0-9_]+)_'
-        r'\{(?:self\._attr_)?translation_key\}"'
+        r'(?:\{lead\})?\{(?:self\._attr_)?translation_key\}"'
     )
     found: dict[str, str] = {}
     for path in sorted(PKG.glob("*.py")):
@@ -938,9 +939,10 @@ def _late_delta_facts() -> dict[str, object]:
     Read by driving the deciding symbol, never a comment: the disinfection
     write on a 5 degC step, the wood tank's one-probe means, the flow-bias
     bounds, the both-step leg order with only hot water to heating stopping
-    the compressor, and the fixed transfer fee with no fee mode.
+    the compressor, the fixed transfer fee with no fee mode, and the price of
+    a switch that stopped the compressor three times in three, unlatched.
     """
-    from heatpump_optimizer import const, duty_legs, external_heat, flow_lift, grid_fee
+    from heatpump_optimizer import const, duty_legs, duty_switch, external_heat, flow_lift, grid_fee
     from heatpump_optimizer.inputs import SetpointGrid
     from heatpump_optimizer.thermal_model import ThermalParameters, dhw_step_target_c
 
@@ -956,6 +958,8 @@ def _late_delta_facts() -> dict[str, object]:
         "first_leg": duty_legs.leg_rule((1.0, 0.0), (60.0, 60.0))[0],
         "default_first": duty_legs.leg_rule((0.0, 0.0), (0.0, 0.0))[0],
         "fixed_fee_no_mode": fee.fixed,
+        "prior_n": duty_switch.PRIOR_N,
+        "three_of_three": duty_switch.Direction(k=3.0, usable=False).priced,
     }
 
 
@@ -970,6 +974,10 @@ _LATE_DELTA_BAD = {
              "minutes, then heating for the rest.",
     "fee": "| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every "
            "hour, on top of any rules. |",
+    "switch_price": "Once a direction has stopped the compressor on at least half of a weighted "
+                    "5 or more switches, seen on at least two calendar days (a switch weighs half "
+                    "after 14 days), the plan charges that switch a share of the **Cost of one "
+                    "compressor start**",
 }
 
 
@@ -985,6 +993,10 @@ def _late_delta_true(facts: dict[str, object]) -> dict[str, object]:
             "Hot water runs first, unless the switch from hot water to heating" in t
             and "then heating runs first" in t),
         "fee": lambda t: facts["fixed_fee_no_mode"] == 0.0 and "Ignored while the grid transfer fee is None" in t,
+        "switch_price": lambda t: facts["three_of_three"] == 3.0 / (3.0 + facts["prior_n"]) == 3.0 / 8.0 and all(
+            phrase in " ".join(t.split()) for phrase in (
+                "From the first counted stop the plan charges",
+                f"the stops over the counted switches plus {facts['prior_n']:g}", "3/8 of a start")),
     }
 
 
@@ -994,12 +1006,14 @@ def check_late_delta_claims() -> None:
     says = _late_delta_true(facts)
     config = DOCS["configuration.md"]
     split = re.search(r"- \*\*A step the plan gives both duties is split\*\*.*?\n- ", config, re.S)
+    price = re.search(r"- \*\*A switch that stops the compressor is priced\.\*\*.*?\n- ", config, re.S)
     texts = {
         "cycle": next(iter(_sentences_with(config, "62 °C cycle")), ""),
         "wood": _row("configuration.md", "Wood tank bottom sensor"),
         "bias": _row("configuration.md", "Price the supply temperature lift (no mixing valve)"),
         "split": split.group(0) if split else "",
         "fee": _row("configuration.md", "Fixed transfer fee"),
+        "switch_price": price.group(0) if price else "",
     }
     for key, text in texts.items():
         R.check(f"docs/configuration.md {key}: the sentence states what the code decides",
@@ -1263,6 +1277,23 @@ _PROSE_COUNT_SHAPES: tuple[tuple[str, re.Pattern[str], tuple[tuple[str, str], ..
      (("n", "modules"),)),
 )
 
+# FG-1 (2026-11-26): the shapes whose count the reader corpus must NOT state.
+# A module count moved with every module-adding pull request. Two branches
+# each re-derived it, and git merged their sentences as text into a number
+# neither derived. tests/entities.py's #939 block and claims.py derive and
+# print the counts. The shapes stay above, so a module count written back is
+# still claimed and compared, and is refused besides.
+_ABSENT_COUNT_SHAPES = frozenset({
+    "the Home-Assistant-free module count",
+    "the module-level importer count",
+    "the opening module total and its importer count",
+    "the module total",
+})
+_ABSENT_QUANTITIES = frozenset({
+    template for name, _pattern, quantities in _PROSE_COUNT_SHAPES
+    if name in _ABSENT_COUNT_SHAPES for _group, template in quantities
+})
+
 
 def _imports_homeassistant(node: ast.AST) -> bool:
     """Is this statement an import of the ``homeassistant`` package?"""
@@ -1374,7 +1405,7 @@ def prose_count_scan(
                         )
     unread = [
         name for index, (name, _pattern, _quantities) in enumerate(_PROSE_COUNT_SHAPES)
-        if not seen[index]
+        if not seen[index] and name not in _ABSENT_COUNT_SHAPES
     ]
     return rows, unread
 
@@ -1398,6 +1429,7 @@ def check_prose_tree_counts() -> None:
     tree_wide = ("modules", "modules_importing_homeassistant",
                  "modules_free_of_homeassistant", "services",
                  "options_pages", "editable_options_pages")
+    print("  derived: " + ", ".join(f"{key}={facts[key]}" for key in tree_wide))
     R.check(
         "every tree-wide quantity a count shape names measured positive "
         "(anchor: a measurement that read nothing cannot pass a census)",
@@ -1421,6 +1453,25 @@ def check_prose_tree_counts() -> None:
         "document deleted from it refuses instead of passing",
         not unread,
         f"no occurrence of: {unread}",
+    )
+    carried = [row for row in claims if row[2] in _ABSENT_QUANTITIES]
+    R.check(
+        "the reader corpus states no module count; entities.py and claims.py "
+        "derive and print it (FG-1)",
+        bool(_ABSENT_QUANTITIES) and not carried,
+        "; ".join(f"{document}:{line} {quantity}={stated}"
+                  for document, line, quantity, stated, _measured in carried),
+    )
+    # Null control: a module count planted in a reader document is read by its
+    # shape and refused, true or not -- the refusal is keyed on the shape, so
+    # a count that happens to equal the tree still lands red.
+    planted, _ = prose_count_census(
+        {"probe.md": f"The package holds {facts['modules']} modules."}, facts)
+    R.check(
+        "a true module count planted in a reader document is refused "
+        "(null control)",
+        [row[2] for row in planted if row[2] in _ABSENT_QUANTITIES] == ["modules"],
+        repr(planted),
     )
     wrong = [row for row in claims if row[4] != row[3]]
     R.check(
@@ -1465,12 +1516,13 @@ def check_prose_tree_counts() -> None:
         repr(named),
     )
     # Null control: deleting a reader document refuses the shapes only it
-    # states. The arm cannot go green by reading less.
+    # states. The arm cannot go green by reading less. README.md is the one
+    # document stating the editable-page and named-field shapes.
     _, lost = prose_count_census(
-        {name: text for name, text in CORPUS.items() if name != "architecture.md"}, facts
+        {name: text for name, text in CORPUS.items() if name != "README.md"}, facts
     )
     R.check(
-        "deleting architecture.md refuses the module shapes only it states "
+        "deleting README.md refuses the shapes only it states "
         "(null control: failure-closed, not silent)",
         bool(lost),
         f"unread after the deletion: {lost}",

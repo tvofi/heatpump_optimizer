@@ -606,9 +606,26 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(answers={"scorecard.py": (0, sc_out, "")})
     bj.scorecard(c)
     pr = next((x for x in f.calls if any(a.endswith("round_metrics.py") for a in x)), [])
-    res["scorecard: the producer runs first, handed produce, the dir, the checkout and the overlay's repo"] = (
-        f.calls and f.calls[0] == pr and "produce" in pr and arg(pr, "--dir") == str(c.state / "scorecard")
+    tl = next((x for x in f.calls if any(a.endswith("token_ledger.py") for a in x)), [])
+    res["scorecard: the token ledger runs first, into the producer's dir, reading the checkout's project dir"] = (
+        f.calls and f.calls[0] == tl and "collect" in tl and arg(tl, "--out") == str(c.state / "scorecard" / "tokens.tsv")
+        and arg(tl, "--projects") == bj.claude_projects(c)[0])
+    res["scorecard: the default project dir is the client's name for the checkout, every non-alphanumeric a `-`"] = (
+        bj.claude_projects(type("C", (), {"overlay": {}, "repo": Path("/srv/ck/heat_pump.x")})())
+        == [str(Path.home() / ".claude" / "projects" / "-srv-ck-heat-pump-x")])
+    res["scorecard: the producer runs next, handed produce, the dir, the checkout and the overlay's repo"] = (
+        f.calls[1:2] == [pr] and "produce" in pr and arg(pr, "--dir") == str(c.state / "scorecard")
         and arg(pr, "--repo") == str(c.repo) and arg(pr, "--gh-repo") == "o/r")
+    c, f = fresh(overlay={"repo": "o/r", "train_log": "/x/t.log", "claude_projects": ["/p/a", "/p/b"]},
+                 answers={"token_ledger.py": (2, "", "token_ledger: refused: no project directory: /p/a\n"),
+                          "scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    tl = next((x for x in f.calls if any(a.endswith("token_ledger.py") for a in x)), [])
+    res["scorecard: the overlay's claude_projects are each handed on; a failed ledger is UNREADABLE and the report "
+        "still runs (its tokens line prints unread)"] = (
+        [tl[i + 1] for i, a in enumerate(tl) if a == "--projects"] == ["/p/a", "/p/b"]
+        and digest(c) == "scorecard: UNREADABLE token_ledger rc=2: token_ledger: refused: no project directory: /p/a\n"
+        and (c.state / "beatd" / "scorecard.txt").exists())
     c, f = fresh(answers={"round_metrics.py": (1, "", "Traceback\nApiError: 502\n"), "scorecard.py": (0, sc_out, "")})
     bj.scorecard(c)
     res["scorecard: a failed producer is UNREADABLE and the report does not run on stale inputs"] = (
@@ -638,6 +655,53 @@ def cases(bj) -> dict[str, bool]:
     bj.ci_attempt(c)
     res["ci-attempt: an overlay without repo is UNREADABLE and calls no API"] = (
         digest(c) == "ci-attempt: UNREADABLE overlay lacks repo\n" and not f.calls)
+
+    # selftest-absorb: the RCA's runs (P-R11-SELFTEST-ABSORB) as the instrument prints them
+    owed_out = ("SELFTEST-ABSORB OWED 738 read(s), 7 step(s) at a8efe1d1c2aa from run(s) 44922703115; table /w/t.json\n"
+                "SELFTEST-ABSORB pushed 25238b470aaa handoff/selftest-absorb\n")
+    c, f = fresh(answers={"selftest_absorb.py": (1, owed_out, "")})
+    absent = not digest(c)
+    bj.selftest_absorb(c)
+    sa = next((x for x in f.calls if any(a.endswith("selftest_absorb.py") for a in x)), [])
+    res["selftest-absorb: the defect run is one OWED line naming the reads, steps and standing ref, no tip"] = (
+        absent and digest(c) == "OWED selftest-absorb 738 read(s) 7 step(s) on handoff/selftest-absorb\n"
+        and bj.read(c.digest / "new.txt") == digest(c))
+    res["selftest-absorb: the instrument is handed beat --push, the checkout, the overlay's repo and a state work dir"] = (
+        sa[3:] == ["beat", "--repo-dir", str(c.repo), "--repo", "o/r", "--work",
+                   str(c.digest / "state" / "selftest-absorb"), "--push"])
+    s1 = files(c)
+    bj.selftest_absorb(c)
+    res["selftest-absorb: the same owed reads at a newer tip are no new byte"] = files(c) == s1
+    c, f = fresh(answers={"selftest_absorb.py": (0, "SELFTEST-ABSORB CLEAN at 107988b792aa (run 44379511133): x\n", "")})
+    bj.selftest_absorb(c)
+    res["selftest-absorb null: a clean main (green run 44379511133) writes no byte"] = not files(c)
+    c, f = fresh(answers={"selftest_absorb.py": (1, owed_out.splitlines()[0] + "\nSELFTEST-ABSORB PUSH-REFUSED app_push "
+                                                    "rc=1: no key handoff/selftest-absorb\n", "")})
+    bj.selftest_absorb(c)
+    res["selftest-absorb: a refused push is its own line beside the OWED one"] = digest(c) == (
+        "OWED selftest-absorb 738 read(s) 7 step(s) on handoff/selftest-absorb\n"
+        "selftest-absorb: PUSH-REFUSED app_push rc=1: no key handoff/selftest-absorb\n")
+    c, f = fresh(answers={"selftest_absorb.py": (4, "SELFTEST-ABSORB RECORD-OWED drift red in run(s) 1 and absorb at "
+                                                    "aaaaaaaaaaaa adds no read (2 refusal(s) remain): x\n", "")})
+    bj.selftest_absorb(c)
+    res["selftest-absorb: a refusal absorb cannot repair is RECORD-OWED, in the board family"] = (
+        digest(c).startswith("RECORD-OWED: selftest-absorb ") and bj.FAMILY.match(digest(c)) is not None)
+    c, f = fresh(answers={"selftest_absorb.py": (2, "SELFTEST-ABSORB UNREADABLE gh api actions/runs rc=1: 502\n", "")})
+    bj.selftest_absorb(c)
+    res["selftest-absorb: an unreadable pass is UNREADABLE with its reason, never clean"] = (
+        digest(c) == "selftest-absorb: UNREADABLE gh api actions/runs rc=1: 502\n")
+    c, f = fresh(answers={"selftest_absorb.py": (1, "", "Traceback\nKeyError: 'x'\n")})
+    bj.selftest_absorb(c)
+    res["selftest-absorb: a crash (rc 1, no OWED line) is UNREADABLE, never an OWED line"] = (
+        digest(c) == "selftest-absorb: UNREADABLE rc=1: KeyError: 'x'\n")
+    c, f = fresh(overlay={"train_log": "/x"}, answers={"selftest_absorb.py": (1, owed_out, "")})
+    bj.selftest_absorb(c)
+    res["selftest-absorb: an overlay without repo is UNREADABLE and runs nothing"] = (
+        digest(c) == "selftest-absorb: UNREADABLE overlay lacks repo\n" and f.ran("selftest_absorb.py") == 0)
+    row = [j for j in json.loads((HERE / "beatd.jobs.json").read_text())["jobs"] if j["name"] == "selftest-absorb"]
+    res["selftest-absorb: the table row runs every 1800 s with the App's identity dir passed and no class lock"] = (
+        len(row) == 1 and row[0]["interval_s"] == 1800 and row[0]["class"] is None
+        and "HPO_IDENTITY_DIR" in row[0]["env_pass"] and row[0]["argv"][3] == "selftest-absorb")
 
     # toolchain-promote
     moved = "PROMOTE 2026-11-15T10:00:00Z aaaaaaaaaaaa -> bbbbbbbbbbbb run=7\n"
@@ -1359,15 +1423,30 @@ MUTANTS = {
     "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
                                       'ln.startswith(("BOTTLENECK: ",))',
                                       "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
+    "absorb_owed_dropped": ('    if rc == 1 and m:\n', '    if rc == 9 and m:\n',
+                            "selftest-absorb: the defect run is one OWED line naming the reads, steps and standing ref, no tip"),
+    "absorb_owed_any_rc1": ('    m = ABSORB_OWED.search(out)\n', '    m = ABSORB_OWED.search(out) or ABSORB_OWED.search("SELFTEST-ABSORB OWED 0 read(s), 0 step(s)")\n',
+                            "selftest-absorb: a crash (rc 1, no OWED line) is UNREADABLE, never an OWED line"),
+    "absorb_push_refusal_dropped": ('if ln.startswith("SELFTEST-ABSORB PUSH-REFUSED ")]', 'if False]',
+                                    "selftest-absorb: a refused push is its own line beside the OWED one"),
+    "absorb_record_owed_silent": ("    if rc == 4:\n", "    if rc == 44:\n",
+                                  "selftest-absorb: a refusal absorb cannot repair is RECORD-OWED, in the board family"),
+    "absorb_unpushed": ('"--work", str(ctx.digest / "state" / "selftest-absorb"), "--push")',
+                        '"--work", str(ctx.digest / "state" / "selftest-absorb"))',
+                        "selftest-absorb: the instrument is handed beat --push, the checkout, the overlay's repo and a state work dir"),
     "ci_attempt_cmp": ("int(m[2]) >= CI_ATTEMPT_ALARM", "int(m[2]) > CI_ATTEMPT_ALARM",
                        "ci-attempt: attempt 20 exactly fires; a run with no pull request says so"),
     "ci_attempt_off": ("if m and int(m[2])", "if m and 0 * int(m[2])",
                        "ci-attempt: the #3287 window fires once per looping run, naming it and its pull request"),
     "ci_attempt_pr": ('or "no pull request"', 'and "no pull request"',
                       "ci-attempt: the #3287 window fires once per looping run, naming it and its pull request"),
-    "scorecard_produce_rc": ('        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc=',
-                             '        pass  # write_job(ctx, "scorecard", [f"scorecard: UNREADABLE produce rc=',
+    "scorecard_produce_rc": ('        return write_job(ctx, "scorecard", lines + [f"scorecard: UNREADABLE produce rc=',
+                             '        pass  # write_job(ctx, "scorecard", lines + [f"scorecard: UNREADABLE produce rc=',
                              "scorecard: a failed producer is UNREADABLE and the report does not run on stale inputs"),
+    "scorecard_tokens_rc_dropped": ('    lines = [] if rc == 0 else [f"scorecard: UNREADABLE token_ledger rc=',
+                                    '    lines = [] if True else [f"scorecard: UNREADABLE token_ledger rc=',
+                                    "scorecard: the overlay's claude_projects are each handed on; a failed ledger is UNREADABLE and the report "
+                                    "still runs (its tokens line prints unread)"),
     "scorecard_rc_clean": ('    if rc != 0 or not out.strip():\n        return write_job(ctx, "scorecard"',
                            '    if not out.strip():\n        return write_job(ctx, "scorecard"',
                            "scorecard: a failed instrument is UNREADABLE, never written"),

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/solve_gate.py:absorb_request GUARD_OFF 00d050e6",
+  "killed_by": "tests/features.py",
+  "old": "    if refreshing:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

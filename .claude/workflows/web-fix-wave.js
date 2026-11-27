@@ -39,9 +39,9 @@ destroyed the very budget table they were recording. Measure the scope:
     a file in no recorded closure -- and it then runs every script including
     stress.py. It prints ZERO selected scripts while meaning the opposite of
     zero, so key on the mode line, never on the count. That line only exists
-    on a branch; a push to main forces GATE_SCOPE=full through the job
-    environment, which skips the code that prints a mode line at all -- the
-    only evidence in that log is the env line GATE_SCOPE: full.
+    on a scoped run; a push to main that is not light runs GATE_SCOPE=full
+    through the job environment, which skips the code that prints a mode
+    line at all -- the only evidence in that log is the env line GATE_SCOPE: full.
   * "$D/scope.run" names tests/stress.py  ->  run.sh as below.
   * otherwise  ->  Run the scripts scope.run names, directly.
 
@@ -202,6 +202,10 @@ const VERDICT_CLASSES = [
   // missing "none exists" line). The unsplit word stays taught: fix-review.md
   // step 11 still teaches it, and its count is the residue a D13 round reads.
   'root-cause-detectable', 'root-cause-unrecorded',
+  // fix-review.md's standing absorb bullet (P-R11-SELFTEST-ABSORB): the
+  // mechanical review's `selftest_absorb.py verify` printed a line other than
+  // SELFTEST-ABSORB VERIFIED, so the regenerated table and the head's differ.
+  'absorb-verify',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it
@@ -239,6 +243,7 @@ const VERDICT_CLAUSES = {
   'architecture-unsound': 'fix-review.md step 15',
   'root-cause-detectable': 'fix-review.md step 11',
   'root-cause-unrecorded': 'fix-review.md step 11',
+  'absorb-verify': null,
 }
 
 // The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an

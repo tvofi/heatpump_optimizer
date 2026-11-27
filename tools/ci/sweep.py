@@ -61,7 +61,14 @@ started while gate.busy() -- the gate's own predicate, called on the runs at the
 them at that start (`listed_at`) -- names a run is the deferral, no verdict, and is re-run in place, within
 ATTEMPT_CAP and `settled` like any red. A job busy() never reads (a report-only job, a higher-id run whose
 gate had started, #3584's review cases B and C) makes none. With nothing green (#3261's pair) it still
-dispatches. This sweep runs main's copy
+dispatches, unless a code unit whose grader no pin restores (`code_red`: gate.REQUIRED["no-pr"] less
+`pinned_graders`) is already red at the head in its newest-started job: a fresh run would grade that code a
+second time, and the stale red is left for the next push to replace (#3885: none of the 16 STALE-PIN
+dispatches of 2026-11-22/23 ended green). A body unit's red still dispatches, because the fresh run re-reads
+the PR; so does a red of a unit whose workflow restores its grader from the event's base sha (`pinned_graders`,
+read from the workflows, never listed here: tests / briefs, governance / policy-docs, env-matrix, wave-script
+and codeql's analyses at the time of writing), because the fresh run grades it with origin/<base>'s copy
+(#3895: dispatch 45005979443 turned three of four such reds green). This sweep runs main's copy
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
@@ -81,6 +88,8 @@ ATTEMPT_CAP = 45          # GitHub fails a run's 51st attempt; the sweep never t
 POLL_FLOOR, POLL_WAIT = 60, 600
 NOT_COMPLETED = ("queued", "waiting", "pending", "requested", "in_progress")  # N5-4
 CI_PATH = ".github/workflows/ci.yml"
+WORKFLOWS = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, ".github", "workflows")
+PIN_MARK = "github.event.pull_request.base.sha"     # a `PINNED:` env naming it restores a grader from the pin
 PINNED_EVENTS = ("pull_request", "pull_request_review")   # ci.yml's restore reads github.event.pull_request.base.sha
 PINNED_PROGRAMS = "tools/ci/"                             # its pathspec 'tools/ci/*.py' (a git glob crosses '/')
 SWEEP_ACTOR = "github-actions[bot]"   # gate-sweep.yml's github.token; ci.yml's refresh posts as it too
@@ -97,6 +106,32 @@ class RateLimited(Exception):
 
 def _is_rate_limited(exc):
     return type(exc).__name__ == "RateLimited"
+
+
+def pinned_graders(workflows=WORKFLOWS):
+    """The `unit / job` name prefixes of the jobs that restore a grader from the event's base sha: a job of
+    <unit>.yml whose block holds a `PINNED:` env naming PIN_MARK. The job's name is its `name:` up to the
+    first expression (codeql's `Analyze (${{ matrix.language }})` -> `codeql / Analyze (`), else its key.
+    A workflow_dispatch run grades such a job with origin/<base>'s copy, so a fresh run may turn its red
+    green. A tuple for str.startswith; None where the directory cannot be read (fail closed: dispatch)."""
+    try:
+        files = sorted(f for f in os.listdir(workflows) if f.endswith(".yml"))
+    except OSError:
+        return None
+    out = set()
+    for f in files:
+        unit, job, name, in_jobs = f[:-4], None, None, False
+        with open(os.path.join(workflows, f), encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("jobs:"):
+                    in_jobs = True
+                elif in_jobs and line[:2] == "  " and line[2:3] not in (" ", "#", "") and line.rstrip().endswith(":"):
+                    job, name = line.strip()[:-1], None
+                elif in_jobs and job and line.startswith("    name:") and name is None:
+                    name = line.split(":", 1)[1].strip().strip("'\"")
+                elif in_jobs and job and "PINNED:" in line and PIN_MARK in line:
+                    out.add(f"{unit} / {(name or job).split('${{')[0]}")
+    return tuple(sorted(out))
 
 
 def latest_gate(jobs):
@@ -232,6 +267,11 @@ class Sweep:
             self.out(f"STALE-PIN {pin}: run {run['id']}'s red is a deferral and a green gate covers the newest "
                      "event: no verdict to re-judge; re-run in place")
             return False
+        red = self.code_red(runs)
+        if red:
+            self.out(f"STALE-PIN {pin}: run {run['id']} left: {', '.join(red)} failed at this head, a red no "
+                     "program re-judges (a fresh run grades the same code again, #3885); a push re-grades it")
+            return True
         base, ref = self.pull["base"]["ref"], self.pull["head"]["ref"]
         st, _, _ = self.post(f"repos/{self.repo}/actions/workflows/ci.yml/dispatches",
                              {"ref": ref, "inputs": {"pr": str(self.pull_number), "base": base}})
@@ -249,6 +289,28 @@ class Sweep:
             return False
         st, _, body = self.get(f"repos/{self.repo}/actions/runs/{r['id']}/attempts/1/jobs", {"per_page": 100})
         return st == 200 and (latest_gate((body or {}).get("jobs") or []) or {}).get("conclusion") == "success"
+
+    def code_red(self, runs, workflows=WORKFLOWS):
+        """The code units (gate.REQUIRED["no-pr"], less `pinned_graders`: graded by the PR head's own code,
+        never by the pin's programs) whose newest-started completed job at the head, across every run's latest
+        attempt, concluded failure. A fresh dispatch would grade that code again: on 2026-11-22/23 none of the
+        16 STALE-PIN dispatches ended green (#3885). A body unit re-reads the PR, and a pinned grader is read
+        afresh, so their reds are left to the dispatch. Unreadable workflows: none, so the dispatch stands."""
+        from gate import REQUIRED        # the gate's own list, never restated here
+        import shards                    # a `tests / fast (3.14, K/N)` shard is the fast unit's job
+        pinned = pinned_graders(workflows)
+        if pinned is None:
+            return []
+        newest = {}
+        for r in runs:
+            for j in self.jobs_of(r["id"]):
+                n = j.get("name") or ""
+                if ((n in REQUIRED["no-pr"] or shards.is_fast(n)) and not n.startswith(pinned)
+                        and j.get("status", "completed") == "completed"):
+                    k = (j.get("started_at") or "", r["id"])
+                    if j["name"] not in newest or k > newest[j["name"]][0]:
+                        newest[j["name"]] = (k, j.get("conclusion"))
+        return sorted(n for n, (_, c) in newest.items() if c == "failure")
 
     def covered_deferral(self, run, gate, runs):
         """gate.busy() named a run when this red gate started (it deferred), and a green gate at the

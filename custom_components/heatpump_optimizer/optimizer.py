@@ -66,6 +66,7 @@ from .dhw_planner import DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
+from .comfort_floor import mark_room_floor, raised_floor
 from .payload import (
     CurrentAction,
     IDLE_REASONS,
@@ -255,7 +256,7 @@ def _relaxed_plans(
 
 
 def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
-    """The learned stop probability per switch direction, ``None`` when no direction stops.
+    """The learned stop probability per switch direction, latched or not, ``None`` when none stops.
 
     The lost running time is charged on this alone; the price is this times
     ``start_price``, so an install that prices no start prices no switch.
@@ -265,11 +266,10 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
 
 
 def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
-    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    """The leg rule the arbiter serves a both step by: the latched of the pairs this solve prices."""
     return duty_legs.leg_rule(
-        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
-        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
-    )
+        _priced_stops(opt) or (0.0, 0.0), duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+        opt.config.duty_switch_unlatched)
 
 
 def _stop_availability(
@@ -2775,11 +2775,12 @@ class OptimizationConfig:
     #: measuring a slightly different optimizer from the integration.
     cycling_cost: float = DEFAULT_CYCLING_COST
     #: Per direction (hot water to heating, heating to hot water): the learned
-    #: probability that a duty switch stops the compressor, and the seconds it
-    #: then stays off. Zeros price nothing and leave every plan as it was;
-    #: ``duty_legs`` owns what they mean.
+    #: probability that a duty switch stops the compressor, the seconds it then
+    #: stays off, and whether its latch is off (priced, moving no leg). Zeros
+    #: price nothing and leave every plan as it was; ``duty_legs`` owns them.
     duty_switch_stop_probability: tuple[float, float] = (0.0, 0.0)
     duty_switch_off_seconds: tuple[float, float] = (0.0, 0.0)
+    duty_switch_unlatched: tuple[bool, bool] = (False, False)
 
     # --- Capacity tariff (item 8) --------------------------------------
     #: Currency per kW of new monthly peak, already divided by the number of
@@ -3052,9 +3053,11 @@ class _Horizon:
     #: What ``slot_drivers`` reads and the solve does not (R10-WHY-NOW-WIDGET):
     #: the comfort floor before the mold guard, the mold floor padded to the
     #: horizon, and the floor the away setback and holiday profile took off.
+    #: ``room_lifts`` is the part of ``temp_min_bounds`` the room lift raised (#3616).
     comfort_floors: np.ndarray | None = None
     mold_floors: np.ndarray | None = None
     away_floor_drops: np.ndarray | None = None
+    room_lifts: np.ndarray | None = None
     #: The input prices before the risk premium, what a bill pays (D2-s3-01).
     #: ``None`` means ``prices`` carries no premium.
     raw_prices: np.ndarray | None = None
@@ -3118,6 +3121,10 @@ class SolveLimits:
     #: None when away is inactive or recovering. Read by the why-now drivers
     #: only: the setback itself is already in the configuration's bounds.
     away_floor_drop_c: float | None = None
+    #: The room lift per step, °C (``rooms.floor_limits``); None when no step
+    #: is lifted. Read for attribution only: the lift is already in
+    #: ``min_temp_margins``.
+    room_lifts: np.ndarray | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -4018,7 +4025,7 @@ class HeatPumpOptimizer:
             dhw_heating_cost=dhw_cost,
             space_reasons=_mark_blocked_reasons(
                 _mark_manual_reasons(
-                    classify_space_steps(
+                    mark_room_floor(classify_space_steps(
                         space_power,
                         h.prices,
                         room,
@@ -4028,7 +4035,7 @@ class HeatPumpOptimizer:
                         h.n_steps,
                         other=dhw_power,
                         caps=h.power_caps_extra,
-                    ),
+                    ), room, h.temp_min_bounds, h.room_lifts),
                     h.space_pins,
                 ),
                 h.space_blocked,
@@ -4506,9 +4513,8 @@ class HeatPumpOptimizer:
 
         dhw_enabled = self.model.params.dhw_enabled
 
-        # Hour of day at each step. Computed once: the comfort target, both
-        # temperature bounds and the DHW draw pattern all key off it, and it
-        # was previously rebuilt from scratch for each of the four.
+        # Hour of day at each step, computed once: the comfort target, both
+        # temperature bounds and the DHW draw pattern all key off it.
         step_datetimes, step_hours = _step_clock(start_time, n_steps, dt)
         # Weekday per step, for weekly DHW windows (#3) and the per-weekday
         # overrides (#1260); the helper returns None unless either is
@@ -4523,7 +4529,7 @@ class HeatPumpOptimizer:
         comfort_targets, temp_min_bounds, temp_max_bounds, floors = (
             self._build_comfort_bounds(
                 step_hours, n_steps, min_temp_margins, min_temp_floors,
-                step_datetimes,
+                step_datetimes, limits.room_lifts,
             )
         )
         away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
@@ -4601,6 +4607,7 @@ class HeatPumpOptimizer:
                 comfort_floors=floors[0],
                 mold_floors=floors[1],
                 away_floor_drops=away_drops,
+                room_lifts=floors[2],
                 raw_prices=raw_prices,
                 compressor_running=inputs.compressor_running,
             )
@@ -4845,9 +4852,11 @@ class HeatPumpOptimizer:
         min_temp_margins: np.ndarray | None,
         min_temp_floors: np.ndarray | None,
         step_times: list[datetime] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray | None]]:
+        room_lifts: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray | None, np.ndarray | None]]:
         """The per-step comfort target and the band the solve must stay in,
-        then the comfort floor before the mold guard and the padded mold floor."""
+        then the comfort floor before the mold guard, the padded mold floor
+        and the part of the floor ``room_lifts`` raised (None without it)."""
         times = list(step_times) if step_times is not None else []
         comfort_targets = np.array(
             [
@@ -4863,36 +4872,17 @@ class HeatPumpOptimizer:
             )
             for i, hour in enumerate(step_hours)
         ]
-        temp_min_bounds = np.array([low for low, _ in bounds])
+        low = np.array([lo for lo, _ in bounds])
         temp_max_bounds = np.array([high for _, high in bounds])
-        comfort_floors, mold_floors = temp_min_bounds, None
-
-        # T5 (#16 #54): the comfort floor's two adjustments, both optional
-        # and both applied HERE — the single site where the bounds are
-        # built — so every consumer (objectives, safety releases, pin
-        # repair) sees the same effective floor. ``min_temp_margins`` is a
-        # per-step raise (the model's own expected error at that lead);
-        # ``min_temp_floors`` an absolute per-step floor (the mold guard).
-        # None for both is byte-for-byte the previous bounds.
-        if min_temp_margins is not None or min_temp_floors is not None:
-            if min_temp_margins is not None:
-                temp_min_bounds = temp_min_bounds + _padded_nonneg(min_temp_margins, n_steps)
-                comfort_floors = temp_min_bounds
-            if min_temp_floors is not None:
-                f = np.asarray(min_temp_floors, dtype=float)
-                if f.size < n_steps:
-                    f = np.concatenate(
-                        [f, np.full(n_steps - f.size, -np.inf)]
-                    )
-                mold_floors = f[:n_steps]
-                temp_min_bounds = np.maximum(temp_min_bounds, mold_floors)
-            # Whatever raised the floor, the band never squeezes shut: a
-            # floor at or above the ceiling makes the solve infeasible and
-            # the comfort penalty unbounded.
-            temp_min_bounds = np.minimum(
-                temp_min_bounds, temp_max_bounds - 0.5
-            )
-        return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors)
+        margins = None if min_temp_margins is None else _padded_nonneg(min_temp_margins, n_steps)
+        temp_min_bounds, comfort_floors, mold_floors = raised_floor(
+            low, temp_max_bounds, margins, min_temp_floors, n_steps)
+        lifts = None
+        if room_lifts is not None:  # the same arithmetic on the margins less the lift, clipped at 0
+            lifts = temp_min_bounds - raised_floor(low, temp_max_bounds, _padded_nonneg(
+                (0.0 if margins is None else margins) - _padded_nonneg(room_lifts, n_steps), n_steps),
+                min_temp_floors, n_steps)[0]  # >= 0: each step is monotone in the margins
+        return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors, lifts)
 
     def _build_space_power_caps(
         self,

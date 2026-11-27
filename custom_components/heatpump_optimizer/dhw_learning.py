@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 import numpy as np
@@ -38,9 +38,11 @@ from .const import (
     DHW_DAYTYPE_BLEND_K,
     DOMAIN,
 )
+from .dhw_schedule import hour_in_windows, windows_in_force
 from .dhw_draws import DrawStats, labels_for, window_label as draw_window_label
 from .inputs import plausible_c
 from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
+from .learning_freeze import Evidence, Sample
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,7 +155,8 @@ class DhwProfileLearner:
     no snapshot is ever edited in place (D7-s1-82). ``frozen`` answers why learning should be skipped this
     interval, ``heating_active`` whether the plan is heating the tank now, and
     ``external_heat_active`` whether a wood burn is driving the tank — the
-    three coordinator facts the learner observes and never owns.
+    three coordinator facts the learner observes and never owns. ``holidays``
+    names the holiday dates around an instant, for the window in force.
     """
 
     def __init__(
@@ -163,11 +166,13 @@ class DhwProfileLearner:
         params: Callable[[], ThermalParameters],
         *,
         publish: Callable[..., None],
-        frozen: Callable[[str], str | None],
+        frozen: Callable[..., str | None],
         heating_active: Callable[[], bool],
         external_heat_active: Callable[[], bool],
+        holidays: Callable[[datetime], Collection[date]] = lambda _now: (),
     ) -> None:
         self._params = params
+        self._holidays = holidays
         self._publish = publish
         self._frozen = frozen
         self._heating_active = heating_active
@@ -438,35 +443,44 @@ class DhwProfileLearner:
         self.last_sample_time = now
         self.heating_since_sample = heating
 
-        frozen = self._frozen(CONF_DHW_TEMP_ENTITY)
+        frozen = self._frozen(CONF_DHW_TEMP_ENTITY, sample=Sample.PLANT)
         if frozen:
             return frozen
+        # The usage hours and the draws are the occupied house's: an away
+        # period holds them, never the tank's standby loss (D7-s2-01).
+        occupied = self._frozen(CONF_DHW_TEMP_ENTITY, sample=Sample.TANK_DRAW)
 
         if previous_temp is None or previous_time is None:
-            return None
+            return occupied
 
         dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
         if dt_h <= 0.02 or dt_h > DHW_COOLING_MAX_SAMPLE_HOURS:
-            return None
+            return occupied
 
         temp_drop = previous_temp - dhw_temp
         weekend = now.weekday() >= 5
         recovered_k, due = self.charge_settle.advance(
             heated_interval, settling, [previous_temp, temp_drop, dt_h, now.hour, weekend]
         )
-        for prev, drop, dt_p, hour, wkend in due:
-            await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
-
         if not heated_interval:
             await self.async_learn_cooling(previous_temp, dhw_temp, dt_h)
+        if occupied:
+            return occupied
+        for prev, drop, dt_p, hour, wkend in due:
+            await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
         if not settling:
             await self.async_learn_usage(
                 previous_temp, temp_drop, dt_h, now.hour, heated_interval, weekend=weekend
             )
-        await self.async_fold_draw_stats(
-            now, previous_temp, temp_drop, dt_h,
-            charge=started_heated or settling, recovered_k=recovered_k,
-        )
+        # D2-s3-08: an interval starting or ending on a heated sample holds
+        # the charge-start dip, which the reading climbs out of while still
+        # heated, so no unheated rise ever takes it back: it is no draw sample.
+        if self._frozen(CONF_DHW_TEMP_ENTITY, sample=Sample.TANK_DRAW,
+                        evidence=Evidence(charge_open=heated_interval)) is None:
+            await self.async_fold_draw_stats(
+                now, previous_temp, temp_drop, dt_h,
+                charge=started_heated or settling, recovered_k=recovered_k,
+            )
         return None
 
     def _standby_rate(self, previous_temp: float) -> float:
@@ -499,10 +513,13 @@ class DhwProfileLearner:
         cap = params.dhw_store.capacity_kwh_per_c
         intensity = max(0.0, temp_drop / dt_h - self._standby_rate(previous_temp))
         energy_kwh = intensity * dt_h * cap  # beyond standby
+        # The stats table is keyed by the flat windows, as the planner reads
+        # it; whether the draw fell in a window is the day's own answer
+        # (dhw_schedule.windows_in_force, D17-s3-51).
         windows = params.dhw_demand_windows
-        label = draw_window_label(
-            now.hour + now.minute / 60.0, windows
-        )
+        hour = now.hour + now.minute / 60.0
+        in_force = hour_in_windows(hour, windows_in_force(params, None, now, self._holidays(now)))
+        label = draw_window_label(hour, windows) if in_force else ""
         self.draw_stats.prune(labels_for(windows))
         before = {k: len(v) for k, v in self.draw_stats.reservoirs.items()}
         taken_kwh = self.draw_stats.take_back(recovered_k * cap)
