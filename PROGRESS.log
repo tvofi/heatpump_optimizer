@@ -4,3 +4,4 @@
 1795764062 CKPT carry in bus.sh post_verdict + CARRIED tick line written; new self-test arms pass snapshot a1ce1f50d470
 1795764182 CKPT wip pushed 72d1774e; tick mutants killed; bus mutants + scoped gate running snapshot e84b0b44c566
 1795764361 HB alive
+1795764965 HB alive
