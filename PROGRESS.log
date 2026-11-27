@@ -1,3 +1,4 @@
 1795763744 INIT r11-owner-auto-carry
 1795763757 HB alive
 1795763840 CKPT read brief, policy, bus.sh confirm/C8 path; design: carry at bus.sh post_verdict snapshot 7c60b0703958
+1795764062 CKPT carry in bus.sh post_verdict + CARRIED tick line written; new self-test arms pass snapshot a1ce1f50d470
