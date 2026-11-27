@@ -224,7 +224,7 @@ def _night(sweep: bool):
     folded a cycle later). ``sweep`` False runs the plan at 2.0 kW."""
     coord = _Flow(30.0)
     pump = _Pump(coord, 30.0, 0.02)
-    s = sysid.SystemIdentification(sysid.SysIdConfig(enabled=True))
+    s = sysid.SystemIdentification(sysid.SysIdConfig())
     house = sysid.HousePlant(ua=0.35, capacity=12.0, gains=0.3)
     if sweep:
         levels = tuple((dr.sweep_rows_at(coord.draw, kw), kw) for kw in sysid.sweep_levels_kw(LOW_KW, HIGH_KW))

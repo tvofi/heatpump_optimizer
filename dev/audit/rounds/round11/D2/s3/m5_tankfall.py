@@ -22,6 +22,8 @@ Run:  PYTHONPATH=tests/hastub $HOME/venv-ci/bin/python3 dev/audit/rounds/round11
       --perturb-skip-heated : async_fold_draw_stats books nothing on an interval that
       starts or ends on a heated sample (charge or the learner's heating flag): long
       shapes' booked_kwh must go to_zero.
+  unplanned        : long_a's charge with the plan's flag never set (the pump charged itself)
+  draw_then_charge : a real 4 K draw, then the charge it triggers (carry 5's null control)
 Expected at baseline: short ~0; long_a and long_b ~ 4 K x store capacity on every cell.
 Baseline 92d38ecb640bd462f2e19c0814d0f0b7df1ee692, machine B6 (shared).
 """
@@ -73,18 +75,21 @@ def trace(shape, learner, t0, T0):
     dt = timedelta(minutes=10)
     # unplanned (R11-SEAM-learners, design section 5): long_a's charge with the plan's
     # flag never set -- the pump charged on its own; the learner sees every sample unheated.
-    heat_on = {"short": (2, 2), "long_a": (2, 7), "long_b": (2, 7), "unplanned": (-1, -1)}[shape]
+    # draw_then_charge (carry 5's null control): a real 4 K draw lands in the same interval,
+    # and the pump's own charge it triggers climbs as the unplanned one does, no dip.
+    heat_on = {"short": (2, 2), "long_a": (2, 7), "long_b": (2, 7), "unplanned": (-1, -1),
+               "draw_then_charge": (-1, -1)}[shape]
     for k in range(30):
         heating = heat_on[0] <= k <= heat_on[1]
         rows.append((t, T, heating))
         # evolve to next sample
         sb = learner._standby_rate(T) * (dt.total_seconds() / 3600.0)
         nxt = T - sb
-        if shape in ("long_a", "unplanned") and k == 1:
-            nxt -= 4.0          # the dip lands at the first heated sample (k=2)
+        if shape in ("long_a", "unplanned", "draw_then_charge") and k == 1:
+            nxt -= 4.0          # the dip (the draw) lands at the first heated sample (k=2)
         if shape == "long_b" and k == 2:
             nxt -= 4.0          # the dip lands at the second heated sample (k=3)
-        if shape in ("long_a", "long_b", "unplanned") and 3 <= k <= 6:
+        if shape in ("long_a", "long_b", "unplanned", "draw_then_charge") and 3 <= k <= 6:
             nxt += 3.0          # the charge climbs, heated
         if shape == "short" and k == 2:
             nxt -= 4.0          # the dip after the one-sample slot (settling)
@@ -133,15 +138,19 @@ async def run_cell(kind, shape):
 worst_long = 0.0
 worst_short = 0.0
 worst_unplanned = 0.0
+worst_draw = 0.0
+identical = True
 for kind in ("external_station", "internal_coil", "tank_in_tank"):
     parts = []
-    for shape in ("short", "long_a", "long_b", "unplanned"):
+    for shape in ("short", "long_a", "long_b", "unplanned", "draw_then_charge"):
         booked, cap = asyncio.run(run_cell(kind, shape))
         parts.append(f"{shape}:booked={booked:.4f}kWh dip_equiv={4.0 * cap:.4f}kWh")
         if shape == "short":
             worst_short = max(worst_short, abs(booked))
         elif shape == "unplanned":
             worst_unplanned = max(worst_unplanned, booked)
+        elif shape == "draw_then_charge":
+            worst_draw = max(worst_draw, booked)
         else:
             worst_long = max(worst_long, booked)
     print(f"CELL tank-fall-after-charge combi_tank={kind} cap={cap:.4f}kWh/K " + " ".join(parts))
@@ -149,4 +158,13 @@ dt_util.freeze(None)
 print(f"RESULT booked_kwh_long_max={worst_long:.4f} kWh")
 print(f"RESULT booked_kwh_short_max={worst_short:.4f} kWh")
 print(f"RESULT booked_kwh_unplanned_max={worst_unplanned:.4f} kWh")
+# The learner's whole input is (time, reading, plan flag): where the two shapes' rows are
+# equal, no rule over that input books one and not the other (carry 5).
+for kind in ("external_station", "internal_coil", "tank_in_tank"):
+    _l = dhw_learning.DhwProfileLearner(harness.FakeHass(), "e", lambda: params_for(kind), publish=lambda **k: None,
+                                        frozen=_frozen, heating_active=lambda: False, external_heat_active=lambda: False)
+    _t0 = datetime(2026, 1, 14, 6, 0, tzinfo=timezone.utc)
+    identical = identical and trace("unplanned", _l, _t0, 50.0) == trace("draw_then_charge", _l, _t0, 50.0)
+print(f"RESULT booked_kwh_draw_then_charge_max={worst_draw:.4f} kWh")
+print(f"RESULT unplanned_inputs_equal_draw_then_charge={identical}")
 footer()
