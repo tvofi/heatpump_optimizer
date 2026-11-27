@@ -23,3 +23,4 @@
 1795746602 HB alive
 1795747206 HB alive
 1795748389 CKPT handoff pushed 9326a14; body 08e8cb8 snapshot 48e3e67bbf77
+1795748393 DONE returned: handoff/r11-seam-dead-state 9326a14143, body handoff-body 08e8cb8a2c, prepr clean
