@@ -1,0 +1,1 @@
+2026-11-27T12:16:03.1717198Z   ERROR   [pr-body] /tmp/pr-body.md: check `tests / closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.

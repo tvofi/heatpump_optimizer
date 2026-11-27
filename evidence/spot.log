@@ -1,0 +1,55 @@
+=== custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor GUARD_OFF e477a434 | tests/block_duty.py
+  tests/block_duty.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/dhw_planner.py:107 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  baseline tests/block_duty.py: rc=0 failed=0 14s
+  null control custom_components/heatpump_optimizer/dhw_planner.py:107 NULL_COMMENT survived tests/block_duty.py
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/block_duty.py: custom_components/heatpump_optimizer/dhw_planner.py:1758 GUARD_OFF
+=== custom_components/heatpump_optimizer/__init__.py:__getattr__ GUARD_OFF 9e40bac8 | tests/manual_plan.py
+  tests/manual_plan.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  baseline tests/manual_plan.py: rc=0 failed=0 11s
+  null control custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT survived tests/manual_plan.py
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/manual_plan.py: custom_components/heatpump_optimizer/__init__.py:117 GUARD_OFF
+=== custom_components/heatpump_optimizer/tariff.py:metering_windows RETURN_DEL f12661d1 | tests/plan_view.py
+  tests/plan_view.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/tariff.py:65 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  null control custom_components/heatpump_optimizer/tariff.py:65 NULL_COMMENT survived tests/plan_view.py
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/plan_view.py: custom_components/heatpump_optimizer/tariff.py:590 RETURN_DEL
+=== custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_cop_scale CLAMP_DROP c7430e1f | tests/finite_boundary.py
+  tests/finite_boundary.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  baseline tests/finite_boundary.py: rc=0 failed=0 225s
+  null control custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT survived tests/finite_boundary.py
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/finite_boundary.py: custom_components/heatpump_optimizer/coordinator.py:5094 CLAMP_DROP
+=== custom_components/heatpump_optimizer/dhw_planner.py:<module> CONST c062f2eb | tests/env_drift.py
+  ref-driven drivers compare against 'ef797d794017c98f7fb2d8a168d7de63d435ef3b' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/dhw_planner.py:107 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/env_drift.py: rc=0 failed=0 303s
+  null control custom_components/heatpump_optimizer/dhw_planner.py:107 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/env_drift.py: custom_components/heatpump_optimizer/dhw_planner.py:111 CONST
+=== custom_components/heatpump_optimizer/coordinator.py:_comparable_ts RETURN_DEL 77ac5208 | tests/solar_alignment.py
+  tests/solar_alignment.py: baseline and null control deferred until a mutant run of it is red
+  null control custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT survived every driver
+  1 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  null control custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT survived tests/solar_alignment.py
+  REACH SKIP: 0 driver run(s) not started, each on a line its traced baseline never executed (reach_skip); --no-reach-skip drives them
+PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified
+  killed by tests/solar_alignment.py: custom_components/heatpump_optimizer/coordinator.py:592 RETURN_DEL
+SPOT-DONE
