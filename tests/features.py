@@ -104140,9 +104140,13 @@ _s2_got = {}
 _s2_disk("dhw_draws", {"reservoirs": {"06:00-08:30": [True, 2.0]}, "open_kwh": 0.5})
 _s2_aio.run(_s2_c._dhw_learner.async_load_draws())
 _s2_got["dhw_draws"] = _s2_c._dhw_learner.draw_stats.reservoirs.get("06:00-08:30")
-_s2_disk("accuracy", {"peaks": {"peaks": [True, 3.0], "peak_days": ["2026-01-02", "2026-01-03"]}})
+_s2_disk("accuracy", {"peaks": {"peaks": [True, 3.0], "peak_days": ["2026-01-02", "2026-01-03"]},
+                     "accuracy": {"lead_pending": [["2026-01-01T00:00:00+00:00", True, 2.0],
+                                                   ["2026-01-01T00:00:00+00:00", 3.0, 2.0]]}})
 _s2_aio.run(_s2_c._async_load_accuracy())
 _s2_got["tariff"] = _s2_c._peak_tracker.as_dict().get("peaks")
+# A choice of numbers (accuracy/lead_pending/#/1, LEAD_BUCKETS) declares a number too (review of #3932).
+_s2_got["lead_pending"] = [lead for _, lead, _ in _s2_c._accuracy.lead_pending]
 _s2_disk("energy", {"space_energy_kwh": True, "dhw_energy_kwh": 4.0})
 _s2_aio.run(_s2_c._async_load_energy_totals())
 _s2_got["energy"] = (_s2_c._energy_totals["space_energy_kwh"], _s2_c._energy_totals["dhw_energy_kwh"])
@@ -104162,16 +104166,21 @@ _s2_aio.run(_s2_g.async_load())
 _s2_got["legionella"] = _s2_g.attempt_peak
 R.check(
     "a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep "
-    "named; the numbers beside it load as stored (null control)",
-    _s2_got == {"dhw_draws": [2.0], "tariff": [3.0], "energy": (0.0, 4.0), "ledger": None,
+    "named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null control)",
+    _s2_got == {"dhw_draws": [2.0], "tariff": [3.0], "lead_pending": [3.0], "energy": (0.0, 4.0), "ledger": None,
                 "off_restore": {"a": None, "b": None, "c": 20.5}, "legionella": None},
     str(_s2_got),
 )
 
-# The census: every numeric declaration of every store, driven through a
-# QuarantiningStore load with a stored true at that leaf. A key ("~") is JSON
-# text and never a flag; an alias mirrors a store whose own patterns are
-# driven. The control is the flag declarations, whose true loads as stored.
+# The census: every declaration of every store, driven through a QuarantiningStore
+# load with a stored true at its leaf. The rule for "declares a number" is the
+# declaration's own content: kind real or int, or a choice whose members are all
+# numbers that are not flags. Every other kind (flag, text, instant, day, month, a
+# choice of no numbers) keeps a stored true, the control. Residue by category: a
+# map key ("~") is JSON text and never a flag; an alias mirrors a store whose own
+# patterns are driven. The census refuses a declaration it cannot place (an
+# unknown kind, a choice mixing numbers with other members), so a new kind or a
+# mixed choice is classified before it can be skipped.
 
 
 def _s2_doc(pattern, leaf):
@@ -104187,33 +104196,71 @@ def _s2_leaf(doc, pattern):
     return doc
 
 
-_s2_rows = {"numeric": [], "flag": [], "skipped": []}
+def _s2_is_number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _s2_class(dom):
+    if dom.kind in ("real", "int"):
+        return "numeric"
+    if dom.kind == "flag":
+        return "flag"
+    if dom.kind in ("text", "instant", "day", "month"):
+        return "other"
+    if dom.kind == "choice":
+        numbers = [v for v in dom.choices if _s2_is_number(v)]
+        if not numbers:
+            return "other"
+        return "numeric" if len(numbers) == len(dom.choices) else None
+    return None
+
+
+def _s2_load(name, pattern, leaf):
+    key = f"{_s2_const.DOMAIN}_census_{name}"
+    _s2_storage._DISK.clear()
+    _s2_storage._VERSIONS.clear()
+    _s2_storage._DISK[key] = _s2_json.dumps(_s2_doc(pattern, leaf))
+    loaded = _s2_aio.run(_s2_store.QuarantiningStore(FakeHass({}), 1, key, lead=None).async_load())
+    return _s2_leaf(loaded, pattern)
+
+
+_s2_rows = {"numeric": [], "flag": [], "other": [], "skipped": [], "unplaced": [], "admitted": [], "member": []}
 for _s2_name, _s2_table in _s2_store.DOMAINS.items():
     for _s2_pat, _s2_dom in _s2_table.items():
         if isinstance(_s2_dom, str) or _s2_pat.endswith("~"):
             _s2_rows["skipped"].append((_s2_name, _s2_pat))
             continue
-        _s2_kind = "numeric" if _s2_dom.kind in ("real", "int") else "flag" if _s2_dom.kind == "flag" else None
+        _s2_kind = _s2_class(_s2_dom)
         if _s2_kind is None:
+            _s2_rows["unplaced"].append((_s2_name, _s2_pat, _s2_dom.kind))
             continue
-        _s2_key = f"{_s2_const.DOMAIN}_census_{_s2_name}"
-        _s2_storage._DISK.clear()
-        _s2_storage._VERSIONS.clear()
-        _s2_storage._DISK[_s2_key] = _s2_json.dumps(_s2_doc(_s2_pat, True))
-        _s2_loaded = _s2_aio.run(_s2_store.QuarantiningStore(FakeHass({}), 1, _s2_key, lead=None).async_load())
-        _s2_rows[_s2_kind].append((_s2_name, _s2_pat, _s2_leaf(_s2_loaded, _s2_pat)))
+        _s2_rows[_s2_kind].append((_s2_name, _s2_pat, _s2_dom.kind, _s2_load(_s2_name, _s2_pat, True)))
+        if _s2_kind == "numeric" and _s2_store.in_domain(_s2_dom, True):
+            _s2_rows["admitted"].append((_s2_name, _s2_pat))
+        if _s2_kind == "numeric" and _s2_dom.kind == "choice":
+            _s2_member = _s2_dom.choices[0]
+            _s2_rows["member"].append((_s2_name, _s2_pat, _s2_member, _s2_load(_s2_name, _s2_pat, _s2_member)))
 _s2_storage._DISK.clear()
 _s2_storage._VERSIONS.clear()
 _s2_named = {r[0] for r in _s2_rows["numeric"]}
+_s2_kinds = {r[2] for r in _s2_rows["numeric"]}
 R.check(
-    "every numeric declaration in store.DOMAINS loads a stored true as absent, every flag one as true; "
-    "the census drove a numeric declaration of each store the six loaders read",
-    _s2_rows["numeric"] and all(v is None for *_, v in _s2_rows["numeric"])
-    and _s2_rows["flag"] and all(v is True for *_, v in _s2_rows["flag"])
+    "every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a "
+    "stored true as absent and in_domain refuses it; every other declaration keeps it; a numeric choice's "
+    "member loads as stored; the census placed every declaration and drove each numeric kind",
+    _s2_rows["numeric"] and all(r[3] is None for r in _s2_rows["numeric"])
+    and _s2_rows["flag"] and all(r[3] is True for r in _s2_rows["flag"])
+    and _s2_rows["other"] and all(r[3] is True for r in _s2_rows["other"])
+    and not _s2_rows["unplaced"] and not _s2_rows["admitted"]
+    and _s2_rows["member"] and all(r[2] == r[3] for r in _s2_rows["member"])
+    and _s2_kinds == {"real", "int", "choice"}
     and {"dhw_draws", "accuracy", "energy", "ledger", "off_restore", "dhw_legionella"} <= _s2_named,
-    f"numeric kept {[r for r in _s2_rows['numeric'] if r[2] is not None]}; "
-    f"flag lost {[r for r in _s2_rows['flag'] if r[2] is not True]}; "
-    f"{len(_s2_rows['numeric'])} numeric, {len(_s2_rows['flag'])} flag, {len(_s2_rows['skipped'])} skipped",
+    f"numeric kept {[r for r in _s2_rows['numeric'] if r[3] is not None]}; "
+    f"in_domain admits {_s2_rows['admitted']}; unplaced {_s2_rows['unplaced']}; "
+    f"flag or other lost {[r for r in _s2_rows['flag'] + _s2_rows['other'] if r[3] is not True]}; "
+    f"member lost {[r for r in _s2_rows['member'] if r[2] != r[3]]}; numeric kinds {sorted(_s2_kinds)}; "
+    f"{len(_s2_rows['numeric'])} numeric, {len(_s2_rows['flag'])} flag, {len(_s2_rows['other'])} other, "
+    f"{len(_s2_rows['skipped'])} skipped",
 )
 
 # D3 wave fold (#3755, class I1), pinned through the loaders' own entry points.
