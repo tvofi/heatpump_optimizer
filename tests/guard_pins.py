@@ -762,7 +762,7 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
     )
     from heatpump_optimizer.coordinator import _at_least
     from heatpump_optimizer.dhw_schedule import _format_day_selector, format_clock
-    from heatpump_optimizer.optimizer import CHANNEL_ACTIVE_KW, channel_heating_steps
+    from heatpump_optimizer.thermal_model import CHANNEL_ACTIVE_KW, channel_heating_steps
     from heatpump_optimizer.quiet_windows import _within_nameplate
     from heatpump_optimizer.wood_fuel import _scan_wood_night, cheaper_hour_count
 
