@@ -1,0 +1,10 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  module_excess_loc: 21753 + both deltas = 21638
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/backtest.py: merged as a set (45 entries)
+  closures.tests/edge.py: merged as a set (43 entries)
+  closures.tests/optimality.py: merged as a set (45 entries)
+  closures.tests/stress.py: merged as a set (50 entries)
+  closures.tests/validate.py: merged as a set (43 entries)
+  re-run the gate that owns this file before pushing

@@ -1,28 +1,21 @@
-Fix review: merge 3da16553914c71017ee25fd98486f2125083016c
+Fix review: merge 36417ab5fab69c3932eda49da9d79ecd956e621b
 
-bus-nonce: 0a30ac48feda2a9a7640ebbbf5999406
+bus-nonce: 398952f51b396d1a3adf5ab9489cd72d
 pending-ci: gate
 
 ## Scope
 
-Delta round (later round over the previous verdict `blocked 625cc2c2aef154c507b37cefb015b1c40b27bde7` on a main conflict in coordinator.py, pump_arbiter.py and tests/entities.py). Scope: `git diff 625cc2c2ae 3da1655391`, read as the resolutions of every PR-side merge in that range (`git show --remerge-diff` on each merge in `625cc2c2ae..3da1655391 ^origin/main`). The previous verdict's one finding (the main conflict) is resolved. No production delta beyond the conflict resolutions, so the scope is not widened.
+Delta round over the previous verdict `merge 3da16553914c71017ee25fd98486f2125083016c`, which had no findings. Scope: `git diff 3da1655391 36417ab5fa`. In that range the PR-side work is one commit, `361cc26c97` (changes only `dev/audit/config/scopes.json`). The rest is three main merges (`9e0a095d51`, `9dfa722747`, `2643502f38`) and the merge of `361cc26c97` itself (`36417ab5fa`). The delta changes no production code on the PR side, so the scope is not widened.
 
 ## Evidence
 
-- RESULT merge-tree: `git merge-tree --write-tree origin/main 3da1655391` (origin/main `dbdc71faea`) exits 0, tree 133173eb63, no conflicting path (ev/merge-tree.txt). The head's second parent is `dbdc71faea`, so it already contains current main.
-- RESULT resolutions: four PR-side merges in the range carry a hand resolution; all others remerge with no diff (only ledger-driver files).
-  - `3654956d84` (ev/remerge-3654956d84.txt): coordinator.py keeps this branch's `early_cutoff.arm(held, inputs, boosts, on_unload)` call and main's off-restore block (`_plan_let_go`, `off_restore.async_cycle`); main's extra `_ctx_of(self)._opt_config` argument is dropped, which is correct because `early_cutoff.arm` at the head takes no `opt_config` (it reads `ArbiterInputs.opt_config`) and its one call site matches (checked by `git grep` at the head). pump_arbiter.py keeps both `opt_config` and `entry` fields. tests/entities.py keeps main's `("circulation.py", "command")` and drops main's `_async_update_data`/`_async_first_refresh_light` allowances, which this branch's `_fail_update_held` latch removes; entities.py passing at the head confirms the allowance matches the code. A union of both sides' behaviour.
-  - `d13c3e840a` (ev/remerge-d13c3e840a.txt): boost.py `.store` import is the union `admitted, load_mapping, save_held`.
-  - `dcdb80d974` and `74a0197a20` (ev/remerge-*.txt): tests/features.py keeps both sides' blocks entire; the only edit replaces the conflict separator with the `)` closing this branch's last `R.check(`.
-- RESULT features.py at head (worktree, `PYTHONPATH=tests/hastub`): `ALL 6235 FEATURE CHECKS PASSED`, RC=0 (ev/features-tail.log). The `# R11-SEAM-cycle-reporting: how a failure is reported` block header occurs once and `R.section("#3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, ...")` once.
-- RESULT entities.py at head: `ALL 2779 ENTITY CHECKS PASSED`, RC=0 (ev/entities.log; the `FAIL a3:`/`a4:`/`hb:` lines inside it are self-tests' planted negative controls, the exit code is 0).
-- RESULT structure.py at head: `STRUCTURE RATCHET PASSED`, RC=0 (ev/structure.log).
-- RESULT budgets: `git diff origin/main 3da1655391 -- '*budgets*.json'` moves only tests/structure_budgets.json, every row down or equal: class_excess_loc 17228 -> 17224, max_class_loc 7821 -> 7813, module_excess_loc 21753 -> 21741, recorded_at only otherwise (ev/budgets-vs-main.diff). No budget rises, so no raise is owed. The PR-side `structure: re-record` commits 5be21e3d57 and 8b7a4d2e18 move only `recorded_at` (bodies and diffs read).
-- RESULT version: three-dot diff touches no VERSION or RELEASE_NOTES.md; manifest.json's only three-dot change is `quality_scale` platinum -> gold, already in the reviewed diff at 625cc2c2ae (D10-s3-01), and not in the delta. The manifest `version` is main's.
-- RESULT CI: `merge_train.py classify 3da1655391 --pr 3845` printed `WAIT ... pending: gate red: none` (rc=3) at every poll from about 07:25Z to 08:02Z (ev/classify.txt); hence `pending-ci: gate`. The only red check run at the head is `tests / nightly-status`, which is not in `merge_train.py owed-reds` (coverage-ratchet, fast (3.14), mutation, typing, validate-hacs), so no answer is owed; the body answers it anyway, and its codeql runner-loss answer stands (`codeql / Analyze (python)` reads success at this head, job 139754700564).
-- RESULT head re-read: `refs/heads/fix/r11-seam-cycle-reporting-pr` is still 3da1655391 at 08:02Z.
-- RESULT runs: features.py and entities.py were each run alone at the head; a combined run hit this host's 30-minute background limit and was restarted.
-- Note: body: the `## Head` section says of `dcdb80d974` that no production or test file conflicted, and of `74a0197a20` that resolutions inside the code head are "described below" without describing one; both merges hand-resolved a tests/features.py conflict (union, verified above).
+- RESULT resolutions: `git show --remerge-diff` on `9e0a095d51`, `9dfa722747` and `2643502f38` prints no diff. The only conflicts were in `tests/structure_budgets.json` and `tests/closures.json`, and the ledger driver resolved both (`LEDGER-MERGE: resolved`). There is no hand resolution (ev/remerge-*.txt).
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 36417ab5fa` (origin/main `0238a79886`) exits 0, tree 17605524df (ev/merge-tree.txt).
+- RESULT scopes repair: with `python3 -I tools/audit/check_scopes.py --repo .` at the head, the run prints `ok D5 mode=cells seats=10 universe=945` with `s7:1f/4329u` and `s8:49f/3999u`, RC=0 (ev/check_scopes-head.log). Null control: I put `scopes.json` back to its `2643502f38` content in the head worktree and re-ran it. It prints `FAIL D5 ... over ledger.max_units 4500: s7 holds 4513 units`, RC=1 (ev/check_scopes-without-commit.log). So the red was caused by the diff and the commit removes that cause. The movement is earned (step 14). `tests/f*` holds `features.py`, `finite_boundary.py`, `fixtures/` and `frontend.py`. After the re-cut, `s7` takes `features.py` and `s8`'s new `tests/f{i,r}*` takes the other three, so nothing goes unowned. check_scopes confirms this with universe 945, unchanged.
+- RESULT budgets: `git diff origin/main 36417ab5fa -- '*budgets*.json'` moves only tests/structure_budgets.json, and every changed row goes down: class_excess_loc 17220 -> 17216, max_class_loc 7762 -> 7754, module_excess_loc 21646 -> 21634 (ev/budgets-vs-main.diff). No budget rises, so no raise is owed.
+- RESULT version: the three-dot diff does not touch VERSION or RELEASE_NOTES.md.
+- RESULT CI, read live at 36417ab5fa: `gate` reads failure, and its log says `FAIL run(s) [45930781927] at this head are still being judged; their gate decides`. That is a deferral: `pr-contract / pr-contract` was still queued. Hence `pending-ci: gate`. `governance / instrument-self-tests`, the lane the repair targets, reads success. The only other red is `tests / nightly-status`, which is not required. Every owed-reds lane (coverage-ratchet, fast (3.14) 1-4/4, mutation, typing, validate-hacs) reads success.
+- RESULT head re-read: `gh pr view 3845` headRefOid is 36417ab5fab69c3932eda49da9d79ecd956e621b.
 
 ## Findings
 
