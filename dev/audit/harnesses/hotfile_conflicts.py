@@ -47,7 +47,7 @@ HOT = (
 ANCHORS = {
     "tests/deployment_shape.py": [("COST OF THE SHAPE", "    python tests/deployment_shape.py")],
     "dev/audit/rounds/round4/D6/claims.py": [
-        ("    RESULT claims_extracted=", "INSTRUMENTED SYMBOLS"),
+        ("    RESULT arch_", "INSTRUMENTED SYMBOLS"),
         ("_disk = sorted(", 'claim("C35"'),
     ],
     "docs/architecture.md": [

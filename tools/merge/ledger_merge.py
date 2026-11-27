@@ -904,9 +904,9 @@ def self_test() -> int:
         with contextlib.redirect_stderr(err):
             rc = run_driver(*paths, "7", reg)
         with open(paths[1]) as f:
-            got_reg = json.loads(f.read())
+            got_reg = f.read()
         check("driver: the D6 register merges row by row through its arm",
-              rc == 0 and got_reg == rows(101))
+              rc == 0 and got_reg == json.dumps(rows(101), indent=1))
         check("driver: and says the register is owed a re-run",
               "re-run the gate" in err.getvalue())
 

@@ -176,6 +176,10 @@ def self_test() -> int:
            .splitlines() if ROW.match(ln) and not ln.startswith("| id |")]
     check("md: rows each side added both land, in the same order",
           got == ["C1", "C2", "C32", "C42", "C99"])
+    mid_t = base[:1] + [row("C5", "t")] + base[1:]
+    got = [r["id"] for r in json.loads(merge_json(dump(base), dump(added_o), dump(mid_t)))]
+    check("json: a row theirs added mid-table lands after its predecessor there",
+          got == ["C1", "C5", "C2", "C32", "C42"])
     dropped = base[:2]
     check("json: a row theirs deleted and ours left alone is deleted",
           [r["id"] for r in json.loads(merge_json(dump(base), dump(base), dump(dropped)))]
