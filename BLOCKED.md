@@ -1,6 +1,17 @@
-# fixer-r11-ci-3885-queue-l4l3 (fire 2): L3 W1 built; W2 and carry 2 to a fresh context
+# fixer-r11-ci-3885-queue-l4l3 (fire 3): carry 2 measured; W2 and the L3 handoff to a fresh context
 
-Question: re-dispatch L3's W2, its handoff, and carry 2's measurement to a fresh fixer context? This fire reached fixer.md's rotation bound (~150 k) after W1.
+Question: re-dispatch L3's W2 and its handoff to a fresh fixer context? Fire 3 measured carry 2, then reached the rotation bound. It did not see this ref until after it had rebuilt L4 locally (its comms init printed no `snapshot` line); that duplicate was discarded and never pushed. The next fire should read this ref first.
+
+## Fire 3: carry 2 measured (commit on this ref, `dev/programme/carries/carry-3885.json` carry 2 `control` and `brief`)
+
+- Source: GitHub MCP `list_workflow_jobs` and `get_job_logs`. `gh` is for search only in this container.
+- Producer: light push fd93aa3e9b, CI run 45907525407, `tests / fast (3.14, 3/4)`, job 140208021805, the shard that owns env_drift. It logged `SKIP  tests/env_drift.py  (closure: 218 files, no changed file is in its measured closure)` and `Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved`.
+- Consumer: PR 3845, CI run 45907841043, `tests / fast (3.14, 3/4)`, job 140209859526, forked at fd93aa3e9b. It logged `Cache not found for input keys: drift-baseline-fe12a528...`, then `262s  python3 tests/env_drift.py --all fd93aa3e9b...`, then `Cache saved with key:` for the same key.
+- The rule for which forks are exposed: a merge base whose first-parent diff is light by `prelude.light` and reaches no file in `tests/closures.json`'s env_drift closure, crossed with a PR diff that does reach it. The census script is in scratch only; re-derive it. At 190ffb10c2, 12 of the last 40 first-parent main commits are light and reach no env_drift file. Two open fix/ branches fork at one: fix/r11-owner-fault-text at 7194ff84c0 and fix/r11-seam-cycle-reporting-pr at fd93aa3e9b.
+- The null control is not separated. PR 3870 run 45818958831 (job 139912619679) forked at full push 1d3077736d while that push's run was still running, and also missed: it saved a fresh entry, `326s`. Main push runs are often `cancelled`, and a cancelled full push warms nothing either. Still owed: a miss forked at a full push whose run did save, and the hit duration that prices a miss.
+- Cache scope: actions/cache entries saved by a `pull_request` run are scoped to that PR's merge ref, so every PR forked at a light commit misses separately. This is from the actions/cache scoping rule, not measured here.
+- The remeasure clause's push-log reading cannot show this, because a push restores no drift entry; the carry now says so.
+- Destination: carry 2 belongs in L4's PR by the design (§5), but L4's head is frozen at its handoff. So it rides L3's PR: cherry-pick the carry commit onto the L3 handoff branch, and name it in the L3 body's `## Forward-carry` with `Carry: #3885`.
 
 ## State
 
@@ -24,6 +35,3 @@ The plan this fire reached, not yet built:
 4. Convert the poll rows (223, 246, 249-250, 253-254, 257, 260, 300, 307 and 407 at the base numbering) into two-sweep completion rows with the same POST set.
 5. Then: `GATE_WAIT_MAX_S` to `GATE_ABSENT_MAX_S` per W3's cap, only if W1 removes every source wait (the design names it as conditional). Then scope, structure, prepr with `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`, the body, and `handoff/r11-ci-3885-queue-l3` plus `body_push.sh r11-ci-3885-queue-l3`.
 
-## Carry 2 (unchanged from fire 1)
-
-Unmeasured. `gh api` worked in fire 1's container. Find a pull request whose merge base is a light push that never ran env_drift, and grep its owning `fast` shard log for `DRIFT BASELINE CACHE`.
