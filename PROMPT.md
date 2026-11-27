@@ -6,16 +6,13 @@ Never write to any branch except your return refs. Never work around a hook or a
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-# Design revision 2: R11-OWNER-FEATURES-SPLIT
+# Design revision 3: R11-OWNER-FEATURES-SPLIT
 
 Role: dev/governance/roles/designer.md. Identity: tvofi <70032254+tvofi@users.noreply.github.com>.
 
-Your note at design/r11-owner-features-split 7b9c5331fe got `Design review: revise`. Read the verdict at ref design-verdict/R11-OWNER-FEATURES-SPLIT (VERDICT.md). Re-cut the note on the same branch and answer every finding:
-- R1: the partition must respect the section dependencies recorded in tests/case_closures.json (tests/case_select.py). Measure cross-part links and give a rule that settles; no section may need state built in two parts.
-- R2: cover tests/case_select.py, the per-script table in tests/case_closures.json, tests/closure.py and tests/shards.py in the migration.
-- R3: commit a section-to-part manifest, and port open PRs by that manifest, never by a global rule.
-- R4: give a measured cost for the mutation re-check and a cheaper sound plan if it is large.
+Your note at design/r11-owner-features-split f4c840caf0 got `Design review: revise` (round 2). Read verdict.md at ref design-verdict/R11-OWNER-FEATURES-SPLIT (cc2c99c10e). R3 is resolved; answer the open findings on the same branch:
+- V1: `--check`/`--port` refuse every cross-part state edge, but the pre-split edits remove only output-changing edges, so `--check` can never pass (e.g. `np.sort` counted as mutating `np`). Make the swap run's difference set the gate, and show `--check` passing on the measured partition.
+- V2: mutation rows reached by one part are re-keyed without running; a kill may have come from another part through shared state. Run them, or prove the kill is part-local, with a measured cost.
+- V3: the reference search finds 1151 lines in 199 files outside your named classes (two seat tools, tests/README.md, comments in 16 production files). Classify every one: migrated, rewritten, or left with a reason.
 
-Order (orchestrator ruling): this split lands after the R11-CI-CASE-SELECT design's case-closure work, and builds on its tables; say how.
-
-No production code. Merge main only if the branch is DIRTY. Push to design/r11-owner-features-split. If blocked, write BLOCKED.md with the exact refusal and a Question line.
+This is the last revise before a re-cut (design-review.md). Keep the order ruling: after the R11-CI-CASE-SELECT case-closure work. No production code. Merge main only if DIRTY. Push to design/r11-owner-features-split; if blocked, BLOCKED.md with a Question line.
