@@ -1,19 +1,30 @@
-head: cbd6e64df9e8ae00214ea162a5f587a2ba074339
-old three-dot (dbdc71faea358a95a7b33840ed252b0d8a646a31..2b85f00206359887d28726af32d593baf120aae3) vs new three-dot (190ffb10c230b6beaf77593b2926d55682e37f47..HEAD) stat:
-2a3
->  dev/audit/config/scopes.json                                                                                                 |   4 +-
-4,6d4
-<  dev/audit/rounds/round4/D6/claims.json                                                                                       |   4 +-
-<  dev/audit/rounds/round4/D6/claims.md                                                                                         |   4 +-
-<  dev/audit/rounds/round4/D6/claims.py                                                                                         |   4 +-
-8c6
-<  docs/architecture.md                                                                                                         |   9 +-
+356,374d355
+< diff --git a/dev/audit/config/scopes.json b/dev/audit/config/scopes.json
+< --- a/dev/audit/config/scopes.json
+< +++ b/dev/audit/config/scopes.json
+<     "s7": [
+<      {
+<       "files": [
+< -      "tests/f*"
+< +      "tests/fe*"
+<       ],
+<       "steps": [
+<        "M1",
+<     "s8": [
+<      {
+<       "files": [
+< -      "tests/{a,b,c,d,g}*",
+< +      "tests/{a,b,c,d,fi,fr,g}*",
+<        "tools/policy/**"
+<       ],
+<       "steps": [
+1630,1631c1611,1612
+< - "module_excess_loc": 21646,
+< + "module_excess_loc": 21638,
 ---
->  docs/architecture.md                                                                                                         |   3 +
-11d8
-<  tests/deployment_shape.py                                                                                                    |  14 +-
-28c25
-<  27 files changed, 1119 insertions(+), 84 deletions(-)
+> - "module_excess_loc": 21627,
+> + "module_excess_loc": 21619,
+1633c1614
+<   "recorded_at": "dbdc520e86e4453755f553ab21a39de205a70b34",
 ---
->  24 files changed, 1103 insertions(+), 72 deletions(-)
-9740b9e336 is byte-identical to origin/main's 7df39f349a
+>   "recorded_at": "dbdc71faea358a95a7b33840ed252b0d8a646a31",
