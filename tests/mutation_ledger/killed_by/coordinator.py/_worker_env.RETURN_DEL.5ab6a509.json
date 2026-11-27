@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_worker_env RETURN_DEL 5ab6a509",
+  "killed_by": "tests/deployment_shape.py",
+  "old": "    return env",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/deployment_shape.py from rc=0 failed=0 to rc=1 failed=1."
+}

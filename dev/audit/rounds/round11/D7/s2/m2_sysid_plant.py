@@ -111,7 +111,7 @@ def drive(declared: ThermalParameters, true: ThermalParameters, sigma: float, se
 def verdict(result, declared):
     if result is None or not result.completed or result.heat_loss_kw_per_c is None:
         return None, False, (result.reason if result is not None else "not armed")
-    d = S.adoption_decision(result, declared, S.SysIdConfig(**_SID_ON))
+    d = S.adoption_decision(result, declared)
     WEIGHT[0] = d.weight
     return result.heat_loss_kw_per_c, d.admit, d.reason
 

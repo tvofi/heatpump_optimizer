@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop GUARD_OFF fb33d02b",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if derate is not None:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): GUARD_OFF (`if False:`) took it from rc=0 failed=0 to rc=1 failed=3 (D3-wave dfe094233a9164e0)."
+}

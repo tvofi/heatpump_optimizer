@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_cop_scale CLAMP_DROP c7430e1f",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`self._cop_scale = float((scale))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

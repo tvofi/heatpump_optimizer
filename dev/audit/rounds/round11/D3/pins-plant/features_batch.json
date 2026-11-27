@@ -1,0 +1,20 @@
+[
+ {
+  "name": "7068e39e4608027f",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "                                w * drawn, np.maximum(avail_wood, 0.0)\n",
+  "new": "                                w * drawn, (avail_wood)\n"
+ },
+ {
+  "name": "6462c28df2f973e0",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "                                drawn - wood_draw, np.maximum(avail_hp, 0.0)\n",
+  "new": "                                drawn - wood_draw, (avail_hp)\n"
+ },
+ {
+  "name": "78b7f2ebcf85c8a1",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "                    if wood is not None and T_wood is not None:\n",
+  "new": "                    if False:\n"
+ }
+]

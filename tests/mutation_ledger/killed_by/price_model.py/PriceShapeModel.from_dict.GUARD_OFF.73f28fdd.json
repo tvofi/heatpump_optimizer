@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.from_dict GUARD_OFF 73f28fdd",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+}
