@@ -1488,7 +1488,12 @@ jobs:
   # `replay_reach`. Never on every pull request: a blanket per-PR lane is
   # refused for good. Unrequired, and its verdict is about the pull request's
   # own code: it grades nothing (codeowners_gap.py's rule). tests/entities.py
-  # pins the reach and the wiring.
+  # pins the reach and the wiring. The cap is sized from the lane's own cost
+  # budget: the owner fixture's `cpu_ratio` budget (tests/replay.py
+  # COST_BUDGETS) on the slowest runner on record (REPLAY_SIZING_DRAW) is
+  # about 46.1 min of lane (`budget_wall_s`), and 60 leaves the check's
+  # headroom over it. tests/replay.py reads this value and goes red when the
+  # lane's wall time leaves too little of it (`headroom_offenders`).
   replay:
     needs: [closure-scope]
     if: >-
@@ -1496,7 +1501,7 @@ jobs:
       && github.event_name == 'pull_request'
       && needs.closure-scope.outputs.replay == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       HPO_JOB_GRADES: nothing
     steps:
