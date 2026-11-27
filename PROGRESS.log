@@ -28,3 +28,4 @@
 1795747901 HB alive
 1795748499 HB alive
 1795748657 DONE returned: handoff a73ac619, body 48342690; 3 frost_hold sites answered (2 pinned, 1 equivalent triage)
+1795748684 DONE returned: handoff a73ac619, body 48342690; 3 frost_hold sites answered (2 pinned, 1 equivalent triage); step ref delete refused by remote
