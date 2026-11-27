@@ -28,7 +28,7 @@ be imported from anywhere in the integration without dragging the config flow
 """
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -56,6 +56,12 @@ from .const import (
     DEFAULT_MAX_TEMP,
     DEFAULT_MIN_TEMP,
     DEFAULT_TARGET_TEMP,
+    finite_float,
+    CONF_DHW_MIN_TEMP,
+    CONF_DHW_SETPOINT,
+    DEFAULT_DHW_MIN_TEMP,
+    DEFAULT_DHW_SETPOINT,
+    DHW_MIN_TEMP_SETPOINT_MARGIN,
 )
 
 
@@ -72,7 +78,7 @@ class BandViolation:
 
 
 def effective(
-    candidate: dict[str, Any], current: dict[str, Any], key: str, default: Any
+    candidate: Mapping[str, Any], current: Mapping[str, Any], key: str, default: Any
 ) -> float:
     """The value a save would leave in force for one field.
 
@@ -81,8 +87,28 @@ def effective(
     one page over existing data, a service call carries one field, the climate
     slider carries one number — so a write that only touches one half of a pair
     can still create a contradiction with the stored other half.
+
+    A value that is not a finite number reads as ``default``, through the
+    entry's own numeric parse (``finite_float``): the migration repairs such a
+    stored value only when it stamps the version, so one written past it
+    (R11-LATE-P1-OPTIONS) would otherwise raise out of the rule judging it.
     """
-    return float(candidate.get(key, current.get(key, default)))
+    return finite_float(candidate.get(key, current.get(key, default)), float(default))
+
+
+def dhw_deadband(
+    candidate: Mapping[str, Any], current: Mapping[str, Any]
+) -> tuple[float, float, float]:
+    """``(minimum, setpoint, ceiling)`` of the hot-water pair a save would leave in force.
+
+    The minimum must stay at or below ``ceiling``, the setpoint less
+    ``DHW_MIN_TEMP_SETPOINT_MARGIN``: the tank limits are soft penalties, so a
+    minimum above it is not refused downstream and the plan sits in permanent
+    violation. The options page and ``apply_schedule`` judge the pair here.
+    """
+    setpoint = effective(candidate, current, CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT)
+    minimum = effective(candidate, current, CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP)
+    return minimum, setpoint, setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
 
 
 def _pair_violations(
