@@ -1202,9 +1202,8 @@ R.check(
     f"named but not on disk: {sorted(set(_arch_listed) - set(_arch_disk))}",
 )
 
-# The named list ends at its own full stop -- the `inputs` sentence that
-# follows is about a different claim (the one function-level toucher, pinned
-# below), and sweeping it in would make 22 names out of 21 importers.
+# The named list ends at its own full stop -- the sentence that follows is
+# about a different claim (the function-level touchers, pinned below).
 _arch_bound = _re.search(
     r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level:\s+(.*?)\.",
     _arch, _re.S,
@@ -1225,14 +1224,21 @@ R.check(
     f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
 )
 
+# The documented function-level touchers: one named module, or none (since
+# ADR-002 part 2 took `inputs` off Home Assistant's clock).
 _arch_touch = _re.search(
     r"One module outside that set touches it at all:\s+`([a-z_]+)`", _arch
 )
+_arch_documented = (
+    [_arch_touch.group(1)] if _arch_touch
+    else [] if _re.search(r"No module outside that set touches it", _arch)
+    else None
+)
 _arch_touchers = sorted(set(_arch_anywhere) - set(_arch_modlevel))
 R.check(
-    "architecture.md's one function-level toucher is the only one",
-    _arch_touch is not None and _arch_touchers == [_arch_touch.group(1)],
-    f"documented {_arch_touch.group(1) if _arch_touch else '?'}; modules "
+    "architecture.md's function-level touchers are the tree's",
+    _arch_documented == _arch_touchers,
+    f"documented {_arch_documented}; modules "
     f"outside the module-level set that touch homeassistant anywhere: "
     f"{_arch_touchers}",
 )

@@ -104325,6 +104325,23 @@ R.check(
     f"{_ifr_gone.health.details()}",
 )
 
+# The cycle's two entry readers: the state read and the external-heat read
+# both run, and the cycle's health hands on the live outdoor value.
+_ifr_cyc = _ifr_coord(outdoor_temp_entity="sensor.o")
+_ifr_cyc.hass.states.set("sensor.o", FakeState(
+    "-3.0", last_updated=_ifr_now, last_reported=_ifr_now))
+_ifr_asyncio.run(_ifr_cyc._update_current_state())
+_ifr_cyc._update_external_heat_detection()
+R.check(
+    "a cycle reads through the entry's reader and its health hands on the "
+    "live outdoor value",
+    _ifr_cyc._current_state.outdoor_temperature == -3.0
+    and _ifr_cyc._input_health.live("outdoor_temp_entity") == -3.0
+    and _ifr_cyc._input_health.live("indoor_temp_entity") is None,
+    f"state {_ifr_cyc._current_state.outdoor_temperature}, live "
+    f"{_ifr_cyc._input_health.live('outdoor_temp_entity')}",
+)
+
 # D1-s3-02: a JSON bool is never an ECL110 displacement; a number still is.
 _ifr_ecl = [_ifr_cm._parse_ecl110_state(p, None)[0]
             for p in ("true", "false", '{"displace": true}', "7", '{"displace": "3"}')]
