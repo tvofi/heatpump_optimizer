@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_storable_sample_count CMP_BOUND 713016cb",
+  "killed_by": "tests/features.py",
+  "old": "    if not np.isfinite(count) or not 0 <= count <= 2**31:",
+  "reason": "Recorded by hand under ADR-011 decision 3 (R11-SEAM-store-p2, #3755): CMP_BOUND (`if not np.isfinite(count) or not 0 <= count < 2**31: / if not np.isfinite(count) or not 0 < count <= 2**31:`) took the features.py block `# R11-SEAM-store-p2 (round-11 sweep P1` from 0 failed to 1 failed."
+}

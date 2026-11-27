@@ -656,6 +656,26 @@ def _child(node: Mapping[str, Any], key: str, wildcard: str) -> dict[str, Any]:
     return child if isinstance(child, dict) else {}
 
 
+def _unflag_numbers(value: Any, node: Mapping[str, Any]) -> Any:
+    """``value``, a store's document walked against its ``DOMAINS`` trie ``node``,
+    with each ``bool`` where a number is declared read as absent (``None``).
+
+    Python counts a flag as an ``int``, so a loader's ``isinstance(x, (int,
+    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1); no writer
+    stores a flag where it declares a number (``in_domain`` refuses one). Read
+    here, at the one load boundary, as the absent value each loader already
+    defaults, so no loader repeats the exclusion. A field the trie does not
+    declare passes untouched: the load never rewrites what it cannot name.
+    """
+    if isinstance(value, dict):
+        return {k: _unflag_numbers(v, _child(node, k, "*")) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_unflag_numbers(v, _child(node, str(i), "#")) for i, v in enumerate(value)]
+    domain = node.get("")
+    numeric = isinstance(domain, Domain) and domain.kind in ("real", "int")
+    return None if numeric and isinstance(value, bool) else value
+
+
 def _scalar_domain(node: dict[str, Any]) -> Domain | None:
     """The domain when this node declares one value, not a container of them.
 
@@ -812,12 +832,13 @@ class QuarantiningStore(Store[_StorePayload]):
                 _NEWER_ON_DISK.add(self._store_key)
                 self._surface_version("it was saved by a newer release than this one")
                 raise
+            where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
+            node = _tries().get(store_name(where) or "", {})
+            data = _unflag_numbers(data, node)
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
-                where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
                 hits: list[str] = []
                 self.bounded = hits
-                node = _tries().get(store_name(where) or "", {})
                 data = _bound_instants(data, bound, where, self._naive_zone, hits, (), node)
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
