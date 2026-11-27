@@ -29,6 +29,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import functools
 import math
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone, tzinfo
@@ -226,12 +227,21 @@ def _number(value: Any, domain: Domain) -> bool:
     )
 
 
+def _declares_number(domain: Domain) -> bool:
+    """Whether a field so declared holds a number: a ``real``, an ``int``, or a
+    ``choice`` whose members are all numbers (``LEAD_BUCKETS``), a flag none."""
+    if domain.kind in ("real", "int"):
+        return True
+    real = Domain("real")
+    return domain.kind == "choice" and bool(domain.choices) and all(_number(m, real) for m in domain.choices)
+
+
 _KINDS: dict[str, Any] = {
     "real": _number,
     "int": lambda v, d: isinstance(v, int) and _number(v, d),
     "flag": lambda v, d: isinstance(v, bool),
     "text": lambda v, d: isinstance(v, str),
-    "choice": lambda v, d: v in d.choices,
+    "choice": lambda v, d: any(v == m and isinstance(v, bool) == isinstance(m, bool) for m in d.choices),
     "instant": lambda v, d: _parses(v, datetime.fromisoformat, 16) and v[10] in "T ",
     "day": lambda v, d: len(str(v)) == 10 and _parses(v, date.fromisoformat, 10),
     "month": lambda v, d: len(str(v)) == 7 and _parses(f"{v}-01", date.fromisoformat, 10),
@@ -625,8 +635,10 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
 }
 
 
+@functools.cache
 def _tries() -> dict[str, dict[str, Any]]:
-    """``DOMAINS`` as one path trie per store, aliases linked in place."""
+    """``DOMAINS`` as one path trie per store, aliases linked in place; built
+    once, as ``DOMAINS`` is fixed at import and no reader writes the trie."""
     tries: dict[str, dict[str, Any]] = {name: {} for name in DOMAINS}
     aliases = []
     for name, table in DOMAINS.items():
@@ -659,6 +671,27 @@ def _child(node: Mapping[str, Any], key: str, wildcard: str) -> dict[str, Any]:
     if not isinstance(child, dict):
         child = node.get(wildcard)
     return child if isinstance(child, dict) else {}
+
+
+def _unflag_numbers(value: Any, node: Mapping[str, Any]) -> Any:
+    """``value``, a store's document walked against its ``DOMAINS`` trie ``node``,
+    with each ``bool`` where a number is declared read as absent (``None``).
+
+    Python counts a flag as an ``int``, so a loader's ``isinstance(x, (int,
+    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1). No writer
+    stores a flag where ``_declares_number`` holds (a real, an int or a choice
+    of numbers), and ``in_domain`` refuses one there. Read
+    here, at the one load boundary, as the absent value each loader already
+    defaults, so no loader repeats the exclusion. A field the trie does not
+    declare passes untouched: the load never rewrites what it cannot name.
+    """
+    if isinstance(value, dict):
+        return {k: _unflag_numbers(v, _child(node, k, "*")) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_unflag_numbers(v, _child(node, str(i), "#")) for i, v in enumerate(value)]
+    domain = node.get("")
+    numeric = isinstance(domain, Domain) and _declares_number(domain)
+    return None if numeric and isinstance(value, bool) else value
 
 
 def _scalar_domain(node: dict[str, Any]) -> Domain | None:
@@ -817,12 +850,13 @@ class QuarantiningStore(Store[_StorePayload]):
                 _NEWER_ON_DISK.add(self._store_key)
                 self._surface_version("it was saved by a newer release than this one")
                 raise
+            where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
+            node = _tries().get(store_name(where) or "", {})
+            data = _unflag_numbers(data, node)
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
-                where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
                 hits: list[str] = []
                 self.bounded = hits
-                node = _tries().get(store_name(where) or "", {})
                 data = _bound_instants(data, bound, where, self._naive_zone, hits, (), node)
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)

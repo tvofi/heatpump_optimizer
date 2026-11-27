@@ -768,7 +768,7 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
     )
     from heatpump_optimizer.coordinator import _at_least
     from heatpump_optimizer.dhw_schedule import _format_day_selector, format_clock
-    from heatpump_optimizer.optimizer import CHANNEL_ACTIVE_KW, channel_heating_steps
+    from heatpump_optimizer.thermal_model import CHANNEL_ACTIVE_KW, channel_heating_steps
     from heatpump_optimizer.quiet_windows import _within_nameplate
     from heatpump_optimizer.wood_fuel import _scan_wood_night, cheaper_hour_count
 
@@ -1114,6 +1114,172 @@ def _range_census():
                                 and hi >= d and lo <= d):
                             bad.append((lo, hi, step, d, hold, got))
     return rows, raised, bad
+
+
+# R11-D3-PINS-plant pins (#3755)
+def _plant_pins() -> dict[str, bool]:
+    """COP path, weather, ECL110 displacement and DHW coast-hours pins."""
+    import heatpump_optimizer.defrost as dfr
+    from heatpump_optimizer.thermal_model import ThermalModel as TM
+
+    tanks = np.array([25.0, 35.0, 40.0, 50.0, 60.0])
+
+    def model(**kw):
+        return TM(ThermalParameters(two_zone_enabled=True, **kw))
+
+    def derate(grid):
+        d = dfr.DefrostDerate(factors=dfr._grid(1.0), counts=dfr._grid(100))
+        for i in range(len(d.factors)):
+            for j in range(len(d.factors[i])):
+                d.factors[i][j] = grid(i, j)
+        return d
+
+    def is_(got, want):
+        return bool(np.allclose(np.asarray(got, dtype=float), want, rtol=0, atol=1e-6))
+
+    out: dict[str, bool] = {}
+    # COP path: _batch_cop and the scalar law.
+    ref = model()
+    out["_batch_cop caps the nominal-COP factor at 1.5x above 27 C (D3-wave-43b54266f12bfb21)"] = (
+        is_(ref._batch_cop(30.0, None, tanks, False), 5.25)
+        and is_(ref._batch_cop(40.0, None, tanks, False), 5.25))
+    out["compute_cop caps the nominal-COP factor at 1.5x above 27 C (D3-wave-a6cebb125b72f083)"] = (
+        is_(ref.compute_cop(30.0), 5.25) and is_(ref.compute_cop(40.0), 5.25))
+    flat = model(defrost_derate=derate(lambda i, j: 0.7))
+    out["_batch_cop applies a learned defrost derate (D3-wave-dfe094233a9164e0)"] = (
+        is_(flat._batch_cop(-2.0, 90.0, tanks, False), 1.89875)
+        and is_(flat.compute_cop(-2.0, 90.0), 1.89875))
+    wet = derate(lambda i, j: (0.9, 0.6)[min(j, 1)])
+    m_none = model(defrost_derate=wet)
+    m_80 = model(defrost_derate=wet, ambient_humidity=80.0)
+    m_90 = model(defrost_derate=wet, ambient_humidity=90.0)
+    nan = float("nan")
+    out["_batch_cop treats a NaN humidity step as no humidity (D3-wave-e3a350a3272762f1)"] = (
+        is_(m_none._batch_cop(-2.0, nan, tanks, False), 2.44125)
+        and is_(m_80._batch_cop(-2.0, nan, tanks, False), 1.7161262376237623)
+        and is_(m_80._batch_cop(-2.0, None, tanks, False), 1.7161262376237623))
+    out["_batch_cop falls back to the live ambient humidity for a step without one (D3-wave-94ce174acf85b6f2)"] = (
+        is_(m_90._batch_cop(-2.0, None, tanks, False), 1.6275)
+        and is_(m_90.compute_cop(-2.0, humidity=None), 1.6275)
+        and is_(m_none._batch_cop(-2.0, None, tanks, False), 2.44125))
+    carnot = model(cop_flow_carnot=True)
+    unthrottled = carnot._batch_cop(0.0, None, tanks, False)
+    out["_batch_cop applies the Carnot lift cost only on a throttled step (D3-wave-898d741cf6142efb)"] = (
+        is_(unthrottled, 2.8875)
+        and is_(carnot.compute_cop(0.0, flow_temp=None), 2.8875)
+        and float(carnot._batch_cop(0.0, None, tanks, True)[-1]) < 2.0
+        and is_(model(cop_flow_carnot=False)._batch_cop(0.0, None, tanks, True), 2.8875))
+    # Weather: rain and solar.
+    u = lambda precip: ref.effective_heat_loss_coefficient(0.1, 0.0, precip)  # noqa: E731
+    out["precipitation of exactly 0.1 mm/h is dry (D3-wave-9df41596c4fa89c6)"] = (
+        is_(u(0.1), 0.1) and is_(u(0.2), 0.10075 + 0.00075))
+    out["heavy rain saturates the heat-loss multiplier at 2 mm/h (D3-wave-029c040224dc4e38)"] = (
+        is_(u(2.0), 0.115) and is_(u(10.0), 0.115) and is_(u(50.0), 0.115))
+    out["negative irradiance yields no solar gain (D3-wave-f7e051cc469b465f)"] = (
+        ref.compute_solar_gain(-10.0) == 0.0 and is_(ref.compute_solar_gain(500.0), 2.45))
+    # ECL110 displacement lag.
+    def ecl(eff, cmd, dt):
+        s = ThermalState()
+        s.ecl110_effective_displace = eff
+        s = ref.update_ecl110_displace_state(s, cmd, dt)
+        return s.ecl110_displace_command, s.ecl110_effective_displace
+    out["the ECL110 command is clipped to the displace range (D3-wave-f66c6e9cf9d1f84a)"] = (
+        is_(ecl(0.0, 40.0, 0.25), (20.0, 3.3333333333))
+        and is_(ecl(0.0, -40.0, 0.25), (-20.0, -3.3333333333)))
+    out["the ECL110 lag gain never overshoots the command (D3-wave-9362d5efbe6808c2)"] = (
+        ecl(0.0, 10.0, 24.0) == (10.0, 10.0) and ecl(0.0, 10.0, 1.5) == (10.0, 10.0))
+    out["the ECL110 effective displace is held inside the range (D3-wave-36117bb3a189672b)"] = (
+        ecl(-25.0, -29.0, 0.0) == (-20.0, -20.0) and ecl(25.0, 29.0, 0.0) == (20.0, 20.0))
+    # DHW hours of storage.
+    out["a tank at exactly ambient coasts 0 h (D3-wave-402ffd06ddbd856a)"] = (
+        ref.dhw_coast_hours(20.0, 10.0, 20.0) == 0.0
+        and ref.dhw_coast_hours(30.0, 10.0, 30.0) == 0.0)
+    out["a tank below ambient coasts 0 h (D3-wave-d90533f4d17cfa14)"] = (
+        ref.dhw_coast_hours(10.0, 5.0, 20.0) == 0.0
+        and ref.dhw_coast_hours(15.0, 10.0, 20.0) == 0.0)
+    slow = TM(ThermalParameters(dhw_cooling_rate=0.0))
+    out["dhw_coast_hours is capped at 168 h for a near-lossless tank (D3-wave-011b9e2e975b5e98)"] = (
+        slow.dhw_coast_hours(60.0, 40.0) == 168.0
+        and abs(ref.dhw_coast_hours(60.0, 40.0) - 57.762265046662115) < 1e-9)
+    return out
+
+
+# R11-D3-PINS-plant pins (#3755) -- valve delivery, batch wood/tank, params
+def _valve_batch_params_pins() -> dict[str, bool]:
+    """Two-zone valve delivery, batch two-tank trajectory and parameter pins."""
+    import heatpump_optimizer.thermal_model as tmod
+    from heatpump_optimizer import const, dhw_schedule, mixing_valve
+    from heatpump_optimizer.thermal_model import ThermalState
+
+    def near(got, want, tol=1e-6):
+        return bool(np.allclose(np.asarray(got, dtype=float), want, rtol=0, atol=tol))
+
+    def valve(two, loss, dt, T_buf=25.0):
+        p = ThermalParameters()
+        p.wood_tank_configured = True
+        s = ThermalState(upper_floor_temperature=18.0, slab_temperature=15.0,
+                         buffer_tank_temperature=T_buf, wood_tank_temperature=30.0)
+        try:
+            return tmod._valve_two_zone_delivery(
+                p, s, 0.0, 0.0, loss, None, 5.0, (0.2, 0.2), dt, two)
+        except ZeroDivisionError:
+            return (float("nan"),) * 5
+
+    out: dict[str, bool] = {}
+    # _valve_two_zone_delivery
+    r = valve(False, 0.0, 0.25)
+    out["a valved single tank's delivery is bounded by the coldest zone it feeds (D3-wave-19404e3632806509)"] = (
+        near(r[:2], [0.5167272727272727, 1.1072727272727272]))
+    r = valve(True, 0.0, 0.0)
+    out["a zero-length two-tank step delivers finite heat, the wood-tank bound keeps its dt floor (D3-wave-beeb068352333132)"] = (
+        near(r[:3], [5.578333333333334, 10.4675, 16.045833333333334]))
+    out["a zero-length two-tank step delivers finite heat, the heat-pump-tank bound keeps its dt floor (D3-wave-ea9c4705de428b28)"] = (
+        near(r[:3], [5.578333333333334, 10.4675, 16.045833333333334]))
+    r = valve(True, 3.0, 0.25)
+    out["a heat-pump tank losing more than it holds supplies zero, not negative heat (D3-wave-98853a541b6b5d6a)"] = (
+        near(r[:3], [5.578333333333334, 10.4675, 16.045833333333334]))
+    r = valve(True, 0.0, 1.0)
+    out["a partly starved two-tank step scales both emitters down in proportion (D3-wave-39041ccf21eedba6)"] = (
+        near(r[:3], [3.1525414441895445, 5.915606973478468, 8.662148417668012]))
+    # _simulate_step_two_zone: a throttled single tank charging at a zero-length step
+    def charge(dt):
+        q = ThermalParameters(two_zone_enabled=True, mixing_valve_mode="manual")
+        st = ThermalState(upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                          slab_temperature=22.0, buffer_tank_temperature=69.9999999)
+        try:
+            return ThermalModel(q)._simulate_step_two_zone(st, 5.0, 0.0, dt_hours=dt).buffer_tank_temperature
+        except ZeroDivisionError:
+            return float("nan")
+
+    out["a zero or sub-microsecond step keeps the buffer-ceiling cap finite and below the ceiling (D3-wave-c5e678a5d1812e40)"] = (
+        near(charge(0.0), 69.9999999, 1e-12) and near(charge(1e-7), 69.99999991, 1e-12)
+        and near(charge(0.25), 70.0, 1e-12))
+    # apply_dhw_coil: a wood tank colder than the mains is left alone
+    pm = ThermalParameters()
+    cold = pm.dhw_inlet_reference - 0.5
+    st = ThermalState(wood_tank_temperature=cold)
+    ThermalModel(pm).apply_dhw_coil(st, 3.0, 50.0, 0.25)
+    out["a wood tank colder than the DHW inlet is not lifted to it by the coil (D3-wave-5b8e7044ee7974f8)"] = (
+        st.wood_tank_temperature == cold)
+    # ThermalParameters
+    def loss(volume, rate):
+        q = ThermalParameters(buffer_tank_volume=volume, buffer_cooling_rate=rate,
+                              mixing_valve_mode=mixing_valve.MODE_MANUAL)
+        return q.buffer_tank_heat_loss_coefficient
+
+    lo, hi = const.buffer_cooling_rate_bounds(750.0)
+    out["a near-zero buffer cooling rate is lifted to the tank's lower bound (D3-wave-b2faf84904db389e)"] = (
+        loss(750.0, 1e-9) > 0.0 and loss(750.0, 1e-9) == loss(750.0, lo)
+        and loss(750.0, 1e-9) < loss(750.0, hi))
+    out["an absurd buffer cooling rate is capped at the tank's upper bound (D3-wave-05b5a15efaaf70de)"] = (
+        loss(750.0, 50.0) == loss(750.0, hi) and loss(750.0, hi) > loss(750.0, lo))
+    pat = [0.0] * 24
+    pat[3] = 1e-6
+    pw = ThermalParameters(dhw_schedule_enabled=True, dhw_windows=[dhw_schedule.FULL_DAY],
+                           dhw_hourly_draw_pattern=pat)
+    out["a windowed draw pattern whose masked total is exactly 1e-6 keeps its base shape (D3-wave-3d4899a05eb126c3)"] = (
+        pw.effective_dhw_draw_pattern()[3] == 1e-6)
+    return out
 
 
 # R11-D3-PINS-money: the money seam's surviving mutants (#3755, class I1),
@@ -1621,6 +1787,11 @@ def main() -> int:
         R.check(f"R10-DISINFECTION-STEP-NOTICE {name}", ok)
     for name, ok in _space_scope_caps_pins().items():
         R.check(f"R11-OUTSIDE-HONEST-STARTS-RUNS {name}", ok)
+    # R11-D3-PINS-plant pins (#3755)
+    for name, ok in _plant_pins().items():
+        R.check(name, ok)
+    for name, ok in _valve_batch_params_pins().items():
+        R.check(name, ok)
     for name, ok in _money_pins().items():
         R.check(f"R11-D3-PINS-money {name}", ok)
     return R.close("GUARD PIN CHECKS")

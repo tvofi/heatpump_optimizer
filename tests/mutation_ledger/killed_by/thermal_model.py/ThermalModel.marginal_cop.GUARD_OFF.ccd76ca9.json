@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.marginal_cop GUARD_OFF ccd76ca9",
+  "killed_by": "tests/doc_claims.py",
+  "old": "        if store == \"dhw\":",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=2."
+}

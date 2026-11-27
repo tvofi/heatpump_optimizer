@@ -556,8 +556,25 @@ review_status() { # pr [want] -> prints BUS undispatched|unconfirmed|refused; al
     "$pr" "$c" "$thread" "$pr" "$c"; return 1
 }
 
+# THE AUTOMATIC CARRY (R11-OWNER-AUTO-CARRY; fix-review.md: a verdict carries while the PR's own
+# diff is unchanged). A merge verdict at <hsha> whose pull request's live head has since moved by
+# a range `review_carry.py` answers CARRY (a main merge, a bot commit inside its own paths) is
+# graded at that live head, so a red the carried commit cured no longer refuses it and a head
+# still red still does. FRESH-REVIEW, an undecidable range or an unreadable head grade <hsha>, as
+# before. Prints the head card C8 grades; rc 0 when it is a carried head, rc 1 when it is <hsha>.
+carry_head() { # pr hsha -> the head card C8 grades
+  local live rc
+  live=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq .head.sha 2>/dev/null) || live=
+  if [[ $live =~ ^[0-9a-f]{40}$ ]] && [ "$live" != "$2" ] \
+      && git fetch -q "$REMOTE" main "$live" 2>/dev/null; then
+    python3 -I "$ROOT/tools/audit/seat/review_carry.py" "$2" "$live" --verdict-only >/dev/null 2>&1; rc=$?
+    if [ "$rc" = 0 ]; then printf '%s\n' "$live"; return 0; fi  # mut:autocarry
+  fi
+  printf '%s\n' "$2"; return 1
+}
+
 post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned line; rc 0 posted
-  local pr c d first hsha body who sig cls rc
+  local pr c d first hsha body who sig cls rc g at=
   unpack verdict "$1" "${2:-}" || return 1
   if grep -qx "$pr $c" "$S/posted" 2>/dev/null; then
     printf 'BUS refused %s %s: already posted\n' "$pr" "$c"; return 1
@@ -572,15 +589,17 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
   # commit or encoding carries it; each round's nonce makes its tree distinct.
   # THE MERGE VERDICT'S HEAD (card C8): refused at a head with a concluded red; only `classify` RED
   # (rc 1) refuses a merge verdict that reached a clean answer, an unreadable one refuses too.
+  # The head graded is carry_head's: the live head when the verdict carries to it, else the verdict's.
   case $first in
     "Fix review: merge "*)
       hsha=$(verdict_sha "$first") || hsha=
-      cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$hsha" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
+      if g=$(carry_head "$pr" "$hsha"); then at=$g; else g=$hsha; fi
+      cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$g" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
       case $rc in
         0|3|4) ;;
-        1) printf 'BUS refused %s %s: a merge verdict at %s whose head has a concluded red (%s) (card C8)\n' "$pr" "$c" "$hsha" \
-             "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')"; return 1 ;;
-        *) printf 'BUS refused %s %s: cannot classify %s, so a merge verdict there is not posted (card C8): %s\n' "$pr" "$c" "$hsha" \
+        1) printf 'BUS refused %s %s: a merge verdict at %s whose head%s has a concluded red (%s) (card C8)\n' "$pr" "$c" "$hsha" \
+             "${at:+ $at, carried to,}" "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')"; return 1 ;;
+        *) printf 'BUS refused %s %s: cannot classify %s, so a merge verdict there is not posted (card C8): %s\n' "$pr" "$c" "$g" \
              "$(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)"; return 1 ;;
       esac ;;
   esac
@@ -604,6 +623,12 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
     printf 'BUS refused %s %s: the poster refused (%s): %s\n' "$pr" "$c" "$POSTER" "$(tail -n 1 "$body.log")"; return 1
   fi
   printf 'BUS posted %s %s %s\n' "$pr" "$c" "$first"
+  # The carry's record, after the post landed: `<pr> <verdict head> <carried head> <utc>` in
+  # $S/carried, which orchestrator_tick.py prints as `CARRIED:` while the head is the PR's.
+  if [ -n "$at" ]; then
+    printf '%s %s %s %s\n' "$pr" "$hsha" "$at" "$(date -u +%FT%TZ)" >> "$S/carried"
+    printf 'BUS carried %s %s -> %s (review_carry: CARRY; card C8 graded at %s)\n' "$pr" "$hsha" "$at" "$at"
+  fi
   train_add "$pr" "$first"
 }
 
@@ -1205,7 +1230,7 @@ EOF
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 norow r1 r2 r9 v1 v2 ra rf t tt ev n N0 N1 N1b N1c N2 N9
   local N3 N3b N3c N3d N4 DT fa g1 ro n0 realgit want wanttree
-  local o1 o2 u1 u2 x1 x2 c1 c2 s1 m1 mb f1 f2 hm mainadv cbase
+  local o1 o2 u1 u2 x1 x2 c1 c2 s1 m1 mb f1 f2 hm mainadv cbase acpin acown acmain acconf nac rac
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -1271,6 +1296,8 @@ P
   # The head classifier stub (merge_train.py classify): GREEN unless BUS_CLASSIFY_RC says otherwise.
   cat > "$W/classifier" <<'P'
 printf '%s|' "$@" >> "$BUS_TEST_CLASSIFIES"; echo >> "$BUS_TEST_CLASSIFIES"
+# BUS_CLASSIFY_RED_AT: RED at that one head, GREEN at every other (the automatic carry's arms).
+if [ -n "${BUS_CLASSIFY_RED_AT:-}" ]; then [ "$2" = "$BUS_CLASSIFY_RED_AT" ] && BUS_CLASSIFY_RC=1 || BUS_CLASSIFY_RC=0; fi
 case ${BUS_CLASSIFY_RC:-0} in
   0) echo "GREEN $2 pending: none red: none" ;;
   1) if [ -n "${BUS_CLASSIFY_INTRO:-}" ]; then printf 'RED %s pending: none red: none introduced: 2\nINTRODUCED %s\nINTRODUCED census\n' "$2" "$BUS_CLASSIFY_INTRO"
@@ -1762,6 +1789,58 @@ B
   outhas -q "^BUS posted 9 "; expect "post retries a refused verdict by hand" $?
   [ "$(printf '%s\n' "$out" | grep -c .)" = 1 ] && [ ! -s "$W/train-argv" ]
   expect "null control: with no HPO_BUS_TRAIN_STATE a posted merge verdict prints only its BUS posted line and adds nothing (the add is off by default)" $?
+
+  # THE AUTOMATIC CARRY (R11-OWNER-AUTO-CARRY): a merge verdict at h1 on #77 whose live head moved
+  # past it. h1 is RED (the mutation lane before its pin); each live head is GREEN unless named. The
+  # real review_carry.py decides each range: `acpin` a bot `ci: pin killed mutants` commit inside
+  # its paths (CARRY), `acown` a commit editing the PR's own file and `acconf` a main merge whose
+  # conflict in that file is resolved by hand (FRESH-REVIEW, the null controls).
+  printf '#!/bin/bash\nprintf "%%s\\n" "$BUS_LIVE"\n' > "$W/ghlive"
+  git -C "$W/seat" checkout -q --detach "$h1"; mkdir -p "$W/seat/tests/mutation_ledger/killed_by"
+  printf '{"k": 1}\n' > "$W/seat/tests/mutation_ledger/killed_by/ac.json"
+  git -C "$W/seat" add tests/mutation_ledger/killed_by/ac.json
+  GIT_AUTHOR_NAME='github-actions[bot]' GIT_COMMITTER_NAME='github-actions[bot]' \
+    GIT_AUTHOR_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+    GIT_COMMITTER_EMAIL='41898282+github-actions[bot]@users.noreply.github.com' \
+    git -C "$W/seat" commit -q -m "ci: pin killed mutants"
+  acpin=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" checkout -q --detach "$h1"; printf 'edited\n' >> "$W/seat/$ROW_DIR/9.md"
+  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -am "fix: edit the PR's own file"
+  acown=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" checkout -q --detach "$cbase"; mkdir -p "$W/seat/$ROW_DIR"; printf 'main side\n' > "$W/seat/$ROW_DIR/9.md"
+  git -C "$W/seat" add "$ROW_DIR/9.md"; git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "main edits the same file"
+  acmain=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" checkout -q --detach "$h1"
+  git -C "$W/seat" -c user.name=t -c user.email=t@t merge -q --no-ff -m "Merge remote-tracking branch 'origin/main' into carry" "$acmain" >/dev/null 2>&1
+  printf 'resolved by hand\n' > "$W/seat/$ROW_DIR/9.md"; git -C "$W/seat" add "$ROW_DIR/9.md"
+  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --no-edit
+  acconf=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" checkout -q main
+  git -C "$W/seat" push -q origin "$acpin:refs/heads/ac-pin" "$acown:refs/heads/ac-own" "$acconf:refs/heads/ac-conf"
+  nac=$(run dispatch 77 "$h1" cmsg_AC | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$nac" > "$W/merge77.md"
+  out=$(seat push-verdict 77 "$W/merge77.md" "$W/ev1"); rac=$(tip review/77)
+  ac() { BUS_GH="bash $W/ghlive" BUS_LIVE=$1 BUS_CLASSIFY_RED_AT=$2 run confirm 77 "$rac"; }
+  lastcls() { tail -n 1 "$W/classifies" | cut -d'|' -f2; }
+  out=$(ac "$acown" "$h1")
+  outhas -q "^BUS refused 77 .*: a merge verdict at $h1 whose head has a concluded red (tests / fast gate) (card C8)" \
+    && [ "$(lastcls)" = "$h1" ] && ! grep -q "^77 " "$W/state/posted" && [ ! -s "$W/state/carried" ]
+  expect "null control (automatic carry): a commit editing the PR's own file is FRESH-REVIEW, so card C8 grades the verdict's red head and refuses" $?
+  git -C "$W/seat" push -q -f origin "$acmain:refs/heads/main"
+  out=$(ac "$acconf" "$h1")
+  outhas -q "^BUS refused 77 .*: a merge verdict at $h1 whose head has a concluded red" \
+    && [ "$(lastcls)" = "$h1" ] && ! grep -q "^77 " "$W/state/posted" && [ ! -s "$W/state/carried" ]
+  expect "null control (automatic carry): a main merge whose conflict in reviewed code is resolved by hand is FRESH-REVIEW, graded at the verdict's head" $?
+  git -C "$W/seat" push -q -f origin "$cbase:refs/heads/main"
+  out=$(ac "$acpin" "$acpin")
+  outhas -q "^BUS refused 77 .*: a merge verdict at $h1 whose head $acpin, carried to, has a concluded red" \
+    && [ "$(lastcls)" = "$acpin" ] && ! grep -q "^77 " "$W/state/posted" && [ ! -s "$W/state/carried" ]
+  expect "automatic carry: a carried head still red takes no merge verdict (card C8 graded at the live head), recorded nowhere" $?
+  out=$(ac "$acpin" "$h1")
+  outhas -q "^BUS posted 77 " && [ "$(lastcls)" = "$acpin" ] \
+    && outhas -qxF "BUS carried 77 $h1 -> $acpin (review_carry: CARRY; card C8 graded at $acpin)" \
+    && grep -q "^77 $h1 $acpin [0-9T:-]*Z\$" "$W/state/carried"
+  expect "automatic carry: a mutation-pin commit carries the verdict, so the red it cured no longer refuses it; the carry is recorded in carried" $?
 
   git -C "$W/seat" push -q origin :refs/heads/handoff/t1
   out=$(run watch --once)

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_ensure_worker BOOLOP 65dd54c6",
+  "killed_by": "tests/deployment_shape.py",
+  "old": "    if worker is not None and worker.poll() is None:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if worker is not None or worker.poll() is None:`) took tests/deployment_shape.py from rc=0 failed=0 to rc=1 failed=18."
+}

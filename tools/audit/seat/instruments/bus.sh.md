@@ -14,7 +14,14 @@
   `reviewer-fire <pr> <head>` in the ledger (`$HPO_BUS_LEDGER`, else
   `ledger.py`'s default log), `--nonce` re-records a relay-minted nonce for the
   seat fired with it, and from a fourth round it needs the body's `## Re-cut`
-  note or `--past-three <reason>` (logged in `past-three`). `confirm` writes
+  note or `--past-three <reason>` (logged in `past-three`). `confirm` grades
+  card C8 at the pull request's live head when `review_carry.py` answers CARRY
+  from the verdict's head to it (a main merge, a bot commit inside its paths),
+  so a red that commit cured no longer refuses and a head still red does;
+  FRESH-REVIEW, an undecidable range or an unreadable head grade the verdict's
+  head. A carried post prints `BUS carried <pr> <verdict> -> <head>` and appends
+  `<pr> <verdict> <head> <utc>` to `$HPO_BUS_STATE/carried`, which
+  `orchestrator_tick.py` prints as `CARRIED:`. `confirm` writes
   the record's model as `bus-model:` on `verdict/<pr>`, which
   `review_strength.py --guardrail` reads as a model arm; it refuses a replay of
   a posted tree before it pushes. `dispatch` first renders the review packet

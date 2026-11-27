@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize.memoized RETURN_DEL 40b75c58",
+  "killed_by": "tests/plan_view.py",
+  "old": "        return _memo_val",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}
