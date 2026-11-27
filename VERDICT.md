@@ -1,68 +1,30 @@
-Fix review: blocked 6ccf3e03e277611926c711da54d738b9608a821f head-moved: measured 6ccf3e03e277611926c711da54d738b9608a821f, head is 4863ec0529f6eb7802288add93a5612557d5c2b8
+Fix review: merge 4863ec0529f6eb7802288add93a5612557d5c2b8
 
-bus-nonce: fd6488fabbf87528104cc36f235eefec
+bus-nonce: 330a3ff9d2e9c500a131ef1820c22402
 
-Round 2. This is a delta review of `411932cae1..6ccf3e03e2` against the round-1 verdict `blocked 411932cae1 class-open` (probe/rev-3914-580cd535).
+Round 3. This is a delta review of `411932cae1..4863ec0529`, the head the round-1 verdict blocked, against that verdict (`blocked 411932cae1 class-open`) and the round-2 verdict (`blocked 6ccf3e03e2 head-moved`, which found no defect at `6ccf3e03e2`).
 
-## Block
+## Prior blocking findings
 
-- The PR head moved while this review ran. The measured head is `6ccf3e03e2`. The live head `4863ec0529` adds `c5bb97a7db` and two merges over `tests/open_meteo.py` only (`ev/moved_delta_6ccf3e03_4863ec05.diff`). `review_carry.py 6ccf3e03e2 4863ec0529` prints `FRESH-REVIEW`, so this verdict does not carry.
-- The measured head is also red on a required check. `merge_train.py classify 6ccf3e03e2 --pr 3914` exits 1 with `RED ... pending: none red: gate`. The red under `gate` is `tests / mutation`. So the measured head could take no merge verdict either way (C8).
-- No defect in code, tests or harness was found at the measured head. The next round is a delta: `git diff 6ccf3e03e2 <new head>` (the `tests/open_meteo.py` check, plus the mutation pins once `mutation-autofix` lands them) and the live required checks. Every figure under `## Evidence` survives, because the move touches no file those figures read.
+- Round 1, `class-open` (fold=1 `now` in the autumn repeated hour): resolved. This seat re-ran the probe on its own script (`ev/fold_probe.py`, `ev/fold_probe_head.txt`). Europe/Stockholm 2026-10-25, window 02:45-03:15, reads 0.25 for `now` 02:30 at fold 0 and at fold 1. Round 1 read -0.75 at fold 1. Australia/Sydney 2026-04-05 and America/New_York 2026-11-01 agree in both passes.
+- The edges of the repeated hour also read right (`ev/fold_probe2_head.txt`, 5 of 5 OK). The second pass of a passed start opens in 0.667 h. A start passed in both passes rolls to the next day, 23.667 h. Starts before and after the hour read 0.167, 1.0 and 23.0.
+- Round 2, `head-moved`: resolved. `git diff 6ccf3e03e2 4863ec0529` touches only `tests/open_meteo.py` (`ev/delta_6ccf3e03_4863ec05.diff`). `review_carry.py 6ccf3e03e2 4863ec0529` prints `FRESH-REVIEW`, so this round reads that delta. Round 2's figures for `411932cae1..6ccf3e03e2` carry, because that move changes no file they read: the census at 0 of 71040, 0 of 76416 and 0 of 73728, the wrap oracle at 0 of 5376, and the targeted mutants M1 to M13.
+
+## The residual delta (`tests/open_meteo.py`)
+
+- The new check pins `diagnostics()`'s `observed_points` against a planted observed series. That series is 3 points long and the forecast series is 5. A fixture assert refuses equal lengths.
+- Mutant: `open_meteo.py:510` reads `self._forecast.times` in place of `self._observed.times`. The test goes from rc 0 to rc 1 with 2 checks failed, the new check among them (`ev/open_meteo_mutant.txt`). The file was then restored and `git status` reads clean. At the head the test reads `ALL OPEN-METEO CHECKS PASSED` (`ev/open_meteo_head.txt`).
+- The delta has no `custom_components/` change, so nothing widens the review.
 
 ## Findings
 
-- Note: stale-body: the PR body is malformed. After a stray `## Red checks\`.` line, `## Mutation proof`, `## Null control`, `## Figures` and `## Unpinned sites` appear a second time. The two `## Unpinned sites` copies differ: the first lists per-line sites with ledger dispositions, and the second gives a prose summary by function. This is paperwork and does not block (C5). Carry: dismissed: body paperwork, the fixer rewrites it in the next round
-- Note: surviving mutants, by this seat's targeted run (`ev/mutants.txt`). Neither breaks a check, and neither is a gap:
-  - M4, `t > utc_instant(now)` to `>=`. This is the triaged-equivalent CMP_BOUND `e2e8012d`. Equality cannot pass the filter, because a start or jump at `now` is already inside the window and returns 0.0 first.
-  - M6, `_wall_inside` without `wall.date() == on`. Alone it reads 0 off in the census, the wrap oracle and the checks. It matters only together with M8 or M11 (the `_offset_change` early return, triaged equivalent `171717b6`). Without that guard, the bisection returns the next midnight, and only the date test refuses it. Mutation-table's BOOLOP and RETURN_DEL at line 609 are killed (M9, M10).
-
-  Carry: dismissed: equivalent alone, both guards together are pinned by M9/M10 kills and the 171717b6 triage
-
-## Red checks
-
-- `tests / mutation` (required, in `merge_train.py owed-reds`) is red at `6ccf3e03e2`. The job log shows `MUTATION TABLE REFUSED -- 1825 unpinned site(s) against 1818 ... 9 of them added by this diff`. The 9 `ADDED UNPINNED` lines are exactly the sites the body's first `## Unpinned sites` copy lists as "pinned by mutation-autofix": 571 BOOLOP and GUARD_OFF, 581, 597, 604, 609 BOOLOP and RETURN_DEL, 618 and 621. The two triaged sites (579, 616) are absent from the list, as they should be.
-- The body's `## Red checks` predicts this red and answers it. The cheaper detector named there is the local per-line mutants, which this seat re-ran. That answers the trigger.
-- `mutation-autofix` had not pushed when the head moved. `tests / mutation-pins (1)` and `(2)` were `in_progress` at `6ccf3e03e2`, and the commits after it are the fixer's open_meteo test, not a pin commit. Whether the autofix pins or goes red is unsettled, and the next round must read it at the new head.
+- Note: required-red-pending: `tests / mutation` is red at this head. Its log reads `MUTATION TABLE REFUSED -- 1825 unpinned site(s) against 1818 ... 9 of them added by this diff` (`ev/mutation_summary.txt`). Those are the 9 sites round 2 matched to the body's `## Unpinned sites`, and the body's `## Red checks` answers them. `tests / mutation-pins (1)` and `(2)` were still `in_progress` at 06:04Z, after about an hour (`ev/pins_state.txt`). `gate` fails with `FAIL run(s) [45933914492] at this head are still being judged; their gate decides` (`ev/gate_tail.txt`). That is a deferral to the mutation run, and `merge_train.py classify` reads `WAIT ... pending: gate red: none` (`ev/classify.txt`). The autofix pin commit, or a red from it, decides. This verdict carries to the pin head only if `review_carry.py` prints `CARRY`. Carry: dismissed: ci-autofix pins in flight, answered by the body's Red checks
+- Note: the round-2 stale-body note is resolved. The body now has one copy of each heading, and its `## Head` names `4863ec0529`.
 
 ## Evidence
 
-- RESULT: head measured `6ccf3e03e277611926c711da54d738b9608a821f` (`ev/HEAD.txt`).
-  - The dispatch PROMPT.md's header line names `190ffb10c2`, but the job log reports that sha as the ratchet base (origin/main), not the PR head. The brief section and the scheduled prompt name `6ccf3e03e2`, the PR head at dispatch.
-  - The live head at return is `4863ec0529`, which is the block above.
-- RESULT: `git merge-tree --write-tree origin/main 6ccf3e03e2` exits 0 (`LEDGER-MERGE: resolved tests/closures.json`; `ev/merge_tree.txt`). `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
-- RESULT: the round-1 block is resolved. Its own probe re-run at the head (`ev/fold_probe_head.txt`, Europe/Stockholm 2026-10-25, window 02:45-03:30):
-  - fold 0 `now` 02:30+02:00 returns 0.25.
-  - fold 1 `now` 02:30+01:00 returns 0.25 (round 1: -0.75).
-  - `vvc_should_run` pre-heats in both passes. Sydney and Lord_Howe repeated hours agree too.
-- RESULT: the axis rule (`next_window_census`, the fixer's instrument added in this round, not the finder's) gives, re-derived by this seat (`ev/census_*.txt`):
-
-  | ref | spring | autumn | plain |
-  |---|---|---|---|
-  | merge base `46d0a521be` | 4293 of 71040 | 14300 of 76416 | 0 of 73728 |
-  | reviewed head `411932cae1` | 136 of 71040 | 76 of 76416 | 0 of 73728 |
-  | this head | 0 of 71040 | 0 of 76416 | 0 of 73728 |
-
-  Each cell equals the body's `## Figures` table. The harness moves under its own perturbation (the prior code), and the plain day is the null.
-- RESULT: the census caps every window at 24:00, so it never drives a wrap-past-midnight schedule. The parser stores such a schedule as a split pair `(s, 24.0), (0.0, e)`, because `hour_in_windows` has no wrap branch.
-  - This seat built its own oracle for that (`ev/wrap_oracle.py`, the reviewer's instrument). It walks the zone's clock minute by minute, and an entry is an outside-to-inside step under `hour_in_windows`. It covers four zones, every 2026 spring and autumn day, and split windows of 60, 90 and 150 min at 30-min starts.
-  - Head: 0 of 5376 cells off (`ev/wrap_oracle_head.txt`).
-  - Null control at the prior head `411932cae1`: 6 off, e.g. Santiago 2026-04-04 23:00-04:00 fold 1 gives -0.5 against 0.5 (`ev/wrap_oracle_controls.txt`).
-  - So the wrap sub-domain is closed at this head too. No class-open seam was found on the axis.
-- RESULT: targeted mutants on `dhw_schedule.py` (`ev/mutants.txt`). Each was applied alone to a copy, run against `ev/replica_check.py`, and then restored, and a `cmp` against the head file read identical. `replica_check.py` copies the two new `features.py` checks verbatim; the census arms ran too.
-  - M1 (fold loop `(0,)`): FAIL, and the census reads autumn 47.
-  - M2 (jump append deleted): FAIL, spring 80 and autumn 19.
-  - M3 (round-trip guard `if True:`): FAIL, spring 156.
-  - M5 (jump predicate negation flipped): FAIL.
-  - M7 (zone forced to UTC): FAIL, census about 96% off.
-  - M9 and M10 (609 BOOLOP and RETURN_DEL): FAIL.
-  - M12 (621 RETURN_DEL): FAIL.
-  - M13 (604 RETURN_DEL): TypeError.
-  - M4, M6, M8 and M11 survive, as stated under `## Findings`. M8 and M11 are the triaged `171717b6`.
-  - The body's M1 to M3 census figures are equal to this seat's.
-- RESULT: the real `tests/features.py` at the head, under `PYTHONPATH=tests/hastub`, reads `ALL 6276 FEATURE CHECKS PASSED`, and both new P7 checks print `ok` (`ev/features_head_full.txt`).
-- RESULT: the delta touches no `VERSION`, manifest, release-notes heading or `*_budgets.json`.
-  - The mutation-ledger delta deletes 5 entries for removed `hours_until_next_window` lines. It moves the CMP_BOUND triage `efe0497c` to `e2e8012d` and adds the `_offset_change` GUARD_OFF triage `171717b6`. M4 and M8/M11 confirm both triages by run.
-  - Nothing else in the delta moves an instrument (step 14).
-- Not re-derived: `Architecture score: dS +0.0000 NULL` for `411932c..HEAD`, and `MODE: SCOPED -- 29 script(s) run, 5 scoped out`. Neither is decisive here, and no heavy gate was re-run (cite-CI rule).
-- CI: `ev/classify.log` holds every classify poll. All read WAIT from 03:11Z, then RED at 03:24:58Z (`red: gate`).
+- RESULT: head reviewed `4863ec0529f6eb7802288add93a5612557d5c2b8` (`ev/HEAD.txt`), from a detached worktree. The PR head still matched it at return.
+- RESULT: `git merge-tree --write-tree origin/main 4863ec0529` exits 0 (`ev/merge_tree.txt`). `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+- RESULT: `411932cae1..4863ec0529` touches no `VERSION`, manifest, release-notes heading or `*_budgets.json` (`ev/delta_411932ca_4863ec05.diff`). Round 2 checked the mutation-ledger moves in that range by run.
+- Not re-run: the gate and the mutation table. The cite-CI rule applies to both.
+- `tests / nightly-status` is red, but it is not required.
