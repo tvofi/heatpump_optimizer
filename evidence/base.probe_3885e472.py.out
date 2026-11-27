@@ -1,0 +1,6 @@
+RESULT bias_baseline=2.0 K
+RESULT bias_mutant=nan K
+RESULT samples_baseline=3 count
+RESULT samples_mutant=4 count
+RESULT null_delta=0.0 K
+RESULT reach_nonfinite_supply_after_observe_temps=0 count

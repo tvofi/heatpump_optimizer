@@ -1,0 +1,7 @@
+RESULT poisoned_baseline=0 count
+RESULT poisoned_mutant=2 count
+RESULT reach_nonfinite_pairs=0 count
+RESULT null_delta=0.0 K
+RESULT thread_factor=1.0 ratio
+RESULT load1=8.96
+RESULT swapins=0 count

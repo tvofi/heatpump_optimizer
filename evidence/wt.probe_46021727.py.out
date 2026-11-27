@@ -1,0 +1,11 @@
+RESULT tau_k_tiny_baseline=0.0 h
+RESULT tau_k_tiny_mutant=13333333333.333332 h
+RESULT tau_k_zero_baseline=0.0 h
+RESULT tau_k_zero_mutant=ZeroDivisionError h
+RESULT tau_cr_neg_baseline=0.0 h
+RESULT tau_cr_neg_mutant=-2.0 h
+RESULT tau_cr_zero_delta=0.0 h
+RESULT null_delta=0.0 h
+RESULT reach_degenerate_inputs_offered=8 count
+RESULT reach_callers_with_degenerate=0 count
+RESULT reach_gate_refuses_degenerate_under_mutant=1 count
