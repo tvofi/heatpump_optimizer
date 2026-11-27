@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/frost_hold.py:gate RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent: the line is gate's last statement, so RETURN_DEL's `pass` falls off the end of the function, which returns None exactly as `return None` does; no input can tell the two apart. Survival measured by the CI pin chain at PR #3882 head f6557ec5c (mutation-autofix: skip-nothing-killed, 3 added sites left alive), and re-run by hand under the R11-OWNER-FROST-HOLD take_off/freeze block (ALL 15 FEATURES BLOCK PASSED with the mutant).",
+  "verdict": "equivalent"
+}

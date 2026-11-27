@@ -90693,6 +90693,21 @@ def _fh_freeze(power, out=-3.0, at=10, later=None):
     return _fh.freeze_reason(host, _SA_T0 + timedelta(minutes=at))
 
 
+# The meter's run threshold for these inputs: a draw at it is a run (``>=``).
+_FH_RAN_KW = _sa_pa.ran_kw(_fh_inp(-3.0))
+
+
+def _fh_take_freeze(mode):
+    """The freeze reason 10 minutes after the cut-off asked at -3 °C, no meter, in ``mode``.
+
+    ``take_off`` sets the latch whatever the mode; ``holding`` is never true
+    while the optimizer is Off, so no run is noted and no learner freezes.
+    """
+    host = _FhHost(_fh_inp(-3.0, mode=mode))
+    _fh.take_off(_sa_pa.state_for(host), host.inp, _SA_T0)
+    return _fh.freeze_reason(host, _SA_T0 + timedelta(minutes=10))
+
+
 for _fh_name, _fh_got, _fh_want in (
     ("the cut-off below the threshold is refused and the hold takes over", _fh_take(-3.0), (True, True)),
     ("null control: above it the cut-off cuts", _fh_take(4.0), (False, False)),
@@ -90705,6 +90720,11 @@ for _fh_name, _fh_got, _fh_want in (
     ("the freeze ends two intervals after the run was last seen", _fh_freeze(1.5, at=60, later=0.0), None),
     ("a hold still running at 07:01 keeps the learners frozen", _fh_freeze(1.5, at=61), _fh.FREEZE_FROST),
     ("no hold on, a host with no inputs builder is not frozen and is not read", _fh.freeze_reason(_FhBare(), _SA_T0), None),
+    ("a held pump drawing exactly the meter's run threshold (ran_kw) runs and freezes the learners",
+     _fh_freeze(_FH_RAN_KW), _fh.FREEZE_FROST),
+    ("null control: a held pump drawing just under ran_kw does not", _fh_freeze(_FH_RAN_KW - 1e-6), None),
+    ("the optimizer Off: a latch the cut-off asked about freezes no learner, unmetered", _fh_take_freeze("off"), None),
+    ("null control: the same latch with the optimizer in auto freezes them", _fh_take_freeze("auto"), _fh.FREEZE_FROST),
 ):
     R.check(f"frost hold: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
 
