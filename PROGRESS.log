@@ -2,3 +2,4 @@
 1795737309 HB alive
 1795737499 CKPT part B port applied, conflicts resolved; running its features block snapshot 40e0e38c8907
 1795737913 HB alive
+1795738041 CKPT carry 8 mutant 5 fails, r17 reproduced, budget re-recorded under mandate; WIP pushed snapshot 2fd26769fdd2
