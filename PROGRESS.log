@@ -5,3 +5,4 @@
 1795737879 CKPT body edited; scoped prepr running at dffa3f7df9 snapshot 8f40b4254a0d
 1795737898 HB alive
 1795738479 CKPT blocked: body_push CARRY-LANDED; BLOCKED.md pushed snapshot a248e3b50d6a
+1795738482 DONE code dffa3f7df9 on handoff/r11-repair-3805; body_push REFUSED CARRY-LANDED, BLOCKED.md on handoff-wip
