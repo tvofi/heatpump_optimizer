@@ -20971,22 +20971,32 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
             if name in module_funcs
         )
 
+    def self_refs(node) -> list[str]:
+        names = []
+        for ref in _d102_ast.walk(node):
+            if isinstance(ref, _d102_ast.Call) and isinstance(
+                ref.func, _d102_ast.Attribute
+            ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+                names.append(ref.func.attr)
+            elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+                ref.value, _d102_ast.Name
+            ) and ref.value.id == "self":
+                names.append(ref.attr)  # a bound method handed to the fence, not called
+        return [n for n in names if n in methods]
+
+    # The cycle and the duty toggle (N-solve-recompute) share their write tail
+    # (``_actuate_plan``): a seam either root reaches directly, or through one
+    # method that writes nothing itself, is a seam the cycle reaches.
+    reached = []
+    for root in ("_async_update_data", "async_apply_held"):
+        for name in self_refs(methods[root]):
+            hop = [name] if writes(methods[name]) else self_refs(methods[name])
+            reached += [n for n in hop if writes(methods[n])]
     out = []
-    for ref in _d102_ast.walk(methods["_async_update_data"]):
-        if isinstance(ref, _d102_ast.Call) and isinstance(
-            ref.func, _d102_ast.Attribute
-        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
-            name = ref.func.attr
-        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
-            ref.value, _d102_ast.Name
-        ) and ref.value.id == "self":
-            name = ref.attr  # a bound method handed to the fence, not called
-        else:
-            continue
-        if name in methods and writes(methods[name]):
-            pair = (name, gated(methods[name]))
-            if pair not in out:
-                out.append(pair)
+    for name in reached:
+        pair = (name, gated(methods[name]))
+        if pair not in out:
+            out.append(pair)
     return out
 
 
@@ -21000,6 +21010,7 @@ R.check(
             ("_apply_action", True),
             ("_async_drive_pumps", True),
             ("_command_frequency", True),
+            ("_command_valve_target", True),  # through async_run_optimization, one hop
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -51818,6 +51829,8 @@ _RC2_EXEMPT = {
 # The coordinator's own setters, which the services call with a refresh: each
 # is reached through a row above or says where its state lives.
 _RC2_SETTERS = {
+    "async_apply_held": "rows: the four duty switches; it writes no state, the boost store "
+        "holds what the press set",
     "async_set_mode": "rows: the switch and thermostat mode actions",
     "async_set_away": "rows: the away switch and the return time",
     "async_set_target_temperature": "row: the thermostat target, via entry options",
@@ -101418,8 +101431,8 @@ R.check(
 
 
 # N-solve-recompute (carry, R11-SEAM-cycle-solve): a timed duty switch's toggle is laid on the plan in
-# hand. Boost and block state is no solve input (the overlay is applied after the solve), so the toggle
-# actuates and publishes the adopted plan without a fetch or a solve; it requests a refresh only with no
+# hand. Boost and block state is no solve input: the overlay is applied after the solve. So the toggle
+# actuates and publishes the adopted plan without a fetch or a solve. It requests a refresh only with no
 # plan base, or with a refresh or solve in flight, whose trailing refresh or re-run lays the overlay after.
 async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
     """One toggle through ``async_apply_held``: (solves, debouncer calls, actuations, published, action, gate)."""

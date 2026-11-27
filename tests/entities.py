@@ -12439,6 +12439,7 @@ for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platfo
                     _ent.__dict__.pop("ha_state_writes", None)
                 _ent.hass = EagerHass()
                 _ent.coordinator.refreshes.clear()
+                _ent.coordinator.held_applies.clear()
                 _ent.coordinator.on_refresh = lambda _e=_ent, _p=_prop: (
                     bool(getattr(_e, "ha_state_writes", None)),
                     getattr(_e, _p),
@@ -12451,13 +12452,15 @@ for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platfo
                 if not (_ent.coordinator.data == _data
                         and getattr(_ent, "ha_state_writes", None)
                         and _got == _want
-                        and _ent.coordinator.refreshes == [(True, _want, _pressed)]
+                        and _ent.coordinator.refreshes + _ent.coordinator.held_applies
+                        == [(True, _want, _pressed)]
                         and len(_ent.coordinator.pressed)
                         == _pressed + ("climate" in _cls.__module__)):
                     _act_lag.append(
                         f"{_cls.__name__}.{_name}{_args!r}: {_prop}={_got!r} "
                         f"writes={getattr(_ent, 'ha_state_writes', None)} "
-                        f"refreshes={_ent.coordinator.refreshes}"
+                        f"refreshes={_ent.coordinator.refreshes} "
+                        f"held={_ent.coordinator.held_applies}"
                     )
 R.check(
     "every entity action has a row or a stated exemption",
@@ -12466,7 +12469,8 @@ R.check(
 )
 R.check(
     "every entity action publishes its own result at once, while the payload "
-    "still holds the old one, before the one refresh it asks for starts",
+    "still holds the old one, before the one refresh (or, for a duty switch, the "
+    "held-plan toggle) it asks for starts",
     _act_ran >= 12 and not _act_lag,
     f"ran={_act_ran}; " + "; ".join(_act_lag),
 )
