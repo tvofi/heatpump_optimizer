@@ -22,3 +22,4 @@
 1795751735 HB alive
 1795751956 CKPT L3 W2: sweep completion arm + self_swept poll written; 2 legacy rows (#3400, #3544) under analysis snapshot e53bf9ae6064
 1795752053 CKPT L3 W2 committed 2828d3be3c (sweep 145/0, prelude 162/0, 5 mutants killed), pushed to handoff-wip snapshot 853b978aa070
+1795752279 CKPT L3 branch built 88bfe8ce5b (W1+carry2+W2 on L4); body drafted; prepr running snapshot 2c2fe4de6211
