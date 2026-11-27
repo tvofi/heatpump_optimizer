@@ -4926,12 +4926,13 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-seam-dead-state",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-001)",
-    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3931
    }
   },
   {
@@ -5175,12 +5176,13 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-seam-inputs-freshness",
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "fixer per the architect note (ADR-001, ADR-002)",
-    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-PRODUCT-TEXT-PINS, R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-kernel-layering, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-guards): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3930
    },
    "arms": {
     "D7-s1-05": [
@@ -8624,9 +8626,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "carries-open",
     "branch": "handoff/r11-d3-pins-money",
-    "commit": null,
+    "commit": "a7a868dd3f4299a7e46d04703a330f7f599c3843",
     "last_step": "plan revision 5 (D3 wave fold) drafted on handoff/plan-r11-d3-amend",
     "next_step": "plan review, then the owner; dispatch per the edges"
    },
@@ -8729,11 +8731,12 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-d3-pins-plant",
     "commit": null,
     "last_step": "plan revision 5 (D3 wave fold) drafted on handoff/plan-r11-d3-amend",
-    "next_step": "plan review, then the owner; dispatch per the edges"
+    "next_step": "plan review, then the owner; dispatch per the edges",
+    "pr": 3928
    },
    "reads": [
     "custom_components/heatpump_optimizer/thermal_model.py",
