@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_mode.py:declares_current_option GUARD_OFF 7f99c9de",
+  "killed_by": "tests/features.py",
+  "old": "    if not isinstance(options, (list, tuple)):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
