@@ -8732,9 +8732,9 @@
    "carry": [],
    "source": "audit",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r11-d3-pins-plant",
-    "commit": null,
+    "commit": "6359567bc4727e17ca0d8039574dd8283918b253",
     "last_step": "plan revision 5 (D3 wave fold) drafted on handoff/plan-r11-d3-amend",
     "next_step": "plan review, then the owner; dispatch per the edges",
     "pr": 3928
