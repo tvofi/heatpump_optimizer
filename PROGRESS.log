@@ -7,3 +7,4 @@
 1795737452 HB alive
 1795738056 HB alive
 1795738061 CKPT handoff pushed: code 4bfaa3dad5, body 6f441d00f4 snapshot e777e7bcabcb
+1795738065 DONE returned: handoff/r11-late-p2-zone-gate 4bfaa3dad5, body pushed; prepr rc=0
