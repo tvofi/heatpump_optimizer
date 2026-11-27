@@ -8,6 +8,5 @@
 1795736246 HB alive
 1795736850 HB alive
 1795737454 HB alive
-1795737661 HB alive
-1795737743 CKPT resumed wip e714df49 (killing test for quick_setup.py:145 CMP_BOUND); running features baseline+mutant snapshot 08fe57290ec7
-1795738266 HB alive
+1795738057 HB alive
+1795738530 CKPT diff mutants measured; prepr run 4 started snapshot 95cba9c9c6e6
