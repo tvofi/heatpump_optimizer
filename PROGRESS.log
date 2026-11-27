@@ -2,3 +2,4 @@
 1795742245 HB alive
 1795742365 CKPT diagnosed: gate red = tests/mutation (3 survivors frost_hold.py:134/161/164, PR code, not the merge) + budget-raise-gate (owner review) snapshot 7ef3da962716
 1795742472 CKPT killing checks + triage committed 2b571e7cec, step-pushed snapshot 74ba4c506150
+1795742781 CKPT merged origin/main 8890fc2b (count conflicts -> main), pushed wip 0e4f7f97ed snapshot 8b0f4e7891bd
