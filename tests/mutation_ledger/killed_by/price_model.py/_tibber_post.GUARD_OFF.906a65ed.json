@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_tibber_post GUARD_OFF 906a65ed",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if resp.status != 200:",
+  "reason": "Recorded by `mutation_table.py --anchor`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
