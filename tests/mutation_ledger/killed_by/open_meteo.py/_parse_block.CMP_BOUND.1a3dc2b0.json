@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:_parse_block CMP_BOUND 1a3dc2b0",
+  "killed_by": "tests/open_meteo.py",
+  "old": "    if len(times) < 2:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if len(times) <= 2:`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -57,8 +57,6 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     CONF_MAX_TEMP,
     CONF_MIN_TEMP,
-    DEFAULT_DHW_MIN_TEMP,
-    DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     FACTORY_RESET_SCOPES,
     HEAT_LOSS_LEARNERS,
@@ -1132,13 +1130,7 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
     if CONF_DHW_MIN_TEMP in updates or CONF_DHW_SETPOINT in updates:
         for entry in targets:
             stored = {**entry.data, **entry.options}
-            setpoint = float(updates.get(
-                CONF_DHW_SETPOINT, stored.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
-            ))
-            wanted = float(updates.get(
-                CONF_DHW_MIN_TEMP, stored.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP),
-            ))
-            ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
+            wanted, setpoint, ceiling = comfort_band.dhw_deadband(updates, stored)
             if wanted > ceiling:
                 raise ServiceValidationError(
                     f"A hot water minimum of {wanted:g} °C leaves no "
