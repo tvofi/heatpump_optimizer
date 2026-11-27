@@ -238,7 +238,7 @@ blk 'R.section("Free heat skips the accuracy sample (D7-05)")' '# --- D7-03 (#27
   --prelude 'from homeassistant.util import dt as dt_util' --prelude 'from harness import FakeEntry as _FakeEntry, FakeHass as _FakeHass' "${COORD[@]}" \
   --prelude '_METER = {"sensor.indoor": FakeState("21.0", unit="°C"), "sensor.outdoor": FakeState("-5.0", unit="°C"), "sensor.house_power": FakeState("6500", unit="W"), "sensor.hp_power": FakeState("2000", unit="W")}' \
   --prelude 'def _t2_coord(states=None, **extra): return _Coord(_FakeHass(dict(_METER, **(states or {}))), _FakeEntry(data={"tibber_token": "x", "weather_entity": "weather.home", "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor", **extra}))'
-# optimizer.optimize's DHW baseline economics: every DHW-enabled solve reaches it
-python3 tests/guard_pins.py >"$T/guard_pins.log" 2>&1 \
-  || { echo "tests/guard_pins.py FAILED"; grep -a 'FAIL\|Error' "$T/guard_pins.log" | head -5 | cut -c1-240; exit 1; }
-echo "r11_dead_state_mutants: $n blocks and tests/guard_pins.py passed"
+# optimizer._optimize_with_dhw's baseline economics: every DHW-enabled solve reaches it
+python3 tests/manual_plan.py >"$T/manual_plan.log" 2>&1 \
+  || { echo "tests/manual_plan.py FAILED"; grep -a 'FAIL\|Error' "$T/manual_plan.log" | head -5 | cut -c1-240; exit 1; }
+echo "r11_dead_state_mutants: $n blocks and tests/manual_plan.py passed"
