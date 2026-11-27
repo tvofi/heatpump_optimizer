@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict GUARD_OFF b770da79",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if not math.isfinite(tracker._window_factor):",
+  "reason": "Recorded by `mutation_table.py --anchor`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

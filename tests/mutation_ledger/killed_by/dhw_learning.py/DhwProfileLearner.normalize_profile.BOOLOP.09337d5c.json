@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.normalize_profile BOOLOP 09337d5c",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "            usable = len(profile) == 24 and all(math.isfinite(v) for v in profile)",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`usable = len(profile) == 24 or all(math.isfinite(v) for v in profile)`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+}
