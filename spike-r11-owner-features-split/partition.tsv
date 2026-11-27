@@ -1,0 +1,253 @@
+[('model', 92), ('plan', 48), ('inputs', 37), ('cycle', 29), ('surface', 23), ('actuation', 14), ('dhw', 9)]
+inputs	Input staleness watchdog (item 12)
+model	R9 N-clamp-range: the flow-lift bias reaches the plant's supply (D2-s2-02)
+plan	R9 N-future-instant: a persisted instant ahead of the clock (FI-sw1, FI-sw2, FI-sw3, FI-sw4, FI-rca1)
+model	R9 N-plausibility: live inputs meet their physical window (D1-s2-02, D1-s1-03)
+inputs	R9 N-staleness: a report-on-change probe on a still store (D1-s5-51)
+model	R9 P2: the cycle's own outcome -- covering quarter, fenced steps, failed solves, an honest press (D2-s3-01, D1-s2-51, D1-s2-91, D1-s4-02, D10-s1-02)
+surface	R9 P2: presence answers, not key presence (D12-s3-01, D14-s2-01)
+cycle	R9 P6: the unprobed plant state advances from the plan (D12-s1-01)
+inputs	R10-BUFFER-OPENLOOP: the no-probe buffer follows the previous plan
+inputs	R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#2499)
+inputs	R9 P2: stamp owner, plausibility window, sizing bound (D1-s5-01/-52, D2-s4-02)
+actuation	R9 P11: the stub clock is aware by default and the stub Store honours version (D1-s1-52, #1740)
+inputs	R9 N-staleness: the mixing-valve target is a set-point (carry-1655)
+plan	R9 P8: money units follow the price feed; bounds scale (D14-s2-02, D12-s3-81)
+inputs	Non-numeric inputs (v5.3.0)
+inputs	Heat pump operating mode (v5.3.0)
+inputs	External heat source detection (item 5)
+inputs	Wood furnace displacement (item 28)
+plan	Unknown price horizon (item 7)
+plan	Capacity tariff (item 8)
+plan	PV self-consumption (item 9)
+model	Away and holiday mode (item 13)
+actuation	Two-hour boost overlays
+model	Closed-loop accuracy (item 11)
+model	Defrost derate (item 14)
+dhw	Weekly hot-water windows: different days, different times
+model	The window grammar round-trips: renderer out, every loader in
+model	Per-weekday DHW window overrides (#1260)
+model	The batched trajectory is the scalar trajectory, bit for bit
+plan	R9 vi-b: the evaluation memo's own arms (UX-6)
+plan	Which bounds the batched jac may serve (D9-01)
+plan	The batched objective prices the cost half per batch (#948)
+model	Building presets (item 17)
+model	Active system identification (item 18)
+model	Revealed-preference comfort tuning (item 19)
+model	The house as a virtual battery (item 20)
+model	Regressions
+model	Store loaders discard corrupt payloads (#238)
+cycle	The learned heat-loss scale is re-anchored, not restored verbatim
+model	The lower-floor ratio is re-anchored with the scale (#2239)
+model	Configuration mapping
+cycle	Lower floor temperature sensor (item 30)
+model	The optimizer can see the buffer tank (item 29)
+model	Mixing valve and the buffer tank as a store (items 27/29)
+plan	The discharge law: the valve regulates flow temperature (item 29)
+plan	R10-COMBI-TANK-STORE: the combi store, one node for space and hot water
+model	R10-COMBI-TANK: the combi store's guards and clamps, at the inputs that move them
+surface	R10-COMBI-TANK: the combi option, seed, learners and legionella default
+model	The valve hold schedule (item 29)
+model	smart_write: the optimizer commands the valve (item 29)
+actuation	Unit-correct write target for flow set-point entities (#398)
+model	Per-step external heat reaches the model and the plan (item 28)
+surface	Setup topology: one description for every picture (items 32/33)
+model	R9 N-language: setup text takes the install's language (D4-s2-81)
+model	Buffer tank standby loss scales with the tank (items 27/29)
+model	Two-zone loss split learning (item 31)
+surface	A zone-sensor swap and the reset action void the heat-loss learners
+surface	A factory reset returns settings, learners or both to their defaults
+cycle	Runtime parameter updates
+actuation	Economy mode (audit item 4)
+model	Two-tank topology (issue #40)
+model	DHW refill coil in the wood tank (v3.15.1)
+model	Topology catalog and the layout editor's contract (v3.16.0)
+plan	T1 — the bill beyond spot (#1 #13 #19 #34 #23)
+plan	R4-D2-02 — catalog effekt tariffs carry their off-peak factors (#926)
+plan	R8-D2-s2-01 — the capacity bill from each tariff's stated rule (#1512)
+plan	T2 — peak & power (#7 #5 #3 #22)
+dhw	T3 — hot water (#32 #18 #20 #24 #47 #9 #28 #6)
+plan	T3b — shared-step honesty
+model	T4a — insurance and detectors (#42 #26 #11 #12)
+model	One bounded Newton step behind both heat-loss learners (#193 S7)
+model	T4b — weather inputs and learners (#21 #30 #17 #36 #53 #2)
+model	T5 — comfort floors (#16 #54)
+model	R10 N-staleness: the age limit keyed on how a source reports (D14-s3-02)
+model	T6 — insight (#29 #52 #55 #65 #39 #40)
+inputs	T7 — inverter frequency (#61)
+cycle	v4.0.2 — entry lifecycle, the solve boundary, store writes
+cycle	service operational failures raise (D10-04, #294)
+plan	stuck prices skip the service solve (#239)
+surface	services.py is the service-handler module (#222)
+model	v4.0.3 — stale-plan guards, billed peaks, boundary clamps
+plan	v4.0.4 — DST-day exclusion from price learning
+model	v4.0.4 — negative-mean initial guess
+plan	v4.0.4 — grid-fee magnitude repair issue
+cycle	v4.0.4 — the quarter snap and DST windows, under a real timezone
+model	v4.0.5 — one marginal COP per store, shared with the dynamics
+model	v4.0.5 — settlement caps: the lower zone's slab, a reachable tank
+model	v4.0.5 — DHW conservation: a cold tank cannot pour hot water
+model	v4.0.5 — sysid: the intercept the relax phase was smuggling
+model	sysid under sensor noise (D2-01) and a reachable gate (D7-02)
+model	sysid vs a drifting room sensor, and a bound-blind gate (D2-07)
+model	sysid settle power, comfort-bounded step sizing, settle window (W2-G5)
+model	sysid step sized on the two-state plant (#779)
+model	sysid refuses a shrunk drift that landed in UA (R3-D2-03 / #778)
+cycle	Free heat skips the accuracy sample (D7-05)
+cycle	v4.0.5 — learners: tracking error is not efficiency
+dhw	v4.0.6 — the floor gets the same physics check the rating has
+model	v4.0.5 — the battery view shares the optimizer's caps
+actuation	v5.1.1 — reloads that change nothing, and setups that do not solve
+cycle	Unload lifecycle and Tibber failure semantics (D10-06/07/09)
+cycle	#236/#237/#240 — the coordinator's lifecycle seam
+actuation	#1754 — a refresh during an in-flight solve is honoured, and releases land on the override the solve pinned
+plan	#2257 — the what-if's steady-start estimator
+cycle	v5.1.3 — an unusable sensor freezes the learners, not just a quiet one
+inputs	A configured input that returns is re-read at once, not one interval later
+surface	Plan reason codes: the fall-through is neutral (v5.1.7)
+model	Virtual battery: the slab reports against the optimizer's cap
+plan	Comfort band validation is shared, not per-form
+inputs	v5.3.0 — the four heat-pump signals, resolved
+inputs	R4 D7-03 (#944) — the defrost flag freezes the shared learner gate
+inputs	v5.3.0 — the meter split follows the observed mode
+inputs	v5.3.0 — the COP learner uses the curve the mode implies
+inputs	#1067 — the pump's own electric heat and its night mode
+inputs	#1067 — the pump's own supply and return water, and the flow bias
+model	#1067 W1067-G3 — a direct plant prices its flow-curve lift
+plan	#1067 W1067-G4 — the pump's silent-mode window derates the plan
+plan	#1910 SW-1 — the user's quiet windows: silent caps, an off mask
+model	v5.3.0 — defrost: duty is measured, the derate is physics
+inputs	v5.3.0 — offline, fault and cooling freeze the real learners
+model	v5.3.0 — a blocked channel is suppressed, and visibly so
+model	v5.3.0 review — presence is not trust (the defrost derate)
+model	v5.3.0 review — DERATE_MAX 1.05 -> 1.0, on a POPULATED bucket
+model	v5.3.0 review — an unreadable flag makes no confident claim
+inputs	v5.3.0 review — an unrecognised mode never latches suppression
+inputs	v5.3.0 review — a status sensor is not a mode selector
+surface	v5.3.0 review — the narrative explains a blocked channel
+cycle	v5.3.0 review — a blocked channel is published, not just recorded
+model	#224 stage 2 — the breach report answers for itself, off optimize's tail
+model	#224 stage 2 — optimize's comfort envelope and power ceiling answer for themselves
+model	#224 stage 2 — optimize's unpublished-horizon stash answers for itself
+model	#224 stage 3 — _optimize_with_dhw's always-hot DHW baseline answers for itself
+model	#224 stage 3 — solve_space answers for itself, off the hot loop
+model	#224 stage 4 A-half — window floors answer for themselves
+dhw	#224 DhwPlan — 14-key return, frozen at the end
+plan	#1743 — the DHW planner is its own class, built per solve
+inputs	v5.3.0 review — the experiment obeys the mode gate too
+model	R4-D7-02 / #943 — the sizer sizes the configured house, not defaults
+cycle	v5.3.0 review — a mode-blocked tank says so, loudly
+model	v5.3.0 review 2 — the health watch judges like against like
+model	v5.3.0 review 2 — legibility belongs to the interval
+inputs	v5.3.0 review 2 — a mode nobody can read stops acting
+inputs	v5.3.0 review 2 — a status sensor is not a flag either
+inputs	v5.3.0 review 2 — the block never actuates
+cycle	v5.3.0 review 2 — the what-if and the fuse advisor see the block
+model	v5.3.0 review 2 — the smaller repairs
+model	v5.1.10 — the charge limit is the charge limit, every ordinary day
+surface	v5.1.10 — the disinfection timer cannot latch
+surface	v5.1.10 — the setpoint/disinfection pair warns, and never blocks
+plan	v5.1.10 — a due cycle actually reaches the disinfection temperature
+model	v5.1.10 — the floor repair tops the tank up again
+dhw	v5.1.10 — a cycle the tank cannot reach is not parked at the end
+cycle	v5.1.10 — a commanded cycle is credited only when something saw it
+dhw	v5.1.10 — free disinfection cannot latch the timer either
+cycle	v5.1.10 — the stock defaults are not a Repairs card
+cycle	Weather staleness is surfaced (M2)
+plan	exception translations (D10-17, #217)
+plan	Dead symbols stay deleted (#226)
+cycle	#369/#370/#1738 — the duplication window can fire, and --record refuses a laundered regression
+cycle	#350/#374 — an improvement must be recorded, and the worst method has a budget
+model	#283 numpy scalars at compute_solar_gain and _deferred_energy_cost
+plan	#284 legacy schedule publishes the full horizon
+plan	#193 S3 — the two payload halves stay key-identical
+model	#193 S3 — the ECL110 publish helpers, over plain values
+actuation	R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset
+model	R10-GENERIC-HEAT-CURVE-PERSISTENT — kind persistent: a stored curve parameter
+cycle	R5-D12-01 — the ECL110 MQTT surface exists only when configured
+model	W3-G2 — DHW planner re-simulation count (#289)
+model	#1230 — _apply_dhw_min_run replays the whole horizon per weak slot
+model	the jointly-raised branch ships when the coil is not monotone (R7 D0-01)
+plan	W3-G3 — process-route the solve off the GIL (#290 #199)
+plan	#511 — the solve worker under Home Assistant's module naming
+plan	#783 — in-process fallback is capped, not permanent
+cycle	#1755 — the worker-fallback streak and cause are per entry, not per hass
+cycle	#524 — an unpicklable solve RESULT must raise, never become the plan
+cycle	#525 — nothing blocking runs on Home Assistant's event loop
+cycle	#533 — the atexit backstop reaps without polling the loop thread
+plan	R9 F1.5 — the worker's spawn and its stop (D1-s2-55, D1-s2-05)
+inputs	3L-G5 — DHW set-point consistency (#408)
+surface	3L-G7 — monthly savings history
+surface	#2255 — one cost source and a coverage-scaled open month
+inputs	3L-G8 — wood fuel math
+plan	3L-G9 — what-if wood slots
+cycle	#193 S5 — effective house heat loss over plain values
+cycle	#193 S6 — the grid fee entity read over plain values
+plan	apply_topology accepts every place the setup page draws (#546)
+plan	process_worker.py (#505)
+actuation	W5-G7 t1: the coordinator's core lifecycle and error paths (#195)
+model	W5-G7 t2: the learning seam's guards and store arms (#195)
+inputs	W5-G7 t3: the fetch and grid seams (#195)
+model	W5-G7 t4: the core seam and the learning tail (#195)
+model	#1329: the sysid arm/adopt gate opens on the plants the tree ships
+model	sysid two-state fit survives a drifting room sensor (R6 D7-03)
+plan	W5-G7 t5: the lifecycle methods (#195)
+model	W5-G7 t6: the tail (#195)
+model	W5-G8 a: the corruption barriers (#195)
+inputs	W5-G8 b: advisories and the worker bootstrap (#195)
+actuation	W5-G8 c: away and boost (#195)
+dhw	W5-G8 d: the wood-fuel arithmetic (#195)
+plan	W5-G8 e: the price feed's edges (#195)
+model	W5-G8 f: the extracted DHW learner and legionella guard (#195)
+plan	W5-G8 g: the last loaders and the window arithmetic (#195)
+surface	W5-G8 h: the repair flow and the away instant (#195)
+model	W5-G8 i: the system-identification experiment (#195)
+dhw	W5-G8 j: the wood night advisory (#195)
+surface	#1067 W1067-G7 — pre-filling options from the GCHV Modbus package
+surface	#1067 W1067-G7b-1 — pre-filling options from a heat-pump device
+surface	#1067 W1067-G7b-2 — the tuya_local table and the localtuya decision
+surface	#1067 W1067-G7b-3 — the fuzzy fallback and its labelled corpus
+plan	#1067 W1067-G5 — the disinfection switch, observe first
+surface	#1067 W1067-POST1 — the qualifying minimum, read off the corpus
+model	Quick setup: the answer-to-config mapping
+inputs	P8 — a price or temperature entity's unit is read at the seam (#1513)
+plan	R8-P8 round 3: mutation survivors on lines this diff's files carry
+cycle	#1513 follow-up: a forecast's precipitation_unit is honoured
+actuation	pump-duty arbiter — mode and set-points per plan step, held while the optimizer is active
+inputs	R11-SEAM-actuation-release: one restore owner for every written entity (ADR-004, D16 ruling 2026-11-15)
+surface	N-service-clamp/P1 — the manual plan's expiry clamps to its window and a store sample count loads bounded (D1-s2-54, D1-s2-03)
+model	P1/P2 — a stored instant loads aware, or not at all (D1-s1-01, D1-s3-01, D1-s1-02, D1-s3-05)
+actuation	P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)
+plan	P1/P2/N-min-gap — the defrost, price-shape and peak stores and the feed parsers (D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04)
+inputs	P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)
+dhw	Actuation routing: every accepted domain reaches its consumer (#1526)
+surface	R8-P3 — one COP law, one humidity, at every planning seam (#1520, #1530)
+surface	External-heat block override switch (#3862)
+plan	#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519
+model	COP learner duty floor keys on the modulation floor (live v6.7.17)
+model	R10-COP-LEARNER-DRAW-FLOOR: the floor capped by the run-asked draw, and hold-then-replay
+model	R11-OUTSIDE-SELF-SETTING-PUMP: the COP scale judged on the heat ask where the window's evidence is unobtainable
+model	R10-COP-GATE (#2262): COP observability, the latch's time, and the draw pairing
+surface	R10-HOTFIX-COP-UNMEASURED: a COP sample is measured only from metered heat over metered power
+actuation	early cut-off — a warm room stops a space-heating pump inside the interval
+inputs	°F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)
+plan	R10-PUMP-MODEL -- DHW lift, the duty floor channel, the step-start fold
+inputs	R10-HEAT-METER: a delivered-heat counter, split by the mode dwell (#2261)
+inputs	supply switch at step boundaries (#2492, R10-SAV-ACTUATION)
+actuation	supply switch: the cycle writes the step it lands in
+plan	supply switch: minimum run and pause, restart
+model	duty-switch restart learning, part A (design duty-switch-restart-learning)
+model	R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store
+actuation	R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches
+plan	R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops the compressor (pull request 3420, Bankaifan)
+plan	R11-OUTSIDE-HONEST-STARTS-RUNS: the start count and committed runs
+model	#3616: a floor-return reading far above the room does not seed the slab
+surface	R10-START-COUNTER-EDGES: the start counter fed from running-signal edges
+inputs	#3616 R11-OUTSIDE-ROOMS-P1: a room list read, summarised, kept out of input health
+plan	#3616 R11-OUTSIDE-ROOMS-P2: a room short of its target lifts the solve's comfort floor
+model	R10-DRAW-MAP-EVIDENCE part A: map rows and the learner exclusion
+inputs	Room history and the identifiability report
+model	R11-SEAM-learners: the one freeze predicate
+model	R11-SEAM-learners: the unplanned-charge evidence
+plan	#3616 R11-OUTSIDE-ROOMS-3B: the room lift on the solve's record, the why-now row and the narrative
+cycle	R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix

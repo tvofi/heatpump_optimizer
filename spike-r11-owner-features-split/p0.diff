@@ -1,0 +1,4 @@
+41408a41409
+> DhwPlanner._build_dhw_requirements = _lg_build_spy  # P0: the part installs its own spy
+41774a41776
+> DhwPlanner._build_dhw_requirements = _lg_build_spy  # P0: the part installs its own spy

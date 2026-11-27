@@ -1,0 +1,9 @@
+    4 lines    4 files  B runs through features_block.py: unchanged, works once features_block resolves the marker
+  790 lines  112 files  D dated record: left, excluded from the enumerator
+   55 lines   12 files  H closed-group harness reading the file: left, pinned to its group's SHA
+  185 lines   53 files  L live citation: rewritten one-for-one to the owning part
+   13 lines   10 files  P prose in a harness: left (comment, no read)
+   34 lines    9 files  R runner/opener: retargeted
+   55 lines    8 files  S data in code (a literal a self-test or message carries): left; the split head is its check
+   15 lines    7 files  T table or census row: re-recorded / follows the parts
+ 1151 lines  199 files  total

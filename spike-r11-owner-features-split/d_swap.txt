@@ -1,0 +1,11 @@
+lines 6409 vs 6409; FAIL 0 vs 4; spans 252 vs 252; differing spans 2
+DIFF dhw	v5.1.10 — a cycle the tank cannot reach is not parked at the end	-3 +3
+   -   ok   24 h, 3000 L, 3 kW: the cycle is commanded now, not parked at the last step
+   -   ok   6 h, 1500 L, 3 kW: the cycle is commanded now, not parked at the last step
+   -   ok   a reachable cycle is still placed where the pump can do it, not at 0
+   +   FAIL 24 h, 3000 L, 3 kW: the cycle is commanded now, not parked at the last step  [placed at step None of 96]
+   +   FAIL 6 h, 1500 L, 3 kW: the cycle is commanded now, not parked at the last step  [placed at step None of 24]
+   +   FAIL a reachable cycle is still placed where the pump can do it, not at 0  [flat-out best 60.00 °C, placed at step None]
+DIFF plan	v5.1.10 — a due cycle actually reaches the disinfection temperature	-1 +1
+   -   ok   the run-up is a ramp, not a day at the ceiling
+   +   FAIL @raised TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
