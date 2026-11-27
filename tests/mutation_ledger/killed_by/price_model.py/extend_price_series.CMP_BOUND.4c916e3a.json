@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:extend_price_series CMP_BOUND 4c916e3a",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if model is None or model.confidence(when) <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --anchor`: CMP_BOUND (`if model is None or model.confidence(when) < 0.0:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

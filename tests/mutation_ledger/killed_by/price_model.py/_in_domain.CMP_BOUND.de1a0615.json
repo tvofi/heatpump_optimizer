@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_in_domain CMP_BOUND de1a0615",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if low > 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):",
+  "reason": "Recorded by `mutation_table.py --anchor`: CMP_BOUND (`if low >= 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

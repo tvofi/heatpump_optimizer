@@ -68,6 +68,7 @@ from .const import (
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
     buffer_cooling_rate_bounds,
+    finite_float,
 )
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
@@ -388,7 +389,7 @@ def _slot_extras(key: str, config: dict[str, Any]) -> dict[str, Any]:
     if key != CONF_MIXING_VALVE_TARGET_ENTITY:
         return {}
     return {
-        "manual_setpoint": float(config.get(CONF_MIXING_VALVE_TARGET) or 0.0)
+        "manual_setpoint": finite_float(config.get(CONF_MIXING_VALVE_TARGET)) or 0.0
     }
 
 
@@ -710,9 +711,8 @@ def describe_setup(
         },
         "wood": {
             "present": wood,
-            "volume_l": float(
-                config.get(CONF_WOOD_TANK_VOLUME) or DEFAULT_WOOD_TANK_VOLUME
-            ),
+            "volume_l": finite_float(config.get(CONF_WOOD_TANK_VOLUME))
+            or DEFAULT_WOOD_TANK_VOLUME,
         },
         "slots": slots,
         "sensor_gaps": rank_sensor_gaps(config, language=language),

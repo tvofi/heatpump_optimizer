@@ -67,6 +67,7 @@ from .const import (
     TWO_ZONE_MODE_AUTO,
     TWO_ZONE_MODE_OFF,
     TWO_ZONE_MODE_ON,
+    finite_float,
 )
 
 #: The quick-setup form's transient fields. These are *questions*, not option
@@ -139,9 +140,9 @@ def stored_answers(current: Mapping[str, Any]) -> dict[str, bool]:
     mode = current.get(CONF_TWO_ZONE_MODE, TWO_ZONE_MODE_AUTO)
     if mode in (TWO_ZONE_MODE_ON, TWO_ZONE_MODE_OFF):
         answers[FIELD_TWO_ZONE] = mode == TWO_ZONE_MODE_ON
-    volume = current.get(CONF_BUFFER_TANK_VOLUME)
+    volume = finite_float(current.get(CONF_BUFFER_TANK_VOLUME))
     if volume is not None:
-        answers[FIELD_BUFFER_TANK] = float(volume) >= BUFFER_STORE_MIN_VOLUME
+        answers[FIELD_BUFFER_TANK] = volume >= BUFFER_STORE_MIN_VOLUME
     if current.get(CONF_DHW_ENABLED) is not None:
         answers[FIELD_DHW_TANK] = bool(current.get(CONF_DHW_ENABLED))
     if current.get(CONF_WOOD_FURNACE_ENABLED) is not None:
@@ -182,7 +183,7 @@ def derive(answers: dict[str, Any]) -> dict[str, Any]:
     structure = answers.get(CONF_BUILDING_STRUCTURE, presets.STRUCTURE_TIMBER_SLAB)
     era = answers.get(CONF_BUILDING_ERA, presets.ERA_1980_2005)
     foundation = answers.get(CONF_BUILDING_FOUNDATION, presets.FOUNDATION_NONE)
-    heated_area = float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA))
+    heated_area = finite_float(answers.get(CONF_HEATED_AREA), DEFAULT_HEATED_AREA)
     upper_emitter = answers.get(CONF_UPPER_EMITTER, presets.EMITTER_RADIATORS)
     lower_emitter = answers.get(CONF_LOWER_EMITTER, presets.EMITTER_FLOOR)
     wood_top = answers.get(CONF_WOOD_TANK_TOP_ENTITY)
