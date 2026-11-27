@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:ManualOverride.pinned_step_count RETURN_DEL c3f57abc",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        return sum(1 for p in pins if p == PIN_ON)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=5."
+}
