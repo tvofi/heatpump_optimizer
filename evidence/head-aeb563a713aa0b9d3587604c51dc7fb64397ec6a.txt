@@ -1,0 +1,5 @@
+head aeb563a713aa0b9d3587604c51dc7fb64397ec6a
+base 190ffb10c230b6beaf77593b2926d55682e37f47
+merge-tree vs origin/main ef797d79: rc 0
+r11_dead_state_mutants.sh at head: rc 0; mutant flow_meter temps[0]->temps[1]: rc 1 (block 9 FAIL)
+live checks: only tests / nightly-status failure (outside owed set)
