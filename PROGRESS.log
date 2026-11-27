@@ -8,3 +8,4 @@
 1795737612 CKPT prepr clean at 361cc26c97; entities running snapshot 5751906e0b22
 1795737746 HB alive
 1795738350 HB alive
+1795738560 DONE handoff/r11-repair-3845 at 361cc26c97: D5 s7 re-cut clears both instrument-self-tests reds; prepr clean; body 50a7e58f3e
