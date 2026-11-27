@@ -3,3 +3,4 @@
 1795739807 HB alive
 1795739962 CKPT failing tests written: fold/gap countdown + vvc pre-heat snapshot 3ef575ce2c2c
 1795740161 CKPT fix written; census 0 mismatches at fix on spring/autumn/plain snapshot aedf152d57e3
+1795740275 CKPT fix committed ae6efaa8c1, structure passed, wip pushed snapshot 3407108753ca
