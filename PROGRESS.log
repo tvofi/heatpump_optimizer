@@ -7,3 +7,4 @@
 1795738446 HB alive
 1795739050 HB alive
 1795739344 CKPT handoff/r11-repair-3872 at ae282a8; body_push REFUSED CARRY-LANDED; BLOCKED.md pushed snapshot 698c36523f7c
+1795739347 DONE blocked: body_push CARRY-LANDED, 2 roster carries for relay; code at handoff/r11-repair-3872 ae282a8, prepr clean
