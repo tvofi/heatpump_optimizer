@@ -1,0 +1,8 @@
+switch=switch.hp  out= -3.0 gate(False)->None   frost_holding=True holding=True ran_until=2026-01-10 07:00:00+00:00
+switch=switch.hp  out=  5.0 gate(False)->False  frost_holding=False holding=False ran_until=None
+switch=None       out= -3.0 gate(False)->None   frost_holding=True holding=True ran_until=2026-01-10 07:00:00+00:00
+switch=None       out=  5.0 gate(False)->False  frost_holding=False holding=False ran_until=None
+-- end to end on a no-switch host (cycle's _write_supply runs gate before its switch check)
+switch=None       -3C idle OFF: frost_holding=True _served(duty=None)->'space' freeze_reason->'frost_hold'
+switch=switch.hp  -3C idle OFF: frost_holding=True _served(duty=None)->'space' freeze_reason->'frost_hold'
+null control, no switch +5C: False False

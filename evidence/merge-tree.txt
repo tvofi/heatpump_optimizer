@@ -1,33 +1,5 @@
-head reviewed: 49658957ac52c32e3fae3e30dc2b584946641d22
-origin/main: dbdc520e86e4453755f553ab21a39de205a70b34
---- git merge-tree --write-tree origin/main 49658957ac52c32e3fae3e30dc2b584946641d22 (rc=1)
-088329d601dcfd3b20e292706547fb7462de830c
-tests/deployment_shape.py
-
-Auto-merging custom_components/heatpump_optimizer/config_flow.py
-Auto-merging custom_components/heatpump_optimizer/const.py
-Auto-merging custom_components/heatpump_optimizer/coordinator.py
-Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
-Auto-merging custom_components/heatpump_optimizer/pump_schedule.py
-Auto-merging custom_components/heatpump_optimizer/strings.json
-Auto-merging custom_components/heatpump_optimizer/translations/de.json
-Auto-merging custom_components/heatpump_optimizer/translations/en.json
-Auto-merging custom_components/heatpump_optimizer/translations/sv.json
-Auto-merging tests/closures.json
-Auto-merging tests/config_flow_steps.py
-Auto-merging tests/deployment_shape.py
-CONFLICT (content): Merge conflict in tests/deployment_shape.py
-Auto-merging tests/entities.py
-Auto-merging tests/features.py
-Auto-merging tests/structure_budgets.json
-LEDGER-MERGE: resolved tests/structure_budgets.json
-  class_excess_loc: 17281 + both deltas = 17241
-  max_class_loc: 7832 + both deltas = 7822
-  module_excess_loc: 21763 + both deltas = 21772
-  unloaded_package_imports: 14 + both deltas = -6
-  re-run the gate that owns this file before pushing
 LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/config_flow_steps.py: merged as a set (151 entries)
-  closures.tests/doc_claims.py: merged as a set (303 entries)
-  closures.tests/entities.py: merged as a set (604 entries)
+  closures.tests/entities.py: merged as a set (609 entries)
   re-run the gate that owns this file before pushing
+3eda8e0e959c7defa553454d3868ee1b9d5864b1
+rc=0

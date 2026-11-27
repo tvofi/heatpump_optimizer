@@ -1,23 +1,24 @@
-Fix review: blocked 49658957ac52c32e3fae3e30dc2b584946641d22 merge-conflict: tests/deployment_shape.py conflicts with origin/main dbdc520e
+Fix review: blocked 1d027949b899f6f1491de54d1908a73d8d28c581 class-open: frost_hold.gate runs on an install with no power switch; it sets frost_holding there, so the arbiter serves a cold idle step as space at the pump's floor and the learners freeze, where the option is hidden and claimed inert
+bus-nonce: 37420e0dbf906ad97b83a9179b255305
 
-bus-nonce: a4cb488b71e5c18f189e48a835055852
+Round: first full review at this head. The earlier verdicts on review/3882 are blocks (96523195 tests-red, 49658957 merge-conflict), and no merge verdict exists, so the scope is the full three-dot diff against merge base e84856520dc4. Measured in a detached worktree at 1d027949b899f6f1491de54d1908a73d8d28c581.
 
 ## Block
 
-- `git merge-tree --write-tree origin/main 49658957ac52c32e3fae3e30dc2b584946641d22` at origin/main dbdc520e86e4453755f553ab21a39de205a70b34 exits 1 with `CONFLICT (content): Merge conflict in tests/deployment_shape.py` (ev/merge-tree.txt). The conflict is the #1218 closure note's pair counts: main's side records 182 of the 561 script pairs at >= 0.80 (and 182 among the 435 comparable pairs), this head's side 186 (ev/deployment_shape-conflict.txt). It is not a claim file, so no `MERGE-CLAIM` driver settles it; it is the fixer's to resolve (fix-review.md step 13). GitHub reports `mergeable_state: dirty` too, but the block rests on the merge-tree exit, not that field.
-- The repair re-derives the note from what `tests/entities.py` prints on the merged tree, and re-records `tests/structure_budgets.json` against main dbdc520e's table. The ledger merge of that file resolves only by summing deltas and prints nonsense for one row (`unloaded_package_imports: 14 + both deltas = -6`; main has meanwhile lowered max_class_loc to 7822 and class_excess_loc to 17241), so the raise this PR records against 7aa6020f's table must be re-measured on the merged tree with `tests/structure.py`, and the body's `## Raise justification` figures re-stated against the new main.
+- The predicate's unguarded domain is an install with no power switch. The body, the release note, strings.json and the design all scope the hold to "every install with a heat-pump power switch", and config_flow hides both options there (`when=_power_switch`). But `coordinator._write_supply` calls `frost_hold.gate(...)` on every cycle before its `if switch_entity and value is not None` check. `gate` then sets `held.frost_holding = _active(...)`, and `EntryConfig.frost_hold` defaults to True whether or not a switch exists. So on a no-switch install, every idle step below +2 C, or with a stale or missing outdoor reading, has these effects:
+  - `pump_arbiter._served` returns "space", so under Pump duty control `desired(..., frost=True)` writes the space set-point at `_hold_floor_c` in place of the baseline row.
+  - `_note_pass` records the pass as idle, and `_observe` marks the step "frost-hold" in the duty ledger.
+  - `frost_hold.freeze_reason` freezes the learners for two intervals after each pass, every pass when no meter is installed.
+  - The user cannot opt out, because the option is not shown.
+- Probe (ev/probe_noswitch.py, output ev/probe_noswitch_1d027949.txt): with switch=None at -3 C, `gate(False)` returns None, frost_holding is True, `_served(duty=None)` returns 'space' and `freeze_reason` returns 'frost_hold', the same as with switch.hp. Null control: at +5 C with no switch the result is False/False. The block's `_fh_inp` accepts `switch=None`, but no check drives it.
+- Fix shape: `_active` or `gate` must treat a missing `heat_pump_switch_entity` like opted out (latched None, not holding). The same applies to `take_off`, whose cut-off path is already switch-bound. Add one check with no switch and its switch.hp null control.
 
-## Findings
+## Checked, survives the block
 
-none
+- RESULT merge: `git merge-tree --write-tree origin/main 1d027949b899f6f1491de54d1908a73d8d28c581` at main 9ffb388f7ec88aada3354a316553908d34c664e8 exits 0 (LEDGER-MERGE resolved tests/closures.json) (ev/merge-tree.txt).
+- RESULT structure: `tests/structure.py` at the head prints STRUCTURE RATCHET PASSED, max_class_loc 7763 <= 7763 and module_excess_loc 21644 <= 21644 (ev/structure-at-head.txt). Against main's table the raise is module_excess_loc 21627 -> 21644 (+17) and max_class_loc 7762 -> 7763 (+1). budget-raise-gate is green.
+- RESULT version: VERSION, manifest.json and RELEASE_NOTES.md are untouched in the three-dot diff.
+- RESULT checks: live check-runs at the head (ev/checks-1d027949b899f6f1491de54d1908a73d8d28c581.txt) are all success or skipped except tests / nightly-ha (2025.2.0), nightly-ha (stable) and nightly-status. None of the three is required, and the body answers them.
+- Not re-run: the mutation proof and the finder's harness (none is named; the design's evidence plan is the judge's). The fix above moves production code, so both are owed again at the repaired head.
 
-## Evidence
-
-- Review scope: full (packet `## Review scope` line: no verdict names the reviewed head). Only the merge measurement and the budget raise were checked to completion; the conflict blocks, and the code review owed at the repaired head is full again since the diff will move.
-- Budget raise at this head: `tests/structure.py` at 49658957ac52c32e3fae3e30dc2b584946641d22 measures max_class_loc=7833, module_excess_loc=21773, class_excess_loc=17278, unloaded_package_imports=3, each `ok` at exactly the recorded budget (ev/structure-at-head.txt, ev/budgets-diff.txt). So the raise equals the measured value at this head: max_class_loc 7832 -> 7833 and module_excess_loc 21763 -> 21773 against the base d9100de7's table. The body records class_excess_loc 17288 -> 17285; the head's file and measurement read 17278, which is lower and harmless but differs from the body's figure.
-- `## Raise justification` carries a `Payments tried:` line, lists four payments, each with an `Architecture score: dS` line or a reason it was not built (1: dS -2.5873, rejected for an import cycle; 2: dS -0.0011, kept as 00be81ff; 3 and 4: no payment exists), plus the head-level line `Architecture score: dS -0.0011 WORSENS (coord_footprint 2531 -> 2533)`. That satisfies CLAUDE.md rule 2's mandate-exception shape. I did not re-run score.py: the figures are against main 7aa6020f, and the merge repair moves them.
-- review_packet: `REFUSE structure: ... head does not merge cleanly with origin/main` on tests/deployment_shape.py, which agrees with the merge-tree measurement.
-- CI: `merge_train.py classify 49658957ac52c32e3fae3e30dc2b584946641d22 --pr 3882` printed `WAIT 49658957ac52c32e3fae3e30dc2b584946641d22 pending: gate red: none` (ev/classify.txt). Not waited out, because the merge conflict blocks whatever CI concludes at this head.
-- `owed-reds` (full set in ev/owed-reds.txt): none of them is red at this head, so no `## Red checks` answer is owed.
-- seat_comms: initialised (`resumed 6faa8f40733b`), heartbeat running, no CMD received.
-- Earlier fire: probe/rev-3882-a4cb488b already held f5c4ebb8 (2026-11-26 01:01 UTC), `Fix review: merge 49658957` with `pending-ci: gate`, written when this head still merged with the main of that time. origin/main has since moved to dbdc520e, and the head no longer merges with it. This commit is a fast-forward child of f5c4ebb8, so that record is kept rather than force-pushed away. This verdict supersedes it.
+Note: body-figure: `## Head` still quotes module_excess_loc 21663 <= 21663 for the 22802e44 head. The head measures 21644 against the re-recorded table. Carry: dismissed: evidence, not a finding
