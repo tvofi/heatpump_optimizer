@@ -38,6 +38,7 @@ from .const import (
     CONF_UPPER_FLOOR_AREA_RATIO,
     DEFAULT_HEATED_AREA,
     DEFAULT_UPPER_FLOOR_AREA_RATIO,
+    finite_float,
 )
 from .thermal_model import ThermalParameters
 
@@ -308,11 +309,11 @@ def preset_from_config(
         structure=answers.get(CONF_BUILDING_STRUCTURE, STRUCTURE_TIMBER_SLAB),
         era=answers.get(CONF_BUILDING_ERA, ERA_1980_2005),
         foundation=answers.get(CONF_BUILDING_FOUNDATION, FOUNDATION_NONE),
-        heated_area_m2=float(answers.get(CONF_HEATED_AREA, DEFAULT_HEATED_AREA)),
+        heated_area_m2=finite_float(answers.get(CONF_HEATED_AREA), DEFAULT_HEATED_AREA),
         upper_emitter=answers.get(CONF_UPPER_EMITTER, EMITTER_RADIATORS),
         lower_emitter=answers.get(CONF_LOWER_EMITTER, EMITTER_FLOOR),
-        upper_area_ratio=float(
-            current.get(CONF_UPPER_FLOOR_AREA_RATIO, DEFAULT_UPPER_FLOOR_AREA_RATIO)
+        upper_area_ratio=finite_float(
+            current.get(CONF_UPPER_FLOOR_AREA_RATIO), DEFAULT_UPPER_FLOOR_AREA_RATIO
         ),
         two_zone=ThermalParameters.from_config(dict(current)).two_zone_enabled,
     ).validate()

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:min_component CMP_BOUND ead59e4c",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        and float(entity_value) < lowest",
+  "reason": "Recorded by `mutation_table.py --anchor`: CMP_BOUND (`and float(entity_value) <= lowest`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
