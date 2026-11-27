@@ -1010,7 +1010,7 @@ def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
 
 
 def entry_reader(
-    hass: Any, config: EntryConfig, *, now: Callable[[], datetime] | None = None
+    hass: Any, config: Any, *, now: Callable[[], datetime] | None = None
 ) -> InputReader:
     """The entity reader under the install's staleness rules: its watchdog switch and age scale.
 
