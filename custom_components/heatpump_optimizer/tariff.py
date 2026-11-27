@@ -691,7 +691,6 @@ def window_factors(
     tariff: CapacityTariff,
     start_time: datetime | None,
     n_windows: int,
-    dt_hours: float,
 ) -> np.ndarray | None:
     """Billing factor per metering window over the horizon, or None.
 

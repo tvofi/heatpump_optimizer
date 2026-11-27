@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.effective_heat_loss_coefficient CLAMP_DROP 38c56fc9",
+  "killed_by": "tests/guard_pins.py",
+  "old": "            rain_intensity = min(precipitation / 2.0, 1.0)",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`rain_intensity = (precipitation / 2.0)`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 029c040224dc4e38)."
+}

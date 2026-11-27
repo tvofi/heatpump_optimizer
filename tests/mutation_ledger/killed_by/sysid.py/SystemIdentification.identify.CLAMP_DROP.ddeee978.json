@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CLAMP_DROP ddeee978",
+  "killed_by": "tests/features.py",
+  "old": "        k_prior = float(np.clip(k_hat, 1.0 / 200.0, 1.0 / 0.1))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`k_prior = float((k_hat))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

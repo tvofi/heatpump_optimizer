@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_draw_power CLAMP_DROP 4737808f",
+  "killed_by": "tests/features.py",
+  "old": "            liters_per_hour * WATER_SPECIFIC_HEAT * max(delta_t, 0.0)",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'T3 \u2014 hot water'): CLAMP_DROP (`liters_per_hour * WATER_SPECIFIC_HEAT * (delta_t)`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave ea888783bb621669)."
+}
