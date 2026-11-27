@@ -1,9 +1,0 @@
-2880:  FAIL the HASTUB_TZ subprocess suite passed  [Traceback (most recent call last):
-4481:  FAIL D1-s2-55: an install that cannot spawn a worker still gets its plan, from the in-process fallback, and it is never silent  [outcome=('in-process', 70419, 'STATE') warnings=["Process-solve worker unusable (ProcessWorkerUnavailable: job cannot be pickled: Can't pickle <class 'features_block._F15Optimizer'>: it's not found as features_block._F15Optimizer); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511)."]]
-4748:  FAIL _bootstrap drops the package directory so datetime is stdlib  [here=/private/tmp/hpo-rev-3897/mut/custom_components/heatpump_optimizer path0='/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/g511-wtz5iram']
-5337:  ok   the boost bound closes the window and turns the switch OFF once
-5341:  FAIL a cycle whose price fetch raises past the boost bound still turns the switch OFF  [outcome=raised writes=[('turn_on', 'switch.pump_disinfection')] state=on]
-5342:  FAIL …and disabling disinfection during a boost turns it OFF on a cycle that raises  [outcome=raised writes=[('turn_on', 'switch.pump_disinfection')]]
-5343:  ok   …while inside the bound a raising cycle leaves the commanded boost ON, unwritten
-5344:  FAIL a cycle that reaches its step tail runs the follower once, and a raising one once  [ok_cycle=ok runs_after_ok=1 failed=raised runs=1]
-5346:6 of 4140 FEATURES THROUGH FAILED
