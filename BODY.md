@@ -19,6 +19,10 @@ Alternatives not taken:
 
 ## Head
 
+Merged origin/main into the head (merge 4800bc04e20a6e69ba93104f2767eac31bf9b8d1). One conflict: dhw_learning.py async_save_draws; main removed the dead draws_dirty flag and left the try/except save, this branch moved the save into save_held; kept save_held and dropped the draws_dirty assignment (no reader remains). tests/structure_budgets.json merged by the claim driver and re-measured (max_class_loc 7751, module_excess_loc 21595, methods_over_200 7; structure.py passes). Ran features, manual_plan, guard_pins, block_duty, config_flow_steps, plan_view, cycle_lane, typing_ruler, structure.
+
+`625226630d3c1806642ed08d50ea366df4262d25` merges the authored code head `de356461aa6ddf579dde29274428684ffc8009b2` and then merges origin/main `e84856520d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `bf1ca4c8a9bb6727da8d3916073b945798544a8e` merges the authored code head `f7b44e69ec7bbae058edf98f2cecee90b24cdd53` and then merges origin/main `ef797d7940` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `f7b44e69ec7bbae058edf98f2cecee90b24cdd53` merges origin/main `ef797d7940` into the PR head `36417ab5fa`. The one conflict was `dev/audit/config/scopes.json`. This PR's `361cc26c97` and main's `7df39f34` made the same D5 seat `s7` re-cut under `ledger.max_units` 4500. In this PR, `s7` became `tests/features.py` and `s8` gained `tests/f{i,r}*`. On main, `s7` is `tests/fe*` and `s8` is `tests/{a,b,c,d,fi,fr,g}*`. Both cuts put the same files in each seat, so main's hunk already carries the PR's change and the file is taken whole from main. No other file conflicted, and the merge differs from main only in the PR's own files, less `scopes.json` (`git diff --name-only ef797d7940 f7b44e69ec` is the PR's three-dot list without it). Resolution delta for review: `git diff 36417ab5fa f7b44e69ec -- dev/audit/config/scopes.json`, read against main with `git diff ef797d7940 f7b44e69ec -- dev/audit/config/scopes.json` (empty). At the merge: `python3 -I tools/audit/check_scopes.py --self-test --repo .` `SELF-TEST passed (every perturbed scope refused)`; `--ref HEAD --repo .` rc 0, `ok D5 mode=cells seats=10 universe=945` with `s7:1f/0loc/4329u`, `s8:49f/0loc/4044u`, `s9:69f/0loc/3916u`; `python3 -I dev/audit/harnesses/owner_only_channel.py` `RESULT arms=48 failed=0`, `OWNER-ONLY CHANNEL HELD`. Prepr at the merge, scoped (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh`): `PRE-PR: f7b44e69ec7bbae058edf98f2cecee90b24cdd53 00000000000000000 rc=0 elapsed=100s`.
@@ -290,5 +294,6 @@ none
 ## Friction
 
 none
+
 
 
