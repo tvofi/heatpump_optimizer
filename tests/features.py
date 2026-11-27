@@ -94339,9 +94339,9 @@ R.check(
 # census asserts its precondition (the set is non-empty and is exactly what
 # the rule reads), so a key the rule starts reading is driven the day it lands.
 # A key the rule stops reading is caught by the literal set below, written
-# independently of TWO_ZONE_FIELDS: the rule's output is compared with it and
-# the refusals drive it, so deleting a key from the constant fails both (a
-# census of the constant against itself would not). The literal encodes a
+# independently of TWO_ZONE_FIELDS. The rule's output is compared with it and
+# the refusals drive it, so deleting a key from the constant fails both. A
+# census of the constant against itself would not. The literal encodes a
 # design choice: these four keys are the two-zone model's own parameters.
 from heatpump_optimizer import thermal_model as _zg_tm  # noqa: E402
 from heatpump_optimizer import coordinator as _zg_coord  # noqa: E402
