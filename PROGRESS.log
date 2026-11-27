@@ -12,3 +12,4 @@
 1795768575 HB alive
 1795769172 HB alive
 1795769775 HB alive
+1795770245 DONE returned: handoff/r11-owner-hotfile-counts 6de57ed0, body 64b05b97; D6 register row-merge arm, claims.json/md 13->0 conflicts over the 10-day replay
