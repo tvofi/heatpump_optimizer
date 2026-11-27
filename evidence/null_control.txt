@@ -1,0 +1,7 @@
+rows-only list ['dev/programme/delivery/3891.md', 'dev/programme/delivery/3892.md']
+base machinery(pr=3903): True
+head machinery(rowblind=True): False head machinery(): True
+head rowblind +  dev/programme/delivery/direct-pushes.md False
+head rowblind +  tools/ci/gate.py True
+head rowblind +  dev/programme/HANDOVER.md True
+head rowblind +  dev/programme/delivery.md True

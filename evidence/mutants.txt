@@ -1,0 +1,16 @@
+== M1 drop row clause
+FAIL C7a-row: a package file plus its own delivery row idles the row-blind lanes: got True, want False
+FAIL C7a-row: ... and ANOTHER pull request's row idles them too: got True, want False
+FAIL L4: a record branch's list (rows only) idles the row-blind lanes: got True, want False
+FAIL C7a-row: package + row 7 on pull request 7 idles the row-blind lanes: got 'true', want 'false'
+FAIL C7a-row: ... and row 8 on pull request 7 idles them too: got ('true', 'true'), want ('false', 'true')
+FAIL L4: a record pull request (other PRs' rows only) is light, idles the row-blind lanes, runs the row readers: got ('true', 'true', 'true'), want ('true', 'false', 'true')
+prelude self-test: 159 checks, 6 failed
+== M2 outputs without rowblind
+FAIL C7a-row: package + row 7 on pull request 7 idles the row-blind lanes: got 'true', want 'false'
+FAIL C7a-row: ... and row 8 on pull request 7 idles them too: got ('true', 'true'), want ('false', 'true')
+FAIL L4: a record pull request (other PRs' rows only) is light, idles the row-blind lanes, runs the row readers: got ('true', 'true', 'true'), want ('true', 'false', 'true')
+prelude self-test: 159 checks, 3 failed
+== M3 prefix without slash
+FAIL L4: ... and so does a path beside delivery/ that only shares its stem (null control): got False, want True
+prelude self-test: 159 checks, 1 failed
