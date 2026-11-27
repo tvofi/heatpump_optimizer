@@ -9152,7 +9152,10 @@
     "note": "owner order 2026-11-27; critical-path order, no after-edge"
    },
    "issues": [],
-   "fixes": []
+   "fixes": [],
+   "carry": [
+    "From r11-owner-features-split, body item 3d3d23cb: open-branch-port and seam-raise-path for the other groups that append to `tests/features.py`: R11-PRE-SHARED-FILES and R11-OWNER-CARD-EXTERNAL-HEAT (both carries-open, so neither is a carry destination), and R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-ARCH-fabric-learner and R11-SEAM-wallclock-dst (`carry_audit.py`'s group-token pattern reads upper case only, so it cannot name them). Each needs the same text in its brief: once this PR merges, `tests/features.py` refuses new spans and line growth. Move each new span unchanged to the seam script `python3 dev/audit/harnesses/features_freeze.py --seam <file>` names, and re-pin its own rows with `mutation_table.py --pin-killed` (design revision 5, section 3). A new seam script raises `script_runs_per_push` and `script_runs_full_case_pr` in `tests/ci_budgets.json`. That raise merges only on the owner's approving review at its head, or under a mandate in force with `## Raise justification` and an `Architecture score: dS` line. Mandate 6893738184 ends 2026-12-15T12:00Z. This group keeps the item. The design note asks for these briefs to be written at this group's merge, and the orchestrator writes them on the roster's records branch. Carry: R11-OWNER-FEATURES-SPLIT (items 3d3d23cb)"
+   ]
   }
  ]
 }
