@@ -29,6 +29,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import functools
 import math
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone, tzinfo
@@ -226,12 +227,21 @@ def _number(value: Any, domain: Domain) -> bool:
     )
 
 
+def _declares_number(domain: Domain) -> bool:
+    """Whether a field so declared holds a number: a ``real``, an ``int``, or a
+    ``choice`` whose members are all numbers (``LEAD_BUCKETS``), a flag none."""
+    if domain.kind in ("real", "int"):
+        return True
+    real = Domain("real")
+    return domain.kind == "choice" and bool(domain.choices) and all(_number(m, real) for m in domain.choices)
+
+
 _KINDS: dict[str, Any] = {
     "real": _number,
     "int": lambda v, d: isinstance(v, int) and _number(v, d),
     "flag": lambda v, d: isinstance(v, bool),
     "text": lambda v, d: isinstance(v, str),
-    "choice": lambda v, d: v in d.choices,
+    "choice": lambda v, d: any(v == m and isinstance(v, bool) == isinstance(m, bool) for m in d.choices),
     "instant": lambda v, d: _parses(v, datetime.fromisoformat, 16) and v[10] in "T ",
     "day": lambda v, d: len(str(v)) == 10 and _parses(v, date.fromisoformat, 10),
     "month": lambda v, d: len(str(v)) == 7 and _parses(f"{v}-01", date.fromisoformat, 10),
@@ -620,8 +630,10 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
 }
 
 
+@functools.cache
 def _tries() -> dict[str, dict[str, Any]]:
-    """``DOMAINS`` as one path trie per store, aliases linked in place."""
+    """``DOMAINS`` as one path trie per store, aliases linked in place; built
+    once, as ``DOMAINS`` is fixed at import and no reader writes the trie."""
     tries: dict[str, dict[str, Any]] = {name: {} for name in DOMAINS}
     aliases = []
     for name, table in DOMAINS.items():
@@ -661,8 +673,9 @@ def _unflag_numbers(value: Any, node: Mapping[str, Any]) -> Any:
     with each ``bool`` where a number is declared read as absent (``None``).
 
     Python counts a flag as an ``int``, so a loader's ``isinstance(x, (int,
-    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1); no writer
-    stores a flag where it declares a number (``in_domain`` refuses one). Read
+    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1). No writer
+    stores a flag where ``_declares_number`` holds (a real, an int or a choice
+    of numbers), and ``in_domain`` refuses one there. Read
     here, at the one load boundary, as the absent value each loader already
     defaults, so no loader repeats the exclusion. A field the trie does not
     declare passes untouched: the load never rewrites what it cannot name.
@@ -672,7 +685,7 @@ def _unflag_numbers(value: Any, node: Mapping[str, Any]) -> Any:
     if isinstance(value, list):
         return [_unflag_numbers(v, _child(node, str(i), "#")) for i, v in enumerate(value)]
     domain = node.get("")
-    numeric = isinstance(domain, Domain) and domain.kind in ("real", "int")
+    numeric = isinstance(domain, Domain) and _declares_number(domain)
     return None if numeric and isinstance(value, bool) else value
 
 
