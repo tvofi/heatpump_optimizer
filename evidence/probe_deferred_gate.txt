@@ -1,0 +1,12 @@
+head 21b920ba64892ade1446b8c7e804461cfb12b41b
+probe at head:
+POSTS []
+SWEEP left deferred run 1: run(s) [5] still adding sources; their completion sweeps
+SWEEP left run 5: its gate still in_progress; its completion sweeps
+SWEEP-DONE run=9 reruns=0 dispatches=0
+probe with sweep.py:400 guard 'or run["id"] in self.deferred_ids' removed:
+POSTS ['repos/o/r/actions/jobs/10/rerun']
+SWEEP left deferred run 1: run(s) [5] still adding sources; their completion sweeps
+SWEEP re-ran gate of run 1 (attempt 1, completed red)
+SWEEP left run 5: its gate still in_progress; its completion sweeps
+SWEEP-DONE run=9 reruns=1 dispatches=0

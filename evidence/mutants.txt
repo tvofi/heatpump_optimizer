@@ -1,0 +1,10 @@
+head 21b920ba64892ade1446b8c7e804461cfb12b41b
+MUTANT judge-ignores-deferred_ids: sweep self-test: 145 checks, 0 failed
+MUTANT undefer-ignores-busy: sweep self-test: 145 checks, 1 failed
+MUTANT undefer-ignores-attempt-cap: sweep self-test: 145 checks, 1 failed
+MUTANT undefer-skips-stale-pin: sweep self-test: 145 checks, 2 failed
+MUTANT deferred-ignores-prelude-conclusion: sweep self-test: 145 checks, 0 failed
+MUTANT undefer-twice: sweep self-test: 145 checks, 0 failed
+MUTANT busy-ignores-judging: prelude self-test: 162 checks, 3 failed
+MUTANT busy-fail-open: prelude self-test: 162 checks, 1 failed
+MUTANT completion-ignores-V-status: sweep self-test: 145 checks, 0 failed
