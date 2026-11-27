@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.expected_daily_min GUARD_OFF 4711f894",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if not day_types or not np.isfinite(level) or level <= 0.0:",
+  "reason": "Recorded by `mutation_table.py --anchor`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
