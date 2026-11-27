@@ -1,0 +1,7 @@
+head 5a8b4e65fa92e3ddd3123b8d69b6ffd39438df73 base ef797d794017c98f7fb2d8a168d7de63d435ef3b (macOS; 28 env FAILs identical at base and head, diffed out)
+A rc=0 -> rc!=1 (undecidable carries): survived
+B drop live!=hsha guard: survived
+C rc=$? -> rc=0 (always carry): killed, 4 new FAILs incl. both null controls
+D classify "$g" -> "$hsha": killed, 2 new FAILs
+tick: newest-record -> oldest-record: killed, 1 FAIL
+review_carry 129cc121..d50ab75e (#3925): CARRY; 72d1774e..55e2f0d8 (own-file edit): FRESH-REVIEW
