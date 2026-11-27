@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_energy_totals BOOLOP aa0e01fc",
+  "killed_by": "tests/features.py",
+  "old": "        if isinstance(since, str) and since:",
+  "reason": "Recorded by hand under ADR-011 decision 3 (R11-SEAM-store-p2, #3755): BOOLOP (`if isinstance(since, str) or since:`) took the features.py block `# R11-SEAM-store-p2 (round-11 sweep P1` from 0 failed to 1 failed."
+}
