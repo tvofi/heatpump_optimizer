@@ -7510,7 +7510,7 @@
    "carry": [],
    "resume": {
     "stage": "carries-open",
-    "commit": "d3d66c40408e76351ffc528686353cadf815a05c",
+    "commit": "d3d66c4040",
     "branch": "handoff/r11-owner-cooling-guard",
     "last_step": null,
     "next_step": "fixer",
