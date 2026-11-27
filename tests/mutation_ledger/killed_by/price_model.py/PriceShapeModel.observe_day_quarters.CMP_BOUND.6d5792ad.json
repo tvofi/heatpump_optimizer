@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day_quarters CMP_BOUND 6d5792ad",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        usable = hour_means > 1e-6",
+  "reason": "Recorded by `mutation_table.py --anchor`: CMP_BOUND (`usable = hour_means >= 1e-6`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
