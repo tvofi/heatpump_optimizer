@@ -790,10 +790,9 @@ def forecast_reply_problem(
 ) -> str | None:
     """Why a fetched forecast may not replace the held one, or ``None`` when it may.
 
-    The held forecast stays the best data either way, but stale from here on,
-    and the plan built on it says so: an empty reply used to keep it forever
-    with no signal (D8-02), and a reply whose every row's hour has ended is a
-    provider serving its last answer, not a recovery (D1-s2-03).
+    The held forecast stays the best data either way, but stale from here on:
+    an empty reply used to keep it forever with no signal (D8-02), and a reply
+    whose rows have all ended is a provider's last answer, not a recovery (D1-s2-03).
     """
     if not rows:
         return f"Empty forecast returned for {entity_id}"
