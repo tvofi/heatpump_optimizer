@@ -5,7 +5,7 @@
 
 CANDIDATES.json, DECLINED.json: enumerate.py's outputs. SPLIT.json: collide.py's.
 OUT_ROOT holds one pin_harvest.py drive output directory per batch (pins.json,
-survivors.txt, status); BATCHES holds <script>.json, the anchors
+survivors.txt, status.txt); BATCHES holds <script>.json, the anchors
 driven with --scripts tests/<script> (pass2.json: re-driven with the default
 drivers after their own drive drove nothing). Prints `<disposition>\t<anchor>\t<detail>` per anchor
 and, on stderr, one count per disposition; every count the PR body quotes is
@@ -19,7 +19,7 @@ cand, split, declined, root = (json.load(open(sys.argv[1])), json.load(open(sys.
                                json.load(open(sys.argv[3])), Path(sys.argv[4]))
 driven = {}
 for b in sorted(Path(sys.argv[5]).glob("*.json")):
-    status = (root / b.stem / "status")
+    status = (root / b.stem / "status.txt")
     st = status.read_text().strip() if status.exists() else "not-run"
     for a in json.loads(b.read_text()):
         driven.setdefault(a, []).append(f"{b.stem}={st}")
