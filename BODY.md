@@ -13,7 +13,7 @@ Prior BLOCKED.md: none. `git ls-remote origin` for `*zone-gate*` returned only `
 
 ## Head
 
-56ced7a0a949fc21cebbe74070de3e8565f3fc9b, on merge base 8890fc2bada17f6c7d8a6bbf03e6625a16a0967c (the origin/main tip at measurement). `git merge-tree --write-tree origin/main HEAD` exits 0, no conflict (2026-11-27T01:33Z). Round 2 adds one test-only commit on d554d42e9a; the production tree is d554d42e9a's.
+adadfaed4bd9eac8d5120695ed1fd5ecf6dd743c (round 3: 56ced7a0a9 plus one commit splitting two comment sentences over 40 words, comments only), on merge base 8890fc2bada17f6c7d8a6bbf03e6625a16a0967c (the origin/main tip at measurement). `git merge-tree --write-tree origin/main HEAD` exits 0, no conflict (2026-11-27T01:33Z). Round 2 adds one test-only commit on d554d42e9a; the production tree is d554d42e9a's.
 
 ## Round 2: answer to `Fix review: blocked d554d42e9a mutation-vacuous` (probe/rev-3925-84457bb5)
 
@@ -76,6 +76,7 @@ Finder's harness `$EXPORT/dev/audit/rounds/round11/D14/sweep-P2/probes_p2.py`, t
 
 ## Red checks
 
+- `tests / fast (3.14)`: doc_claims comment ratchet, two added sentences over 40 words (`services.py` in `_refuse_zone_fields_on_one_zone`, `tests/features.py` census comment); fixed at this head, `python3 tests/doc_claims.py` exits 0 and the features block reads `ALL 18 FEATURES BLOCK PASSED`. Cheaper detector: `python3 tests/doc_claims.py` (~25 s), skipped by PREPR_SKIP_CODE.
 - `tests / mutation`: predicted red, not yet run (prepr step 6d `PREDICT tests / mutation ADDED UNPINNED`) for the four killed-but-unpinned sites under `## Unpinned sites`. The cheaper detector is prepr's step 6d itself, which caught it here before any CI run; its standing cost is under a second per prepr, already paid. The repair is `mutation-autofix`'s pin commit; no second countermeasure is owed, because the class is the one that lane exists for.
 
 ## Forward-carry
