@@ -1923,7 +1923,7 @@ def _a6_enrich(coord, t0) -> None:
     draw.samples.extend([(1.25, 1.0), (1.75, 1.5), (2.5, 2.0)])
     draw.commands.extend([(35.5, 55.0), (40.5, 55.0), (45.5, 55.0)])
     draw.idle.extend([0.125, 0.375])
-    draw.ceiling.extend([(3.25, t0.timestamp() - 3600.0)])
+    draw.ceiling.extend([(3.25, t0.timestamp() - 3600.0, "probe")])
     coord._accuracy.draw = draw
     coord._measured_cop.record(3.17, True, 52.5, t0 - _dt.timedelta(hours=2))
     learner = coord._dhw_learner
