@@ -1,0 +1,93 @@
+2026-11-27T10:26:28.5550338Z   fast_plan: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_lane.p
+2026-11-27T10:28:04.2491257Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:28:04.3238941Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:28:05.1557230Z   MODE: SCOPED -- 31 script(s) run, 3 scoped out.
+2026-11-27T10:28:05.1567971Z       tests/entities.py
+2026-11-27T10:28:05.1586878Z       RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+2026-11-27T10:28:05.1587954Z       RUN   tests/entities.py (its tests/closures.json entry changed)
+2026-11-27T10:28:05.1590381Z       RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+2026-11-27T10:34:25.4956591Z SKIP: tests/entities.py (fast shard 1/4 runs it)
+2026-11-27T10:34:25.5090777Z   ok   the reader corpus states no module count; entities.py and claims.py derive and print it (FG-1)
+2026-11-27T10:34:25.5440047Z SKIP: tests/deployment_shape.py (fast shard 3/4 runs it)
+2026-11-27T10:34:25.6028730Z SKIP: tests/harness_headers.py (fast shard 3/4 runs it)
+2026-11-27T10:28:27.3328223Z   fast_plan: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_lane.p
+2026-11-27T10:29:41.4317363Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:29:41.4919570Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:29:42.0231254Z   MODE: SCOPED -- 31 script(s) run, 3 scoped out.
+2026-11-27T10:29:42.0238701Z       tests/entities.py
+2026-11-27T10:29:42.0252284Z       RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+2026-11-27T10:29:42.0253093Z       RUN   tests/entities.py (its tests/closures.json entry changed)
+2026-11-27T10:29:42.0255681Z       RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+2026-11-27T10:29:42.2520585Z   [10:29:42] start  python3 tests/entities.py
+2026-11-27T10:37:58.4335286Z   [10:37:58] ok     python3 tests/entities.py (496s)
+2026-11-27T10:37:58.7174699Z ########## python3 tests/entities.py ##########
+2026-11-27T10:37:58.7190351Z   SLOT: tests/entities.py joins a heavy slot as run.sh-2326
+2026-11-27T10:37:58.7625030Z lease class: dispatched=37 (floor 30) lease=['tests/stress.py', 'tests/harness_headers.py'] slot=12 none=23 unleased_but_heavy=[]
+2026-11-27T10:37:58.7635251Z   derived (#1218): the lane reaches all 126 production files; 192 of the 561 script pairs share >= 0.80 of their production closure, among 435 comparable pairs; 17 at exactly 1.00: tests/arch_score_head.py/tests/deployment_shape.py (126), tests/arch_score_head.py/tests/e
+2026-11-27T10:37:58.7680404Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20232, in <module>
+2026-11-27T10:37:58.7680854Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7683249Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20232, in <module>
+2026-11-27T10:37:58.7683479Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7686441Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20234, in <module>
+2026-11-27T10:37:58.7686669Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7688763Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20234, in <module>
+2026-11-27T10:37:58.7688992Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7691374Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20235, in <module>
+2026-11-27T10:37:58.7691603Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7693914Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20235, in <module>
+2026-11-27T10:37:58.7694148Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7696254Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20235, in <module>
+2026-11-27T10:37:58.7696595Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7698983Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20236, in <module>
+2026-11-27T10:37:58.7699214Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7701566Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20236, in <module>
+2026-11-27T10:37:58.7701795Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7704381Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20237, in <module>
+2026-11-27T10:37:58.7704608Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7707281Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20237, in <module>
+2026-11-27T10:37:58.7707516Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7709691Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20237, in <module>
+2026-11-27T10:37:58.7709926Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7712453Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20238, in <module>
+2026-11-27T10:37:58.7712685Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7714802Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20238, in <module>
+2026-11-27T10:37:58.7715034Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7717137Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20238, in <module>
+2026-11-27T10:37:58.7717369Z   ..   hb:positive_control|   File "/home/runner/work/heatpump_optimizer/heatpump_optimizer/tests/entities.py", line 20223, in _hb_spy_run
+2026-11-27T10:37:58.7775030Z   ok   the committed table records stamp.py in tests/entities.py's own closure
+2026-11-27T10:37:58.7775118Z   ok   a change to stamp.py selects tests/entities.py
+2026-11-27T10:37:58.7870211Z   ok   the harness_headers.py baseline shares the runner with no other driver, and only stress.py takes the gate lease
+2026-11-27T10:37:58.7921682Z SKIP: tests/deployment_shape.py (fast shard 3/4 runs it)
+2026-11-27T10:37:58.7924070Z SKIP: tests/harness_headers.py (fast shard 3/4 runs it)
+2026-11-27T10:37:58.7924229Z      496s  python3 tests/entities.py
+2026-11-27T10:10:45.3736607Z   fast_plan: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_lane.p
+2026-11-27T10:12:00.3490066Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:12:01.5359421Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:12:01.8800330Z   MODE: SCOPED -- 31 script(s) run, 3 scoped out.
+2026-11-27T10:12:01.8809840Z       tests/entities.py
+2026-11-27T10:12:01.8828421Z       RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+2026-11-27T10:12:01.8829123Z       RUN   tests/entities.py (its tests/closures.json entry changed)
+2026-11-27T10:12:01.8840216Z       RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+2026-11-27T10:14:18.0351980Z   [10:14:18] start  python3 tests/deployment_shape.py
+2026-11-27T10:14:20.1491640Z   [10:14:20] ok     python3 tests/deployment_shape.py (2s)
+2026-11-27T10:15:28.0597011Z   [10:15:28] start  python3 tests/harness_headers.py
+2026-11-27T10:17:32.2961885Z   [10:17:32] ok     python3 tests/harness_headers.py (124s)
+2026-11-27T10:17:32.5185799Z   ok   harness_headers.py reads the same variable name (its CPU-headroom grade)
+2026-11-27T10:17:32.5212003Z SKIP: tests/entities.py (fast shard 1/4 runs it)
+2026-11-27T10:17:32.5634392Z ########## python3 tests/deployment_shape.py ##########
+2026-11-27T10:17:32.5946001Z ########## python3 tests/harness_headers.py ##########
+2026-11-27T10:17:32.5963680Z   LEASE: tests/harness_headers.py runs under the gate lease as run.sh-2358
+2026-11-27T10:17:32.5975613Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT config_ranges_compared matches header
+2026-11-27T10:17:32.5987708Z        2s  python3 tests/deployment_shape.py
+2026-11-27T10:17:32.5988024Z      124s  python3 tests/harness_headers.py
+2026-11-27T10:01:42.5437535Z   fast_plan: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_lane.p
+2026-11-27T10:03:14.4163394Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:03:14.4893118Z   HPO_FAST_PLAN: {"n":4,"s":{"tests/arch_score.py":3,"tests/arch_score_head.py":3,"tests/backtest.py":4,"tests/block_duty.py":3,"tests/boost_drift_replay.py":4,"tests/card.mjs":4,"tests/card_drift.mjs":4,"tests/closure.py":3,"tests/config_flow_steps.py":2,"tests/cycle_la
+2026-11-27T10:03:15.0820752Z   MODE: SCOPED -- 31 script(s) run, 3 scoped out.
+2026-11-27T10:03:15.0832815Z       tests/entities.py
+2026-11-27T10:03:15.0851628Z       RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+2026-11-27T10:03:15.0852572Z       RUN   tests/entities.py (its tests/closures.json entry changed)
+2026-11-27T10:03:15.0855115Z       RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+2026-11-27T10:19:40.1760004Z SKIP: tests/entities.py (fast shard 1/4 runs it)
+2026-11-27T10:19:40.2024014Z SKIP: tests/deployment_shape.py (fast shard 3/4 runs it)
+2026-11-27T10:19:40.2057967Z SKIP: tests/harness_headers.py (fast shard 3/4 runs it)

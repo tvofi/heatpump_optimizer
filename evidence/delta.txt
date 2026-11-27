@@ -1,0 +1,6 @@
+head a8dff54818f8749246fffb9e18344dbbb1318735 reviewed-head d92bb3a7 (delta re-review)
+git diff d92bb3a7 a8dff548: first-parent commits are merges of main only.
+1) tests/deployment_shape.py: "184 of the 561" chain removed; note carries no counts, names entities.py #1218 block as source.
+2) tests/entities.py #1218: counts derived and printed; refusal of carried counts with planted-corpus null control. CI: derived (#1218) 126 files, 192 of 561 pairs.
+3) claims.py header: config_ranges_compared=104; volatile arch counts unpinned. CI harness_headers: ok config_ranges_compared matches header.
+Local run not possible: seat venvs lack scipy/paho together; overlay (venv-ha + venv-ci site-packages + paho in /tmp/hpo-rev-3872/extra) hit FakeConfig.config_dir env mismatch. Authority: fast shards 1-4 success at head (job logs here).
