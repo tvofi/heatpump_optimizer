@@ -220,21 +220,20 @@ def _parses(value: Any, parse: Any, size: int) -> bool:
         return False
 
 
-def _is_number(value: Any) -> bool:
-    """A number, never a flag: Python counts ``True`` as the int 1."""
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
 def _number(value: Any, domain: Domain) -> bool:
-    return _is_number(value) and math.isfinite(value) and domain.lo <= value <= domain.hi
+    return (
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        and math.isfinite(value) and domain.lo <= value <= domain.hi
+    )
 
 
 def _declares_number(domain: Domain) -> bool:
     """Whether a field so declared holds a number: a ``real``, an ``int``, or a
-    ``choice`` whose members are all numbers (``LEAD_BUCKETS``)."""
+    ``choice`` whose members are all numbers (``LEAD_BUCKETS``), a flag none."""
     if domain.kind in ("real", "int"):
         return True
-    return domain.kind == "choice" and bool(domain.choices) and all(map(_is_number, domain.choices))
+    real = Domain("real")
+    return domain.kind == "choice" and bool(domain.choices) and all(_number(m, real) for m in domain.choices)
 
 
 _KINDS: dict[str, Any] = {
