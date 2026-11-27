@@ -161,6 +161,14 @@ def main():
         t = Path(os.environ.get("TREES", "/root/trees")) / f"w{w}"
         if not t.exists():
             shutil.copytree(ROOT, t, ignore=shutil.ignore_patterns(".git"), symlinks=True)
+        # an aborted run leaves its in-flight mutant behind: rewrite every production file
+        # from the base, then refuse unless each tree's production source equals the base's
+        for src in (ROOT / "custom_components").rglob("*.py"):
+            (t / src.relative_to(ROOT)).write_bytes(src.read_bytes())
+        bad = [str(q.relative_to(t)) for q in (t / "custom_components").rglob("*.py")
+               if not (ROOT / q.relative_to(t)).exists() or q.read_bytes() != (ROOT / q.relative_to(t)).read_bytes()]
+        if bad:
+            sys.exit(f"REFUSE tree {t}: production source differs from the base: {bad[:5]}")
         trees.append(t)
     base_cache, lock = {}, threading.Lock()
     q = queue.Queue()
