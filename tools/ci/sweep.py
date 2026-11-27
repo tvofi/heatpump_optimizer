@@ -8,15 +8,28 @@ lower or higher id (an id orders nothing: GitHub numbers a same-second push and 
 out of order, and prelude.waits_on makes the higher-id code run's gate the one that waits):
   - its latest `gate` completed and not `success` -> re-run that `gate` job;
   - its `gate` attempt requested and not completed (N5-4: queued, waiting, pending,
-    requested, in_progress) -> poll, and re-run it if it completes red.
+    requested, in_progress) -> left: that run's own completion sweeps, and finding V's green
+    gate covering the newest event it re-runs its own red gate (COMPLETION ARM, below);
+  - its `gate` completed in a run still running, or not completed in a run only its own
+    sweep-self sweeps (`self_swept`) -> poll, and re-run it if it completes red.
 Never the triggering run, never a green one, never past attempt 45 (N2: the sweep leaves a
 run at 44 alone), each polled run re-run at most once. The poll lists runs ONCE per
 poll for all of them, no faster than 60 s (tvofi 2026-10-19), for at most 600 s.
 
+COMPLETION ARM (#3885 L3 W2): the sweep of a completed run V whose latest gate completed red, where
+another run at the head holds a green gate covering the newest event and completed before V's gate did
+(a green gate completing later is that run's own sweep's, which reads V's gate completed), re-runs V's gate
+(`judge`), unless
+the bot's re-run already judged it after every source finished (`settled`): V's completion does what that
+green run's sweep once polled for, holding no runner. A run whose actor is the bot is the exception
+(`self_swept`): gate-sweep.yml never fires for it, and its sweep-self runs inside it, where GitHub refuses a
+re-run, so its unfinished gate is still polled, as is a gate completed in a run still running (seconds).
+
 Where no green gate covers the newest event (`settle`, r10-gate-busy-defer-3): a gate defers at
 once and holds no runner (gate.judge), so a deferral nothing green follows -- two gates that
 deferred to each other, or a decider that ended red or cancelled -- would stay red. Once every
-gate at the head has concluded (in_progress gates polled as above), every red gate, V's own
+gate at the head has concluded (an unfinished gate left to its own completion's sweep, a
+`self_swept` one polled, as above), every red gate, V's own
 included, that may have judged an undecided head is re-run (`undecided`: it started before a
 source of ANOTHER run, below, finished; or a higher-id run's gate started while it judged,
 the lagging-listing pair, of which the lower id is re-run, or the higher where the lower ended
@@ -226,6 +239,12 @@ def pollable(gate):
     return bool(gate and gate.get("status") in NOT_COMPLETED)
 
 
+def self_swept(run):
+    """A run whose actor is the bot: only its own sweep-self sweeps it, inside it, where GitHub refuses a
+    re-run, so no completion arm of its own re-runs its gate (module doc)."""
+    return (run.get("actor") or {}).get("login") == SWEEP_ACTOR
+
+
 class Sweep:
     def __init__(self, repo, get, post, out=print, sleep=time.sleep, clock=time.monotonic, caller=None):
         self.repo, self.get, self.post, self.out, self.sleep, self.clock = repo, get, post, out, sleep, clock
@@ -403,6 +422,9 @@ class Sweep:
         self.undefer(runs, head)
         vg = self.gate_of(run_id)
         if not covers_newest(vg, runs):
+            if self.completion(v, vg, runs):
+                self.out(f"SWEEP-DONE run={run_id} reruns={self.reruns} dispatches={self.dispatches}")
+                return 0
             return self.settle(run_id, pr, head)
         self.green = v["id"]
         polled = {}
@@ -412,8 +434,10 @@ class Sweep:
                 self.judge(r, g, "completed red", runs)
             elif g and g.get("status") == "completed":     # its run still busy (its sweep-self): GitHub refuses a re-run
                 polled[r["id"]] = r["status"]
-            elif pollable(g):
+            elif pollable(g) and self_swept(r):
                 polled[r["id"]] = r["status"]
+            elif pollable(g):
+                self.out(f"SWEEP left run {r['id']}: its gate still {g['status']}; its completion sweeps")
         deadline = self.clock() + POLL_WAIT
         while polled and self.clock() + POLL_FLOOR <= deadline:
             self.sleep(POLL_FLOOR)
@@ -433,6 +457,24 @@ class Sweep:
         return 0
 
 
+    def completion(self, v, vg, runs):
+        """The completion arm (module doc): V completed, its latest gate red, and another run's green gate
+        covers the newest event. True where it decided V's gate."""
+        if v["status"] != "completed" or not vg or vg.get("status") != "completed" or vg.get("conclusion") == "success":
+            return False
+        others = {r["id"]: self.jobs_of(r["id"]) for r in runs if r["id"] != v["id"]}
+        done = vg.get("completed_at") or ""
+        green = [i for i, js in sorted(others.items()) if covers_newest(latest_gate(js), runs)
+                 and (latest_gate(js).get("completed_at") or "~") < done]     # else that green run's own sweep read V
+        if not green:
+            return False
+        if settled(v, vg, others):
+            self.out(f"SWEEP left run {v['id']}: attempt {v['run_attempt']}, the bot's re-run, judged after "
+                     "every source finished")
+            return True
+        self.judge(v, vg, f"its own completion, run {green[0]}'s green gate covering the newest event", runs)
+        return True
+
     def settle(self, run_id, pr, head):
         """No green gate covers the newest event: once every gate at the head has concluded,
         re-run each red one that judged before another run's sources finished (module doc)."""
@@ -443,7 +485,9 @@ class Sweep:
             gates = {i: latest_gate(js) or {} for i, js in jobs.items()}
             finishing = [r["id"] for r in runs if r["id"] != self.caller and (gates[r["id"]].get("status") == "in_progress"
                          or (gates[r["id"]].get("status") == "completed" and r["status"] != "completed"))]
-            judging = self.caller == run_id and any(gates[i].get("status") == "in_progress" for i in finishing)
+            byid = {r["id"]: r for r in runs}
+            judging = any(gates[i].get("status") == "in_progress" and (self.caller == run_id or not self_swept(byid[i]))
+                          for i in finishing)
             if not finishing or judging or self.clock() + POLL_FLOOR > deadline:
                 break
             self.sleep(POLL_FLOOR)

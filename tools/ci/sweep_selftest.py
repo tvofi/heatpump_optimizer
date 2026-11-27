@@ -89,6 +89,23 @@ def finish(rid, g):
 
 BOT = "github-actions[bot]"     # the login of gate-sweep.yml's github.token, the recorded runs' triggering_actor
 
+
+def bot(r):
+    """A run whose actor is the bot: only its own sweep-self sweeps it (sweep.self_swept), so its gate is polled."""
+    r["actor"] = {"login": BOT}
+    return r
+
+
+def own_completion(w, rid, fn):
+    """#3885 L3 W2: the first sweep leaves run `rid`'s unfinished gate; `fn` finishes it, and the sweep of
+    its own completion runs. Returns the first sweep's (posts, sleeps, out), then the second's posts."""
+    rc, out = w.sweep()
+    first = (list(w.posts), list(w.sleeps), out)
+    fn(w)
+    w.v_id = rid
+    w.sweep()
+    return first, w.posts
+
 # #3308 at head 6016f9dd, recorded 2026-11-08 from `gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/attempts/<n>/jobs`
 # (the state the sweep for run 42471173865's attempt 24 read at 11:48:1x, after which runs 42470642055 and
 # 42470643072 were re-run at 11:48:33). Trimmed: run 42470642055's 41 jobs to its gate, its skipped jobs, and
@@ -217,10 +234,15 @@ def run_checks():
     w = World([v_run(rid=1, created="1"), run(2, "1")], 1)     # an edit run numbered below its code run
     rc, out = w.sweep()
     ok("a red gate on a HIGHER-id run is re-run (an id orders nothing)", rc == 0 and w.posts == ["repos/o/r/actions/jobs/20/rerun"])
-    w = World([v_run(rid=1, created="1"), run(2, "1", status="in_progress", gstatus="in_progress")], 1,
+    w = World([v_run(rid=1, created="1"), bot(run(2, "1", status="in_progress", gstatus="in_progress"))], 1,
               {2: finish(2, "failure")})
     w.sweep()
-    ok("a HIGHER-id gate still waiting is polled, and re-run once it expires red", w.posts == ["repos/o/r/actions/jobs/20/rerun"])
+    ok("a HIGHER-id bot-actor gate still waiting is polled, and re-run once it expires red",
+       w.posts == ["repos/o/r/actions/jobs/20/rerun"])
+    w = World([v_run(rid=1, created="1"), run(2, "1", status="in_progress", gstatus="in_progress", started="5")], 1)
+    (posts, sleeps, out), then = own_completion(w, 2, finish(2, "failure"))
+    ok("W2: a HIGHER-id gate still waiting is left, unpolled, and its own completion re-runs it red",
+       posts == [] and sleeps == [] and "its completion sweeps" in out and then == ["repos/o/r/actions/jobs/20/rerun"])
     w = World([run(1, "1"), run(9, "3", g="failure", started="4")], 9)
     rc, out = w.sweep()
     ok("a triggering run whose gate is red re-runs nothing (no source finished after either gate started)",
@@ -239,25 +261,49 @@ def run_checks():
     w = World([run(1, "5"), v_run(created="3")], 9)     # V's gate started at "4", before run 1 was created
     ok("a gate that does not cover the newest event sweeps nothing", "reruns=0" in w.sweep()[1] and w.posts == [])
     for st in ("queued", "waiting", "pending", "requested", "in_progress"):
-        w = World([run(1, "1", status=st, gstatus=st), v_run()], 9, {2: finish(1, "failure")})
+        w = World([bot(run(1, "1", status=st, gstatus=st)), v_run()], 9, {2: finish(1, "failure")})
         w.runs[1]["status"] = "in_progress"
         w.script[2] = lambda w: (finish(1, "failure")(w))
         w.sweep()
-        ok(f"a {st} gate is polled, and re-run once it completes red", w.posts == ["repos/o/r/actions/jobs/10/rerun"])
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9, {3: finish(1, "failure")})
+        ok(f"a {st} bot-actor gate is polled, and re-run once it completes red", w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+        w = World([run(1, "1", status="in_progress", gstatus=st, started="5"), v_run()], 9)
+        (posts, sleeps, out), then = own_completion(w, 1, finish(1, "failure"))
+        ok(f"W2: a {st} gate is left unpolled, and its own completion re-runs it red",
+           posts == [] and sleeps == [] and then == ["repos/o/r/actions/jobs/10/rerun"])
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9, {3: finish(1, "failure")})
     rc, out = w.sweep()
     ok("polls are >= 60 s apart, one runs listing each", min(w.sleeps) >= 60 and w.listings == len(w.sleeps) + 1 == 4)
     ok("a polled run is re-run at most once", len(w.posts) == 1)
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9)
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9)
     rc, out = w.sweep()
     ok("a run still going at the bound is left, red, after at most 600 s", w.posts == [] and w.t <= 600 and "still" in out)
     ok("the bound is reached by polling", len(w.sleeps) == 10)
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9, {1: lambda w: (setattr(w, "live_head", "H2"), finish(1, "failure")(w))})
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9, {1: lambda w: (setattr(w, "live_head", "H2"), finish(1, "failure")(w))})
     rc, out = w.sweep()
     ok("a push that moved the head stops the poll without a re-run", w.posts == [] and "SWEEP stop" in out)
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9, {1: finish(1, "success")})
+    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9)
+    (posts, sleeps, out), then = own_completion(w, 1, lambda w: (setattr(w, "live_head", "H2"), finish(1, "failure")(w)))
+    ok("W2: a push that moved the head before the left run completed: its own sweep re-runs nothing", then == [])
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9, {1: finish(1, "success")})
     w.sweep()
     ok("a polled run that completes green is not re-run", w.posts == [])
+    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9)
+    (posts, sleeps, out), then = own_completion(w, 1, finish(1, "success"))
+    ok("W2: a left run that completes green is not re-run by its own sweep", then == [])
+    w = World([run(1, "1", started="5"), v_run()], 1)      # run 1's red gate completed after run 9's green one
+    rc, out = w.sweep()
+    ok("W2 completion arm: a red run's own sweep re-runs its gate where another run's green gate covers the newest event",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.sleeps == [] and "its own completion" in out)
+    w.runs[1].update(run_attempt=2, triggering_actor={"login": BOT})
+    w.runs[1]["gate"].update(started_at="6", completed_at="6")
+    w.posts = []
+    rc, out = w.sweep()
+    ok("W2 completion arm null: the bot's re-run of it, red again after every source finished, is left (no loop)",
+       w.posts == [] and "the bot's re-run" in out)
+    w = World([run(1, "1", started="5"), run(9, "6", g="success", started="4")], 1)
+    rc, out = w.sweep()
+    ok("W2 completion arm null: a green gate that does not cover the newest event re-runs nothing",
+       w.posts == [] and "reruns=0" in out)
     w = World([run(1, "1", status="in_progress", g="failure"), v_run()], 9)
     w.runs[1]["gate"]["status"] = "completed"
     out = w.sweep()[1]
@@ -302,9 +348,10 @@ def run_checks():
     w.runs[9]["status"] = "completed"
     w.runs[9]["units"][-1].update(completed_at="9", conclusion="skipped")
     w.runs[11] = run(11, "5", status="in_progress", gstatus="in_progress", started="9")
-    w.script[1] = finish(11, "success")
-    w.sweep()
-    ok("sweep-self null: the workflow_run sweep polls that gate as before", w.sleeps == [POLL_FLOOR])
+    (posts, sleeps, out), then = own_completion(w, 11, finish(11, "success"))
+    ok("sweep-self null, W2: the workflow_run sweep leaves that gate unpolled, and its own green completion "
+       "re-runs the deferral", posts == [] and sleeps == [] and out.startswith("SKIP")
+       and then == ["repos/o/r/actions/jobs/100/rerun"])
     w = self_world("6")
     w.runs[10]["status"] = "in_progress"        # the edit run's own sweep-self still running
     w.script[1] = lambda w: w.runs[10].update(status="completed")
@@ -379,7 +426,7 @@ def run_checks():
             w = pair()
             for t, path in enumerate(sorted(posts)):
                 r = w.runs[int(re.search(r"/jobs/(\d+)/", path)[1]) // 10]
-                r["run_attempt"] = 2
+                r["run_attempt"], r["triggering_actor"] = 2, {"login": BOT}     # the sweep's own re-run
                 r["gate"].update(started_at=f"{7 + t}0", completed_at=f"{7 + t}1")
             w.v_id = v
             w.sweep()
@@ -400,11 +447,16 @@ def run_checks():
         ok(f"settle: a run whose gate is still {st} owns convergence (SKIP, nothing re-run)",
            w.posts == [] and out.startswith("SKIP") and w.sleeps == [])
     w = World([run(1, "1", started="2", units=["1"]),
-               run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"])], 1,
+               bot(run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"]))], 1,
               {1: finish(9, "failure")})
     w.sweep()
-    ok("settle: a gate still running is polled, then the deferral it leaves red is re-judged",
+    ok("settle: a bot-actor gate still running is polled, then the deferral it leaves red is re-judged",
        w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.sleeps == [POLL_FLOOR])
+    w = World([run(1, "1", started="2", units=["1"]),
+               run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"])], 1)
+    (posts, sleeps, out), then = own_completion(w, 9, finish(9, "failure"))
+    ok("settle, W2: a gate still running is left unpolled (SKIP), and its own red completion re-judges the deferral",
+       posts == [] and sleeps == [] and out.startswith("SKIP") and then == ["repos/o/r/actions/jobs/10/rerun"])
     w = World([run(1, "1", started="2", units=["1"])], 1)
     rc, out = w.sweep()
     ok("settle null: a lone red gate at its head is never re-run", w.posts == [] and "reruns=0" in out)
@@ -568,6 +620,7 @@ def run_checks():
     def shape3400():
         f = run(5, "5", status="in_progress", g="success", started="6", units=["5"])
         f["event"] = "workflow_dispatch"
+        bot(f)      # github.token's dispatch: its sweep-self runs, gate-sweep.yml never fires for it
         f["units"].append({"name": sweep.SELF_JOB, "completed_at": None})
         w = pinned(run(1, "1"), run(2, "1", started="3"), run(3, "1", g="success", started="4"), f, v=5)
         w.caller = 5
