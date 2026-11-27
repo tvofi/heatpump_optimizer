@@ -1,0 +1,6 @@
+next_window_census spring: 0 of 71040 cells off the zone's clock
+rc=0
+next_window_census autumn: 0 of 76416 cells off the zone's clock
+rc=0
+next_window_census plain: 0 of 73728 cells off the zone's clock
+rc=0
