@@ -1,0 +1,3 @@
+rule: git show <sha>:.github/workflows/ci.yml | python3 -c "import sys,yaml; print(sorted(yaml.safe_load(sys.stdin)['jobs']))"
+7194ff84c09dd9d54a99f8208c906136981fd9dc (base): ['arch-score', 'budget-raise-gate', 'cancel-superseded', 'codeql', 'gate', 'governance', 'hassfest', 'kernel-points', 'pr-contract', 'prelude', 'refresh', 'sweep-self', 'tests', 'validate']
+4a07b1eca5cfd6c507ad7bdcd29e38af6e46f3de (head): ['arch-score', 'budget-raise-gate', 'cancel-superseded', 'codeql', 'gate', 'governance', 'hassfest', 'kernel-points', 'pr-contract', 'prelude', 'sweep-self', 'tests', 'validate']

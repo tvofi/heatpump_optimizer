@@ -1,9 +1,0 @@
-2170:  ok   codeql.yml has no scope job and no cancel-superseded job (the prelude and ci.yml own them)
-2549:  ok   exactly six jobs in tests.yml override the workflow's read-only floor (cancel-superseded, `actions: write`, is ci.yml's since the umbrella)
-2603:  ok   record holds a write grant and is unreachable from a PR branch
-2690:  ok   a body edit starts a run of the contract job and the budget gate, and of no other job
-2696:  ok   ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, on a non-bot same-repo pull_request run only
-2697:  ok   #3885 L5: the same job re-runs the stale green gates on pull_request and review events, fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, and never past a failed restore (null: push and dispatch run no housekeeping)
-2718:  ok   no job holding a write grant on pull_request runs the pull request's own program or leaves its token on disk (D11-s1-03)
-2719:  ok   and the same ci.yml and tests.yml with their restores and token hygiene undone are refused on each of the three autofix jobs (a workflow_call callee of a pull_request workflow) and on ci.yml's cancel-superseded and sweep-self jobs (null control)
-rc=124 at timeout 220s (54 FAIL rows outside the diff's rows: no homeassistant, hastub only)
