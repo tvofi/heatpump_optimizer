@@ -13208,6 +13208,11 @@ R.check(
     "final plan; the cap loop should have re-solved it away",
 )
 R.check(
+    "every planned step carries a set-point: optimal_setpoints is as long as the power schedule",
+    len(_cres.optimal_setpoints) == len(_cres.power_schedule) > 0,
+    f"{len(_cres.optimal_setpoints)} set-points for {len(_cres.power_schedule)} steps",
+)
+R.check(
     "and the trajectory itself respects the cap",
     float(_cres_buf.max()) <= 60.0 + 1e-6,
     f"tank peaked at {float(_cres_buf.max()):.2f} C",
@@ -30369,6 +30374,16 @@ R.check(
     _xh2_kept > _xh_kept,
     f"external-heat kept {_xh_kept}, control kept {_xh2_kept}; "
     f"freeze={_xh2._pump_signals.freeze_reason}",
+)
+_xf = _t2_coord()
+_xf_calls = []
+_xf_real = _xf._observe_frequency
+_xf._observe_frequency = lambda: (_xf_calls.append(1), _xf_real())[1]
+_xf._record_accuracy()
+R.check(
+    "a cycle's accuracy close takes exactly one frequency sample, even with nothing pending",
+    len(_xf_calls) == 1,
+    f"_observe_frequency ran {len(_xf_calls)} times in one _record_accuracy",
 )
 
 # --- D7-03 (#279): open window skips the accuracy sample -------------------
@@ -61112,6 +61127,14 @@ R.check(
     "so the settle phase returning None is what keeps the house on its "
     "ordinary plan while the experiment waits for a steady baseline",
 )
+R.check(
+    "the run's nearly collinear fit takes the two-column fallback and ends on its own verdict, "
+    "not a swallowed exception",
+    _g8_sid_run.result.reason == "fit gave implausible signs"
+    and _g8_sid_run.result.completed is False,
+    f"result {_g8_sid_run.result!r}: the three-column solve is singular here, so the "
+    "lstsq fallback's solution is what the sign check reads",
+)
 _g8_sid_drift = _g8_sid_new(max_excursion_c=0.5, settle_hours=1.0)
 _g8_sid_drift.arm(_G8_SID_T0)
 _g8_sid_step(_g8_sid_drift, _G8_SID_T0, room=21.0)
@@ -83173,6 +83196,12 @@ R.check(
     and abs(_fm_lf_seen["kwargs"]["measured_heat_kw"] - _FM_LEARN_KW) < 1e-9,
     f"measured_heat_kw {_fm_lf_seen['kwargs'].get('measured_heat_kw')!r} of "
     f"{sorted(_fm_lf_seen['kwargs'])}; escaped {_fm_lf._t2_escaped!r}",
+)
+R.check(
+    "observe_water folds the SUPPLY reading (45.0), not the return (40.0), into the flow-bias holder",
+    _fm_coord._flow_bias.last_supply_c == 45.0,
+    f"last_supply_c {_fm_coord._flow_bias.last_supply_c!r}: the planted supply is 45.0 and "
+    "the return 40.0, so a swapped slot is visible here and nowhere that plants both alike",
 )
 # The precedence rule and the refused-reading paths, each at the learner's own
 # input rather than at the reader's: what R9-UX-9 pinned was that
