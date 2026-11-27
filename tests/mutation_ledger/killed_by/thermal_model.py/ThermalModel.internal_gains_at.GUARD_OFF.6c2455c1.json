@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.internal_gains_at GUARD_OFF 6c2455c1",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        if profile is None or hour_of_day is None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

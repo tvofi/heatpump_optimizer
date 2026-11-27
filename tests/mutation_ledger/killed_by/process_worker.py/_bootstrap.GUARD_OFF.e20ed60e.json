@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/process_worker.py:_bootstrap GUARD_OFF e20ed60e",
+  "killed_by": "tests/deployment_shape.py",
+  "old": "        if resolved != here:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/deployment_shape.py from rc=0 failed=0 to rc=1 failed=16."
+}

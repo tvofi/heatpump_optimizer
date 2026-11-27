@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 6e7499af",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        if solution is None or not np.all(np.isfinite(solution)) or rank < n_cols:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

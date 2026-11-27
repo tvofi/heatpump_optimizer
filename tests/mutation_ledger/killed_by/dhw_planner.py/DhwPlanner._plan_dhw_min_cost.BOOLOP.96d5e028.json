@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost BOOLOP 96d5e028",
+  "killed_by": "tests/plan_view.py",
+  "old": "                        if forced_off is not None and forced_off[j]",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if forced_off is not None or forced_off[j]`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}
