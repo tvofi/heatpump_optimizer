@@ -141,8 +141,7 @@ def fold_buffer_cooling(
 
     start_delta = previous_temp - BUFFER_AMBIENT_TEMP
     end_delta = buffer_temp - BUFFER_AMBIENT_TEMP
-    if start_delta < BUFFER_COOLING_MIN_DELTA:
-        return None
+    # The tank did not warm, so the start is at least as far above ambient.
     if end_delta < BUFFER_COOLING_MIN_DELTA:
         return None
 

@@ -217,9 +217,8 @@ from .external_heat import (
 from . import away as away_mode
 from . import external_heat as extheat
 from . import boost
-from .fabric_learning import (  # noqa: F401
+from .fabric_learning import (
     HOUSE_LOSS_ALPHA,
-    HOUSE_LOSS_MAX_STEP,
     HeatLossLearned,
     LEARNER_TRUST_REGION as _LEARNER_TRUST_REGION,
     fold_buffer_cooling,
@@ -5455,7 +5454,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         mis-split the zones (#2239). The law is ``reanchor_heat_loss``'s, on
         the nameplates ``heat_loss_anchor_pair`` reads from the stored anchors:
 
-        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` change of the
+        * **Threshold gate.** Below a ``fabric_learning.HOUSE_LOSS_MAX_STEP`` change of the
           total and of the nameplate split the store is kept verbatim: below
           convergence the law is a measured regression against today's
           behaviour on exactly that path (the 30-hop walk), and the learner's

@@ -47,6 +47,11 @@ import itertools
 import numpy as np
 
 from heatpump_optimizer import coordinator as coord_mod
+
+try:  # the step gate's owner since the fabric cut; the coordinator's at an earlier tree
+    from heatpump_optimizer.fabric_learning import HOUSE_LOSS_MAX_STEP
+except ImportError:
+    HOUSE_LOSS_MAX_STEP = coord_mod.HOUSE_LOSS_MAX_STEP
 from heatpump_optimizer.const import (
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
@@ -60,7 +65,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--alpha", type=float, default=coord_mod.HOUSE_LOSS_ALPHA)
     ap.add_argument("--trust-region", type=float, default=coord_mod._LEARNER_TRUST_REGION)
-    ap.add_argument("--limit", type=float, default=coord_mod.HOUSE_LOSS_MAX_STEP,
+    ap.add_argument("--limit", type=float, default=HOUSE_LOSS_MAX_STEP,
                     help="the rate-limit fraction probed (default: HOUSE_LOSS_MAX_STEP)")
     ap.add_argument("--current-min", type=float,
                     default=min(HOUSE_HEAT_LOSS_SCALE_MIN, LOWER_FLOOR_LOSS_RATIO_MIN))

@@ -2835,7 +2835,6 @@ R.check(
 )
 from heatpump_optimizer.coordinator import (
     COP_LEARNING_MAX_STEP,
-    HOUSE_LOSS_MAX_STEP,
     PLAN_STALE_FLOOR_MINUTES,
     SOLVE_FAILURE_ISSUE_COUNT,
     house_loss_confidence,
@@ -2844,7 +2843,6 @@ R.check(
     "facade symbols stay importable from heatpump_optimizer.coordinator",
     HeatPumpOptimizerCoordinator is coordinator_module.HeatPumpOptimizerCoordinator
     and COP_LEARNING_MAX_STEP == coordinator_module.COP_LEARNING_MAX_STEP
-    and HOUSE_LOSS_MAX_STEP == coordinator_module.HOUSE_LOSS_MAX_STEP
     and PLAN_STALE_FLOOR_MINUTES == coordinator_module.PLAN_STALE_FLOOR_MINUTES
     and SOLVE_FAILURE_ISSUE_COUNT == coordinator_module.SOLVE_FAILURE_ISSUE_COUNT
     and house_loss_confidence is coordinator_module.house_loss_confidence,

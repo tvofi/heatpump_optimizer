@@ -9440,7 +9440,7 @@ R.check(
 # production confidence curve and threshold -- imported, never
 # re-implemented here (the rule tests/README.md states, and the failure
 # mode that rule was written for).
-from heatpump_optimizer.coordinator import (
+from heatpump_optimizer.fabric_learning import (
     HOUSE_LOSS_MAX_STEP as _HL_STEP,
     house_loss_confidence as _hl_phi,
 )
@@ -53424,7 +53424,17 @@ R.check(
     f"wrong: {[(k, _fab_ra[k]) for k in _fab_ra_wrong]}",
 )
 
-# The coordinator still answers under the names its readers import.
+R.check(
+    "fabric: confidence is 0 with no evidence or a negative count, and one alpha after one sample",
+    _fab.house_loss_confidence(0) == 0.0
+    and _fab.house_loss_confidence(-3) == 0.0
+    and abs(_fab.house_loss_confidence(1) - 0.02) < 1e-12
+    and abs(_fab.house_loss_confidence(200) - 0.9824120533942785) < 1e-12,
+    f"{_fab.house_loss_confidence(-3)} {_fab.house_loss_confidence(1)}",
+)
+
+# The coordinator still answers under the names it reads itself; the
+# re-anchor's step gate, which it no longer reads, is the module's alone.
 from heatpump_optimizer import coordinator as _fab_coord  # noqa: E402
 
 R.check(
@@ -53434,7 +53444,8 @@ R.check(
     and _fab_coord._zone_capacity is _fab.zone_capacity
     and _fab_coord._learned_zone_temperature is _fab.learned_zone_temperature
     and _fab_coord.HOUSE_LOSS_ALPHA == _fab.HOUSE_LOSS_ALPHA == 0.02
-    and _fab_coord.HOUSE_LOSS_MAX_STEP == _fab.HOUSE_LOSS_MAX_STEP == 0.05
+    and _fab.HOUSE_LOSS_MAX_STEP == 0.05
+    and not hasattr(_fab_coord, "HOUSE_LOSS_MAX_STEP")
     and _fab_coord._LEARNER_TRUST_REGION == _fab.LEARNER_TRUST_REGION == 0.5
     and not hasattr(Coord, "_house_heat_loss_anchor"),
     "identity",
