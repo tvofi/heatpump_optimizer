@@ -2,3 +2,4 @@
 1795748721 HB alive
 1795748761 CKPT setup ok; role pack + packet rendered for head 9cec1e83 snapshot c69210a41bec
 1795748898 CKPT mutants M1-M6 killed; null control reproduced; merge-tree clean snapshot 454c67c079c5
+1795749051 CKPT verdict drafted; waiting on tracer re-run and CI classify snapshot 33fe0d14a41f
