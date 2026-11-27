@@ -281,9 +281,9 @@
  {
   "id": "C32",
   "source": "docs/architecture.md",
-  "claim": "45 modules",
+  "claim": "fewer than half of the modules import the `homeassistant` package at module level",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=107 measured=107",
+  "result": "sentence present=True, the module-level importers are fewer than half the package=True",
   "verdict": "true",
   "truth": ""
  },
@@ -292,16 +292,16 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "on disk=107, listed=107, missing=[], phantom=[]",
+  "result": "missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },
  {
   "id": "C34",
   "source": "docs/architecture.md:The Home Assistant boundary",
-  "claim": "the boundary sentence's count of modules importing `homeassistant` at module level",
+  "claim": "the boundary sentence names each module once, and only modules on disk",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=37 measured=37",
+  "result": "named twice=[], not on disk=[]",
   "verdict": "true",
   "truth": ""
  },
