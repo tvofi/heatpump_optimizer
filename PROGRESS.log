@@ -11,3 +11,4 @@
 1795766469 DONE returned: design/r11-owner-features-split at 7b9c5331fe94aa8e35295413ef5367aa24975f5c
 1795767310 INIT r11-owner-features-split
 1795767412 HB alive
+1795767456 CKPT rev2: verdict, prior note, case_select read; measuring edge kinds snapshot 91d6e6cfaa3c
