@@ -36,3 +36,4 @@
 1795772788 CKPT rev3: swap diff at base = 2 spans (spy patch); P0-edited copy running; V2 cost measured snapshot fd347f99eca8
 1795773061 HB alive
 1795773623 CKPT rev3: spike packaged for the note (spike-r11-owner-features-split/) snapshot dab20b60ec06
+1795773648 CKPT design note revision 3 pushed: design/r11-owner-features-split b83de878 snapshot ed7fe784bee8
