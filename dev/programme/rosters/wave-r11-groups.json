@@ -5263,7 +5263,7 @@
    ],
    "source": "audit",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r11-seam-store",
     "commit": "dc2b2bab316419ced8f919c256908275a2cc3e25",
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
