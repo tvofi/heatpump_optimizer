@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 463ef486",
+  "killed_by": "tests/features.py",
+  "old": "    return len(edges) - 2 if value >= edges[-1] else 0",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'Defrost derate (item 14)'): CMP_BOUND (`return len(edges) - 2 if value > edges[-1] else 0`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave c61a89f42607c92b)."
+}
