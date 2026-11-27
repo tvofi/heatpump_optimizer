@@ -10604,7 +10604,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "No settled interval to diagnose yet — one full "
                 "optimization interval must pass first"
             )
-        if self.data is not None:  # D9-s1-01: publish the diagnosis, no cycle
+        if self.data is not None:  # D9-s1-01: publish the diagnosis, no cycle (``async_set_updated_data`` re-arms the interval)
             await _publish_uncycled(self, {**self.data, "insight": self._insight_view()})
         return report
 
