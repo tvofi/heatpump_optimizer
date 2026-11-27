@@ -89,7 +89,7 @@ class CurveLearner:
         if worst_margin_c is None:
             return
         if worst_margin_c <= 0.0:
-            self.record_miss(now, worst_margin_c)
+            self.record_miss(worst_margin_c)
             return
         if worst_margin_c < COMFORT_MARGIN_C:
             # Held, but with nothing to spare: no evidence either way.
@@ -99,7 +99,7 @@ class CurveLearner:
         if self.comfortable_days >= DAYS_PER_STEP:
             self._step_down(now)
 
-    def record_miss(self, now: datetime, worst_margin_c: float) -> None:
+    def record_miss(self, worst_margin_c: float) -> None:
         """A zone touched its floor: the bias surrenders immediately.
 
         Full reset rather than a step back up — the miss proves the

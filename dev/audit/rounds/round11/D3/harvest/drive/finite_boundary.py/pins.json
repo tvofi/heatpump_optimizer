@@ -1,0 +1,57 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:<module> CONST ea648ec1": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "THERMAL_LEARNING_STORE_VERSION = 1",
+    "reason": "Recorded by `mutation_table.py --drain`: CONST (`THERMAL_LEARNING_STORE_VERSION = 2`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_cop_scale CLAMP_DROP c7430e1f": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        self._cop_scale = float(np.clip(scale, COP_SCALE_MIN, COP_SCALE_MAX))",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`self._cop_scale = float((scale))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_house_heat_loss_scale CLAMP_DROP c4dbbd03": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        self._house_heat_loss_scale = float(np.clip(scale, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX))",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`self._house_heat_loss_scale = float((scale))`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_accuracy GUARD_OFF 726b81a5": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        if isinstance(stored_mode, str) and stored_mode in OPERATION_MODES:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_energy_totals CLAMP_DROP 7fb71696": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "                self._energy_totals[key] = max(floor, float(value))",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`self._energy_totals[key] = (floor)`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=5."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_energy_totals GUARD_OFF aa0e01fc": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        if isinstance(since, str) and since:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._load_t4b_learners GUARD_OFF aac9118d": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        if isinstance(raw_curve, dict):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/defrost.py:<module> CONST 45db7992": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "DERATE_MIN = 0.55",
+    "reason": "Recorded by `mutation_table.py --drain`: CONST (`DERATE_MIN = 1.1`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=6."
+  },
+  "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 532b15a0": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        if duty is not None and duty_counts is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.from_dict GUARD_OFF 73f28fdd": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:PeakTracker._window_mean CMP_BOUND 44914a7a": {
+    "killed_by": "tests/finite_boundary.py",
+    "old": "        if self._window_samples > 0:",
+    "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if self._window_samples >= 0:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

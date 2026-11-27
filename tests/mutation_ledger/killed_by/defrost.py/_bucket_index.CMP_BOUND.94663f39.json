@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:_bucket_index CMP_BOUND 94663f39",
+  "killed_by": "tests/features.py",
+  "old": "        if edges[i] <= value < edges[i + 1]:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if edges[i] < value < edges[i + 1]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,42 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_open_meteo GUARD_OFF 6341922b": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "        if self._open_meteo is None or not self._open_meteo.available:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_comparable_ts RETURN_DEL 77ac5208": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "    return ts",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_refuses_non_finite RETURN_DEL 09644b4a": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "    return guarded",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe_temps BOOLOP 04143c3f": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "            if return_temp is not None and np.isfinite(return_temp)",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if return_temp is not None or np.isfinite(return_temp)`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/flow_lift.py:FlowCurveBias.observe_temps BOOLOP fde2384f": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "            if supply is not None and np.isfinite(supply)",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if supply is not None or np.isfinite(supply)`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:_raw_value GUARD_OFF f7c55656": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "    if raw is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_tank_thermal_mass RETURN_DEL b849f50e": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "        return self.dhw_tank_volume * WATER_SPECIFIC_HEAT",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.topology_layout BOOLOP 0486e863": {
+    "killed_by": "tests/solar_alignment.py",
+    "old": "        if cached is not None and cached[0] == key:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if cached is not None or cached[0] == key:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}
