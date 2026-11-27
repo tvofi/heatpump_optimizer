@@ -24,3 +24,4 @@
 1795770547 INIT r11-owner-features-split
 1795770654 HB alive
 1795770681 CKPT rev3: verdict V1-V3 and prior note read snapshot f0650c975b7b
+1795770833 CKPT rev3: V3 reference set classified (scout); starting V1 swap-run spike snapshot aec177fa1963
