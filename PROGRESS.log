@@ -3,3 +3,4 @@
 1795742275 CKPT setup done; reading failure logs snapshot e5df5181e220
 1795742526 CKPT scopes re-cut committed 928dcb1ac3 snapshot ae3d2ccd3701
 1795742871 HB alive
+1795742962 DONE blocked: body_push CARRY-LANDED; code at handoff/r11-repair-3869 928dcb1ac3, BLOCKED.md at handoff-wip 87626550a5
