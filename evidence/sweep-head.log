@@ -1,0 +1,34 @@
+RESULT comfort relax=2 outdoor=-5 lower=commanded k5=29/60 k4=40/60 k3=48/60 k2=60/60
+RESULT comfort relax=2 outdoor=-5 lower=stop k5=28/60 k4=38/60 k3=46/60 k2=60/60
+RESULT comfort relax=2 outdoor=-5 lower=zero k5=25/60 k4=34/60 k3=42/60 k2=57/60
+RESULT comfort relax=2 outdoor=+10 lower=commanded k5=22/60 k4=28/60 k3=37/60 k2=54/60
+RESULT comfort relax=2 outdoor=+10 lower=stop k5=22/60 k4=28/60 k3=37/60 k2=54/60
+RESULT comfort relax=2 outdoor=+10 lower=zero k5=22/60 k4=28/60 k3=37/60 k2=54/60
+RESULT comfort relax=0 outdoor=-5 lower=commanded k5=44/60 k4=54/60 k3=60/60 k2=60/60
+RESULT comfort relax=0 outdoor=-5 lower=stop k5=44/60 k4=54/60 k3=60/60 k2=60/60
+RESULT comfort relax=0 outdoor=-5 lower=zero k5=44/60 k4=54/60 k3=60/60 k2=60/60
+RESULT comfort relax=0 outdoor=+10 lower=commanded k5=36/60 k4=46/60 k3=60/60 k2=60/60
+RESULT comfort relax=0 outdoor=+10 lower=stop k5=36/60 k4=46/60 k3=60/60 k2=60/60
+RESULT comfort relax=0 outdoor=+10 lower=zero k5=36/60 k4=46/60 k3=60/60 k2=60/60
+RESULT comfort production outdoor=-5 k5=25/60 k4=34/60 k3=42/60 k2=57/60
+RESULT comfort production outdoor=+10 k5=22/60 k4=28/60 k3=37/60 k2=54/60
+RESULT yield sweep drift=0.0 cases=6 most_setpoints_in_a_level=1 levels_10min=[5, 5, 5, 5, 5, 5]
+RESULT yield sweep drift=0.05 cases=6 most_setpoints_in_a_level=1 levels_10min=[5, 5, 5, 5, 5, 5]
+RESULT yield sweep drift=0.1 cases=6 most_setpoints_in_a_level=1 levels_10min=[4, 4, 5, 5, 5, 5]
+RESULT yield sweep drift=0.2 cases=6 most_setpoints_in_a_level=1 levels_10min=[2, 2, 2, 2, 3, 3]
+RESULT yield remap drift=0.0 cases=6 most_setpoints_in_a_level=1 levels_10min=[5, 5, 5, 5, 5, 5]
+RESULT yield remap drift=0.05 cases=6 most_setpoints_in_a_level=4 levels_10min=[5, 5, 5, 5, 5, 5]
+RESULT yield remap drift=0.1 cases=6 most_setpoints_in_a_level=7 levels_10min=[5, 5, 5, 5, 5, 5]
+RESULT yield remap drift=0.2 cases=6 most_setpoints_in_a_level=13 levels_10min=[2, 2, 3, 3, 4, 4]
+RESULT night armed: armed the power-response sweep: up to 10.0 kWh (5 levels of 30 minutes at the 4.0 kW band top); the metered energy follows in the draw diagnostics
+RESULT night outcome: power-response sweep held 5 of 5 levels; per-level yield in the draw diagnostics
+RESULT night level fraction=0.0 held_c=37.0 steady_min=27 drawn_mean_kw=1.62 inlet_mean_c=32.12
+RESULT night level fraction=0.5 held_c=46.0 steady_min=27 drawn_mean_kw=3.2 inlet_mean_c=32.72
+RESULT night level fraction=0.25 held_c=41.5 steady_min=27 drawn_mean_kw=2.445 inlet_mean_c=33.32
+RESULT night level fraction=1.0 held_c=55.0 steady_min=27 drawn_mean_kw=3.2 inlet_mean_c=33.92
+RESULT night level fraction=0.75 held_c=50.5 steady_min=27 drawn_mean_kw=3.2 inlet_mean_c=34.52
+RESULT night cost bound_kwh=10.0 metered_kwh=6.812 meter_integral_kwh=6.840
+RESULT night routing window=4 idle=0 ceiling=1 sources=['sweep'] probe_since=None plan_night_window=9
+RESULT night r17 ceiling_sample_kw=[3.2] row_drawn_mean_kw=[3.2000000000000006] (the store takes the interval's closing meter reading)
+RESULT night starts sweep=1 plan_at_one_level=1
+RESULT night held_floor_after=None
