@@ -98,9 +98,18 @@ LEDGERS = {
     # path list, so a key-by-key merge would mix two sides' indices. Its own
     # writer merges it (tests/case_select.py merge_tables, `_TABLE_ARMS`).
     "tests/case_closures.json": "table",
+    # The D6 register, claims.py's committed output: rows keyed by claim id,
+    # many carrying a count derived from the tree that every module- or
+    # entity-adding branch re-derives (tools/merge/d6_register.py).
+    "dev/audit/rounds/round4/D6/claims.json": "table",
+    "dev/audit/rounds/round4/D6/claims.md": "table",
 }
 #: Ledgers merged by their own writer's three-way function, not by merge3.
-_TABLE_ARMS = {"tests/case_closures.json": ("tests/case_select.py", "merge_tables")}
+_TABLE_ARMS = {
+    "tests/case_closures.json": ("tests/case_select.py", "merge_tables"),
+    "dev/audit/rounds/round4/D6/claims.json": ("tools/merge/d6_register.py", "merge_json"),
+    "dev/audit/rounds/round4/D6/claims.md": ("tools/merge/d6_register.py", "merge_md"),
+}
 #: Ledgers written in tests/closure.py's layout (R9-CI-2b): every table's keys
 #: and string lists sorted, ``sort_keys``. GitHub merges with no driver, so the
 #: layout is what keeps two branches apart there; the driver writes it from
@@ -408,7 +417,7 @@ def run_driver(base_path: str, ours_path: str, theirs_path: str,
     try:
         if pathname in _TABLE_ARMS:
             merged = _table_arm(pathname, base, ours, theirs)
-            notes.append(f"{pathname}: merged span by span by its writer")
+            notes.append(f"{pathname}: merged by {' '.join(_TABLE_ARMS[pathname])}")
         else:
             merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes,
                                 raw=pathname in RAW, layout=LAYOUT.get(pathname, ()))
@@ -882,6 +891,24 @@ def self_test() -> int:
             text_merged = json.loads(f.read())
         check("driver: a format refusal falls back to a clean text merge",
               rc == 0 and text_merged["k0"] == 100 and text_merged["k11"] == 100)
+
+        # The D6 register through its writer-side arm, in the replay's shape:
+        # both branches re-derived one row's count, so a line merge conflicts.
+        reg = "dev/audit/rounds/round4/D6/claims.json"
+        rows = lambda n: [{"id": "C32", "result": f"documented={n} measured={n}"},
+                          {"id": "C33", "result": "missing=[]"}]
+        for name, n in (("O", 98), ("A", 99), ("B", 101)):
+            with open(os.path.join(tmp, name), "w") as f:
+                f.write(json.dumps(rows(n), indent=1))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = run_driver(*paths, "7", reg)
+        with open(paths[1]) as f:
+            got_reg = json.loads(f.read())
+        check("driver: the D6 register merges row by row through its arm",
+              rc == 0 and got_reg == rows(101))
+        check("driver: and says the register is owed a re-run",
+              "re-run the gate" in err.getvalue())
 
     def fake_git(rc: int):
         def git(*a):
