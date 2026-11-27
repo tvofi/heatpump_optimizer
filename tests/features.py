@@ -105138,4 +105138,181 @@ R.check(
     str(_oc_rows),
 )
 
+
+# ---------------------------------------------------------------------------
+R.section("R11 seam actuation writes — the added write rails, each driven at its own branch")
+# Each check drives one rail #3897 added and reads the value the rail decides;
+# the arm beside it is its null control (the same drive the rail lets through).
+import asyncio as _rb_asyncio  # noqa: E402
+from datetime import timedelta as _rb_td  # noqa: E402
+from types import SimpleNamespace as _rb_ns  # noqa: E402
+from harness import FakeEntry as _rb_entry, FakeHass as _rb_hass  # noqa: E402
+from heatpump_optimizer import pump_arbiter as _rb_pa  # noqa: E402
+from heatpump_optimizer.const import CONF_ECL110_DISPLACE_SET_TOPIC as _rb_set_key  # noqa: E402
+
+
+def _rb_coord(states=None, **extra):
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home", **extra}
+    return Coord(_rb_hass(dict(states or {})), _rb_entry(data=cfg))
+
+
+def _rb_freq(attrs=True, **extra):
+    """A control-stage coordinator whose map has evidence for 45 Hz at 2 kW."""
+    state = FakeState("45", attributes={"min": 20.0, "max": 120.0} if attrs else {})
+    c = _rb_coord({"number.freq": state}, compressor_freq_entity="number.freq",
+                  freq_control_mode="control", **extra)
+    c._measured_power = 2.0
+    c._current_action = {"power": 1.5, "dhw_power": 0.5}
+    for _ in range(FREQ_MIN_SAMPLES + 1):
+        c._freq_map.observe(45.0, 2.0, 20.0, 120.0)
+    c._freq_last_write = None
+    return c
+
+
+def _rb_sent(c):
+    return [d["value"] for dom, svc, d in c.hass.services.calls if (dom, svc) == ("number", "set_value")]
+
+
+# coordinator._command_frequency: a write the watchdog dedups stamps no rate
+# limit — else the next real change waits five minutes for a write never made.
+_rb_dd = _rb_freq()
+_rb_dd_ret = _rb_asyncio.run(_rb_dd._command_frequency())
+_rb_dd_first = (_rb_sent(_rb_dd), _rb_dd._freq_last_write is not None, _rb_dd_ret)
+_rb_dd._freq_last_write = None
+_rb_asyncio.run(_rb_dd._command_frequency())
+R.check(
+    "a deduplicated frequency write stamps no rate limit; null control, the first write sent, stamped "
+    "and returned False (sent, so nothing pending for the step tick)",
+    _rb_dd_first[:2] == ([45.0], True) and _rb_dd_first[2] is False and _rb_sent(_rb_dd) == [45.0] and _rb_dd._freq_last_write is None,
+    f"first={_rb_dd_first} sent={_rb_sent(_rb_dd)} stamp={_rb_dd._freq_last_write}",
+)
+
+# A send that raises records nothing: no stamp, no command.
+_rb_er = _rb_freq()
+
+
+async def _rb_boom(*_a, **_k):
+    raise RuntimeError("number.set_value failed")
+
+
+_rb_er.hass.services.async_call = _rb_boom
+_rb_asyncio.run(_rb_er._command_frequency())
+R.check(
+    "a frequency send that raises stamps no rate limit and records no command",
+    _rb_er._freq_last_write is None and _rb_er._freq_watchdog.commanded is None,
+    f"stamp={_rb_er._freq_last_write} commanded={_rb_er._freq_watchdog.commanded}",
+)
+
+# The clamp to the stage's range holds whatever the map answers, on an entity
+# stating no range of its own (where the grid snap clamps nothing).
+_rb_cl = {}
+for _rb_ans in (130.0, 60.0):
+    _rb_c = _rb_freq(attrs=False, compressor_freq_min_hz=20.0, compressor_freq_max_hz=100.0)
+    _rb_c._freq_map.recommend = lambda *_a, _v=_rb_ans: _v
+    _rb_asyncio.run(_rb_c._command_frequency())
+    _rb_cl[_rb_ans] = _rb_sent(_rb_c)
+R.check(
+    "a map answer above the configured maximum is written at the maximum; null control, one inside it unchanged",
+    _rb_cl == {130.0: [100.0], 60.0: [60.0]},
+    repr(_rb_cl),
+)
+
+# coordinator.async_publish_ecl110_command: at a step boundary an unchanged
+# displace and supply publish nothing; a changed one, or a non-boundary call, does.
+_rb_ecl = _rb_coord(**{_rb_set_key: "ecl110/displace/set"})
+
+
+def _rb_pubs():
+    return sum(1 for dom, svc, _d in _rb_ecl.hass.services.calls if (dom, svc) == ("mqtt", "publish"))
+
+
+_rb_asyncio.run(_rb_ecl.async_publish_ecl110_command(5.0, True))
+_rb_e0 = _rb_pubs()
+_rb_asyncio.run(_rb_ecl.async_publish_ecl110_command(5.0, True, boundary=True))
+_rb_e1 = _rb_pubs()
+_rb_asyncio.run(_rb_ecl.async_publish_ecl110_command(5.0, True))
+_rb_e2 = _rb_pubs()
+_rb_asyncio.run(_rb_ecl.async_publish_ecl110_command(6.0, True, boundary=True))
+_rb_e3 = _rb_pubs()
+R.check(
+    "an unchanged ECL110 command at a step boundary publishes nothing; null controls, a non-boundary "
+    "repeat and a changed boundary value each publish",
+    _rb_e0 > 0 and _rb_e1 == _rb_e0 and _rb_e2 > _rb_e1 and _rb_e3 > _rb_e2,
+    f"{(_rb_e0, _rb_e1, _rb_e2, _rb_e3)}",
+)
+
+# coordinator._cut_action: the re-cut (no optimizer) re-lays the boost overlay;
+# a cut by the cycle's optimizer leaves the overlay to the cycle.
+_rb_cut = _rb_coord()
+_rb_laid = []
+_rb_cut._overlay_boost = lambda: _rb_laid.append("overlay")
+_rb_cut._optimization_result = None
+_rb_cut._cut_action()
+_rb_cut._cut_action(_rb_ns())
+R.check(
+    "a re-cut re-lays the boost overlay, a cut by the optimizer does not",
+    _rb_laid == ["overlay"],
+    repr(_rb_laid),
+)
+
+# pump_arbiter.supply_tick: a tick that finds the tail holding the lock returns
+# at once and writes nothing; null control, the same tick unlocked writes.
+_rb_t0 = _SA_T0 + _rb_td(minutes=3)
+
+
+async def _rb_tick(locked):
+    held = _rb_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    if locked:
+        await held.tail_lock.acquire()
+    try:
+        await _rb_asyncio.wait_for(_rb_pa.supply_tick(held, _rb_pa.SupplyWiring(lambda: inp, _sh_none, _write), _rb_t0), 2.0)
+    except TimeoutError:
+        return "queued behind the lock"
+    return wrote
+
+
+_rb_ticks = {_rb_l: _rb_asyncio.run(_rb_tick(_rb_l)) for _rb_l in (True, False)}
+R.check(
+    "a step tick that finds the tail lock held returns without a write; null control, unlocked it writes",
+    _rb_ticks == {True: [], False: [True]},
+    repr(_rb_ticks),
+)
+
+# pump_arbiter.step_transition: where the step's tail ran, the transition does
+# not publish again; at a step already cut, it publishes and runs no tail.
+async def _rb_transition(cut):
+    held = _rb_pa.ArbiterState()
+    inp = _sh_inputs(3)()
+    ran, published = [], []
+
+    async def _tail(**kw):
+        ran.append(kw.get("reason"))
+        return False
+
+    async def _publish():
+        published.append(True)
+
+    async def _write(_on):
+        return None
+
+    held.wiring = _rb_pa.SupplyWiring(lambda: inp, _sh_none, _write, tail=_tail)
+    if cut:
+        held.step_cut = _rb_pa.plan_step_start(_rb_t0)
+    await _rb_pa.step_transition(held, _publish, "peak_guard", _rb_t0)
+    return ran, published
+
+
+_rb_tr = {_rb_k: _rb_asyncio.run(_rb_transition(_rb_k)) for _rb_k in (False, True)}
+R.check(
+    "a transition that ran the step's tail does not publish again; null control, at a step already cut it publishes",
+    _rb_tr == {False: (["peak_guard"], []), True: ([], [True])},
+    repr(_rb_tr),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
