@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._learning_frozen RETURN_DEL 937e866c",
+  "killed_by": "tests/features.py",
+  "old": "        return learning_freeze.reason(_freeze_facts(self), keys, sample, evidence)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=77."
+}
