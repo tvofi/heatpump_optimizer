@@ -1,6 +1,6 @@
 Closes #3855
 
-R11-OWNER-FROST-HOLD, built on the approved design e91a4e30 (design-verdict 774250ff). On every install with a heat-pump power switch, an OFF the integration would write on an idle step is held while the outdoor reading is below the *Frost hold below* option (+2 °C by default), or stale or missing; the hold clears at threshold + 1 K. The new module `frost_hold.py` is the one writer of the hold's `ArbiterState` fields and gates last in `coordinator._write_supply`, after `supply_hold.hold_supply`. The early cut-off asks `frost_hold.take_off` before it cuts. With Pump duty at Control, the arbiter serves the hold as space at `pump_arbiter._hold_floor_c`. The opt-out is `frost_hold` (default on).
+R11-OWNER-FROST-HOLD, built on the approved design e91a4e30 (design-verdict 774250ff). On every install with a heat-pump power switch, an OFF the integration would write on an idle step is held while the outdoor reading is below the *Frost hold below* option (+2 °C by default), or stale or missing; the hold clears at threshold + 1 K. The new module `frost_hold.py` is the one writer of the hold's `ArbiterState` fields and gates last in `coordinator._write_supply`, after `supply_hold.hold_supply`. The early cut-off asks `frost_hold.take_off` before it cuts. With Pump duty at Control, the arbiter serves the hold as space at `pump_arbiter._hold_floor_c`. The opt-out is `frost_hold` (default on). With no power switch configured the hold never applies: `frost_hold._active` reads a missing `heat_pump_switch_entity` as opted out, so `gate` and `take_off` leave the latch unset there, where the option is hidden.
 
 Release note: On every install with a heat pump power switch, the optimizer no longer switches the pump off on idle steps while it is below +2 °C outdoors (option *Frost hold below*), or while the outdoor reading is stale or missing: the pump stays on so it can defrost and protect itself. With *Pump duty* in control it is held at its own minimum set-point; otherwise it runs on its own curve while held, which can use energy the plan does not price, and learning pauses for those runs, and for the whole hold on an install without a power sensor. Quiet off windows are held too. Turn *Frost hold* off to keep the old behaviour; with it off, the pump can stay off for hours in freezing weather, and the heat pump and water-filled pipework can freeze.
 
@@ -14,6 +14,37 @@ Where this departs from the design's text (no departure in behaviour):
 All four shapes were chosen on measurement; see `## Architecture score`.
 
 ## Head
+
+`581d10e09ad32f80df3052ecf6c54ed7094fd8bd` is this PR's head. It is fast-forward from `1d027949b899f6f1491de54d1908a73d8d28c581`, the head review/3882 blocked at 20172e18 (`frost_hold.gate runs on an install with no power switch`), and adds three commits, nothing rebased:
+
+- cee9cdf908, failing first: two checks in the R11-OWNER-FROST-HOLD block of `tests/features.py`, `frost hold gate: no power switch configured: an OFF at -3 °C is not held` (an OFF at -3 °C, then with no reading) and `frost hold: no power switch configured: the cut-off cuts`. `_fh_take` gains `switch=`, as `_fh_inp` already had. Their null controls are the block's existing switch.hp checks (`an OFF at -3 °C is held, the switch left on`; `the cut-off below the threshold is refused and the hold takes over`). At cee9cdf908 the block prints `2 of 66 FEATURES BLOCK FAILED` (`[(None, True), (None, True)] != [(False, False), (False, False)]` and `(True, True) != (False, False)`).
+- b78d9c35a2, the fix, one predicate. `_active` returns not active, with the latch unset, unless both `frost_hold` and `heat_pump_switch_entity` are set. `gate` and `take_off` both read `_active`, so neither sets `frost_holding` on a no-switch install, and `_served`, `_note_pass`, `_observe` and `freeze_reason` see no hold there. `coordinator._write_supply` keeps calling `gate` before its own switch check; the gate now returns the OFF unchanged and the coordinator writes nothing, as on main. The module docstring's latch paragraph states the switch condition. At b78d9c35a2 the block prints `ALL 66 FEATURES BLOCK PASSED`.
+- 581d10e09a deletes the mutation-ledger pin `frost_hold.py/_active.GUARD_OFF.6ce0bc82`, keyed on the old `if not cfg.frost_hold:` line that b78d9c35a2 rewrote (`## Unpinned sites`).
+
+The reviewer's harness, `ev/probe_noswitch.py` on review/3882, run at both ends from the worktree root:
+
+- At 1d027949: `switch=None out=-3.0 gate(False)->None frost_holding=True`, and end to end `switch=None -3C idle OFF: frost_holding=True _served(duty=None)->'space' freeze_reason->'frost_hold'`.
+- At b78d9c35a2: `switch=None out=-3.0 gate(False)->False frost_holding=False ran_until=None`, and end to end `switch=None -3C idle OFF: frost_holding=False _served(duty=None)->None freeze_reason->None`.
+- Controls, the same at both ends: switch.hp at -3 °C `gate(False)->None frost_holding=True`, `_served`->'space', `freeze_reason`->'frost_hold'; the +5 °C null control prints `null control, no switch +5C: False False`.
+
+At this head: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (max_class_loc 7763 <= 7763, module_excess_loc 21644 <= 21644; the table is unchanged from 1d027949, so the approved raise is not exceeded); `python3 tools/audit/archscore/score.py --diff 1d027949b899f6f1491de54d1908a73d8d28c581` prints `Architecture score: dS +0.0000 NULL`, and `--diff origin/main` (9ffb388f) prints `Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2533->2534)`, unchanged from 1d027949 (`## Architecture score`); `python3 tests/closure.py select --diff 1d027949b899f6f1491de54d1908a73d8d28c581` prints `MODE: SCOPED -- 23 script(s) run, 11 scoped out.` `PYTHONPATH=tests/hastub python3 tests/features.py` on a `git archive` copy of b78d9c35a2 prints `1 of 6340 FEATURE CHECKS FAILED`; the one failure, `and the path that proceeds still stamps a resolvable recorded_at (#363)` (`recorded_at = 'unknown'`), reads the copy's git HEAD, which an archive copy does not have, and touches nothing this repair changes. CI's `tests / fast (3.14)` is the authority for the whole script. VERSION, `manifest.json` and the `RELEASE_NOTES.md` heading are untouched.
+
+The `## Head` paragraph for 22802e44 below quoted module_excess_loc 21663 <= 21663; since the re-record at 1d027949 the table and the measure are 21644.
+
+Earlier heads, as the previous body recorded them:
+
+`1d027949b899f6f1491de54d1908a73d8d28c581` merges the authored code head `07a4dd93591966da1f0735121c4256607d92a937` and then merges origin/main `e84856520d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`40d8b2d031043f4ef6417a5d4f3b6c30bbefc89f` merges the authored code head `22802e44fba9b84a77d3c07ea7e3f6a549142aee`.
+
+`22802e44fba9b84a77d3c07ea7e3f6a549142aee` is this PR's head. It is fast-forward from the previous head `2dcff40eec34eda2a643908c327d2c42e34f6b78` and adds two commits, with no production line changed:
+
+- b98049141b re-cuts D5 seat s7 in `dev/audit/config/scopes.json` to `tests/features.py`, for the `governance / instrument-self-tests` red at 2dcff40e (`## Red checks`).
+- 22802e44 merges origin/main `ef797d794017c98f7fb2d8a168d7de63d435ef3b` (#3924). The one conflict is `dev/audit/config/scopes.json`: main's 7df39f34 re-cut the same seat for the same cap (s7 `tests/fe*`, `tests/finite_boundary.py` and `tests/frontend.py` to s8). It is resolved by taking main's file whole, so `git diff origin/main -- dev/audit/config/scopes.json` is empty and b98049141b's change does not reach the PR's diff.
+
+At this head: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (max_class_loc 7763 <= 7763, module_excess_loc 21663 <= 21663), and `python3 tools/audit/archscore/score.py --diff origin/main` prints `Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2533->2534)`, the figure under `## Architecture score`. The scoped `tools/pr/prepr.sh` run at this head is named under `## Red checks`.
+
+Earlier heads, as the previous body recorded them:
 
 `0e4f7f97ed55bdace7ae233316e1618010e7a9cd` is this PR's head. It merges origin/main `8890fc2bada17f6c7d8a6bbf03e6625a16a0967c` into 2b571e7c, which adds one commit onto the previous head `f6557ec5c6b6fc32e6e1bddd9d1f850de87d931d` (the `ci: merge main` of 53013cc4, a merge that touches no file under `custom_components/`): two killing checks in `tests/features.py` and one `survivor_triage` row, for the three added `frost_hold.py` sites `mutation-autofix` left alive at f6557ec5c (`## Red checks`). No production line changes.
 
@@ -83,8 +114,19 @@ d05081fb239f817d326bfad0ef6e65efd001ad9e is the head. It merges origin/main b4a8
 - 5f1428a4, owner item (tvofi, 2026-11-25): the *Frost hold* option stays, default on, and its description now warns that turning it off can let the pump and water-filled pipework freeze. The warning is in `strings.json`, `translations/en.json`, `sv.json` and `de.json` (all three languages carry the same sentence), and in `docs/configuration.md`'s option row and `docs/how-it-works.md`'s Frost hold section.
 
 At this head `python3 tests/features.py` prints `ALL 6170 FEATURE CHECKS PASSED`, `python3 tests/doc_claims.py` prints `ALL 441 checks PASSED` and `python3 tests/config_flow_steps.py` prints `ALL 609 checks PASSED`. Before the repair, at 96523195, CI's `tests / fast (3.14)` printed `9 of 6169 FEATURE CHECKS FAILED` and `1 of 441 checks FAILED`. `prepr.sh` (`PREPR_SKIP_CLOSURES=1`) ran twice at this head. Each run passed every step except prepr's own `--self-test`. The second run failed 2 of 571 rows there, both from the `red-ancestry/bare` fixture (`an ancestry no commit of which carries any check run skips, never refuses`). This diff touches no file under `tools/`, so the run wrote no receipt; CI's `governance` job runs that self-test as the authority. `pr-body` reported 0 errors, `ci predict` predicted no red against 3153a635, and the merged structure ratchet passed.
+- Merge of origin/main at handoff/r11-merge-3882; conflicts resolved: tests/closures.json and tests/structure_budgets.json (ledger driver).
 
 ## Mutation proof
+
+Repair at b78d9c35a2. `MUTANT_CMD` is `python3 tools/audit/seat/features_block.py --prelude 'exec(open(P).read())' 'R.section("R11-OWNER-FROST-HOLD' 'R.section("duty-switch restart learning, part A'`, P from `--emit-prelude` with the same markers: `ALL 66 FEATURES BLOCK PASSED` at b78d9c35a2. Each mutant is on the new line `if not (cfg.frost_hold and cfg.heat_pump_switch_entity):` in `frost_hold._active`, made one at a time on a `git archive` copy:
+
+- the switch term dropped (`if not cfg.frost_hold:`, the line at 1d027949): `2 of 66 FEATURES BLOCK FAILED`, the two no-switch checks; their switch.hp null controls pass under it.
+- BOOLOP (`and` to `or`): `7 of 66 FEATURES BLOCK FAILED`, among them `frost hold gate: no power switch configured: an OFF at -3 °C is not held` and `frost hold gate: null control: the same OFF with the option off is written`.
+- GUARD_OFF (`if False:`): `7 of 66 FEATURES BLOCK FAILED`, the same checks and `frost hold, real coordinator: null control: the same step with the option off switches it off`.
+
+`python3 tools/audit/seat/mutant_run.py --diff cee9cdf908...b78d9c35a2 --cmd "$MUTANT_CMD" --max-mutants 0 --path custom_components/heatpump_optimizer/frost_hold.py` draws one mutant, `frost_hold.py:101 GUARD_OFF`, and printed no SURVIVED line.
+
+Earlier heads:
 
 Repair at 2b571e7c. `MUTANT_CMD` is `python3 tools/audit/seat/features_block.py --prelude 'exec(open(P).read())' '# The early cut-off asks before it cuts (``take_off``)' "# The cut-off's own path"`, P from `--emit-prelude` with the same markers: `ALL 15 FEATURES BLOCK PASSED` at this head. Each mutant made by hand in `frost_hold.py`, one at a time, the file restored after each:
 
@@ -97,7 +139,7 @@ Repair at 2b571e7c. `MUTANT_CMD` is `python3 tools/audit/seat/features_block.py 
 Earlier heads:
 
 Repair at 2404b03e (c80ab260's lines). `MUTANT_CMD` is `python3 tools/audit/seat/features_block.py --prelude 'exec(open(P).read())' '# The early cut-off asks before it cuts (``take_off``)' "# The cut-off's own path"`, P from `--emit-prelude` with the same markers (11 checks). `python3 tools/audit/seat/mutant_run.py --diff 4aae35f5...c80ab260 --cmd "$MUTANT_CMD" --max-mutants 0 --path custom_components/heatpump_optimizer/frost_hold.py` drew 5 mutants (`frost_hold.py:72 STMT_DEL`, `:73 GUARD_OFF`, `:74 STMT_DEL`, `:75 RETURN_DEL`, `:170 RETURN_DEL`) and printed no SURVIVED line, rc 0. By hand: `freeze_reason` with the bound method (4aae35f5's line) fails the block on `AttributeError` at the new check; `_record` returning `held.frost` makes the pinned mypy print `frost_hold.py:74: error: Returning Any ... [no-any-return]`, the `tests / typing` row.
-Diff mutants at 2404b03e: `python3 tools/audit/seat/mutant_run.py --diff "$(git merge-base origin/main HEAD)...HEAD" --cmd "$MUTANT_CMD" --max-mutants 40 --report-only`, with `MUTANT_CMD` the R11-OWNER-FROST-HOLD section run below (`ALL 57 FEATURES BLOCK PASSED` at this head), printed one line, `SURVIVED custom_components/heatpump_optimizer/duty_ledger.py:49 GUARD_OFF  elif False:`, the survivor already disposed of under `## Unpinned sites`.
+Diff mutants at 2404b03e: `python3 tools/audit/seat/mutant_run.py --diff "$(git merge-base origin/main HEAD)...HEAD" --cmd "$MUTANT_CMD" --max-mutants 40 --report-only`, with `MUTANT_CMD` the R11-OWNER-FROST-HOLD section run below (`ALL 57 FEATURES BLOCK PASSED` at this head), printed one line, `SURVIVED custom_components/heatpump_optimizer/duty_ledger.py:49 GUARD_OFF  elif False:`, the survivor pinned in the ledger as `duty_ledger.py/step_verdict.GUARD_OFF.af4ac328`, killed by `tests/features.py` outside the block.
 
 Earlier heads:
 
@@ -122,9 +164,11 @@ Failing first: at the merge base the new block cannot run, because `frost_hold` 
 17. `early_cutoff.on_room_event`: the `frost_off()` guard to `if False:`: 1, `frost hold: the early cut-off writes no turn_off while the hold applies`.
 18. `coordinator._write_supply`: `frost_hold.gate(...)` replaced by a pass-through: 6, `frost hold, real coordinator: an idle step at -3 °C leaves the switch on`.
 
-Diff mutants at this head: `python3 tools/audit/seat/mutant_run.py --diff "$(git merge-base origin/main HEAD)...HEAD" --cmd "$MUTANT_CMD" --max-mutants 40 --report-only`, with `MUTANT_CMD` the block run above (prelude from `--emit-prelude`). It printed one line, `SURVIVED custom_components/heatpump_optimizer/duty_ledger.py:49 GUARD_OFF  elif False:`, disposed of under `## Unpinned sites`. The scoped prepr (`PREPR_SKIP_CODE=1`) skips its own diff-mutant step, so this run stands in for it. Two mutants on the lines 3b9d76f7 moved were also run by hand. `freeze_reason`'s RETURN_DEL fails 4 checks. Dropping `_note_pass`'s idle choice passed all 55 until f519eaeb's check; it now fails 1 of 56.
+Diff mutants at this head: `python3 tools/audit/seat/mutant_run.py --diff "$(git merge-base origin/main HEAD)...HEAD" --cmd "$MUTANT_CMD" --max-mutants 40 --report-only`, with `MUTANT_CMD` the block run above (prelude from `--emit-prelude`). It printed one line, `SURVIVED custom_components/heatpump_optimizer/duty_ledger.py:49 GUARD_OFF  elif False:`, pinned in the ledger as `duty_ledger.py/step_verdict.GUARD_OFF.af4ac328` and killed outside the block. The scoped prepr (`PREPR_SKIP_CODE=1`) skips its own diff-mutant step, so this run stands in for it. Two mutants on the lines 3b9d76f7 moved were also run by hand. `freeze_reason`'s RETURN_DEL fails 4 checks. Dropping `_note_pass`'s idle choice passed all 55 until f519eaeb's check; it now fails 1 of 56.
 
 ## Null control
+
+The no-switch checks pair with the block's switch.hp checks at the same -3 °C reading: with a switch the OFF is held and the cut-off refused, with none the OFF is written and the cut-off cuts. The reviewer's probe adds the +5 °C no-switch null control, False/False at both ends.
 
 Every check in the block pairs with its null control: the same input with `frost_hold` off, or on the warm side of the latch, gives main's OFF. The 24 h replay also runs main itself, the same coordinator with `frost_hold.gate` replaced by a pass-through. Opted out, the switch calls are byte-equal to main's. The existing switch tests that run with no outdoor reading and no forecast, or at -5 °C, now opt out explicitly: `_LC_DATA`, `_solve_coord`, `_r9egb9_make`, `_ac_calls` and `_ec_cycle_writes` in `tests/features.py`. A missing reading sets the latch, so those tests would otherwise pin the hold instead of the mechanism each was written for. The skip-log checks moved to `frost_hold._LOGGER`, where `log_skip` now logs. Their null control (the blocked-mode skip is heard once) shows that logger is the one that hears it.
 
@@ -159,7 +203,7 @@ Approved under owner mandate 6893738184 (scope all, decision 0013, CLAUDE.md rul
 
 For the owner, both raises in one place: the budget merged into this branch already carried a re-record over its own main. 6675fe8a, recorded after 3b3f4806 asked for the owner's ruling, took module_excess_loc 21763 -> 21773 (+10) and max_class_loc 7832 -> 7833 (+1). On the dbdc520e merge (6fd32f58) that budget read 21772 against main's 21762, still +10, and the tree measured 21781 (+9 over it). This head pays 2 of the 9, and the merges with 8f22a3b2, e91329c2 and 1d307773 leave the +17 and +1 above against main's own table (main's own figure moved 21762 -> 21753 -> 21650 -> 21647 meanwhile). The +17 is the same over each main since 8f22a3b2; the body text before this head still named the older +10.
 
-Payments tried: FrostRecord off ArbiterState (taken, -2 module lines), the `_hold_floor_c` docstring (taken, inside the same -2), `_hold_floor_c` moved into `frost_hold.py` (rejected, import cycle), `_hold_floor_c` sharing `_gate_c` (rejected, behaviour change), config_flow and coordinator duplicates (none exist), max_class_loc by joining the `disinfecting=` argument (rejected, formatting only), the coordinator footprint (taken, 3b9d76f7); each below.
+Payments tried: FrostRecord off ArbiterState (taken, -2 module lines), the `_hold_floor_c` docstring (taken, inside the same -2), `_hold_floor_c` moved into `frost_hold.py` (rejected, import cycle), `_hold_floor_c` sharing `_gate_c` (rejected, behaviour change), config_flow and coordinator duplicates (none exist), max_class_loc by joining the `disinfecting=` argument (rejected, formatting only), the coordinator footprint (taken, 3b9d76f7), the bound builder with a `_SysIdHost` copy (rejected, pays nothing), `freeze_reason` taking the state and builder (rejected, worse); each below.
 
 1. module_excess_loc: move `frost` and `frost_ran_until` off `ArbiterState` into `frost_hold.FrostRecord` on one `frost` slot. `pump_arbiter` never read either field; only `frost_hold` did. Behaviour unchanged: the latch, the freeze end and the diagnostics row are the same values on the same per-coordinator state, and the `tests/features.py` checks reading the latch read it through the slot (`getattr(state.frost, "latched", None)`). The slot is untyped in `pump_arbiter` because `frost_hold` imports `pump_arbiter`, so naming the type there would close the cycle the earlier body's item 4 named; untyped, no cycle. Taken in 654e7b55, -2 with the docstring below.
    Architecture score: dS +0.0000 NULL (`score.py --diff 6fd32f58 654e7b55`)
@@ -171,14 +215,23 @@ Payments tried: FrostRecord off ArbiterState (taken, -2 module lines), the `_hol
 
 7. coord_footprint, not a budget metric but the reason a raise could not yet be approved: at 060c01b0 the score read dS -0.0011 WORSENS (coord_footprint 2527 -> 2529). Two statements are paid. First, `_arbitrate` passed `"idle" if held.frost_holding else served` to `_note_pass`; the choice now sits in `_note_pass`, the pass's one recorder and its only caller's callee, which takes no coordinator. Second, `freeze_reason` wrapped the builder in a lambda; it now passes `coord.arbiter_inputs` itself, so `_freeze` still builds the inputs only while a hold is on. Taken in 3b9d76f7: coord_footprint 2529 -> 2527, module_excess_loc and max_class_loc unchanged. The second is reverted in c80ab260: the bound method read the builder on every learner query and raised AttributeError on a host without it (`tests / fast (3.14)` at 4aae35f5), so the lambda is back and coord_footprint is one above main (2533 -> 2534 at 2404b03e). The first payment holds.
    Architecture score: dS -0.0006 WORSENS (`score.py --diff origin/main` at 2404b03e)
+8. coord_footprint: pass `coord.arbiter_inputs` bound again, and give `tests/features.py`'s `_SysIdHost` the builder as `Coord.arbiter_inputs`, beside the `_learning_frozen` and `_commanded_split` it already copies, so the host that raised at 4aae35f5 has it. Measured at b98049141b against main b4ebe3dc, then reverted: coord_footprint stays 2534, because the footprint charges any module function taking the coordinator its logic statements, and the only charged change over main is `frost_hold.freeze_reason` (0 -> 1) either way. It also breaks the `_FhBare` check (a host with no builder is not read). Rejected: it pays nothing.
+   Architecture score: dS -0.0006 WORSENS (coord_footprint 2534, unchanged)
+9. coord_footprint: `freeze_reason(held, inputs, now)` (the former `_freeze`), with `coordinator._tail_freeze` passing `pump_arbiter.state_for(coord), coord.arbiter_inputs`, so `frost_hold` takes no coordinator. Measured at b98049141b, then reverted: `tests/structure.py` FAILs, seam_cut_total 426 > 413 (+13), class_excess_loc +1, module_excess_loc +1 and unloaded_package_imports 4 > 3. Rejected: it is worse on four ratcheted metrics to pay one charged statement.
 
-Architecture score: dS -0.0006 WORSENS, `python3 tools/audit/archscore/score.py --diff origin/main` at 2404b03e against main d6645258 (coord_footprint 2533 -> 2534, the `freeze_reason` lambda).
+No payment that the score does not read as worse remains: items 8 and 9 measured worse or paid nothing, and the residue is the one charged statement on `frost_hold.freeze_reason`, the minimum the frost hold's freeze reason costs while it reads the builder only during a hold.
+
+Raise approved by the orchestrator under mandate 6893738184 on the owner's delegation (2026-11-27)
+
+Architecture score: dS -0.0006 WORSENS, `python3 tools/audit/archscore/score.py --diff origin/main` at 22802e44 against main ef797d79 (coord_footprint 2533 -> 2534, the `freeze_reason` lambda).
 
 ## Unpinned sites
 
+At 581d10e09ad32f80df3052ecf6c54ed7094fd8bd: `python3 tests/mutation_table.py --scope changed --base 1d027949b899f6f1491de54d1908a73d8d28c581 --max 0` names 2 added unpinned sites, both on the fix's line: `frost_hold.py:101 BOOLOP` and `frost_hold.py:101 GUARD_OFF`. Both are killed by the block (`## Mutation proof`, 7 of 66 each) and are pinned by `mutation-autofix` (`ci-autofix.md`). The pin `_active.GUARD_OFF.6ce0bc82` on the old line is deleted in 581d10e09a. The rows below name lines as they stood before this repair; the `frost_hold.py` lines after line 17 now sit four lower.
+
 At 2b571e7c: `frost_hold.py:161 GUARD_OFF` and `frost_hold.py:164 CMP_BOUND` are killed by the new checks under `## Mutation proof` and pinned by `mutation-autofix`; `frost_hold.py:134 RETURN_DEL` is equivalent, under `survivor_triage`. The list below said the three were pinned by `mutation-autofix`; at f6557ec5c it reported them alive (`skip-nothing-killed`), so those three rows are corrected here and the rest stand.
 
-At 2404b03e `prepr.sh` step 7d names the same seven sites, the first six one line lower because c80ab260 adds a line to `_record` (`frost_hold.py:73` to `:164`), `:170` unmoved. Earlier, `ci predict` named seven sites the diff adds with no pin: the first six are on lines 654e7b55's FrostRecord moved, and the seventh, `frost_hold.py:170`, is `freeze_reason`'s new return, whose kill by the block is under `## Head`. The diff-mutant run under `## Mutation proof` drew one survivor, `duty_ledger.py:49 GUARD_OFF`, disposed of below.
+At 2404b03e `prepr.sh` step 7d names the same seven sites, the first six one line lower because c80ab260 adds a line to `_record` (`frost_hold.py:73` to `:164`), `:170` unmoved. Earlier, `ci predict` named seven sites the diff adds with no pin: the first six are on lines 654e7b55's FrostRecord moved, and the seventh, `frost_hold.py:170`, is `freeze_reason`'s new return, whose kill by the block is under `## Head`. The diff-mutant run under `## Mutation proof` drew one survivor, the GUARD_OFF on `duty_ledger.step_verdict`'s `elif planned is None:`, already pinned in the ledger (`step_verdict.GUARD_OFF.af4ac328`); its list row is dropped at 22802e44 as a stale duplicate, the frost guard's row being the pinned `duty_ledger.py:47 GUARD_OFF` below.
 
 Every site is under `custom_components/`, so `mutation-autofix` pins each one (`ci-autofix.md`). At 96523195 it reported `skip-measure-failed` and pushed no commit, because the drivers' baseline was red (`tests/features.py`). This head makes that baseline green, so the autofix's next run measures the kills. Most are killed by `tests/features.py`, chiefly its R11-OWNER-FROST-HOLD block. At 8ea9f282, `prepr.sh` step 6d ran the diff's first 40 added-line mutants under that block, and none survived. The merge repair adds none beyond the `_served` return 00be81ff reshaped, whose existing pin is re-keyed in c1d2fd75 and 86a472ee; the list below is `prepr.sh`'s step 7d inventory at c1d2fd75.
 
@@ -226,9 +279,29 @@ Every site is under `custom_components/`, so `mutation-autofix` pins each one (`
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1302 BOOLOP`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1318 CLAMP_DROP`: pinned by `mutation-autofix`
 - `custom_components/heatpump_optimizer/pump_arbiter.py:1318 RETURN_DEL`: pinned by `mutation-autofix`
-- `custom_components/heatpump_optimizer/duty_ledger.py:49 GUARD_OFF`: survives the block (`prepr.sh` step 6d with `MUTANT_CMD` the block run) and is pinned in the ledger as `duty_ledger.py/step_verdict.GUARD_OFF.af4ac328`, killed by `tests/features.py` outside the block (main's baseline verdict, 3 checks); the line counts as added only because the frost verdict turned `if planned is None:` into `elif`.
 
 ## Red checks
+
+At this head 581d10e09ad32f80df3052ecf6c54ed7094fd8bd:
+
+- `budget-raise-gate / budget-raise-gate`: red by construction until the raise (module_excess_loc 21627 -> 21644, max_class_loc 7762 -> 7763 over main 9ffb388f) is approved at this head. This repair leaves `tests/structure_budgets.json` unchanged from 1d027949. No cheaper detector exists: the gate is the approval itself.
+- `tests / mutation`: it may refuse the 2 added sites under `## Unpinned sites` until `mutation-autofix` pins them; the block kills both. No detector owed (`ci-autofix.md`).
+- `tests / nightly-ha (2025.2.0)`, `tests / nightly-ha (stable)` and `tests / nightly-status`, red at 1d027949: not required checks; they report main's scheduled nightly runs, not this head's code.
+- The review block at 1d027949 (review/3882 20172e18) is not a check run, but it is answered here. The defect reached review because the block's `_fh_inp` accepted `switch=None` and no check drove it. The cheaper detector is that pair of checks, now in the block.
+- Scoped `tools/pr/prepr.sh` at this head (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`): `PRE-PR: 581d10e09ad32f80df3052ecf6c54ed7094fd8bd 00000000000 rc=0`; `merged structure` printed `STRUCTURE RATCHET PASSED`, and `ci predict` printed `CI PREDICT: no closures, fast, governance or instrument red predicted against 9ffb388f7ec8`. `unpinned sites` warned on the 2 sites under `## Unpinned sites`. Its `claim files` check names `tests/golden/claimed_drift.txt`, whose one added line is this PR's own claim from earlier heads; this repair does not touch it.
+
+Earlier heads:
+
+At 2dcff40e, the previous head (run 45936195299):
+
+- `governance / instrument-self-tests` at 2dcff40e: `FAIL SCOPES null: the planned shape (five seats over four steps and five sources, an empty file universe, owner_only) passes check_scopes` and `SELF-TEST FAILED`, with `null control: the live D5 and D6 pass the cap and the line` and `the default invocation exits 0 on the live scopes` false. The one cause: `check_scopes.py` refused the live D5 scopes, `over ledger.max_units 4500: s7 holds 4523 units`, because `tests/features.py` grows from 4303 D5 units at main to 4339 here, and s7 (`tests/f*`) also held `tests/finite_boundary.py` (160) and `tests/frontend.py` (24). PR-caused by growth, not by any owner-only path leaking. Fixed by re-cutting s7 to `tests/features.py`, as the cap's `_rule` says (b98049141b), and superseded on the merge by main's identical re-cut 7df39f34, whose file this head takes whole. At b98049141b `python3 -I tools/audit/check_scopes.py --self-test --repo .` is rc=0 (rc=1 at 2dcff40e) and `python3 -I dev/audit/harnesses/owner_only_channel.py` prints `RESULT arms=48 failed=0` and `OWNER-ONLY CHANNEL HELD` (`failed=1` at 2dcff40e); its re-run at this head is two rows below. The cheaper detector exists: `check_scopes.py --self-test`, about a minute, catches the cap; it reads `tests/features.py`, which this diff touches, and `prepr.sh` does not run it. Recorded as this repair's note; no new detector built here, under the round's instrument freeze.
+- `budget-raise-gate / budget-raise-gate` at 2dcff40e: `RAISE tests/structure_budgets.json: max_class_loc: 7762 -> 7763 (a cap went up)`, `RAISE tests/structure_budgets.json: module_excess_loc: 21646 -> 21663 (a cap went up)`, `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`. Red by construction until the raise is approved at this head. The raise is approved by the orchestrator under mandate 6893738184 on the owner's delegation (2026-11-27), after payments 8 and 9 under `## Raise justification` measured worse or paid nothing; the approving review at this head is the gate's own input. No cheaper detector exists: the gate is the approval itself.
+- `gate` at 2dcff40e: `FAIL budget-raise-gate / budget-raise-gate: failure (this run)`, the row above.
+- `tests / nightly-ha (2025.2.0)`, `tests / nightly-ha (stable)` and `tests / nightly-status` at 2dcff40e: not required checks. They report main's scheduled nightly runs, not this head's code, so none is owed here.
+- At this head 22802e44: `python3 -I tools/audit/check_scopes.py --self-test --repo .` prints `SELF-TEST passed (every perturbed scope refused)`, rc=0, and `python3 -I dev/audit/harnesses/owner_only_channel.py` prints `RESULT arms=48 failed=0` and `OWNER-ONLY CHANNEL HELD`.
+- Scoped `tools/pr/prepr.sh` at 22802e44 (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`): `PRE-PR: 22802e44fba9b84a77d3c07ea7e3f6a549142aee 0000000000000000 rc=0`; `merged structure` printed `STRUCTURE RATCHET PASSED`, and `ci predict` printed `CI PREDICT: no closures, fast, governance or instrument red predicted against ef797d794017`. Its `claim files` check names `tests/golden/claimed_drift.txt`, whose one added line is this PR's own claim from earlier heads; this repair does not touch it.
+
+Earlier heads:
 
 At f6557ec5c, the reds in the owed set (`merge_train.py owed-reds`):
 
@@ -277,6 +350,8 @@ Earlier heads' reds, as the previous body recorded them:
 ## Friction
 
 none
+
+
 
 
 
