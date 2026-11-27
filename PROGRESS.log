@@ -8,3 +8,4 @@
 1795742547 HB alive
 1795742795 DONE blocked: gate red at a9c10725 is the edit run deferring to tests run 45914470160 (mutation still running); no defect, BLOCKED.md on handoff-wip/r11-repair-3870
 1795743018 HB alive
+1795743070 CKPT resumed: gate still a deferral; mutation in_progress 78min; no conflict; no repair snapshot 1249c0abd84e
