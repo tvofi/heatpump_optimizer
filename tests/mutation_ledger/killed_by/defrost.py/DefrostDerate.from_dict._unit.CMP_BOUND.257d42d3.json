@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._unit CMP_BOUND 257d42d3",
+  "killed_by": "tests/features.py",
+  "old": "            return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'Defrost derate (item 14)'): CMP_BOUND (`return 0.0 <= v < 1.0  # observe_duty's gate; NaN fails it`) took it from rc=0 failed=0 to rc=1 failed=1; CMP_BOUND (`return 0.0 < v <= 1.0  # observe_duty's gate; NaN fails it`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 1ba9abbe8e702464, 4aac8e694ddc5dfe)."
+}

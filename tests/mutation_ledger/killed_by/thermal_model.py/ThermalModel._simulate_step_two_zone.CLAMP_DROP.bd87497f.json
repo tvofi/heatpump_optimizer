@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone CLAMP_DROP bd87497f",
+  "killed_by": "tests/guard_pins.py",
+  "old": "            dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6)",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`dT_cap = max(0.0, p.buffer_max_temp - T_buf) / (dt_hours)`) took it from rc=0 failed=0 to rc=1 failed=1; CLAMP_DROP (`dT_cap = (0.0) / max(dt_hours, 1e-6)`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave c5e678a5d1812e40; the second is the same line's outer-max drop, not a wave finding, driven so the anchor is whole)."
+}
