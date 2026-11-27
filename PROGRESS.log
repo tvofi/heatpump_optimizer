@@ -84,3 +84,4 @@
 1795740752 CKPT gate reds repaired (doubles, two censuses, long sentence); entities/block_duty/doc_claims green; full features rerun snapshot 36e5f648f5af
 1795741209 HB alive
 1795741814 HB alive
+1795742207 DONE returned: handoff/r11-seam-cycle-solve 9b40afbfe7, body 41503524; duty switches actuate the held plan unsolved (carry N-solve-recompute)
