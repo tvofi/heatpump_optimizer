@@ -183,6 +183,9 @@ custom_components/heatpump_optimizer/
 ├── accuracy.py           # Predicted versus realised, recorded per interval
 ├── learning_freeze.py    # The one freeze predicate: which interval a learner
 │                         #   may ingest, by the kind of sample it folds
+├── fabric_learning.py    # The fabric learners' folds as functions of interval
+│                         #   values: buffer cooling, hourly gains, the house
+│                         #   heat-loss step and its re-anchor
 ├── draw_range.py         # The metered running draw, and the range it clamps a plan to
 ├── diagnosis.py          # One-input-at-a-time attribution of the last interval's error
 ├── drift.py              # The CUSUM primitive shared by every drift detector
