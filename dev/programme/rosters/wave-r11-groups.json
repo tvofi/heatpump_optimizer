@@ -7866,9 +7866,10 @@
    ],
    "brief": "Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on handoff/audit-r11-sweep-SW8 at 872510cd3e as dev/audit/rounds/round11/sweep/P2/D14-sweep-P2/probes_p2.py): whether an install is two-zone is decided twice in coordinator.py. The thermal-parameter update accepts the upper-floor mass, lower-floor mass and inter-zone transfer on a single-zone install, where they move the plan by nothing before or after a restart (the whole-house mass on the same install moves it), and the result payload publishes a zone temperature in every schedule row with two-zone modelling off. Each reader takes the answer from the one two-zone presence rule: the update refuses or reports the zone parameters on a single-zone install, and the schedule rows carry zone temperatures only when two-zone modelling is on; a failing test per reader first; the P2 sweep reads none of the four left at this group's stamp. No live group owns this seam: R11-SEAM-plant-model (pull request 3731) is merged, and R11-SEAM-two-zone-slab is the slab law's design-first group, not the presence rule. Verification: judged class-sweep seams marked beyond_finding, not register findings; no verifier vote stands behind them, so the fixer's failing test is the first independent measurement. Folded by the round-11 late-arrival fold under mandate 6893738184.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-ARCH-cycle-surface, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS): late P2 sweep seams, round-11 late-arrival fold; the two-zone presence rule has no live owner"
+    "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-ARCH-cycle-surface, R11-SEAM-two-zone-slab, R11-SEAM-wallclock-dst, R11-OWNER-CARD-EXTERNAL-HEAT, R11-LATE-P1-OPTIONS): late P2 sweep seams, round-11 late-arrival fold; the two-zone presence rule has no live owner",
+    "pr": 3925
    }
   },
   {
