@@ -1,0 +1,4 @@
+custom_components/heatpump_optimizer/slot_drivers.py:<module> CONST 42267523
+custom_components/heatpump_optimizer/drift.py:<module> CONST 806cb5dd
+custom_components/heatpump_optimizer/heat_energy.py:<module> CONST 2339b873
+custom_components/heatpump_optimizer/thermal_model.py:<module> CONST df3e0d03

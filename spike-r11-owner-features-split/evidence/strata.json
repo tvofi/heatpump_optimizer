@@ -1,0 +1,44 @@
+{
+ "E": {
+  "N": 340,
+  "rows": [
+   "custom_components/heatpump_optimizer/thermal_model.py:heat_loss_anchor_pair CMP_BOUND 3cca1373",
+   "custom_components/heatpump_optimizer/dhw_schedule.py:_segments GUARD_OFF 850fa61a",
+   "custom_components/heatpump_optimizer/inputs.py:InputReader._age_gate GUARD_OFF 52401ac6",
+   "custom_components/heatpump_optimizer/thermal_model.py:two_zone_from_config GUARD_OFF cf1807ed",
+   "custom_components/heatpump_optimizer/rooms.py:hold RETURN_DEL 7cb5653d",
+   "custom_components/heatpump_optimizer/away.py:watch_away_inputs GUARD_OFF d54fc80e"
+  ]
+ },
+ "M": {
+  "N": 1815,
+  "rows": [
+   "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.from_dict GUARD_OFF 18698651",
+   "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict._count CMP_BOUND ef60f0b9",
+   "custom_components/heatpump_optimizer/sysid.py:_snr_weight CLAMP_DROP cba71082",
+   "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._rate GUARD_OFF 6b5b232a",
+   "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone GUARD_OFF 18dbd0eb#2",
+   "custom_components/heatpump_optimizer/slot_drivers.py:why_now_at GUARD_OFF ef89d81b"
+  ]
+ },
+ "L": {
+  "N": 1977,
+  "rows": [
+   "custom_components/heatpump_optimizer/price_model.py:prices_from_tibber_payload RETURN_DEL 37dd65b3",
+   "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CMP_BOUND bae80808",
+   "custom_components/heatpump_optimizer/quiet_windows.py:inside_silent BOOLOP 21e6a29d",
+   "custom_components/heatpump_optimizer/duty_switch.py:both_step_duty RETURN_DEL 5bea58be",
+   "custom_components/heatpump_optimizer/running_signal.py:detach GUARD_OFF 9d41b90a",
+   "custom_components/heatpump_optimizer/pump_arbiter.py:_observed RETURN_DEL fc1c1f8f"
+  ]
+ },
+ "MOD": {
+  "N": 181,
+  "rows": [
+   "custom_components/heatpump_optimizer/slot_drivers.py:<module> CONST 42267523",
+   "custom_components/heatpump_optimizer/drift.py:<module> CONST 806cb5dd",
+   "custom_components/heatpump_optimizer/heat_energy.py:<module> CONST 2339b873",
+   "custom_components/heatpump_optimizer/thermal_model.py:<module> CONST df3e0d03"
+  ]
+ }
+}
