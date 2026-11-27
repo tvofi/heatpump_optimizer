@@ -104242,6 +104242,20 @@ R.check(
     f"start hour -> stale: {_ifr_stuck}",
 )
 
+# The reason the fetch latches names the arm: an empty reply and an all-past
+# one are both failures, but distinct ones; a reply reaching now is none.
+_ifr_reasons = [
+    _ifr_cm.forecast_reply_problem(rows, _ifr_now, "weather.home")
+    for rows in ([], _ifr_rows(-49), _ifr_rows(0))
+]
+R.check(
+    "a fetched forecast's failure reason tells an empty reply from one that "
+    "ended before now, and a reply reaching now has none (D1-s2-03, D8-02)",
+    _ifr_reasons == ["Empty forecast returned for weather.home",
+                     "Forecast for weather.home ends before now", None],
+    f"empty / all past / reaching now: {_ifr_reasons}",
+)
+
 # D14-s2-01: a pushed pump flag quiet for 255 min stays stale for control (a
 # flag latched on yesterday is no evidence today) but is no Input Problem;
 # the same flag polled and silent is one (the null control).

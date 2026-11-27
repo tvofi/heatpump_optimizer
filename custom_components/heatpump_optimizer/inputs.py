@@ -1303,6 +1303,14 @@ class InputReader:
         reading.value = converted
         return reading
 
+    def read_state_power_kw(
+        self, key: str, *, entity_id: str, sign: Literal["signed", "clamp", "positive"]
+    ) -> float | None:
+        """:func:`state_power_kw` of ``entity_id``, or ``None`` where this reader's age gate refuses it."""
+        if not self.read(key, entity_id=entity_id).ok:
+            return None
+        return state_power_kw(self.hass.states.get(entity_id), sign=sign)
+
     def read_flow_kg_s(self, key: str) -> InputReading:
         """Read a water-flow entity and normalise it to kg/s (#2016).
 

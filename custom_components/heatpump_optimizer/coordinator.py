@@ -774,25 +774,42 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
     ``if outdoor.ok``. So the published "outdoor" 5.0 °C was a dataclass
     default standing beside a plan made at −5 °C, and the modelled COP that
     reads it followed (#282). This is the number the plan is actually
-    acting on.
-
-    Matched to ``now`` by the entry's own timestamp, on ``_weather_series``'
-    rule -- each entry holds until the next one begins, and before the first
-    entry the first is the best information there is. Assuming entry 0 is
-    the current hour is what that method's docstring warns about: a stale
-    forecast, or one starting at the next hour, then reads hours out of
-    phase.
-
-    ``None`` with no forecast -- the one branch where the constructor
-    default really is what the horizon gets, and `_weather_series` falls
-    back to the same state -- and ``None`` past the last entry's own hour
-    (#2229): a forecast that stopped updating is not "now" two days later.
+    acting on. The row is :func:`covering_forecast_row`'s; ``None`` where it
+    has none -- with no forecast the constructor default really is what the
+    horizon gets, and `_weather_series` falls back to the same state.
     """
     entry = covering_forecast_row(forecast, now)
     if entry is None:
         return None
     temperature = entry.get("temperature")
     return None if temperature is None else finite_float(temperature, 5.0)
+
+
+def forecast_reply_problem(
+    rows: list[dict[str, Any]], now: datetime, entity_id: str
+) -> str | None:
+    """Why a fetched forecast may not replace the held one, or ``None`` when it may.
+
+    The held forecast stays the best data either way, but stale from here on:
+    an empty reply used to keep it forever with no signal (D8-02), and a reply
+    whose rows have all ended is a provider's last answer, not a recovery (D1-s2-03).
+    """
+    if not rows:
+        return f"Empty forecast returned for {entity_id}"
+    if covering_forecast_row(rows, now) is None:
+        return f"Forecast for {entity_id} ends before now"
+    return None
+
+
+def current_weather(forecast: list[dict[str, Any]], now: datetime) -> tuple[float, float]:
+    """Wind (m/s) and precipitation (mm/h) of the row covering ``now``; calm and dry past the last row."""
+    row = covering_forecast_row(forecast, now)
+    if row is None:
+        return 0.0, 0.0
+    return (
+        max(0.0, finite_float(row.get("wind_speed"), 0.0)),
+        max(0.0, finite_float(row.get("precipitation"), 0.0)),
+    )
 
 
 # A failed solve keeps the last good plan published — deliberately, a solver
@@ -5464,13 +5481,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _current_weather(self) -> tuple[float, float]:
         """Current wind speed (m/s) and precipitation (mm/h) for simulation."""
-        row = covering_forecast_row(self._weather_forecast, dt_util.utcnow())
-        if row is None:
-            return 0.0, 0.0
-        return (
-            max(0.0, finite_float(row.get("wind_speed"), 0.0)),
-            max(0.0, finite_float(row.get("precipitation"), 0.0)),
-        )
+        now = dt_util.utcnow()
+        return current_weather(self._weather_forecast, now)
 
     def _buffer_cooling_bounds(self) -> tuple[float, float]:
         """Plausible cooling-rate range for *this* tank, C/h.
@@ -7007,15 +7019,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 forecast_data = _plausible_forecast_rows(_forecast_in_model_units(
                     self.hass.states.get(weather_entity),
                     result[weather_entity].get("forecast", [])))
-                if forecast_data and covering_forecast_row(
-                    forecast_data, dt_util.utcnow()
-                ) is None:
-                    # D1-s2-03: every row's hour has ended -- a provider
-                    # serving its last answer, not a recovery.
-                    self._weather_fetch_failed(
-                        f"Forecast for {weather_entity} ends before now"
-                    )
-                elif forecast_data:
+                now = dt_util.utcnow()
+                problem = forecast_reply_problem(forecast_data, now, weather_entity)
+                if problem:
+                    self._weather_fetch_failed(problem)
+                else:
                     self._weather_forecast = forecast_data
 
                     # The solar forecast, if present; a non-numeric irradiance is
@@ -7029,14 +7037,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         "Fetched %d weather forecast entries (full 24h+ "
                         "trajectory: temp, wind, rain, solar)",
                         len(forecast_data),
-                    )
-                else:
-                    # D8-02's half: an empty result used to keep the
-                    # previous forecast forever with no signal. The
-                    # previous forecast is still the best data -- but it
-                    # is stale data now, and the plan built on it says so.
-                    self._weather_fetch_failed(
-                        f"Empty forecast returned for {weather_entity}"
                     )
             else:
                 self._weather_fetch_failed(
@@ -9743,13 +9743,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = config.production_entity
         if not entity_id:
             return None
-        # The age gate first (D1-s2-02): a silent or future-stamped meter is
+        # Under the age gate (D1-s2-02): a silent or future-stamped meter is
         # no measurement of step 0, whatever value it last held.
-        if not entry_reader(
+        return entry_reader(
             self.hass, getattr(self, "_ctx", self)._config, now=dt_util.utcnow
-        ).read(CONF_PV_PRODUCTION_ENTITY, entity_id=entity_id).ok:
-            return None
-        return state_power_kw(self.hass.states.get(entity_id), sign="clamp")
+        ).read_state_power_kw(CONF_PV_PRODUCTION_ENTITY, entity_id=entity_id, sign="clamp")
 
     def _pv_forecast(
         self, solar_rad: np.ndarray, n_steps: int
