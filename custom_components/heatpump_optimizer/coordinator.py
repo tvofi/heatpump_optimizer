@@ -801,6 +801,7 @@ def forecast_reply_problem(
         return f"Forecast for {entity_id} ends before now"
     return None
 
+
 def current_weather(forecast: list[dict[str, Any]], now: datetime) -> tuple[float, float]:
     """Wind (m/s) and precipitation (mm/h) of the row covering ``now``; calm and dry past the last row."""
     row = covering_forecast_row(forecast, now)
