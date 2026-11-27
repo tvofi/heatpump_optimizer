@@ -729,6 +729,10 @@ class Tick:
           APPROVAL-OWED: #N <head8>    merge at the current head, BLOCKED and
                                        REVIEW_REQUIRED: queue the PR for the
                                        train, which posts the approval itself;
+          CARRIED: #N <head8> from <verdict8>
+                                       bus.sh confirm carried the merge verdict at
+                                       <verdict8> to the current head (its
+                                       `carried` record): the verdict holds it;
           UNLEVELLED: #N <head8> <mergeStateStatus>/<reviewDecision>
                                        the catch-all barrier: a merge verdict at
                                        the current head in a state no line above
@@ -748,8 +752,11 @@ class Tick:
         self._readback = {}  # {pr: [approver verdict first lines]}, the PRs whose comments were read
         self._verdict_at = {}  # {pr: newest approver verdict created_at}
         lg, dispatched = _module("ledger_tick", "tools/audit/seat/ledger.py"), self._dispatched(S)
+        carried = self._carried(S)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
+            if head and str(n) in carried:  # mut:carriedline
+                self.line(S, f"CARRIED: #{n} {head[:8]} from {carried[str(n)][0][:8]}")
             path = f"repos/{self.repo}/issues/{n}/comments?per_page=100"
             code, o = self.conditional(path)
             try:  # the conditional first page; a full page may have a next one: read them all
@@ -1123,6 +1130,19 @@ class Tick:
             return False
         lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
         return lg.app_approve_carries(self.checkout or ".", "origin/main")(verdict, head)
+
+    def _carried(self, S: str) -> dict:
+        """{pr: (verdict head, carried head)}, the newest of bus.sh's automatic carries per pull
+        request (`<bus>/carried`, `<pr> <verdict head> <carried head> <utc>`); a missing record is
+        none, an unreadable one UNREADABLE and none."""
+        try:
+            with open(os.path.join(self.bus_state, "carried"), encoding="utf-8") as fh:
+                return {l.split()[0]: tuple(l.split()[1:3]) for l in fh if len(l.split()) >= 3}
+        except FileNotFoundError:
+            return {}
+        except OSError as e:
+            self.unreadable(S, "bus carry record (CARRIED)", str(e)[:100])
+            return {}
 
     def _dispatched(self, S: str) -> "set | None":
         """{(pr, head)} from bus.sh's dispatch record; a missing record is no
@@ -5321,6 +5341,10 @@ def self_test() -> int:
                     for n in (70, 71, 72, 73, 74)]
         st_extra = [((f"issues/{n}/comments?per_page=100",), 0, json.dumps([c])) for n, _, c in st_specs]
         st_board = [pr_obj(n, h(n), ms="BLOCKED") for n, _, _ in st_specs]
+        # The automatic carry's record: #72's newest carry names its head, #70's an older one.
+        (tmp / "bus-st" / "carried").write_text(
+            f"72 {old_h} {'1' * 40} 2026-11-27T00:00:00Z\n72 {old_h} {h(72)} 2026-11-27T01:00:00Z\n"
+            f"70 {old_h} {'2' * 40} 2026-11-27T01:00:00Z\n")
         t_st = tick(prs=st_board, gh_extra=st_extra, bus_state=str(tmp / "bus-st"))
         for n, m in st_ages.items():
             t_st._git.on(("ls-remote", f"dispatch/reviewer-rev-{n}"), rc=1 if n == 74 else 0,
@@ -5332,6 +5356,13 @@ def self_test() -> int:
         t_st.verdict_levels("PRS", st_board)
         stx = [l for l in t_st.sections.get("PRS", []) if l["text"].startswith("REVIEW STALLED")]
         stall = lambda n: [l for l in stx if f"#{n} " in l["text"]]
+        ctx = [l["text"] for l in t_st.sections.get("PRS", []) if l["text"].startswith("CARRIED")]
+        a, f = check("automatic carry line", [
+            ("a carry recorded at the current head prints CARRIED, the newest record per PR",
+             ctx == [f"CARRIED: #72 {h(72)[:8]} from {old_h[:8]}"]),
+            ("null control: a carry recorded at an older head prints none", not any("#70 " in x for x in ctx)),
+        ])
+        total, failed = total + a, failed + f
         a, f = check("verdict levels", [
             ("a merge verdict at the current head, CLEAN: MERGE-READY, flagged",
              any(l["flag"] and l["text"] == f"MERGE-READY: #40 {h(40)[:8]}" for l in lines)),
