@@ -40,6 +40,8 @@ Departures, raised: FROST-HOLD (`e91a4e30`), which the design orders ahead of th
 
 ## Head
 
+`03bb5c2d5ffcf9477476a1f7390813be7702dbe8` merges the authored code head `ae282a8eaeb2347f94fe676cba6fa8eceed26799` and then merges origin/main `d380053b01` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `ae282a8eaeb2347f94fe676cba6fa8eceed26799` merges origin/main `7194ff84c09dd9d54a99f8208c906136981fd9dc` (#3911, R11 FG-1 flow counts) into the PR head `61feb84d8bb8dbfcd8e25eaa687c09e7671fa56d`. Measured 2026-11-27T00:21Z against origin/main `7194ff84c0`; `git merge-tree --write-tree origin/main HEAD` rc=0. Resolution delta for the reviewer: `git diff 61feb84d8b ae282a8eae`; this branch's own delta: `git diff 7194ff84c0...ae282a8eae`. `git diff 61feb84d8b ae282a8eae -- custom_components/` is empty, so no production line moved in this pass.
 
 The block on `verdict/3872` (`9ef46d7b44`) at `d92bb3a785` (`claims.py writes config_ranges_compared=105`) was answered at `1d348a4f10` (restored to 104) and that header line is now main's FG-1 text, `RESULT config_ranges_compared=104`; the run at this head prints `RESULT config_ranges_compared=104 rows`. The review's finding (`tests/deployment_shape.py`'s 100/98 and "Eighteen" figures) no longer has text to correct: main's #3911 removed every count from that note, and `git diff 7194ff84c0 ae282a8eae -- tests/deployment_shape.py` is empty.
@@ -242,3 +244,4 @@ The sites `tools/pr/ci_predict.py --base origin/main` lists at `0c8d0bd41e6b`. E
 ## Friction
 
 none
+
