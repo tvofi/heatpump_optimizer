@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:arm_refusal GUARD_OFF c8412494",
+  "killed_by": "tests/features.py",
+  "old": "    if not config.system_identification_enabled:",
+  "reason": "GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2, driven by hand at 9b305efb8e because `mutation_table.py --pin-killed` read INCONCLUSIVE on this host (tests/env_drift.py's baseline timed out at its 1200 s pool bound)."
+}
