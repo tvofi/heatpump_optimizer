@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.effective_heat_loss_coefficient CMP_BOUND 5eed5b5e",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if precipitation > 0.1:  # threshold for \"raining\"",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CMP_BOUND (`if precipitation >= 0.1:  # threshold for \"raining\"`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 9df41596c4fa89c6)."
+}

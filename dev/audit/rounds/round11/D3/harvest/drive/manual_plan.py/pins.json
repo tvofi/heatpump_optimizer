@@ -1,0 +1,87 @@
+{
+  "custom_components/heatpump_optimizer/__init__.py:__getattr__ GUARD_OFF 9e40bac8": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    if module is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_manual_plan GUARD_OFF 0137d938": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        if override.is_expired(dt_util.now()):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_update_data RETURN_DEL 5a8280b9": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "            return await self._async_first_refresh_light()",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 612fbbb9": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        if not solar_from_sensor and self._open_meteo is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if not solar_from_sensor or self._open_meteo is not None:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_republish_handover_ages GUARD_OFF 32a02e09": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    if isinstance(last, datetime):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_republish_handover_ages RETURN_DEL c5775164": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    return handover",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=3."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._apply_dhw_pins CLAMP_DROP 5a92253f": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "                out[i] = max(out[i], min_run_power)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`out[i] = (out[i])`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=3."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements CLAMP_DROP 7ebc4ff7": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        min_run_power = min(p_dhw_run, max(0.15, self.model.params.min_electrical_power * 0.6))",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`min_run_power = (p_dhw_run)`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=11. Each of the 2 sites under this anchor was killed."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._pin_on_power RETURN_DEL 65c77e76": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        return min(floor, upper)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off GUARD_OFF 796b2800": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "                if not _pin_is_free(pin) and pin < 0.5:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=5."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_apply_pins_to_bounds GUARD_OFF b5267853": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        if pin >= 0.5:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_apply_pins_to_bounds RETURN_DEL a8227ccf": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    return out",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:_entries_by_day RETURN_DEL cd0ff3c6": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    return by_day",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:apply_price_adjustments RETURN_DEL a8227ccf": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    return out",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:prices_from_entity_attributes RETURN_DEL b7c37daa": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "    return apply_price_adjustments(rows, vat, surcharge)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:PeakTracker.threshold_kw GUARD_OFF 0687dd37": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        if not self.peaks:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_demand_windows RETURN_DEL d0455111": {
+    "killed_by": "tests/manual_plan.py",
+    "old": "        return list(self.dhw_windows)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

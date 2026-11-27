@@ -1,0 +1,21 @@
+HARVEST -- 13 of 13 anchor(s) unpinned at HEAD, 14 site(s)
+  1818 unpinned site(s) of 8228 candidate sites, 1818 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 12 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+DRAIN -- 14 of 1818 unpinned site(s), whole anchors under --seed 20260911, to drive
+  null control: custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  null control custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT survived every driver
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1890 GUARD_OFF -- killed by tests/structure.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5661 GUARD_OFF -- killed by tests/structure.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:7202 GUARD_OFF -- killed by tests/structure.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:7530 RETURN_DEL -- killed by tests/structure.py
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:7624 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/coordinator.py:10371 RETURN_DEL -- killed by tests/structure.py
+  UNPINNED custom_components/heatpump_optimizer/defrost.py:204 CLAMP_DROP -- killed by tests/structure.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/defrost.py:204 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:923 CLAMP_DROP -- killed by tests/structure.py
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:1927 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:2131 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:2192 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/tariff.py:801 CMP_BOUND -- lives
+  UNPINNED custom_components/heatpump_optimizer/tariff.py:1196 CMP_BOUND -- lives
+PIN KILLED: 6 pinned, 8 left unpinned (8 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+DRAIN: measured, 6 anchor(s) to record, 8 site(s) left for a human verdict

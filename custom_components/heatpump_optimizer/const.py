@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import math
 import re
-from datetime import timedelta
 from numbers import Real
 from typing import Any, Final, NamedTuple, overload
 

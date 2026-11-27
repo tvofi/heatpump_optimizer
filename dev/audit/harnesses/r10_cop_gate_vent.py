@@ -418,7 +418,7 @@ def run_flow(law: str, k_vent: float, seed: int, *, latch: bool = False) -> tupl
     for room, q in room_series(k_vent, law):
         supply = (curve if law == "b" else room + q / ua_em) + SPREAD_K / 2 + rng.normal(0, 0.3)
         c._current_action = {"power": q / cop, "dhw_power": 0.0}
-        c._flow_bias.observe_temps(supply, None, None)
+        c._flow_bias.observe_temps(supply, None)
         before = c._flow_bias.samples
         _fold_flow_lift(c, now)
         folds += c._flow_bias.samples != before

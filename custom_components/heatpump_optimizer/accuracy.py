@@ -26,7 +26,7 @@ import math
 import random
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, Callable, Deque, Iterable, Sequence
 
 import numpy as np
