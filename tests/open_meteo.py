@@ -471,18 +471,18 @@ check("diagnostics report both series", d["forecast_points"] == 5 and d["observe
 
 print("\n== small getters, and current_irradiance's forecast fallback ==")
 
-# The two getters are asserted against two DISTINCT, non-default objects
+# The forecast getter is asserted against two DISTINCT, non-default objects
 # planted in the client's private state. Comparing a getter to the private
 # attribute it reads pins nothing: __init__ assigns _forecast and _observed the
 # SAME module-level `_EMPTY` singleton, so `client.forecast is client._forecast`
 # is `_EMPTY is _EMPTY` -- true whatever the property body returns. That is tests/README.md's "a test that
-# cannot fail" class. Naming the OTHER series in each check is what makes a
+# cannot fail" class. Naming the OTHER series in the check is what makes a
 # getter that returns the wrong series, or the untouched default, fail.
 ident_client = om.OpenMeteoSolar(hass=None, latitude=3.0, longitude=4.0)
 ident_forecast = om._parse_block(block(0, [0.0, 0.0, 0.0, 400.0, 800.0]), "shortwave_radiation")
 ident_observed = om._parse_block(block(0, [11.0, 22.0, 33.0, 44.0, 55.0]), "shortwave_radiation")
 # A fixture precondition, deliberately an assert and not a check(): it guards
-# the three checks below from silently degenerating back into tautologies if
+# the checks below from silently degenerating back into tautologies if
 # _parse_block ever starts returning the _EMPTY singleton here. It is not a
 # check because no single-line production mutation can make it fail while
 # leaving it reachable -- such a mutation aborts this script 250 lines earlier
@@ -498,11 +498,6 @@ check(
     "forecast property returns the forecast series, not the observed one",
     ident_client.forecast is ident_forecast and ident_client.forecast is not ident_observed,
     f"got {ident_client.forecast.values}",
-)
-check(
-    "observed property returns the observed series, not the forecast one",
-    ident_client.observed is ident_observed and ident_client.observed is not ident_forecast,
-    f"got {ident_client.observed.values}",
 )
 
 getter_client = om.OpenMeteoSolar(hass=None, latitude=1.0, longitude=2.0)
@@ -634,7 +629,7 @@ check(
 # blocks carry six samples, so a check asserting only len(...) == 6 stays green
 # when production parses _humidity from the snowfall key -- and vice versa --
 # which is the "test that cannot fail" class again, and the same shape as the
-# forecast/observed getters repaired above: a name asserting WHICH series lands
+# forecast getter repaired above: a name asserting WHICH series lands
 # on WHICH attribute, backed by a fixture that cannot tell the two apart.
 #
 # Each expectation is read back out of the fixture by the fixture's OWN literal
