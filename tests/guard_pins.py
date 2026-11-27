@@ -1235,6 +1235,19 @@ def _valve_batch_params_pins() -> dict[str, bool]:
     r = valve(True, 0.0, 1.0)
     out["a partly starved two-tank step scales both emitters down in proportion (D3-wave-39041ccf21eedba6)"] = (
         near(r[:3], [3.1525414441895445, 5.915606973478468, 8.662148417668012]))
+    # _simulate_step_two_zone: a throttled single tank charging at a zero-length step
+    def charge(dt):
+        q = ThermalParameters(two_zone_enabled=True, mixing_valve_mode="manual")
+        st = ThermalState(upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                          slab_temperature=22.0, buffer_tank_temperature=69.9999999)
+        try:
+            return ThermalModel(q)._simulate_step_two_zone(st, 5.0, 0.0, dt_hours=dt).buffer_tank_temperature
+        except ZeroDivisionError:
+            return float("nan")
+
+    out["a zero or sub-microsecond step keeps the buffer-ceiling cap finite and below the ceiling (D3-wave-c5e678a5d1812e40)"] = (
+        near(charge(0.0), 69.9999999, 1e-12) and near(charge(1e-7), 69.99999991, 1e-12)
+        and near(charge(0.25), 70.0, 1e-12))
     # apply_dhw_coil: a wood tank colder than the mains is left alone
     pm = ThermalParameters()
     cold = pm.dhw_inlet_reference - 0.5
