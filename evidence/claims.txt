@@ -4,14 +4,16 @@ RESULT claims_true=123 claims
 RESULT claims_false=0 claims
 RESULT claims_stale=0 claims
 RESULT claims_unverifiable=2 claims
-RESULT arch_modules_on_disk=105 modules
-RESULT arch_map_listed=105 modules
+RESULT arch_modules_on_disk=107 modules
+RESULT arch_map_listed=107 modules
 RESULT arch_map_missing=0 modules
+RESULT arch_map_phantom=0 modules
+RESULT ha_importers_unnamed=0 modules
 RESULT ha_module_level_importers=36 modules
 RESULT config_defaults_compared=97 rows
 RESULT config_ranges_compared=104 rows
 RESULT thread_factor=1.0
-RESULT load1=1.39
+RESULT load1=6.56
 RESULT swapins=0
   UNVERIFIABLE   C109  README.md + docs/how-it-works.md: the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md re
   UNVERIFIABLE   C111  README.md + docs/*.md: every external link answers 200 to a HEAD request (21 links)

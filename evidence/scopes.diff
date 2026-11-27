@@ -1,0 +1,22 @@
+diff --git a/dev/audit/config/scopes.json b/dev/audit/config/scopes.json
+index 934d212f92..a4bea3234e 100644
+--- a/dev/audit/config/scopes.json
++++ b/dev/audit/config/scopes.json
+@@ -425,7 +425,7 @@
+    "s7": [
+     {
+      "files": [
+-      "tests/f*"
++      "tests/fe*"
+      ],
+      "steps": [
+       "M1",
+@@ -438,7 +438,7 @@
+    "s8": [
+     {
+      "files": [
+-      "tests/{a,b,c,d,g}*",
++      "tests/{a,b,c,d,fi,fr,g}*",
+       "tools/policy/**"
+      ],
+      "steps": [

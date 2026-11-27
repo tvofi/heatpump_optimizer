@@ -1,5 +1,0 @@
--- R11-OWNER-CARD-EXTERNAL-HEAT: the binary sensors the card reads by id suffix
-  ok   each binary sensor suffix the card derives an id from is the slug of its sensor class's en.json name (_external_heat_source, _input_problem); null control, the suffix with its last letter dropped does not match
-
-ALL 6235 FEATURE CHECKS PASSED
-rc=0

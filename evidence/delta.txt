@@ -1,0 +1,19 @@
+head: cbd6e64df9e8ae00214ea162a5f587a2ba074339
+old three-dot (dbdc71faea358a95a7b33840ed252b0d8a646a31..2b85f00206359887d28726af32d593baf120aae3) vs new three-dot (190ffb10c230b6beaf77593b2926d55682e37f47..HEAD) stat:
+2a3
+>  dev/audit/config/scopes.json                                                                                                 |   4 +-
+4,6d4
+<  dev/audit/rounds/round4/D6/claims.json                                                                                       |   4 +-
+<  dev/audit/rounds/round4/D6/claims.md                                                                                         |   4 +-
+<  dev/audit/rounds/round4/D6/claims.py                                                                                         |   4 +-
+8c6
+<  docs/architecture.md                                                                                                         |   9 +-
+---
+>  docs/architecture.md                                                                                                         |   3 +
+11d8
+<  tests/deployment_shape.py                                                                                                    |  14 +-
+28c25
+<  27 files changed, 1119 insertions(+), 84 deletions(-)
+---
+>  24 files changed, 1103 insertions(+), 72 deletions(-)
+9740b9e336 is byte-identical to origin/main's 7df39f349a

@@ -1,0 +1,14 @@
+ok coverage tracked=17523 in_universe=1768 excluded=15755 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
+                       [--roster-ref ROSTER_REF]
+check_scopes.py: error: the following arguments are required: --repo
+rc=2
+ALL DEPLOYMENT SHAPE CHECKS PASSED
+rc=0
+ALL 445 checks PASSED
+rc=0
+STRUCTURE RATCHET PASSED
+rc=0
+
+[exited with code 0]
