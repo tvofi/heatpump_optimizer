@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_refuses_non_finite RETURN_DEL 09644b4a",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "    return guarded",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}

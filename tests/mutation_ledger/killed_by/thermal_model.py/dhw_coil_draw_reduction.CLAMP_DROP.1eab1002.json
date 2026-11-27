@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_coil_draw_reduction CLAMP_DROP 1eab1002",
+  "killed_by": "tests/features.py",
+  "old": "    reduced = draw_kw * max(0.0, dhw_setpoint - t_in) / span",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`reduced = draw_kw * (0.0) / span`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

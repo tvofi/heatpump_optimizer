@@ -1,0 +1,20 @@
+[
+ {
+  "name": "1b476993921016f9",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        recovery = float(np.clip(self.greywater_recovery, 0.0, 0.9))\n",
+  "new": "        recovery = float((self.greywater_recovery))\n"
+ },
+ {
+  "name": "ea888783bb621669",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            liters_per_hour * WATER_SPECIFIC_HEAT * max(delta_t, 0.0)\n",
+  "new": "            liters_per_hour * WATER_SPECIFIC_HEAT * (delta_t)\n"
+ },
+ {
+  "name": "b098598faf0d87dc",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if swing <= 0.0:\n",
+  "new": "        if False:\n"
+ }
+]

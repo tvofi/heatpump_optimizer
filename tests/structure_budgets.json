@@ -1,8 +1,8 @@
 {
- "class_excess_loc": 17207,
+ "class_excess_loc": 17193,
  "const_modules_over_50": 4,
- "coordinator_attrs": 134,
- "coordinator_multiassigned_attrs": 101,
+ "coordinator_attrs": 133,
+ "coordinator_multiassigned_attrs": 100,
  "coordinator_private_reach": 0,
  "dead_methods": 0,
  "dead_top_level_symbols": 0,
@@ -12,13 +12,13 @@
  "import_cycle_modules": 0,
  "in_function_copies": 11,
  "max_cc": 44,
- "max_class_loc": 7762,
+ "max_class_loc": 7759,
  "max_method_loc": 373,
  "methods_over_150": 14,
  "methods_over_200": 7,
- "module_excess_loc": 21620,
+ "module_excess_loc": 21600,
  "name_kept_members": 38,
- "recorded_at": "1d3077736d4a7ced6ec15d9aec29f6bcf40fbae8",
+ "recorded_at": "7194ff84c09dd9d54a99f8208c906136981fd9dc",
  "seam_cut_total": 413,
- "unloaded_package_imports": 5
+ "unloaded_package_imports": 0
 }

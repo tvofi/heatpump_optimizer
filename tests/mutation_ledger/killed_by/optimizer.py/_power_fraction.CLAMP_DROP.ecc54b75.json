@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_power_fraction CLAMP_DROP ecc54b75",
+  "killed_by": "tests/env_drift.py",
+  "old": "    return float(min(1.0, max(0.0, (power - low) / band)))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return float((1.0))`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=36. Each of the 2 sites under this anchor was killed."
+}
