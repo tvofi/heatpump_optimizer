@@ -9039,6 +9039,55 @@
    "reads": [
     "custom_components/heatpump_optimizer/sysid.py"
    ]
+  },
+  {
+   "group": "R11-OWNER-LANGUAGES",
+   "lane": "CORE",
+   "kind": "feature",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "source": "user",
+   "seam": "product text",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R11-SEAM-product-text"
+   ],
+   "hot_files": [
+    "strings.json",
+    "translations/en.json",
+    "translations/sv.json",
+    "translations/de.json",
+    "www/heatpump-optimizer-card.js"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "tests/card.mjs"
+   ],
+   "architect_note": "Owner item planned at round-11 start and missing from the roster: add Finnish, Norwegian Bokmal and Danish. Placed after R11-SEAM-product-text so the new languages translate the final English strings once, not a moving target.",
+   "brief": "Owner item (round-11 start plan, folded in 2026-11-27): add three languages, Finnish, Norwegian Bokmal and Danish, to the integration and the dashboard card. Integration: one new translation file each beside custom_components/heatpump_optimizer/translations/en.json (Home Assistant language codes fi, nb, da), every key that en.json carries, placeholders identical to the English. Card: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js carries its words per language; add the three languages wherever en, sv and de are listed, and extend the card registry checks in tests/card.mjs (copCodes and its siblings) from three languages to six so a missing word fails. Wording follows the copy-style rule R11-SEAM-product-text settles (issue 3780), with the domain vocabulary a native heat-pump owner uses. Control: a key-set and placeholder-set equality check against en.json for each new file, failing on one dropped key (perturbation: delete one key from the Finnish file, the check must go red). Null control: a value identical to English for a proper noun or unit is not a finding. Re-measure at your merge base. README and docs language list updated where they name the supported languages.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-owner-languages",
+    "next_step": "fixer after R11-SEAM-product-text merges; owner item, dispatches above caps",
+    "note": "overlap admitted (R11-SEAM-inputs-freshness, R11-SEAM-product-text): owner item; translation files and card words follow R11-SEAM-product-text via after"
+   },
+   "issues": [],
+   "fixes": []
   }
  ]
 }
