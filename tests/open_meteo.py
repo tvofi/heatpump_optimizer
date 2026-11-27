@@ -640,7 +640,7 @@ check(
 # blocks carry six samples, so a check asserting only len(...) == 6 stays green
 # when production parses _humidity from the snowfall key -- and vice versa --
 # which is the "test that cannot fail" class again, and the same shape as the
-# forecast/observed getters repaired above: a name asserting WHICH series lands
+# forecast getter and observed count repaired above: a name asserting WHICH series lands
 # on WHICH attribute, backed by a fixture that cannot tell the two apart.
 #
 # Each expectation is read back out of the fixture by the fixture's OWN literal
