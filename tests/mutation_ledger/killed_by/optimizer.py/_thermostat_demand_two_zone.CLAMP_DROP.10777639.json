@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_demand_two_zone CLAMP_DROP 10777639",
+  "killed_by": "tests/env_drift.py",
+  "old": "        target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`target + (0.0) / k_slab + 2.0 * (target - t_lower)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=14."
+}

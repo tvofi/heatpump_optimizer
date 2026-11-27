@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:<module> CONST ea648ec1",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "THERMAL_LEARNING_STORE_VERSION = 1",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`THERMAL_LEARNING_STORE_VERSION = 2`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

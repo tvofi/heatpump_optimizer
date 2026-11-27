@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:_bucket_index RETURN_DEL 463ef486",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "    return len(edges) - 2 if value >= edges[-1] else 0",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

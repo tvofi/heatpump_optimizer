@@ -1,0 +1,7 @@
+{
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP b186b210": {
+    "killed_by": "tests/features.py",
+    "old": "                            np.maximum(T_wood, T_buf)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`(T_wood)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  }
+}

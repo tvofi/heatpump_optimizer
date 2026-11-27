@@ -8322,7 +8322,7 @@ from heatpump_optimizer.sysid import slab_mode_identifiability as _sid_idable
 _sid_plant = ThermalParameters()
 R.check(
     "the default plant passes the arm-time identifiability gate",
-    _sid_idable(_sid_plant, SysIdConfig())[0],
+    _sid_idable(_sid_plant)[0],
     "production arms with a declared plant; the gate must accept it, or the "
     "production sequence the pin below drives is not the production one",
 )
@@ -13447,6 +13447,11 @@ R.check(
     "final plan; the cap loop should have re-solved it away",
 )
 R.check(
+    "every planned step carries a set-point: optimal_setpoints is as long as the power schedule",
+    len(_cres.optimal_setpoints) == len(_cres.power_schedule) > 0,
+    f"{len(_cres.optimal_setpoints)} set-points for {len(_cres.power_schedule)} steps",
+)
+R.check(
     "and the trajectory itself respects the cap",
     float(_cres_buf.max()) <= 60.0 + 1e-6,
     f"tank peaked at {float(_cres_buf.max()):.2f} C",
@@ -18389,14 +18394,14 @@ R.check(
 _power = np.zeros(96)
 _power[92:96] = 6.0  # a 23:00 burst on a day starting at midnight
 _day_start = datetime(2026, 1, 14, 0, 0)
-_nf = _wfactors(_masked_ct, _day_start, _mwindows(_power, 60, 0.25).size, 0.25)
+_nf = _wfactors(_masked_ct, _day_start, _mwindows(_power, 60, 0.25).size)
 _cost_masked = _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3,
                           window_factors=_nf))
 _cost_flat = _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3))
 R.check(
     "the plan's peak term prices a night burst at the off-peak rate",
     0.0 < _cost_masked < _cost_flat
-    and _wfactors(_flat_ct, _day_start, 24, 0.25) is None,
+    and _wfactors(_flat_ct, _day_start, 24) is None,
     f"masked {_cost_masked}, flat {_cost_flat}",
 )
 _ct_free_night = _CT(enabled=True, price_per_kw=30.0, peak_hours=((7.0, 19.0),),
@@ -18406,7 +18411,7 @@ R.check(
     _peak_cost(_power, np.zeros(96), PeakBilling(1.0, 10.0, 60, 0.25, 3,
                window_factors=_wfactors(
                    _ct_free_night, _day_start,
-                   _mwindows(_power, 60, 0.25).size, 0.25))) == 0.0,
+                   _mwindows(_power, 60, 0.25).size))) == 0.0,
 )
 _pt_round = _PT.from_dict(_pt_night.as_dict())
 R.check(
@@ -24227,7 +24232,7 @@ R.check(
 )
 
 _cl6_t4 = CurveLearner()
-_cl6_t4.record_miss(_d2, -0.1)
+_cl6_t4.record_miss(-0.1)
 R.check(
     "a miss with the bias already at zero has nothing to surrender",
     _cl6_t4.resets == 0,
@@ -27352,14 +27357,14 @@ def _freq_coord(hz="45", mode=None, **extra):
 
 
 _cf = _freq_coord()
-_cf._observe_frequency(_T6)
+_cf._observe_frequency()
 R.check(
     "an observed cycle folds (frequency, kW) into the map",
     _cf._freq_map.buckets and _cf._freq_map.buckets[2][1] == 1,
 )
 _cfi = _freq_coord()
 _cfi._immersion_active = True
-_cfi._observe_frequency(_T6)
+_cfi._observe_frequency()
 R.check(
     "immersion intervals never teach the map",
     not _cfi._freq_map.buckets,
@@ -27368,7 +27373,7 @@ R.check(
 )
 _ccool = _freq_coord()
 _ccool._pump_signals = PumpSignals(freeze_reason="pump_cooling")
-_ccool._observe_frequency(_T6)
+_ccool._observe_frequency()
 R.check(
     "reverse-cycle cooling never teaches the frequency map",
     not _ccool._freq_map.buckets,
@@ -27386,7 +27391,7 @@ _cflat._input_health = _NS(
         )
     }
 )
-_cflat._observe_frequency(_T6)
+_cflat._observe_frequency()
 R.check(
     "a pinned stale power reading never teaches the frequency map",
     not _cflat._freq_map.buckets,
@@ -27395,7 +27400,7 @@ R.check(
 )
 _cextf = _freq_coord()
 _cextf._external_heat_active = True
-_cextf._observe_frequency(_T6)
+_cextf._observe_frequency()
 R.check(
     "external heat still folds: the map is a compressor curve, not a house learner",
     bool(_cextf._freq_map.buckets),
@@ -27406,7 +27411,7 @@ R.check(
 # refuses the interval (_learning_frozen returns "defrosting"); the map did not.
 _cdf = _freq_coord()
 _cdf._pump_signals = PumpSignals(defrosting=True)
-_cdf._observe_frequency(_T6)
+_cdf._observe_frequency()
 R.check(
     "a defrost interval never teaches the frequency map",
     not _cdf._freq_map.buckets,
@@ -27417,7 +27422,7 @@ R.check(
 # that is False is an ordinary interval, and the arm still folds.
 _cdf0 = _freq_coord()
 _cdf0._pump_signals = PumpSignals(defrosting=False)
-_cdf0._observe_frequency(_T6)
+_cdf0._observe_frequency()
 R.check(
     "null control: a non-defrost interval still folds",
     _cdf0._freq_map.buckets and _cdf0._freq_map.buckets[2][1] == 1,
@@ -27434,7 +27439,7 @@ for _cfz_reason, _cfz_online in ((_ps_mod.FREEZE_OFFLINE, False),
                                  (_ps_mod.FREEZE_COOLING, True)):
     _cfz_c = _freq_coord()
     _cfz_c._pump_signals = PumpSignals(online=_cfz_online, freeze_reason=_cfz_reason)
-    _cfz_c._observe_frequency(_T6)
+    _cfz_c._observe_frequency()
     _cfz[_cfz_reason] = bool(_cfz_c._freq_map.buckets)
 R.check(
     "an offline, faulted or cooling pump's interval never teaches the frequency map",
@@ -27447,7 +27452,7 @@ _cnone = []
 for _cn_mode in (None, "control"):
     _cn = _freq_coord(hz="unavailable", mode=_cn_mode)
     try:
-        _cn._observe_frequency(_T6)
+        _cn._observe_frequency()
         _cnone.append((bool(_cn._freq_map.buckets), _cn._freq_watchdog.strikes))
     except Exception as _cn_err:  # noqa: BLE001 - a raise is the failure measured
         _cnone.append(repr(_cn_err))
@@ -27524,7 +27529,7 @@ _ct7.hass.states.set(
 )
 # One extra tick: the first report after a command is a grace tick.
 for _ in range(FREQ_WATCHDOG_TICKS + 1):
-    _ct7._observe_frequency(_T6)
+    _ct7._observe_frequency()
 R.check(
     "persistent divergence stands control down to observe and latches",
     _ct7._freq_fallback and _ct7._freq_mode() == FREQ_MODE_OBSERVE,
@@ -27538,7 +27543,7 @@ R.check(
 )
 # The re-arm gesture: the user switches back to observe and saves.
 with_config(_ct7, {"freq_control_mode": "observe"})
-_ct7._observe_frequency(_T6)
+_ct7._observe_frequency()
 R.check(
     "switching the mode to observe is the acknowledgement that re-arms",
     not _ct7._freq_fallback and not _ct7._freq_watchdog.tripped,
@@ -27590,7 +27595,7 @@ _ci7.hass.states.set(
     "number.freq", FakeState("0", attributes={"min": 20.0, "max": 120.0})
 )
 for _ in range(FREQ_WATCHDOG_TICKS + 2):
-    _ci7._observe_frequency(_T6)
+    _ci7._observe_frequency()
 R.check(
     "overnight idle never trips the watchdog",
     not _ci7._freq_fallback and _ci7._freq_watchdog.strikes == 0,
@@ -27608,7 +27613,7 @@ _cdw.hass.states.set(
     "number.freq", FakeState("90", attributes={"min": 20.0, "max": 120.0})
 )
 for _ in range(FREQ_WATCHDOG_TICKS + 1):
-    _cdw._observe_frequency(_T6)
+    _cdw._observe_frequency()
 R.check(
     "defrost ticks never stand control down",
     not _cdw._freq_fallback and _cdw._freq_watchdog.strikes == 0,
@@ -27655,7 +27660,7 @@ def _echo_coord(sensor_state="90"):
 _ce7 = _echo_coord()
 _asyncio.run(_ce7._command_frequency())  # number echoes 45; sensor says 90
 for _ in range(FREQ_WATCHDOG_TICKS + 1):
-    _ce7._observe_frequency(_T6)
+    _ce7._observe_frequency()
 R.check(
     "with a real feedback sensor the watchdog sees through the echo",
     _ce7._freq_fallback,
@@ -27674,7 +27679,7 @@ R.check(
 _co7 = _armed_coord()
 _co7._freq_fallback = True
 with_config(_co7, {"compressor_freq_entity": None})
-_co7._observe_frequency(_T6)
+_co7._observe_frequency()
 R.check(
     "clearing the entity re-arms the latch instead of orphaning it",
     not _co7._freq_fallback,
@@ -27775,7 +27780,7 @@ def _g6_sensor_coord(**extra):
 
 
 _g6_so = _g6_sensor_coord()
-_g6_so._observe_frequency(_T6)
+_g6_so._observe_frequency()
 _g6_view = _g6_so._freq_view()
 R.check(
     "a frequency sensor alone observes, on the options' range, and learns a map",
@@ -27801,7 +27806,7 @@ _g6_sw._freq_watchdog.note_command(90.0)
 # One grace tick plus exactly the strikes that would trip it: one tick more
 # and the unconfigured-control re-arm would clear a trip before the check.
 for _ in range(FREQ_WATCHDOG_TICKS + 1):
-    _g6_sw._observe_frequency(_T6)
+    _g6_sw._observe_frequency()
 R.check(
     "no number, no watchdog: a sensor diverging from a stale command never stands anything down",
     not _g6_sw._freq_fallback and not _g6_sw._freq_watchdog.strikes,
@@ -30643,6 +30648,16 @@ R.check(
     _xh2_kept > _xh_kept,
     f"external-heat kept {_xh_kept}, control kept {_xh2_kept}; "
     f"freeze={_xh2._pump_signals.freeze_reason}",
+)
+_xf = _t2_coord()
+_xf_calls = []
+_xf_real = _xf._observe_frequency
+_xf._observe_frequency = lambda: (_xf_calls.append(1), _xf_real())[1]
+_xf._record_accuracy()
+R.check(
+    "a cycle's accuracy close takes exactly one frequency sample, even with nothing pending",
+    len(_xf_calls) == 1,
+    f"_observe_frequency ran {len(_xf_calls)} times in one _record_accuracy",
 )
 
 # --- D7-03 (#279): open window skips the accuracy sample -------------------
@@ -35278,7 +35293,7 @@ R.check(
 
 # The frequency map.
 _eh_freq_ok = _freq_coord()
-_eh_freq_ok._observe_frequency(_T6)
+_eh_freq_ok._observe_frequency()
 R.check(
     "the control: an ordinary cycle still folds the frequency map",
     bool(_eh_freq_ok._freq_map.buckets),
@@ -35289,7 +35304,7 @@ for _eh_name, _eh_sig in (
 ):
     _eh_freq = _freq_coord()
     _eh_freq._pump_signals = _eh_sig
-    _eh_freq._observe_frequency(_T6)
+    _eh_freq._observe_frequency()
     R.check(
         f"{_eh_name} never teaches the kW-per-Hz map",
         not _eh_freq._freq_map.buckets,
@@ -35531,25 +35546,24 @@ R.check(
     f"{_fl_inert.as_dict()}",
 )
 R.check(
-    "its two readings start empty too",
-    _fl_inert.last_supply_c is None and _fl_inert.last_return_c is None,
+    "its reading starts empty too",
+    _fl_inert.last_supply_c is None,
 )
 _fl_lapse = flow_lift.FlowCurveBias()
-_fl_lapse.observe_temps(48.5, 41.0)
-_fl_had = (_fl_lapse.last_supply_c, _fl_lapse.last_return_c)
-_fl_lapse.observe_temps(None, None)
+_fl_lapse.observe_temps(48.5)
+_fl_had = _fl_lapse.last_supply_c
+_fl_lapse.observe_temps(None)
 R.check(
     "a reading that lapses is cleared, never kept as this cycle's",
-    _fl_had == (48.5, 41.0)
-    and _fl_lapse.last_supply_c is None
-    and _fl_lapse.last_return_c is None,
-    f"before {_fl_had}, after {(_fl_lapse.last_supply_c, _fl_lapse.last_return_c)}"
+    _fl_had == 48.5
+    and _fl_lapse.last_supply_c is None,
+    f"before {_fl_had}, after {_fl_lapse.last_supply_c}"
     " — an unreadable slot must not keep folding its last supply as fresh",
 )
-_fl_lapse.observe_temps(float("nan"), float("inf"))
+_fl_lapse.observe_temps(float("nan"))
 R.check(
     "and a non-finite reading is no reading",
-    _fl_lapse.last_supply_c is None and _fl_lapse.last_return_c is None,
+    _fl_lapse.last_supply_c is None,
 )
 R.check(
     "the clamp is 15 K, the number the module justifies",
@@ -35666,7 +35680,7 @@ def _fl_model1_gate(outdoor, supply_phys, mapped):
     # A persistent ratio, not a blip: the tracking gate judges against it.
     gate._measured_cop.ratio_ewma = measured / commanded
     if mapped:
-        gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
+        gate._flow_bias.observe_temps(supply_phys)
     gate._learn_measured_cop()
     return gate, c0, ct, measured
 
@@ -35736,7 +35750,7 @@ R.check(
 # W1067-G3's half.
 _fl_traj_bare, _fl_traj_55 = [], []
 _fl_walk_bare, _fl_walk_55 = _CopGate(outdoor=8.0), _CopGate(outdoor=8.0)
-_fl_walk_55._flow_bias.observe_temps(55.0, 47.0)
+_fl_walk_55._flow_bias.observe_temps(55.0)
 for _ in range(30):
     _fl_walk_bare._learn_measured_cop()
     _fl_walk_55._learn_measured_cop()
@@ -35763,7 +35777,7 @@ def _fl_coord(supply=55.0, returned=47.0, action=None, **extra):
         dict(action) if action else {"power": 3.0, "dhw_power": 0.0}
     )
     c._measured_power = 2.6
-    c._flow_bias.observe_temps(supply, returned)
+    c._flow_bias.observe_temps(supply)
     return c
 
 
@@ -35776,7 +35790,7 @@ _fl_expected_curve = flow_lift.curve_supply_temp(
 # the check below held with the curve read at the wrong outdoor temperature:
 # a residual pinned at the clamp cannot say which curve produced it.
 _fl_fold_supply = _fl_expected_curve + 6.0
-_fl_fold_ok._flow_bias.observe_temps(_fl_fold_supply, 47.0)
+_fl_fold_ok._flow_bias.observe_temps(_fl_fold_supply)
 _fold_flow_lift(_fl_fold_ok, _T6)
 R.check(
     "the control: a space-dominant interval with a fresh supply reading folds",
@@ -35791,12 +35805,6 @@ R.check(
     f"bias {_fl_fold_ok._flow_bias.bias_k} against a curve of "
     f"{_fl_expected_curve:.3f} °C, expected {_fl_expected_bias} — inside "
     "the clamp, so a fold against any other curve reads a different number",
-)
-R.check(
-    "the return reading is held but is not what the bias is learned from",
-    _fl_fold_ok._flow_bias.last_return_c == 47.0,
-    "the curve is a SUPPLY curve; the return is held for the diagnostics and "
-    "for W1067-G3",
 )
 for _fl_name, _fl_kwargs, _fl_mutate in (
     ("no supply reading at all", {"supply": None}, None),
@@ -36115,7 +36123,7 @@ def _g3_credit(supply_phys):
     ct = max(bare.compute_cop(-3.0) * bare.flow_lift_factor(-3.0, supply_phys), 1.0)
     gate._measured_power = 3.0 * c_plan / ct
     gate._measured_cop.ratio_ewma = gate._measured_power / 3.0
-    gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
+    gate._flow_bias.observe_temps(supply_phys)
     reference = gate._cop_reference_curve()[0]  # before the fold moves the scale
     gate._learn_measured_cop()
     credited = gate.cop_health_calls[0][0] if gate.cop_health_calls else None
@@ -36155,11 +36163,11 @@ def _g3_true(model, s):
 def _g3_shortfall(c, samples):
     """Settle at 45 degC, then one sample; the watch's own shortfall expression."""
     for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
-        c._flow_bias.observe_temps(45.0, 40.0)
+        c._flow_bias.observe_temps(45.0)
         c._observe_cop_health(_g3_true(c._thermal_model, 45.0), False)
     before = [list(v) for v in c._cop_baseline.values()]
     for supply_seen, supply_phys in samples:
-        c._flow_bias.observe_temps(supply_seen, None)
+        c._flow_bias.observe_temps(supply_seen)
         judged = _watch_lift(c, False)
         c._observe_cop_health(_g3_true(c._thermal_model, supply_phys), False)
     if judged is None:
@@ -36208,10 +36216,10 @@ _g3_trip._raise_cop_issue = lambda b: _g3_raised.append(
     (b, _g3_trip._cop_baseline[(2, "lift")][0])
 )
 for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
-    _g3_trip._flow_bias.observe_temps(55.0, 50.0)
+    _g3_trip._flow_bias.observe_temps(55.0)
     _g3_trip._observe_cop_health(_g3_true(_g3_trip._thermal_model, 55.0), False)
 for _ in range(60):
-    _g3_trip._flow_bias.observe_temps(55.0, 50.0)
+    _g3_trip._flow_bias.observe_temps(55.0)
     _g3_trip._observe_cop_health(0.7 * _g3_true(_g3_trip._thermal_model, 55.0), False)
     if _g3_raised:
         break
@@ -36248,12 +36256,12 @@ R.check(
 # on one shared baseline a healthy pump reads a ~38 % shortfall.
 _g3_tog = _g3_watch(True)
 for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
-    _g3_tog._flow_bias.observe_temps(45.0, 40.0)
+    _g3_tog._flow_bias.observe_temps(45.0)
     _g3_tog._observe_cop_health(_g3_true(_g3_tog._thermal_model, 45.0), False)
 _g3_tog_lift = [list(v) for v in _g3_tog._cop_baseline.values()]
 _g3_tog._thermal_params.flow_curve_cop = False
 for _ in range(COP_BASELINE_MIN_SAMPLES + 5):
-    _g3_tog._flow_bias.observe_temps(55.0, 50.0)
+    _g3_tog._flow_bias.observe_temps(55.0)
     _g3_tog._observe_cop_health(_g3_true(_g3_tog._thermal_model, 55.0), False)
 R.check(
     "switching the option off starts a raw baseline and leaves the normalised one untouched",
@@ -38582,10 +38590,9 @@ _de_dh = np.array([1.0, 1.0, 1.0])
 _de_set = float(_de_opt.model.params.dhw_setpoint)
 _de_state_wood = ThermalState(wood_tank_temperature=70.0)
 _de_bd, _de_bc, _de_pc, _de_dc = _dhw_planner(_de_opt)._baseline_dhw_economics(
-    _de_state_wood, _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
+    _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
 )
 _de_bd_none, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
-    ThermalState(wood_tank_temperature=None),
     _de_out, 3, _de_set, _de_price, _de_bp, _de_sp, _de_dh,
 )
 R.check(
@@ -38614,7 +38621,7 @@ R.check(
 )
 
 _de_bd_idle, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
-    _de_state_wood, _de_out, 3, 10.0, _de_price, _de_bp, _de_sp, _de_dh,
+    _de_out, 3, 10.0, _de_price, _de_bp, _de_sp, _de_dh,
 )
 R.check(
     "a setpoint at or below ambient contributes no standby loss",
@@ -38627,7 +38634,7 @@ R.check(
 )
 
 _de_short, _, _, _ = _dhw_planner(_de_opt)._baseline_dhw_economics(
-    _de_state_wood, _de_out, 2, _de_set, _de_price, _de_bp[:2], _de_sp[:2], _de_dh[:2],
+    _de_out, 2, _de_set, _de_price, _de_bp[:2], _de_sp[:2], _de_dh[:2],
 )
 R.check(
     "the schedule is n_steps long, not outdoor_temps long",
@@ -38645,12 +38652,10 @@ _de_coil_params = ThermalParameters.from_config({
 })
 _de_coil_opt = _MbOpt(ThermalModel(_de_coil_params), _MbCfg(horizon_hours=1))
 _de_coil_70, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
-    ThermalState(wood_tank_temperature=70.0),
     _de_out, 3, float(_de_coil_params.dhw_setpoint),
     _de_price, _de_bp, _de_sp, _de_dh,
 )
 _de_coil_none, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
-    ThermalState(wood_tank_temperature=None),
     _de_out, 3, float(_de_coil_params.dhw_setpoint),
     _de_price, _de_bp, _de_sp, _de_dh,
 )
@@ -38664,7 +38669,6 @@ R.check(
 )
 
 _de_coil_arg, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
-    ThermalState(wood_tank_temperature=70.0),
     _de_out, 3, 40.0, _de_price, _de_bp, _de_sp, _de_dh,
 )
 R.check(
@@ -38724,7 +38728,7 @@ def _ss_run(dhw, warm=None, h=None, stub=_ss_stub):
             np.asarray(dhw, dtype=float),
             None if warm is None else np.asarray(warm, dtype=float),
             h if h is not None else _ss_h,
-            _ss_pmax, _ss_n, _ss_dt, _ss_prices, _ss_init, _ss_obj, _ss_batch,
+            _ss_pmax, _ss_dt, _ss_prices, _ss_init, _ss_obj, _ss_batch,
         )
     finally:
         _ss_mod._multi_start_minimize = _ss_real
@@ -38960,7 +38964,6 @@ _DHW_PLAN_KEYS = (
     "legionella_due",
     "legionella_hour",
     "legionella_step",
-    "external_heat_suppressed_steps",
     "max_lead_hours",
 )
 
@@ -52657,10 +52660,8 @@ _t1_ov_off_before = _t1_ov_off._comfort_learner.evidence
 _t1_ov_off.record_setpoint_override(23.0)
 R.check(
     "with comfort learning disabled an override records nothing at all",
-    _t1_ov_off._comfort_learner.evidence == _t1_ov_off_before
-    and _t1_ov_off._last_manual_setpoint is None,
-    f"evidence={_t1_ov_off._comfort_learner.evidence!r} "
-    f"last={_t1_ov_off._last_manual_setpoint!r}",
+    _t1_ov_off._comfort_learner.evidence == _t1_ov_off_before,
+    f"evidence={_t1_ov_off._comfort_learner.evidence!r}",
 )
 
 # A CHEAP-HOUR override is worth half: the spot is 1.0 against a 2.0 mean, so
@@ -52683,12 +52684,10 @@ R.check(
     "a cheap-hour override is recorded at half weight and banked, not spent",
     _t1_ov_on._comfort_learner.overrides == 1
     and _t1_ov_on._comfort_learner.evidence == 1.0
-    and _t1_ov_on._comfort_learner.learned_weight == _t1_ov_on_weight
-    and _t1_ov_on._last_manual_setpoint == 23.0,
+    and _t1_ov_on._comfort_learner.learned_weight == _t1_ov_on_weight,
     f"overrides={_t1_ov_on._comfort_learner.overrides!r} "
     f"evidence={_t1_ov_on._comfort_learner.evidence!r} "
-    f"weight={_t1_ov_on._comfort_learner.learned_weight!r} "
-    f"last={_t1_ov_on._last_manual_setpoint!r}",
+    f"weight={_t1_ov_on._comfort_learner.learned_weight!r}",
 )
 
 # A ZERO-MEAN curve has no relative price to learn from, so the override is
@@ -52722,11 +52721,8 @@ _t1_ov_tiny.record_setpoint_override(21.2)
 R.check(
     "a sub-threshold nudge is not recorded as a complaint",
     _t1_ov_tiny._comfort_learner.overrides == 0
-    and _t1_ov_tiny._comfort_learner.evidence == 0.0
-    and _t1_ov_tiny._last_manual_setpoint == 21.2,
-    f"overrides={_t1_ov_tiny._comfort_learner.overrides!r} "
-    f"last={_t1_ov_tiny._last_manual_setpoint!r} -- the setpoint is still "
-    "remembered, because the climate entity reads it back",
+    and _t1_ov_tiny._comfort_learner.evidence == 0.0,
+    f"overrides={_t1_ov_tiny._comfort_learner.overrides!r}",
 )
 
 
@@ -55508,7 +55504,7 @@ def _p942(name, slab_mult=1.0):
 _g942_unseeded = _p942("typical_slab")
 _g942_unseeded.slab_heat_transfer = 0.0
 _g942_unseeded_verdict = _SysIdModule.slab_mode_identifiability(
-    _g942_unseeded, _SysIdModule.SysIdConfig()
+    _g942_unseeded
 )
 R.check(
     "#1329/#942: an UNSEEDED slab pair is still refused, by name (the gate's "
@@ -55520,13 +55516,13 @@ R.check(
 )
 _g942 = {
     name: _SysIdModule.slab_mode_identifiability(
-        _p942(name), _SysIdModule.SysIdConfig()
+        _p942(name)
     )
     for name in _b942
 }
 _g942_fast = {
     name: _SysIdModule.slab_mode_identifiability(
-        _p942(name, 100.0), _SysIdModule.SysIdConfig()
+        _p942(name, 100.0)
     )
     for name in _b942
 }
@@ -55655,7 +55651,7 @@ R.section("#1329: the sysid arm/adopt gate opens on the plants the tree ships")
 _C1329_NOW = datetime(2026, 1, 15, 23, 0, tzinfo=UTC)
 _g1329 = {
     name: _SysIdModule.slab_mode_identifiability(
-        _p942(name), _SysIdModule.SysIdConfig()
+        _p942(name)
     )
     for name in _b942
 }
@@ -55694,7 +55690,6 @@ for _st, _er, _fo, _em, _ar in _it1329.product(
                     )
                 )
             ),
-            _SysIdModule.SysIdConfig(),
         )[0]
     )
 R.check(
@@ -55720,7 +55715,6 @@ for _st, _er, _tz, _lo in _it1329.product(
                     ).validate()
                 )
             ),
-            _SysIdModule.SysIdConfig(),
         )[0]
     )
 R.check(
@@ -56399,7 +56393,7 @@ _gap_admitted = bool(
     _gap_res.completed
     and _gap_res.confidence >= 0.3
     and _SysIdModule.slab_mode_identifiability(
-        _gap_plant, _SysIdModule.SysIdConfig()
+        _gap_plant
     )[0]
 )
 R.check(
@@ -60560,7 +60554,6 @@ try:
     _G8TwoStore.payloads, _G8TwoStore.saves = {}, []
     _G8TwoStore.raise_on = {("save", "profile"), ("save", "draws")}
     _g8_l_save = _g8_learner()
-    _g8_l_save.draws_dirty = True
     _g8_l_save_err = _t6_call(_asyncio.run, _g8_l_save.async_save_profile())
     _g8_l_draws_err = _t6_call(_asyncio.run, _g8_l_save.async_save_draws())
     _g8_l_save_attempts = [k for k, _ in _G8TwoStore.saves]
@@ -60600,13 +60593,9 @@ R.check(
 R.check(
     "and neither save breaks the cycle that asked for it",
     _g8_l_save_err is None and _g8_l_draws_err is None
-    and _g8_l_save_attempts == ["profile", "draws"]
-    and _g8_l_save.draws_dirty is True,
+    and _g8_l_save_attempts == ["profile", "draws"],
     f"escaped {_g8_l_save_err!r}/{_g8_l_draws_err!r} after attempting "
-    f"{_g8_l_save_attempts!r}; draws_dirty is still "
-    f"{_g8_l_save.draws_dirty!r} -- the dirty flag is cleared only AFTER a "
-    "successful save, so a refused write leaves the learner knowing it still "
-    "owes one rather than forgetting the draws it just folded in",
+    f"{_g8_l_save_attempts!r}",
 )
 # #1747's carry (F9.3's review): a restart reshaped the DHW profile. The
 # fresh-install seed held the shipped pattern raw -- three hours at 0.10,
@@ -61412,6 +61401,14 @@ R.check(
     "`None` means the optimizer's own plan stands and a number overrides it, "
     "so the settle phase returning None is what keeps the house on its "
     "ordinary plan while the experiment waits for a steady baseline",
+)
+R.check(
+    "the run's nearly collinear fit takes the two-column fallback and ends on its own verdict, "
+    "not a swallowed exception",
+    _g8_sid_run.result.reason == "fit gave implausible signs"
+    and _g8_sid_run.result.completed is False,
+    f"result {_g8_sid_run.result!r}: the three-column solve is singular here, so the "
+    "lstsq fallback's solution is what the sign check reads",
 )
 _g8_sid_drift = _g8_sid_new(max_excursion_c=0.5, settle_hours=1.0)
 _g8_sid_drift.arm(_G8_SID_T0)
@@ -64625,7 +64622,7 @@ _p8s_days = []
 _p8s_cc._curve_learner = _p8s_ns(
     bias=0.0,
     record_day=lambda now, worst: _p8s_days.append((now.date().isoformat(), worst)),
-    record_miss=lambda now, margin: None,
+    record_miss=lambda margin: None,
 )
 _p8s_cc._current_state.room_temperature = 21.5
 _p8s_cc._track_curve_comfort(datetime(2026, 1, 15, 12, 0, tzinfo=UTC))
@@ -64655,7 +64652,7 @@ def _p8s_watch(commanded_kw, reported_hz):
     coord._freq_watchdog = _p8s_ns(
         note_report=lambda reported, active: seen.append(active) or False
     )
-    coord._observe_frequency(_P8_CFG_NOW)
+    coord._observe_frequency()
     return seen
 
 
@@ -70915,7 +70912,7 @@ try:
     # unfinished result), driven on the function itself for totality.
     _p5_unfinished = _SysIdModule.adoption_decision(
         _SysIdModule.SysIdResult(completed=False, reason="fit failed"),
-        ThermalParameters(), _SysIdModule.SysIdConfig(),
+        ThermalParameters(),
     )
 finally:
     _p5_sys.settrace(_p5_prev_trace)
@@ -71724,7 +71721,7 @@ _p3_prof_mean = _dhw_planner(_p3_opt)._dhw_cop_profile(
 
 def _p3_econ(hum):
     return _dhw_planner(_p3_opt)._baseline_dhw_economics(
-        ThermalState(), _p3_out4, 4, 55.0, lambda p: float(np.sum(p)),
+        _p3_out4, 4, 55.0, lambda p: float(np.sum(p)),
         np.ones(4), np.ones(4), np.ones(4), hum,
     )[0]
 
@@ -72471,7 +72468,7 @@ R.check(
 )
 _f21_cfg = _f21_onoff.config
 _f21_sp = _f21_onoff._power_to_setpoints(
-    np.array([6.0, 0.0]), np.array([21.0, 21.0]), np.array([0.0, 0.0])
+    np.array([6.0, 0.0]), np.array([21.0, 21.0])
 )
 _f21_disp = _f21_onoff._power_to_displace_schedule(
     np.array([6.0] * 40), np.array([5.0] * 40)
@@ -74131,7 +74128,7 @@ def _z1524_run(
             )
         when += timedelta(hours=cadence)
     _z1524_run.stepped = stepped
-    decision = _SysIdModule.adoption_decision(sid.result, declared, sid.config)
+    decision = _SysIdModule.adoption_decision(sid.result, declared)
     return decision, peak, sid.result.reason
 
 
@@ -75234,7 +75231,7 @@ def _r9p5_derived_night(structure, era):
                 external_heat_kw=el * 3.0,
             )
         when += timedelta(hours=0.25)
-    return _SysIdModule.adoption_decision(sid.result, decl, sid.config), ua
+    return _SysIdModule.adoption_decision(sid.result, decl), ua
 
 
 _r9p5_live = []
@@ -79174,7 +79171,7 @@ R.check(
 # The flow-lift fold reads the same floor as the COP fold (one property).
 _cf_fl = _cf_coord()
 _cf_learn(_cf_fl, 2.2)
-_cf_fl._flow_bias.observe_temps(35.0, 30.0)
+_cf_fl._flow_bias.observe_temps(35.0)
 _fold_flow_lift(_cf_fl, _T6)
 R.check(
     "the flow-lift fold takes the same floor: a 14 kW nameplate at 2.2 kW folds",
@@ -79191,7 +79188,7 @@ from heatpump_optimizer import heat_energy as _cf_he  # noqa: E402
 def _cf_fl_window(dhw_h, space_h):
     coord = _cf_coord()
     _cf_learn(coord, 2.2)
-    coord._flow_bias.observe_temps(35.0, 30.0)
+    coord._flow_bias.observe_temps(35.0)
     meter = _cf_he.meter_of(coord)
     start = _T6 - timedelta(hours=dhw_h + space_h)
     meter.cycle = (start, _T6)
@@ -79686,7 +79683,7 @@ def _df_coord3(warm):
     coord._measured_power = 2.0
     coord._current_state.outdoor_temperature = 8.0
     coord._learn_measured_cop(coord._accuracy.draw)
-    coord._flow_bias.observe_temps(35.0, 30.0)
+    coord._flow_bias.observe_temps(35.0)
     _fold_flow_lift(coord, _T6)
     view = _cf_diag._coordinator_snapshot(coord)["cop_learner"]
     return coord._cop_samples, coord._flow_bias.samples, view["power_floor_kw"], view["last_refusal"]
@@ -79713,7 +79710,7 @@ def _df_fl_at(warm, under_kw):
     floor = _df_floor(coord._accuracy.draw, coord._thermal_params)
     coord._current_action = {"power": floor - under_kw, "dhw_power": 0.0}
     coord._current_state.outdoor_temperature = 8.0
-    coord._flow_bias.observe_temps(35.0, 30.0)
+    coord._flow_bias.observe_temps(35.0)
     _fold_flow_lift(coord, _T6)
     return round(floor, 9), coord._flow_bias.samples
 
@@ -84461,6 +84458,12 @@ R.check(
     f"measured_heat_kw {_fm_lf_seen['kwargs'].get('measured_heat_kw')!r} of "
     f"{sorted(_fm_lf_seen['kwargs'])}; escaped {_fm_lf._t2_escaped!r}",
 )
+R.check(
+    "observe_water folds the SUPPLY reading (45.0), not the return (40.0), into the flow-bias holder",
+    _fm_coord._flow_bias.last_supply_c == 45.0,
+    f"last_supply_c {_fm_coord._flow_bias.last_supply_c!r}: the planted supply is 45.0 and "
+    "the return 40.0, so a swapped slot is visible here and nowhere that plants both alike",
+)
 # The precedence rule and the refused-reading paths, each at the learner's own
 # input rather than at the reader's: what R9-UX-9 pinned was that
 # ``read_heat_output_kw`` answers None, and a learner that read the holder
@@ -87722,8 +87725,7 @@ def _tp_walk(metered, folds=400):
             gate._current_action = {"power": 9.0 / gate._thermal_model.compute_cop(outdoor)}
             gate._measured_power = 9.0 / true_cop
             gate._flow_bias.observe_temps(
-                _tp_supply(outdoor), _tp_supply(outdoor) - 5.0,
-                heat_output_kw=9.0 if metered else None,
+                _tp_supply(outdoor), heat_output_kw=9.0 if metered else None,
             )
             gate._learn_measured_cop()
         scales[outdoor] = gate._cop_scale
@@ -87767,7 +87769,7 @@ for _tp_heat in (None, 6.0):
     # A metered install: its measured COP is recorded (R10-HOTFIX-COP-UNMEASURED).
     _g._config = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
     _g._measured_power = 1.4
-    _g._flow_bias.observe_temps(40.0, 35.0, heat_output_kw=_tp_heat)
+    _g._flow_bias.observe_temps(40.0, heat_output_kw=_tp_heat)
     _g._learn_measured_cop()
     _tp_track[_tp_heat] = (_g._cop_samples, _g._measured_cop.refusal, _g._measured_cop.cop)
 R.check(
@@ -88068,7 +88070,7 @@ def _cv_room_air(latch):
     f._vent_cusum.tripped = latch
     f._current_action = {"power": 2.0, "dhw_power": 0.0}
     f._current_state.outdoor_temperature = -10.0
-    f._flow_bias.observe_temps(30.0, 25.0)
+    f._flow_bias.observe_temps(30.0)
     before = f._flow_bias.samples
     _cv_cm._fold_flow_lift(f, dt_util.now())
     out["flow_bias_folds"] = f._flow_bias.samples - before
@@ -88605,7 +88607,7 @@ def _pli_dhw_baseline(derate, p_min):
     opt.model.params.min_electrical_power = p_min
     opt.model.params.cop_partload_derate = derate
     bd, _, _, _ = _dhw_planner(opt)._baseline_dhw_economics(
-        ThermalState(wood_tank_temperature=None), np.full(3, -5.0), 3,
+        np.full(3, -5.0), 3,
         float(opt.model.params.dhw_setpoint), lambda p: float(np.sum(p)),
         np.full(3, 2.0), np.ones(3), np.ones(3))
     return float(bd[0])
@@ -98692,7 +98694,7 @@ _DSP_E_STARTS = {
 def _dsp_e_solve(seen, start):
     args = seen.solves[0]
     power, status, score = seen.opt._solve_space(_dsp_e_tank, start, *args[2:])
-    return power, status, score, float(args[8](start, _dsp_e_tank))
+    return power, status, score, float(args[7](start, _dsp_e_tank))
 
 
 _dsp_e_runs = {
@@ -104671,7 +104673,7 @@ def _uc_flow(rise, dhw_kw=0.0, observed=False):
         m, t0 = _uc_he.meter_of(c), datetime(2026, 1, 12, 2, 0, tzinfo=UTC)
         m.dwell.observe(t0, _uc_he.SPACE, t0)
         m.cycle = (t0, t0 + _lf_td(minutes=30))
-    c._flow_bias.observe_temps(flow_lift.curve_supply_temp(c._thermal_model, -5.0, c.target_temperature) + 6.0, 47.0)
+    c._flow_bias.observe_temps(flow_lift.curve_supply_temp(c._thermal_model, -5.0, c.target_temperature) + 6.0)
     _fold_flow_lift(c, _T6)
     return c._flow_bias.samples, round(c._flow_bias.bias_k, 6)
 

@@ -28,17 +28,20 @@ gate, which re-verifies, fails with it. A verified one is scoped like that PR's
 pull_request run (CI-2): its legs, machinery and self-tests read the three-dot
 diff against origin/<base>, which `dispatch_diff` reads from the checkout; an
 unreadable or empty diff leaves it unscoped. A non-code run whose workset holds a
-SOURCE_READERS unit (pr-contract: an edit run) waits (`wait_sources`)
-until no run at its head that it orders after can still add a source: every
+SOURCE_READERS unit (pr-contract: an edit run) DEFERS (`busy_sources`, #3885 L3
+W1) while a run at its head that it orders after can still add a source: every
 EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
 does not number a same-second push and body edit in event order
 (R10-RCA-CODESCAN-WAIT: the edit run got the lower id in 27 of 94 pairs), so
 an id alone orders nothing; a code run never waits, so no cycle forms. A run
 can add no source once it is `judging` -- every unit ended and its gate
 listed -- not only once it has finished, because that gate may itself be
-waiting on this run (gate.py's bounded wait). Polls at POLL_S (tvofi's 60 s
-floor, 2026-10-19): one runs listing, and a jobs listing per unfinished
-run waited on. A rate limit prints `RATE-LIMITED` and fails closed (A1 item 4).
+waiting on this run (gate.py's bounded wait). The read is ONE runs listing, and a
+jobs listing per unfinished run it orders after; it never sleeps, so no runner is
+held while a source runs. A busy head prints `defer=<run ids>`, and ci.yml's step
+`Defer: sources still running` fails the prelude at once; tools/ci/sweep.py re-runs
+the failed jobs of that run when a run it deferred to completes (`sweep.undefer`).
+A failed read or a rate limit (`RATE-LIMITED`) fails closed (A1 item 4).
 """
 from __future__ import annotations
 
@@ -47,7 +50,6 @@ import os
 import re
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -159,8 +161,7 @@ UNITS = {                                          # every name a unit owes at a
     "pr-contract": ("pr-contract",),
 }
 UNFINISHED = ("queued", "pending", "waiting", "requested", "in_progress")
-POLL_S = 60
-WAIT_MAX_S = 8700       # inside the job's 150-minute timeout: the wait fails before the runner kills it
+POLL_S = 60             # tvofi's 60 s floor on a GitHub poll (2026-10-19): gate.py's
 _QUEUE_PR = re.compile(r"/pr-([0-9]+)-[0-9a-f]{40}$")
 
 
@@ -370,31 +371,23 @@ def waits_on(run_id: int, run: dict) -> bool:
     return run["id"] != run_id and (run["id"] < run_id or t is None or t[0] == "code")
 
 
-def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
-    """'' once no run this one waits on can still add a source; else why it stopped."""
-    t0 = now()
-    while True:
-        st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
-                         {"head_sha": ctx["head"], "per_page": 100})
-        if st != 200 or not isinstance(doc, dict):
-            return f"runs at {ctx['head'][:12]}: HTTP {st}"
-        busy = []
-        for r in doc.get("workflow_runs", []):
-            run = {"id": r["id"], "title": r.get("display_title") or "", "attempt": r.get("run_attempt"),
-                   "run_started_at": r.get("run_started_at"), "starts": {}}
-            if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
-                try:
-                    run["jobs"] = run_jobs(get, ctx["repo"], r["id"], run["starts"])
-                    run["prior"] = prior_jobs(get, ctx["repo"], run)
-                except ghapi.ApiError as e:
-                    return str(e)
-                if not judging(run):
-                    busy.append(r["id"])
-        if not busy:
-            return ""
-        if now() - t0 + POLL_S > WAIT_MAX_S:
-            return f"run(s) {sorted(busy)} still adding sources after {WAIT_MAX_S} s"
-        sleep(POLL_S)
+def busy_sources(ctx: dict, get) -> list[int]:
+    """The runs at this head that this one waits on (`waits_on`) and that can still add a
+    source (not `judging`), read ONCE: [] when none can. A failed read raises ghapi.ApiError."""
+    st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                     {"head_sha": ctx["head"], "per_page": 100})
+    if st != 200 or not isinstance(doc, dict):
+        raise ghapi.ApiError(f"runs at {ctx['head'][:12]}", st)
+    busy = []
+    for r in doc.get("workflow_runs", []):
+        run = {"id": r["id"], "title": r.get("display_title") or "", "attempt": r.get("run_attempt"),
+               "run_started_at": r.get("run_started_at"), "starts": {}}
+        if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
+            run["jobs"] = run_jobs(get, ctx["repo"], r["id"], run["starts"])
+            run["prior"] = prior_jobs(get, ctx["repo"], run)
+            if not judging(run):
+                busy.append(r["id"])
+    return sorted(busy)
 
 
 def _product(closures_json: Path):
@@ -658,11 +651,12 @@ def push_range(ctx: dict, get, diff=None, ancestor=None,
     return None
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
+def outputs(ctx: dict, changed: list[str] | None, get, proof=proof_scope,
             selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range,
             fast=None) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails). `fast` is shards.outputs (main passes it):
-    the fast lane's shards, sized by the list the scope reads, its timings read at the base."""
+    the fast lane's shards, sized by the list the scope reads, its timings read at the base.
+    `defer` names the runs a SOURCE_READERS run defers to (`busy_sources`), else ''."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
     out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
@@ -703,7 +697,7 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, rowblind=True) else "false"
     # Both keys always: ci.yml declares them as prelude outputs; empty is one unsharded job.
-    out.update({"fast_shards": "", "fast_plan": ""})
+    out.update({"fast_shards": "", "fast_plan": "", "defer": ""})
     if fast is not None:
         out.update(fast(changed if scoped == "pull_request" else None,
                         ctx.get("base_sha") or ctx.get("before") or ctx["head"]))
@@ -718,7 +712,10 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
         except ghapi.ApiError as e:
             return out, str(e)
     if not why and kind != "code" and set(out["workset"].split()) & SOURCE_READERS:
-        why = wait_sources(ctx, get, sleep)
+        try:
+            out["defer"] = " ".join(str(i) for i in busy_sources(ctx, get))
+        except ghapi.ApiError as e:
+            why = str(e)
     return out, why
 
 
@@ -809,25 +806,39 @@ def self_test() -> int:
             rid = int(path.split("/runs/")[1].split("/")[0])
             return 200, {}, {"jobs": next(r["jobs"] for r in frame if r["id"] == rid)}
         return get, naps
-    tick = iter(range(0, 10 ** 6, 3000))
-    get, naps = timeline([run(40, "code", "in_progress", done("code", gate=False)), run(60, "edit", "queued")],
-                         [run(40, "code", "completed"), run(45, "code", "action_required"),
-                          run(60, "edit", "queued")])
-    check("waits for an earlier run, not a later non-code or held one",
-          (wait_sources(rctx, get, naps.append, lambda: next(tick)), naps), ("", [POLL_S]))
-    get, naps = timeline([run(60, "code", "in_progress", done("code", gate=False))],
-                         [run(60, "code", "in_progress", done("code"))])
-    check("M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging",
-          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", [POLL_S]))
-    get, naps = timeline([run(40, "edit", "in_progress", done("edit"))])
-    check("a run whose gate is listed and units ended adds no source: not waited on (its gate may wait on us)",
-          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", []))
-    check("poll floor is 60 s", POLL_S >= 60, True)
-    clock = iter(range(0, 10 ** 6, 3000))
-    get, _ = timeline([run(1, "code", "queued")])
-    w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
-    check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
-    # GATE-BUSY-REQUEUED-NEEDS through the wait: a re-run's re-queued need, finished in attempt 1, is no wait.
+    reads = []
+
+    def once(*frame):
+        """A get over ONE listing, counting the runs listings it serves: the defer reads once."""
+        get = timeline(list(frame))[0]
+
+        def counted(path, params=None):
+            reads.append(path) if path.endswith("ci.yml/runs") else None
+            return get(path, params)
+        return counted
+    check("W1: names an earlier busy run, not a later non-code one",
+          busy_sources(rctx, once(run(40, "code", "in_progress", done("code", gate=False)), run(60, "edit", "queued"))),
+          [40])
+    check("W1: the defer is one runs listing, never a poll", len(reads), 1)
+    check("W1 null: that run finished, beside a held later code run: defers to nothing",
+          busy_sources(rctx, once(run(40, "code", "completed"), run(45, "code", "action_required"),
+                                  run(60, "edit", "queued"))), [])
+    check("M1: names a LATER code run (a same-second pair numbered out of order) until it is judging",
+          busy_sources(rctx, once(run(60, "code", "in_progress", done("code", gate=False)))), [60])
+    check("M1 null: that later code run, judging, is no source",
+          busy_sources(rctx, once(run(60, "code", "in_progress", done("code")))), [])
+    check("a run whose gate is listed and units ended adds no source: not deferred to (its gate may wait on us)",
+          busy_sources(rctx, once(run(40, "edit", "in_progress", done("edit")))), [])
+    check("poll floor is 60 s (gate.py's)", POLL_S >= 60, True)
+
+    def down(path, params=None):
+        return 502, {}, {}
+    try:
+        got = busy_sources(rctx, down)
+    except ghapi.ApiError as e:
+        got = str(e)
+    check("W1: an unreadable runs listing fails closed (raises), never reads as idle", got, "runs at H: HTTP 502")
+    # GATE-BUSY-REQUEUED-NEEDS through the defer: a re-run's re-queued need, finished in attempt 1, is no source.
     rqfx = json.loads((HERE / "fixtures" / "gate_requeued_needs_runs.json").read_text())
 
     def rq_get(path, params=None):
@@ -835,8 +846,8 @@ def self_test() -> int:
             return 200, {}, {"workflow_runs": [{**rqfx["run"], "id": 40, "status": "in_progress"}]}
         att = "1" if "/attempts/1/" in path else "2"
         return 200, {}, {"jobs": rqfx["attempts"][att]}
-    check("requeued needs: wait_sources does not wait on a lower run whose only unfinished job is a need finished "
-          "in attempt 1", wait_sources(rctx, rq_get, lambda s: None, iter(range(0, 10 ** 6, 3000)).__next__), "")
+    check("requeued needs: busy_sources does not name a lower run whose only unfinished job is a need finished "
+          "in attempt 1", busy_sources(rctx, rq_get), [])
 
     def rq_failed_get(path, params=None):          # re-run failed jobs: `tests / mutation` failed in attempt 1
         if path.endswith("ci.yml/runs"):
@@ -846,9 +857,8 @@ def self_test() -> int:
                                       for j in rqfx["attempts"]["1"]]}
         return 200, {}, {"jobs": [dict(j, status="queued", conclusion=None, started_at=None)
                                   if j["name"] == "tests / mutation" else j for j in rqfx["attempts"]["2"]]}
-    check("requeued needs null: wait_sources still waits on a lower run re-running a unit that failed in attempt 1",
-          wait_sources(rctx, rq_failed_get, lambda s: None, iter(range(0, 10 ** 6, 3000)).__next__).startswith(
-              "run(s) [40] still adding sources"), True)
+    check("requeued needs null: busy_sources still names a lower run re-running a unit that failed in attempt 1",
+          busy_sources(rctx, rq_failed_get), [40])
     # C3 (option A): an edit run beside a code run that has not started its
     # pr-contract exits at once with the body units less pr-contract; beside one
     # whose pr-contract has started, or a finished one, it waits as before.
@@ -858,19 +868,13 @@ def self_test() -> int:
     contract = lambda st: in_units + [{"name": "pr-contract / pr-contract", "status": st, "conclusion": None}]  # noqa: E731
 
     def edit_out(*frames):
+        """outputs() of the edit run over the first frame (no defer reads twice), and the deferral."""
         get, naps = timeline(*frames)
 
-        def nap(s):                         # bounded: a wait the frames never end is a failed check, not a hang
-            naps.append(s)
-            if len(naps) > 5:
-                raise TimeoutError("waited past the frames")
-
         def run_it():
-            try:
-                return outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
-                               else get(path, params), nap)
-            except TimeoutError as e:
-                return {"workset": f"UNBOUNDED: {e}"}, ""
+            o, why = outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
+                             else get(path, params))
+            return {**o, "workset": o["workset"]}, why or o["defer"]
         return run_it, naps
     f, naps = edit_out([run(40, "code", "in_progress", in_units)])
     check("C3: beside a code run in its units, the edit run exits at once without pr-contract",
@@ -883,35 +887,29 @@ def self_test() -> int:
           ("arch-score budget-raise-gate", []))
     f, naps = edit_out([run(40, "code", "in_progress", contract("in_progress"))],
                        [run(40, "code", "in_progress", done("code"))])
-    check("C3: beside a started pr-contract (it may have read the old body) the edit run waits and owns pr-contract",
-          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", ""), [POLL_S]))
+    check("C3: beside a started pr-contract (it may have read the old body) the edit run defers and owns pr-contract",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", "40"), []))
     f, naps = edit_out([run(40, "code", "completed", done("code"))])
-    check("C3: beside a finished code run, the full edit workset and no wait", ((lambda o: o[0]["workset"])(f()), naps),
-          ("arch-score budget-raise-gate pr-contract", []))
+    check("C3: beside a finished code run, the full edit workset and no deferral", ((lambda o: (o[0]["workset"], o[1]))(f()),
+          naps), (("arch-score budget-raise-gate pr-contract", ""), []))
     other = title("code", "8", "main", "M")
     f, naps = edit_out([{**run(40, "code", "in_progress", in_units), "display_title": other}],
                        [{**run(40, "code", "in_progress", done("code")), "display_title": other}])
-    check("C3: a code run for another PR at this head is no deferral; it is waited on (null control)",
-          (f()[0]["workset"], naps), ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    check("C3: a code run for another PR at this head is no C3 deferral; the defer names it (null control)",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", "40"), []))
     f, naps = edit_out([run(40, "edit", "in_progress", in_units)], [run(40, "edit", "in_progress", done("edit"))])
-    check("C3: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
-          ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    check("C3: an unfinished EDIT run is no C3 deferral; the defer names it", ((lambda o: (o[0]["workset"], o[1]))(f()),
+          naps), (("arch-score budget-raise-gate pr-contract", "40"), []))
     def no_wait(c):
-        """outputs() for `c` beside a busy code run; a poll raises, so a wait is a failed check, not a hang."""
-        f_get, _ = timeline([run(40, "code", "in_progress", done("code", gate=False))])
-
-        def nap(s):
-            raise TimeoutError("polled")
-        try:
-            return outputs(c, None, f_get, nap)[1]
-        except TimeoutError as e:
-            return f"WAITED: {e}"
-    check("#3885: a review run beside a busy code run holds no runner: no poll, no failure (its gate defers)",
-          no_wait(rctx), "")
+        """(why, defer) of outputs() for `c` beside a busy code run: no outputs() argument can sleep."""
+        o, why = outputs(c, None, timeline([run(40, "code", "in_progress", done("code", gate=False))])[0])
+        return why, o["defer"]
+    check("#3885: a review run beside a busy code run holds no runner: no defer, no failure (its gate defers)",
+          no_wait(rctx), ("", ""))
     lctx = ctx("pull_request", action="labeled", label={"name": "x"}, pull_request=pr)
-    check("#3885: a label run beside a busy code run holds no runner", no_wait(lctx), "")
-    check("#3885 null control: an edit run (pr-contract) beside the same busy code run still waits",
-          no_wait(ctx("pull_request", action="edited", pull_request=pr)).startswith("WAITED"), True)
+    check("#3885: a label run beside a busy code run holds no runner", no_wait(lctx), ("", ""))
+    check("#3885 null control, W1: an edit run (pr-contract) beside the same busy code run defers to it, at once",
+          no_wait(ctx("pull_request", action="edited", pull_request=pr)), ("", "40"))
     check("#3885: only pr-contract reads other runs' sources", SOURCE_READERS <= set(BODY_UNITS), True)
     check("C3: a review run never defers (only an edit does)",
           outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
