@@ -1,0 +1,183 @@
+##### base aee9548a4773a9cc51424997077809fdf5a12351
+== D1/s2/weather_stuck.py 
+CELL first_fetch stale_hours=None
+CELL +1h past last row: all_rows_past=True stale_hours=0.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +6h past last row: all_rows_past=True stale_hours=5.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +12h past last row: all_rows_past=True stale_hours=11.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +24h past last row: all_rows_past=True stale_hours=23.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +48h past last row: all_rows_past=True stale_hours=47.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+RESULT cells=5 count
+RESULT cells_all_rows_past=5 count
+RESULT stuck_published_fresh=0 count
+RESULT thread_factor=1.025
+RESULT load1=7.12
+RESULT swapins=106
+== D1/s2/weather_stuck.py --advancing
+CELL first_fetch stale_hours=None
+CELL +1h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +6h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +12h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +24h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +48h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+RESULT cells=5 count
+RESULT cells_all_rows_past=0 count
+RESULT stuck_published_fresh=0 count
+RESULT thread_factor=1.019
+RESULT load1=7.12
+RESULT swapins=4
+== D1/s2/pv_stale.py 
+CELL age_min=90 over_limit=True published=None direct=None
+CELL age_min=180 over_limit=True published=None direct=None
+CELL age_min=420 over_limit=True published=None direct=None
+CELL age_min=1440 over_limit=True published=None direct=None
+CELL age_min=-90 over_limit=True published=None direct=None
+RESULT future_published=0 count
+RESULT limit_minutes=30.0
+RESULT cells_past_limit=6 count
+RESULT stale_cells_published=0 count
+RESULT thread_factor=1.024
+RESULT load1=7.03
+RESULT swapins=4
+== D1/s2/pv_stale.py --fresh
+CELL age_min=45 over_limit=False published=5.0 direct=5.0
+CELL age_min=90 over_limit=False published=5.0 direct=5.0
+CELL age_min=180 over_limit=False published=5.0 direct=5.0
+CELL age_min=420 over_limit=False published=5.0 direct=5.0
+CELL age_min=1440 over_limit=False published=5.0 direct=5.0
+CELL age_min=-90 over_limit=False published=5.0 direct=5.0
+RESULT limit_minutes=30.0
+RESULT cells_past_limit=6 count
+RESULT stale_cells_published=0 count
+RESULT thread_factor=1.023
+RESULT load1=7.03
+RESULT swapins=4
+== D14/s2/staleness_flags.py 
+RESULT quiet_stale_flags=6 keys
+RESULT quiet_input_problem_on=1
+RESULT quiet_learners_frozen=0
+RESULT null_stale_flags=0 keys
+RESULT null_input_problem_on=0
+RESULT null_learners_frozen=0
+RESULT polled_stale_flags=0 keys
+RESULT polled_input_problem_on=0
+RESULT polled_learners_frozen=0
+RESULT thread_factor=1.000
+RESULT load1=7.03
+RESULT swapins=unknown
+== D1/leads/humidity_reader_settings.py 
+arm watchdog_off: age 540 min production=None configured=55.0
+arm scale_3: age 540 min production=None configured=55.0
+null default: production=None configured=None
+RESULT limit_scale1=360 min
+RESULT config_arms_disagree=2 count
+RESULT null_disagree=0 count
+RESULT fresh_disagree=0 count
+RESULT thread_factor=1.000
+RESULT load1=7.03
+RESULT swapins=0
+== D1/s3/parsers_fuzz.py --arm ecl110
+RESULT ecl110_raised=0 messages
+RESULT ecl110_bool_accepted=3 messages
+RESULT ecl110_numeric_null_control=2 messages
+RESULT ecl110_cycle_after_ok=1
+RESULT ecl110_subscribe_raised=0 cases
+RESULT thread_factor=1.000
+RESULT load1=7.11
+RESULT swapins=0
+##### wt b4e4b5253e76383ed1d03ce9d6729a9a27ecd9fd
+== D1/s2/weather_stuck.py 
+CELL first_fetch stale_hours=None
+CELL +1h past last row: all_rows_past=True stale_hours=0.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +6h past last row: all_rows_past=True stale_hours=5.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +12h past last row: all_rows_past=True stale_hours=11.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +24h past last row: all_rows_past=True stale_hours=23.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +48h past last row: all_rows_past=True stale_hours=47.0 outdoor_array[:3]=[-3.0, -3.0, -3.0]
+RESULT cells=5 count
+RESULT cells_all_rows_past=5 count
+RESULT stuck_published_fresh=0 count
+RESULT thread_factor=1.026
+RESULT load1=7.11
+RESULT swapins=4
+== D1/s2/weather_stuck.py --advancing
+CELL first_fetch stale_hours=None
+CELL +1h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +6h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +12h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +24h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+CELL +48h past last row: all_rows_past=False stale_hours=None outdoor_array[:3]=[-3.0, -3.0, -3.0]
+RESULT cells=5 count
+RESULT cells_all_rows_past=0 count
+RESULT stuck_published_fresh=0 count
+RESULT thread_factor=1.028
+RESULT load1=7.11
+RESULT swapins=4
+== D1/s2/pv_stale.py 
+CELL age_min=90 over_limit=True published=None direct=None
+CELL age_min=180 over_limit=True published=None direct=None
+CELL age_min=420 over_limit=True published=None direct=None
+CELL age_min=1440 over_limit=True published=None direct=None
+CELL age_min=-90 over_limit=True published=None direct=None
+RESULT future_published=0 count
+RESULT limit_minutes=30.0
+RESULT cells_past_limit=6 count
+RESULT stale_cells_published=0 count
+RESULT thread_factor=1.024
+RESULT load1=6.94
+RESULT swapins=4
+== D1/s2/pv_stale.py --fresh
+CELL age_min=45 over_limit=False published=5.0 direct=5.0
+CELL age_min=90 over_limit=False published=5.0 direct=5.0
+CELL age_min=180 over_limit=False published=5.0 direct=5.0
+CELL age_min=420 over_limit=False published=5.0 direct=5.0
+CELL age_min=1440 over_limit=False published=5.0 direct=5.0
+CELL age_min=-90 over_limit=False published=5.0 direct=5.0
+RESULT limit_minutes=30.0
+RESULT cells_past_limit=6 count
+RESULT stale_cells_published=0 count
+RESULT thread_factor=1.022
+RESULT load1=6.94
+RESULT swapins=4
+== D14/s2/staleness_flags.py 
+RESULT quiet_stale_flags=0 keys
+RESULT quiet_input_problem_on=0
+RESULT quiet_learners_frozen=0
+RESULT null_stale_flags=0 keys
+RESULT null_input_problem_on=0
+RESULT null_learners_frozen=0
+RESULT polled_stale_flags=0 keys
+RESULT polled_input_problem_on=0
+RESULT polled_learners_frozen=0
+RESULT thread_factor=1.000
+RESULT load1=6.94
+RESULT swapins=unknown
+== D1/leads/humidity_reader_settings.py 
+arm watchdog_off: age 540 min production=55.0 configured=55.0
+arm scale_3: age 540 min production=55.0 configured=55.0
+null default: production=None configured=None
+RESULT limit_scale1=360 min
+RESULT config_arms_disagree=0 count
+RESULT null_disagree=0 count
+RESULT fresh_disagree=0 count
+RESULT thread_factor=1.000
+RESULT load1=6.94
+RESULT swapins=0
+== D1/s3/parsers_fuzz.py --arm ecl110
+RESULT ecl110_raised=0 messages
+RESULT ecl110_bool_accepted=0 messages
+RESULT ecl110_numeric_null_control=2 messages
+RESULT ecl110_cycle_after_ok=1
+RESULT ecl110_subscribe_raised=0 cases
+RESULT thread_factor=1.000
+RESULT load1=8.47
+RESULT swapins=0
+== base pv_stale 
+RESULT future_published=1 count
+RESULT cells_past_limit=6 count
+RESULT stale_cells_published=6 count
+== base pv_stale --fresh
+RESULT cells_past_limit=6 count
+RESULT stale_cells_published=0 count
+== base weather_stuck (base harness copy)
+RESULT cells=5 count
+RESULT cells_all_rows_past=5 count
+RESULT stuck_published_fresh=5 count

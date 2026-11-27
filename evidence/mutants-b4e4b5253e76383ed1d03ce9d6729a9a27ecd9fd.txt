@@ -1,0 +1,19 @@
+M1_humidity_defaults: rc=1 KILLED
+    FAIL the humidity read obeys the entry's watchdog switch (D1-s2-52)  [default, watchdog off: (None, None)]
+M2_pv_gate_off: rc=1 KILLED
+    FAIL a PV meter silent past its limit, or stamped ahead of now, is no measurement; a live one still is (D1-s2-02)  [{5: 5.0, 20: 5.0, 31: 5.0, 180: 5.0, 1440: 5
+M3_ended_reply_ok: rc=1 KILLED
+    FAIL a forecast that stopped advancing marks the data stale; one reaching now does not (D1-s2-03)  [start hour -> stale: {-49: False, -72: False, -47: False, 0:
+    FAIL a fetched forecast's failure reason tells an empty reply from one that ended before now, and a reply reaching now has none (D1-s2-03, D8-02)  [empty / all 
+M4_row0: rc=1 KILLED
+    FAIL a held forecast books the row covering now, and no wind past its last row (D14-s2-02)  [30 h held (0.0, 0.0), past the end (0.0, 0.0)]
+M5_quiet_off: rc=1 KILLED
+    FAIL the six pushed pump flags quiet 255 min stay stale for control but publish no stale input or problem; polled and silent they still do (D14-s2-01)  [quiet [
+M6_live_off: rc=1 KILLED
+    FAIL a live outdoor sensor plans the current hour, the next hour stays forecast (D17-s2-02)  [live (-5.0, -5.0, -5.0), none (-5.0, -5.0, -5.0)]
+M7_bool_ok: rc=0 SURVIVED
+M8_ha_clock: rc=1 KILLED
+    FAIL inputs.py imports nothing from Home Assistant; a reader with no clock reads the standard library's UTC now (ADR-002 part 2)  [imports ['homeassistant.util'
+M9_hour_bound_all: rc=1 KILLED
+    FAIL a live outdoor sensor plans the current hour, the next hour stays forecast (D17-s2-02)  [live (-25.0, -25.0, -25.0), none (-5.0, -5.0, -5.0)]
+M7b_both_arms: KILLED ['FAIL the ECL110 parser refuses a JSON bool and keeps a number (D1-s3-02)  [[1.0, 0.0, 1.0, 7.0, 3.0]]', '1 of 16 FEATURES BLOCK FAILED']

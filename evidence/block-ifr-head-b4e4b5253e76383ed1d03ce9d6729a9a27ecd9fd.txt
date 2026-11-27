@@ -1,0 +1,29 @@
+Input pv_production_entity (sensor.pv_now) has a last-reported stamp ahead of the host clock; treating as stale rather than age 0
+Forecast for weather.home ends before now. Plans continue on the last forecast, marked stale.
+Forecast for weather.home ends before now. Plans continue on the last forecast, marked stale.
+
+=== features block ===
+
+-- R11-SEAM-inputs-freshness: the entry's reader, its clock, and live-input expiry
+  ok   inputs.py imports nothing from Home Assistant; a reader with no clock reads the standard library's UTC now (ADR-002 part 2)
+  ok   the humidity read obeys the entry's watchdog switch (D1-s2-52)
+  ok   a PV meter silent past its limit, or stamped ahead of now, is no measurement; a live one still is (D1-s2-02)
+  ok   a held forecast books the row covering now, and no wind past its last row (D14-s2-02)
+  ok   a forecast that stopped advancing marks the data stale; one reaching now does not (D1-s2-03)
+  ok   a fetched forecast's failure reason tells an empty reply from one that ended before now, and a reply reaching now has none (D1-s2-03, D8-02)
+  ok   the six pushed pump flags quiet 255 min stay stale for control but publish no stale input or problem; polled and silent they still do (D14-s2-01)
+  ok   a live outdoor sensor plans the current hour, the next hour stays forecast (D17-s2-02)
+  ok   the covering row: none for no rows, row 0 untimestamped or before the first row, zero wind kept, and no outdoor value past the end
+  ok   an unavailable pushed flag is still listed as an input problem
+  ok   a cycle reads through the entry's reader and its health hands on the live outdoor value
+  ok   the ECL110 parser refuses a JSON bool and keeps a number (D1-s3-02)
+  ok   a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null control)
+  ok   every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numeric choice's member loads as stored; the census placed every declaration and drove each numeric kind
+  ok   a stored energy-totals start that is empty or not text is no start; an ISO day is (D3-g03)
+  ok   a stored sample count of 0 or exactly 2**31 is kept; -1 and 2**31 + 1 are refused (D3-g12)
+
+ALL 16 FEATURES BLOCK PASSED
+
+real	0m1.146s
+user	0m0.871s
+sys	0m0.115s
