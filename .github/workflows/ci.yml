@@ -64,7 +64,7 @@ on:
 
 permissions: {}
 
-# A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
+# A group per run (rev2, N1): the refresh step and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
 # let a re-run cancel a pending run. Except a `synchronize` run's first attempt
 # sent by anyone but github-actions[bot] (#3885 L1): it joins its pull request's
@@ -170,16 +170,21 @@ jobs:
           echo "::error title=deferred::run(s) $DEFER at this head can still add a source; the gate sweep re-runs this run when they complete"
           exit 1
 
-  # The one copy (R10-CI-CONCURRENCY): from a non-bot pull_request run at the
-  # PR's live head, cancel this workflow's older runs at a DIFFERENT head; never
-  # a same-SHA run, so never a gate attempt at this head.
+  # The housekeeping job (#3885 L5): one runner allocation and one checkout per
+  # pull-request event for its two steps, which need the same grant and act at
+  # the event. Both run the BASE's programs, restored before any step holds the
+  # token.
+  # - Cancel (the one copy, R10-CI-CONCURRENCY): from a non-bot pull_request
+  #   run at the PR's live head, cancel this workflow's older runs at a
+  #   DIFFERENT head; never a same-SHA run, so never a gate attempt at this head.
+  # - Refresh: an event can make an earlier green `gate` at this head stale:
+  #   re-run the gate of every completed run here whose latest gate is green, so
+  #   it re-judges against this run. A notice, not a failure, at a fork head.
+  #   Review events run this step alone.
   cancel-superseded:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.sender.login != 'github-actions[bot]'
-      && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
@@ -189,10 +194,21 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
+      - name: Restore the programs from the base
+        id: restore
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+          git checkout "$PINNED" -- tools/pr/cancel_superseded.py 'tools/ci/*.py'
       - name: Cancel this branch's runs at superseded heads
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.sender.login != 'github-actions[bot]'
+          && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -201,14 +217,19 @@ jobs:
           SENDER: ${{ github.event.sender.login }}
         run: |
           set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- tools/pr/cancel_superseded.py
           python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow ci.yml \
             --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
             --run-id "$RUN_ID" --sender "$SENDER"
+      # Independent of the cancel step's outcome, as when they were two jobs;
+      # never past a failed restore, which would leave the head's copy.
+      - name: Re-run the stale green gates at this head
+        if: ${{ !cancelled() && steps.restore.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I tools/ci/gate.py --refresh
 
   # >>> units: one caller per unit file, id == stem; each runs when the
-  # prelude's workset names it. A probe ci.yml keeps prelude, refresh, gate
+  # prelude's workset names it. A probe ci.yml keeps prelude, cancel-superseded, gate
   # and the callers it probes, and drops the rest from every `needs:`.
   tests:
     needs: prelude
@@ -326,33 +347,6 @@ jobs:
       security-events: read
       actions: read
   # <<< units
-
-  # An event can make an earlier green `gate` at this head stale: re-run the
-  # gate of every completed run here whose latest gate is green, so it
-  # re-judges against this run. A notice, not a failure, at a fork head.
-  refresh:
-    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore the programs from the base
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- 'tools/ci/*.py'
-      - name: Re-run the stale green gates at this head
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 -I tools/ci/gate.py --refresh
 
   # The one required check. Never skippable: a skipped required check passes.
   # It trusts no guard; gate.py derives what the event owes from the event.
