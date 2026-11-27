@@ -14,3 +14,5 @@ The jobs that are red at this head (`governance / instrument-self-tests`, `tests
 No code defect found and no repair made; nothing pushed to handoff/ or handoff-body/. The seat stops here rather than hold for mutation (up to 160 min).
 
 Question: once run 45914470160's own gate judges green, nothing at this head needs repairing. Close this repair item and let the train re-prove a9c10725, or should the edit-run gate be re-run?
+
+Re-check 2026-11-27 01:31 UTC (next fire): unchanged. Run 45914470160 `tests / mutation` (job 140233183495) still in_progress, started 00:13; every other required job of that run is green. No conflict with origin/main 8890fc2b. No repair made, nothing pushed to handoff/ or handoff-body/. The Question above stands.
