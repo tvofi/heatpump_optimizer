@@ -1,0 +1,152 @@
+[
+ {
+  "name": "43b54266f12bfb21",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        cop: float | np.ndarray = p.cop_nominal * min(factor, 1.5) * p.cop_scale\n",
+  "new": "        cop: float | np.ndarray = p.cop_nominal * (factor) * p.cop_scale\n"
+ },
+ {
+  "name": "dfe094233a9164e0",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        derate = p.defrost_derate\n        if derate is not None:\n            # A forecast humidity series marks unknown steps as NaN (#21);\n",
+  "new": "        derate = p.defrost_derate\n        if False:\n            # A forecast humidity series marks unknown steps as NaN (#21);\n"
+ },
+ {
+  "name": "e3a350a3272762f1",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            if hum_i is not None and not np.isfinite(hum_i):\n",
+  "new": "            if False:\n"
+ },
+ {
+  "name": "94ce174acf85b6f2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            if hum_i is None:\n",
+  "new": "            if False:\n"
+ },
+ {
+  "name": "898d741cf6142efb",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if flow_carnot_eligible and p.cop_flow_carnot:\n",
+  "new": "        if flow_carnot_eligible or p.cop_flow_carnot:\n"
+ },
+ {
+  "name": "a6cebb125b72f083",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale\n",
+  "new": "        cop = self.params.cop_nominal * (factor) * self.params.cop_scale\n"
+ },
+ {
+  "name": "b2faf84904db389e",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        rate = min(max(float(rate), low), high)\n",
+  "new": "        rate = min((float(rate)), high)\n"
+ },
+ {
+  "name": "19404e3632806509",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "    floor_temp = min(T_upper, T_slab)\n",
+  "new": "    floor_temp = (T_upper)\n"
+ },
+ {
+  "name": "beeb068352333132",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            0.0, T_w - floor_temp\n        ) / max(dt_hours, 1e-6)\n        avail_hp = thermal_power - q_buf_loss + c_buf * max(\n",
+  "new": "            0.0, T_w - floor_temp\n        ) / (dt_hours)\n        avail_hp = thermal_power - q_buf_loss + c_buf * max(\n"
+ },
+ {
+  "name": "ea9c4705de428b28",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            0.0, T_buf - floor_temp\n        ) / max(dt_hours, 1e-6)\n        wood_draw = min(w * drawn, max(avail_wood, 0.0))\n",
+  "new": "            0.0, T_buf - floor_temp\n        ) / (dt_hours)\n        wood_draw = min(w * drawn, max(avail_wood, 0.0))\n"
+ },
+ {
+  "name": "98853a541b6b5d6a",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))\n",
+  "new": "        hp_draw = min(drawn - wood_draw, (avail_hp))\n"
+ },
+ {
+  "name": "39041ccf21eedba6",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if drawn > delivered > 0.0:\n",
+  "new": "        if False:\n"
+ },
+ {
+  "name": "05b5a15efaaf70de",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        rate = min(max(float(rate), low), high)\n",
+  "new": "        rate = (max(float(rate), low))\n"
+ },
+ {
+  "name": "36117bb3a189672b",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            np.clip(effective, p.ecl110_displace_min, p.ecl110_displace_max)\n",
+  "new": "            (effective)\n"
+ },
+ {
+  "name": "3d4899a05eb126c3",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if total <= 1e-6:\n",
+  "new": "        if total < 1e-6:\n"
+ },
+ {
+  "name": "9362d5efbe6808c2",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        alpha = float(np.clip(dt_hours / tau, 0.0, 1.0))\n",
+  "new": "        alpha = float((dt_hours / tau))\n"
+ },
+ {
+  "name": "f66c6e9cf9d1f84a",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max))\n",
+  "new": "        cmd = float((displace_command))\n"
+ },
+ {
+  "name": "5b8e7044ee7974f8",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if q_coil > 0.0:\n",
+  "new": "        if q_coil >= 0.0:\n"
+ },
+ {
+  "name": "f7e051cc469b465f",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if solar_radiation <= 0:\n",
+  "new": "        if False:\n"
+ },
+ {
+  "name": "402ffd06ddbd856a",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if hot <= 0.0:\n",
+  "new": "        if hot < 0.0:\n"
+ },
+ {
+  "name": "d90533f4d17cfa14",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if hot <= 0.0:\n",
+  "new": "        if False:\n"
+ },
+ {
+  "name": "011b9e2e975b5e98",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))\n",
+  "new": "        return float(((c_dhw / ua) * np.log(hot / cold)))\n"
+ },
+ {
+  "name": "9df41596c4fa89c6",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        if precipitation > 0.1:  # threshold for \"raining\"\n",
+  "new": "        if precipitation >= 0.1:  # threshold for \"raining\"\n"
+ },
+ {
+  "name": "029c040224dc4e38",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            rain_intensity = min(precipitation / 2.0, 1.0)\n",
+  "new": "            rain_intensity = (precipitation / 2.0)\n"
+ },
+ {
+  "name": "98853a541b6b5d6a-outer-min",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "        hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))\n",
+  "new": "        hp_draw = (drawn - wood_draw)\n"
+ }
+]
