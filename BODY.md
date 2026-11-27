@@ -17,17 +17,11 @@ R11-LATE-P1-OPTIONS (late class sweep P1, finder box SW7; report `dev/audit/roun
 
 ## Head
 
-`e714df49faca6f76fcdc887bf84ab91c172dccc6` is the repair head: one commit on `1bed5619cd83ef40ca998cdc8241dac173fb05a9` (the `mutation-autofix` bot's `ci: pin killed mutants`), touching only `tests/features.py`. Merge base `d66452586467967848c7cd6012c43bc955f0f9dc`; `origin/main` was `7194ff84c09dd9d54a99f8208c906136981fd9dc` at 2026-11-27T00:21Z, and `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged in. The history of the code head before the repair follows.
-
-`0321d2020e4c70c7e56104fe743d7ad222416ac7` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3913.md`. The authored code head is `e1d91dee6065f88c34d192d1688b9c4df4565353`.
-
-`3075ff6ab1d9a9fa914a93a6f52e693e6057380a` merges origin/main `ac10d0d798` into the authored code head `e1d91dee6065f88c34d192d1688b9c4df4565353` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
-
-`e1d91dee6065f88c34d192d1688b9c4df4565353`, merge base `dbdc71faea358a95a7b33840ed252b0d8a646a31` (`origin/main` when measured, 2026-11-26T09:52Z).
+`cf00b99f5a1bbc314b5cb44b9528371e7b177e7f`, merge base `d66452586467967848c7cd6012c43bc955f0f9dc` (`origin/main` at `fd93aa3e9b161e92ead26e04ba8311b3fc0fc7e5` when measured, 2026-11-26T23:00Z). The repair commits `e714df49fa` and `cf00b99f5a` sit on the bot head `1bed5619cd` (its `ci: merge main` and `ci: pin killed mutants`). Every figure below `## Mutation proof`'s repair row was measured at the first handoff `e1d91dee6065` against `dbdc71faea35`; the repair adds three checks (one in `tests/features.py`, two in `tests/config_flow_steps.py`) and no production line, so it re-takes only what those checks reach.
 
 ## Mutation proof
 
-Each mutant restores one site's pre-fix expression at the head, runs the script named, and restores the file (`git status` clean after the last). 19 of 19 killed. M01–M18's checks are in `tests/config_flow_steps.py`'s `stored_options_of_the_wrong_type` or the `R11-LATE-P1-OPTIONS` block of `tests/entities.py`, and each name starts `R11-LATE-P1-OPTIONS:`. M19's check is in `tests/features.py`, beside the `stored_answers` checks; it was run by hand in a scratch worktree, which `git diff` shows identical to the head after the run.
+Each mutant restores one site's pre-fix expression at the head, runs the script named, and restores the file (`git status` clean after the last). 18 of 18 killed. Every check named is in `tests/config_flow_steps.py`'s `stored_options_of_the_wrong_type` or the `R11-LATE-P1-OPTIONS` block of `tests/entities.py`; each name starts `R11-LATE-P1-OPTIONS:`.
 
 | mutant (pre-fix expression restored) | script | red |
 |---|---|---|
@@ -49,7 +43,8 @@ Each mutant restores one site's pre-fix expression at the head, runs the script 
 | M16 `config_flow._uncapped_schedule_errors` | config_flow_steps | 1: `config_flow._uncapped_schedule_errors` |
 | M17 `comfort_band.dhw_deadband` (both reads) | config_flow_steps | 2: `config_flow._dhw_min_too_close on stored dhw_setpoint` / `dhw_min_temperature` |
 | M18 same mutant | entities | 2 of 2781: `apply_schedule reads a wrong-typed stored DHW setpoint or minimum as its default`, and the entry-reader census `no migrated module reads a key off a mapping outside a dispositioned site; ...`, which the mutant's raw `candidate.get` trips |
-| M19 `quick_setup.stored_answers` bound `volume >= BUFFER_STORE_MIN_VOLUME` -> `>` (repair head `e714df49fa`) | features | 1 of 6273: `a stored buffer volume at the store minimum reads yes, under it no`. At `>=`, `ALL 6273 FEATURE CHECKS PASSED`. The check's under-minimum arm (99 L reads no) is the control a strict bound also passes |
+
+Repair row, at `e714df49fa`: M19 `quick_setup.stored_answers` bound `volume >= BUFFER_STORE_MIN_VOLUME` to `>` (the CI mutation table's `CMP_BOUND` at that line). `MUTANT_CMD` below exits 1, failing `a stored buffer volume at the store minimum reads yes, under it no  [stored=[(100.0, {'buffer_tank': False}), ('100.0', {'buffer_tank': False}), (99.0, {'buffer_tank': False})]]`; restored, it exits 0 (`ALL 1 FEATURES BLOCK PASSED`). The 99.0 arm is the control both bounds pass. `MUTANT_CMD`: `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'from heatpump_optimizer import quick_setup as _qs' --prelude '_qs_stored = _qs.stored_answers' "# The buffer question's bound is inclusive" 'R.section("P8 — a price or temperature entity'`.
 
 Driver: `$SCRATCH/mutfinal.py` (out of tree; each row is the literal pair it swaps). The failing-test-first commit `6afdfa3f63` adds the brief's four readers' checks before their fix commit `ad25815a2c`. At the merge base those checks read 9 of 704 red; the vacuous pair `_power_errors` × derate was dropped before the fix.
 
@@ -86,7 +81,14 @@ All run with `PYTHONPATH=tests/hastub:.` at the merge base (B) and the head (H).
 - `custom_components/heatpump_optimizer/config_flow.py:1060 RETURN_DEL` (`_dhw_min_too_close`): pinned by `mutation-autofix`.
 - `custom_components/heatpump_optimizer/config_flow.py:2455 CMP_BOUND` (`_uncapped_schedule_errors`): pinned by `mutation-autofix`.
 - `custom_components/heatpump_optimizer/config_flow.py:2455 GUARD_OFF` (`_uncapped_schedule_errors`): pinned by `mutation-autofix`.
-- `custom_components/heatpump_optimizer/quick_setup.py:145 CMP_BOUND` (`stored_answers`): left unpinned by `mutation-autofix` at `1bed5619cd`, because no check killed it. The repair head adds the killing value check in `tests/features.py` (M19), and `mutation-autofix` pins it from that check after the push.
+- `custom_components/heatpump_optimizer/quick_setup.py:145 CMP_BOUND` (`stored_answers`): pinned by `mutation-autofix` once a driver kills it. At `1bed5619cd` none did: `mutation-autofix` pinned the other six (`1bed5619cd`'s six ledger files) and left this one, so `tests / mutation` stayed red. No check put a volume on the bound. The repair's `tests/features.py` check reads exactly `BUFFER_STORE_MIN_VOLUME` (float and text) as yes and one litre under as no, and kills it (M19).
+
+Diff mutants (40 drawn, file order, over `d66452586467...HEAD`'s added production lines; `MUTANT_CMD` is `## Mutation proof`'s, without its `PYTHONPATH=tests/hastub` prefix, which is exported instead). `MUTANT_CMD` runs only the M19 block, so `prepr.sh` read `WARN     diff mutants           31 survivor(s) on the diff's added lines -- each owes a killing check or a line under ## Unpinned sites (fixer.md step 2)` at `e714df49fa` and again at `cf00b99f5a`. Each survivor was then re-run under the scripts the first handoff's mutation proof used:
+- `mutant_run.py --diff d66452586467...e714df49fa --cmd "python3 tests/config_flow_steps.py" --max-mutants 40 --report-only`: rc 0, 4 `SURVIVED` lines (`config_flow.py:978 CMP_BOUND`, `quick_setup.py:145 CMP_BOUND`, `services.py:1104 STMT_DEL`, `topology.py:392 CONST_SWAP`). The other 36 are killed by `config_flow_steps.py`.
+- `quick_setup.py:145 CMP_BOUND`: killed by M19's `tests/features.py` check.
+- `services.py:1104 STMT_DEL` (`handle_apply_schedule`'s `dhw_deadband` read): killed by `tests/entities.py`, rc 1 (`NameError: name 'wanted' is not defined`); 2788 of 2788 pass at the head.
+- `config_flow.py:978 CMP_BOUND` (`_power_errors`, `>` to `>=`) and `topology.py:392 CONST_SWAP` (`_slot_extras`, `or 0.0` to `or 1.0`): both survived `config_flow_steps.py` and `entities.py` at `e714df49fa`. Both predicates are base text the fix carried through its rewrite. `cf00b99f5a` adds `a stored floor equal to the ceiling is not refused` and `an unset mixing-valve target publishes a 0.0 setpoint` to `config_flow_steps.py`. Each mutant now exits 1 on its own check (`[{'manual_setpoint': 1.0}]` for the second); restored, the script reads `ALL 730 checks PASSED`. The strict bound is a design choice, recorded in the check's comment: a floor equal to the ceiling is a fixed-output pump.
+- `quick_setup.py:186 STMT_DEL` (`derive`'s `heated_area` read, a `--path quick_setup.py` run of `MUTANT_CMD`): killed by `tests/config_flow_steps.py`, rc 1 (`NameError: name 'heated_area' is not defined`).
 
 The six pins whose lines this diff rewrote (`config_flow.py` `_effective`, `_dhw_min_too_close` ×2, `_uncapped_schedule_errors` ×2; `comfort_band.py` `effective`) are deleted in `e1d91dee60`, as `ci_predict`'s ledger arm directs.
 
@@ -96,7 +98,9 @@ The six pins whose lines this diff rewrote (`config_flow.py` `_effective`, `_dhw
 
 ## Red checks
 
-- `tests / mutation` (and `gate`, which relays it: `FAIL tests / mutation: failure (this run)`): red at `1bed5619cd` with `MUTATION TABLE REFUSED -- 1818 unpinned site(s) against 1818 at the ratchet base 46d0a521befa01ff62cf647e04d3a2b783ea2fc1, 1 of them added by this diff`, the one site `ADDED UNPINNED custom_components/heatpump_optimizer/quick_setup.py:145 CMP_BOUND`. Cause: the earlier body disposed this site as "pinned by `mutation-autofix`" without a check that killed it. The bot pins only what a driver kills, so it pinned six of the seven and left this one. The earlier checks read `stored_answers` at volumes away from the bound, never at `BUFFER_STORE_MIN_VOLUME` itself, so `>` and `>=` read alike. Repair: M19's value check at the bound and one litre under it. Cheaper detector: `prepr.sh`'s mutant step with `MUTANT_CMD` set to the closure's script, run before the handoff, drives this site and would have printed it `SURVIVED`. Its cost is one `features.py` run per drawn mutant, a step that exists already. No new detector is owed; fixer.md step 2 already asks each `SURVIVED` site for a killing check before the handoff.
+- `tests / mutation`: red at `1bed5619cd`, step `python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3`: `ADDED UNPINNED custom_components/heatpump_optimizer/quick_setup.py:145 CMP_BOUND` / `MUTATION TABLE REFUSED -- 1818 unpinned site(s) against 1818 at the ratchet base ..., 1 of them added by this diff`. Null control: the same command at `origin/main` `fd93aa3e9b16` prints `MUTATION TABLE PASSED (empty scope)` (rc 0), and at `1bed5619cd` the same refusal (rc 1). Cause: the first handoff's `## Unpinned sites` read every added site as pinned by `mutation-autofix`, but that lane pins only a site a driver kills, and none killed this one. Cheaper detector: one exists, `prepr.sh`'s diff-mutant step (`mutant_run.py --diff` under `MUTANT_CMD`), which reports a `SURVIVED` line for a site no check kills. Its standing cost is that step's run per `prepr.sh`, already in the path when `MUTANT_CMD` is set. The first handoff's body quotes no `diff mutants` line, so whether that step ran is not on record, and the process state is left to the separate root-cause seat (`defect-root-cause.md`). Every handoff since the FG-3 trial brief (2026-11-26) must quote that line, which is the countermeasure already in force. This repair builds none.
+- `gate`: red only because it reads `tests / mutation` (`FAIL tests / mutation: failure (this run)`). Its answer is the one above.
+- `ci predict` (prepr refusal at the first handoff): `PREDICT governance / instrument-self-tests STEP REPLAY Show the verdict bus refusing its own fixtures: rc 1 at the head, 0 at the base`, on two consecutive `prepr.sh` runs. The diff cannot reach it: the step runs `bash tools/audit/seat/bus.sh --self-test`, and `git diff --stat dbdc71faea35...e1d91dee6065 -- tools/` prints nothing. With the committer date pinned to `2005-04-07T22:13:13 +0000`, `bus.sh --self-test` exits 1 at the head and at the base alike, so the replay's rc 1 follows from the environment, not the diff. `governance / instrument-self-tests` concluded `success` at `1bed5619cd`.
 
 ## Forward-carry
 
@@ -105,5 +109,3 @@ none
 ## Friction
 
 none
-
-
