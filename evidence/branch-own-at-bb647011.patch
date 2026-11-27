@@ -1,0 +1,571 @@
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+index c29f3535a2..f6a7c230a9 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -343,6 +343,11 @@ def adopt_plan(coord: _BoostCoord, action: CurrentAction) -> None:
+     coord.adopt_action(action)
+ 
+ 
++def plan_base(coord: Any) -> CurrentAction | None:
++    """The plan base the last cycle adopted, which the overlay is laid on; None before any."""
++    return _PLAN_BASES.get(coord)
++
++
+ def held_for(coord: Any) -> BoostState:
+     """In-memory boost state for this coordinator, created on first use."""
+     held = _STATES.get(coord)
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index d144130e3e..cff027a590 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -838,6 +838,12 @@ _REPLY_FRAME_TIMEOUT_S = 60.0
+ _REPLY_FRAME_MAX_BYTES = 256 * 1024 * 1024
+ 
+ 
++async def _publish_uncycled(coord: Any, data: Payload | None = None) -> None:
++    """Publish ``data``, else the cycle's payload, outside a cycle: ``async_set_updated_data`` re-arms the interval."""
++    coord.data = data if data is not None else await _with_sensor_advisor(coord, coord._build_data_dict())
++    coord.async_update_listeners()
++
++
+ def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
+     """Overwrite frozen plan_age_minutes / plan_stale / next_optimization on a reload handover."""
+     last = handover.get("last_optimization")
+@@ -6048,7 +6054,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+ 
+     async def _async_update_data(self) -> Payload:
+         """Fetch data and run optimization."""
+-        ctx = getattr(self, "_ctx", self)
+         if self._skip_solve_once:
+             # Consume the flag FIRST: no exception below may leave it
+             # latched, or every later cycle would skip its solve too.
+@@ -6085,26 +6090,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
+                 return self._build_data_dict()
+ 
+-            boost.apply(
+-                self,
+-                boost.BoostOverlay(
+-                    max_power=float(
+-                        self._thermal_model.params.max_electrical_power),
+-                    max_temp=float(ctx._opt_config.max_temp),
+-                    ecl_max=float(self._ecl110_displace_max),
+-                ),
+-            )
+-            await self._apply_action()
+-
+-            # T7 #61 (control stage only): translate the commanded kW into
+-            # the frequency that delivers it. After _apply_action so a
+-            # failed write can never block the primary actuation, and
+-            # never allowed to break the cycle.
+-            await _best_effort_cycle_step(
+-                self._command_frequency, "Frequency command skipped: %s")
+-
+-            await _best_effort_cycle_step(
+-                self._async_drive_pumps, "Pump scheduling skipped: %s")
++            await self._actuate_plan()
+ 
+             # #3616 phase 3a, before the pairing replaces the settled interval's split.
+             await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(_ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp,
+@@ -6130,7 +6116,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 self._async_watch_learning_drift, "Snapshot heartbeat skipped: %s")
+ 
+             self._next_optimization = utc_shift(dt_util.now(), timedelta(
+-                minutes=ctx._config.optimization_interval
++                minutes=_ctx_of(self)._config.optimization_interval
+             ))
+ 
+             return await _with_sensor_advisor(self, self._build_data_dict())
+@@ -6151,6 +6137,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
+                 self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
+ 
++    async def _actuate_plan(self) -> None:
++        """The cycle's writes: overlay on the plan base, action, then frequency (T7 #61) and pumps."""
++        boost.apply(self, boost.BoostOverlay(max_power=float(self._thermal_model.params.max_electrical_power),
++                                             max_temp=float(_ctx_of(self)._opt_config.max_temp), ecl_max=float(self._ecl110_displace_max)))
++        await self._apply_action()
++        await _best_effort_cycle_step(self._command_frequency, "Frequency command skipped: %s")
++        await _best_effort_cycle_step(self._async_drive_pumps, "Pump scheduling skipped: %s")
++
++    async def async_apply_held(self) -> None:
++        """A timed duty switch's toggle: actuate and publish the plan in hand (N-solve-recompute)."""
++        if self._entry_released or not solve_gate.overlay_only(solve_gate.gate_for(self), self._refresh_task is not None, boost.plan_base(self)):
++            return await self.async_request_refresh()
++        await self._actuate_plan()
++        await _publish_uncycled(self)
++
+     async def async_request_refresh(self) -> None:
+         """Request a refresh; one landing on a running solve or refresh follows it (D1-s1-03)."""
+         if not solve_gate.absorb_request(solve_gate.gate_for(self), self._refresh_task is not None):
+@@ -10604,8 +10605,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 "optimization interval must pass first"
+             )
+         if self.data is not None:  # D9-s1-01: publish the diagnosis, no cycle (``async_set_updated_data`` re-arms the interval)
+-            self.data = {**self.data, "insight": self._insight_view()}
+-            self.async_update_listeners()
++            await _publish_uncycled(self, {**self.data, "insight": self._insight_view()})
+         return report
+ 
+     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
+diff --git a/custom_components/heatpump_optimizer/solve_gate.py b/custom_components/heatpump_optimizer/solve_gate.py
+index 8dca0453de..ce54eac7b5 100644
+--- a/custom_components/heatpump_optimizer/solve_gate.py
++++ b/custom_components/heatpump_optimizer/solve_gate.py
+@@ -22,13 +22,18 @@ THE USER'S SLOT. One user what-if solving and the newest one waiting: an ask
+ overtaken by a newer one while it waits is answered from the held answer,
+ unsolved (D9-s1-03), so a burst of K asks solves at most two.
+ 
++THE DUTY TOGGLE. A timed boost or block is no solve input: the overlay is laid
++on the plan the last cycle adopted. A toggle with a plan base and nothing in
++flight actuates and publishes that plan, unsolved and unfetched; else it is an
++ordinary request, which trails what runs (N-solve-recompute).
++
+ THE RUN-NOW PATH. The Optimize Now button and the ``run_optimization``
+ action are one refresh, fetch to publish (D17-s3-01): ``async_optimize_now``.
+ """
+ from __future__ import annotations
+ 
+ import asyncio
+-from collections.abc import AsyncIterator
++from collections.abc import AsyncIterator, Mapping
+ from contextlib import asynccontextmanager
+ from dataclasses import dataclass, field
+ from typing import Any
+@@ -164,6 +169,15 @@ async def user_slot(gate: SolveGate, user: bool = True) -> AsyncIterator[bool]:
+         freed.set()
+ 
+ 
++def overlay_only(gate: SolveGate, refreshing: bool, base: Mapping[str, Any] | None) -> bool:
++    """Whether a duty toggle is laid on the plan in hand rather than requesting a refresh.
++
++    Only on a non-empty plan base, and with no refresh or solve in flight: one running
++    may have laid its overlay before the toggle, and its trailing refresh lays it after.
++    """
++    return bool(base) and not refreshing and not gate.solving
++
++
+ async def async_optimize_now(coord: Any) -> str | None:
+     """Optimize Now and ``run_optimization``: one fetch-solve-actuate-publish refresh (D17-s3-01).
+ 
+diff --git a/custom_components/heatpump_optimizer/switch.py b/custom_components/heatpump_optimizer/switch.py
+index 7c3b5e5f13..2f9e25e9c0 100644
+--- a/custom_components/heatpump_optimizer/switch.py
++++ b/custom_components/heatpump_optimizer/switch.py
+@@ -33,7 +33,7 @@ from . import boost
+ from .const import MODE_AUTO, MODE_OFF
+ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+ from .entity import DHWEntityMixin
+-from .entity import HeatPumpOptimizerEntity, publish_then_refresh
++from .entity import HeatPumpOptimizerEntity, off_the_action, publish_then_refresh
+ 
+ # Turning the optimizer on or off lands on the coordinator, which commands
+ # one heat pump; two toggles racing is two commands to one machine, so
+@@ -187,7 +187,8 @@ class TimedDutySwitch(_KeyedSwitch):
+             await boost.set_channel(
+                 self.coordinator, self._channel, active, refresh=False
+             )
+-        publish_then_refresh(self)
++        self.async_write_ha_state()
++        off_the_action(self, self.coordinator.async_apply_held())
+ 
+     async def async_turn_on(self, **kwargs: Any) -> None:
+         await self._press(True)
+diff --git a/dev/programme/delivery/3934.md b/dev/programme/delivery/3934.md
+new file mode 100644
+index 0000000000..9578aed843
+--- /dev/null
++++ b/dev/programme/delivery/3934.md
+@@ -0,0 +1 @@
++- [#3934](https://github.com/tvofi/heatpump_optimizer/pull/3934) — **open**, R11-SEAM-cycle-solve part 2: the four timed duty switches no longer buy a solve (R11-SEAM-cycle-solve)
+diff --git a/tests/block_duty.py b/tests/block_duty.py
+index a002d52074..48e5f08010 100644
+--- a/tests/block_duty.py
++++ b/tests/block_duty.py
+@@ -55,6 +55,7 @@ class _Coord:
+         self.hass = FakeHass()
+         self._current_action = {}
+         self.refreshed = 0
++        self.held_applies = 0
+         self.entry = SimpleNamespace(entry_id="block-duty")
+ 
+     def arbiter_inputs(self):
+@@ -66,6 +67,9 @@ class _Coord:
+     async def async_request_refresh(self):
+         self.refreshed += 1
+ 
++    async def async_apply_held(self):
++        self.held_applies += 1
++
+ 
+ def _snap(**kw):
+     return arb.ArbiterInputs(
+diff --git a/tests/entities.py b/tests/entities.py
+index 54a797b9d8..29d7a3cebe 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -12451,6 +12451,7 @@ for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platfo
+                     _ent.__dict__.pop("ha_state_writes", None)
+                 _ent.hass = EagerHass()
+                 _ent.coordinator.refreshes.clear()
++                _ent.coordinator.held_applies.clear()
+                 _ent.coordinator.on_refresh = lambda _e=_ent, _p=_prop: (
+                     bool(getattr(_e, "ha_state_writes", None)),
+                     getattr(_e, _p),
+@@ -12463,13 +12464,15 @@ for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platfo
+                 if not (_ent.coordinator.data == _data
+                         and getattr(_ent, "ha_state_writes", None)
+                         and _got == _want
+-                        and _ent.coordinator.refreshes == [(True, _want, _pressed)]
++                        and _ent.coordinator.refreshes + _ent.coordinator.held_applies
++                        == [(True, _want, _pressed)]
+                         and len(_ent.coordinator.pressed)
+                         == _pressed + ("climate" in _cls.__module__)):
+                     _act_lag.append(
+                         f"{_cls.__name__}.{_name}{_args!r}: {_prop}={_got!r} "
+                         f"writes={getattr(_ent, 'ha_state_writes', None)} "
+-                        f"refreshes={_ent.coordinator.refreshes}"
++                        f"refreshes={_ent.coordinator.refreshes} "
++                        f"held={_ent.coordinator.held_applies}"
+                     )
+ R.check(
+     "every entity action has a row or a stated exemption",
+@@ -12478,7 +12481,8 @@ R.check(
+ )
+ R.check(
+     "every entity action publishes its own result at once, while the payload "
+-    "still holds the old one, before the one refresh it asks for starts",
++    "still holds the old one, before the one refresh (or, for a duty switch, the "
++    "held-plan toggle) it asks for starts",
+     _act_ran >= 12 and not _act_lag,
+     f"ran={_act_ran}; " + "; ".join(_act_lag),
+ )
+diff --git a/tests/features.py b/tests/features.py
+index 693994de5b..b903777a7d 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -20971,22 +20971,32 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
+             if name in module_funcs
+         )
+ 
++    def self_refs(node) -> list[str]:
++        names = []
++        for ref in _d102_ast.walk(node):
++            if isinstance(ref, _d102_ast.Call) and isinstance(
++                ref.func, _d102_ast.Attribute
++            ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
++                names.append(ref.func.attr)
++            elif isinstance(ref, _d102_ast.Attribute) and isinstance(
++                ref.value, _d102_ast.Name
++            ) and ref.value.id == "self":
++                names.append(ref.attr)  # a bound method handed to the fence, not called
++        return [n for n in names if n in methods]
++
++    # The cycle and the duty toggle (N-solve-recompute) share their write tail
++    # (``_actuate_plan``): a seam either root reaches directly, or through one
++    # method that writes nothing itself, is a seam the cycle reaches.
++    reached = []
++    for root in ("_async_update_data", "async_apply_held"):
++        for name in self_refs(methods[root]):
++            hop = [name] if writes(methods[name]) else self_refs(methods[name])
++            reached += [n for n in hop if writes(methods[n])]
+     out = []
+-    for ref in _d102_ast.walk(methods["_async_update_data"]):
+-        if isinstance(ref, _d102_ast.Call) and isinstance(
+-            ref.func, _d102_ast.Attribute
+-        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+-            name = ref.func.attr
+-        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+-            ref.value, _d102_ast.Name
+-        ) and ref.value.id == "self":
+-            name = ref.attr  # a bound method handed to the fence, not called
+-        else:
+-            continue
+-        if name in methods and writes(methods[name]):
+-            pair = (name, gated(methods[name]))
+-            if pair not in out:
+-                out.append(pair)
++    for name in reached:
++        pair = (name, gated(methods[name]))
++        if pair not in out:
++            out.append(pair)
+     return out
+ 
+ 
+@@ -21000,6 +21010,7 @@ R.check(
+             ("_apply_action", True),
+             ("_async_drive_pumps", True),
+             ("_command_frequency", True),
++            ("_command_valve_target", True),  # through async_run_optimization, one hop
+         ]
+     ),
+     f"the enumeration rule returned {_d102_paths}",
+@@ -51818,6 +51829,8 @@ _RC2_EXEMPT = {
+ # The coordinator's own setters, which the services call with a refresh: each
+ # is reached through a row above or says where its state lives.
+ _RC2_SETTERS = {
++    "async_apply_held": "rows: the four duty switches; it writes no state, the boost store "
++        "holds what the press set",
+     "async_set_mode": "rows: the switch and thermostat mode actions",
+     "async_set_away": "rows: the away switch and the return time",
+     "async_set_target_temperature": "row: the thermostat target, via entry options",
+@@ -101431,6 +101444,158 @@ R.check(
+ )
+ 
+ 
++# N-solve-recompute (carry, R11-SEAM-cycle-solve): a timed duty switch's toggle is laid on the plan in
++# hand. Boost and block state is no solve input: the overlay is applied after the solve. So the toggle
++# actuates and publishes the adopted plan without a fetch or a solve. It requests a refresh only with no
++# plan base, or with a refresh or solve in flight, whose trailing refresh or re-run lays the overlay after.
++async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
++    """One toggle through ``async_apply_held``: (solves, debouncer calls, actuations, published, action, gate)."""
++    _r9f13_dt.freeze(_R9F13_NOW)
++    _hass, _entry, coord = _r9f13_make(f"sg_duty_{based}_{refreshing}_{solving}")
++    n = {"solve": 0, "call": 0, "act": 0, "pub": 0}
++
++    async def _solve():
++        n["solve"] += 1
++
++    async def _call():
++        n["call"] += 1
++
++    async def _act():
++        n["act"] += 1
++
++    async def _none():
++        return None
++
++    coord.async_run_optimization, coord._debounced_refresh.async_call = _solve, _call
++    coord._apply_action, coord._command_frequency, coord._async_drive_pumps = _act, _none, _none
++    coord.async_update_listeners = lambda: n.__setitem__("pub", n["pub"] + 1)
++    if based:
++        boost_mod.adopt_plan(coord, {"power_normalized": 0.25, "dhw_power": 1.0, "heat_pump_on": True})
++    boost_mod.held_for(coord).set(boost_mod.CHANNEL_SPACE, True, _R9F13_NOW, block=True)
++    gate = solve_gate.gate_for(coord)
++    coord._refresh_task = object() if refreshing else None
++    gate.solving, coord._entry_released = solving, released
++    before = coord.data
++    await coord.async_apply_held()
++    _r9f13_dt.freeze(None)
++    return (n["solve"], n["call"], n["act"], n["pub"] if coord.data is not before else -n["pub"],
++            dict(coord._current_action or {}), (gate.trailing, gate.rerun))
++
++
++_sg_held = _sg_aio.run(_sg_duty())
++R.check(
++    "N-solve-recompute: a duty toggle on a held plan actuates and publishes it with the overlay laid "
++    "on (a space block zeroes the space power, hot water untouched), and never solves or requests a refresh",
++    _sg_held[:4] == (0, 0, 1, 1)
++    and _sg_held[4].get("power_normalized") == 0.0 and _sg_held[4].get("dhw_power") == 1.0,
++    f"solves, calls, actuations, publishes, action: {_sg_held[:5]}",
++)
++_sg_unbased = _sg_aio.run(_sg_duty(based=False))
++_sg_inflight = (_sg_aio.run(_sg_duty(refreshing=True)), _sg_aio.run(_sg_duty(solving=True)))
++_sg_released = _sg_aio.run(_sg_duty(released=True))
++R.check(
++    "N-solve-recompute: with no plan base the toggle is an ordinary request; with a refresh in flight it "
++    "trails it, with a solve in flight it re-runs it; a released entry writes nothing (#237) -- and none "
++    "of the four actuates beside them",
++    _sg_unbased[:4] == (0, 1, 0, 0) and _sg_released[2:4] == (0, 0)
++    and _sg_inflight[0][:4] == (0, 0, 0, 0) and _sg_inflight[0][5] == (True, False)
++    and _sg_inflight[1][:4] == (0, 0, 0, 0) and _sg_inflight[1][5] == (False, True),
++    f"unbased {_sg_unbased[:4]}, refreshing {_sg_inflight[0][:4]} {_sg_inflight[0][5]}, "
++    f"solving {_sg_inflight[1][:4]} {_sg_inflight[1][5]}",
++)
++
++
++async def _sg_cycle_tail():
++    """One refresh on a stubbed solve: the order the cycle runs its writes and its bookkeeping."""
++    _r9f13_dt.freeze(_R9F13_NOW)
++    _hass, _entry, coord = _r9f13_make("sg_cycle_tail")
++    ran = []
++
++    def _rec(name):
++        async def _step(*_a, **_k):
++            ran.append(name)
++        return _step
++
++    async def _solve():
++        boost_mod.adopt_plan(coord, {"power_normalized": 0.5})
++
++    coord.async_run_optimization = _solve
++    steps = ("_apply_action", "_command_frequency", "_async_drive_pumps", "_record_accuracy",
++             "_track_realised_peak", "_async_save_accuracy", "_async_save_energy_totals")
++    for name in steps:
++        setattr(coord, name, _rec(name))
++    coord._next_optimization = None
++    await coord._async_update_data()
++    _r9f13_dt.freeze(None)
++    due = _R9F13_NOW + timedelta(minutes=_r9f13_cmod._ctx_of(coord)._config.optimization_interval)
++    return ran == list(steps) and coord._next_optimization == due, ran, coord._next_optimization
++
++
++_sg_tail = _sg_aio.run(_sg_cycle_tail())
++R.check(
++    "N-solve-recompute: the cycle's write tail the toggle shares runs inside every refresh -- action, "
++    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order, and "
++    "the next solve is stamped one configured interval on",
++    _sg_tail[0],
++    f"ran {_sg_tail[1]}, next {_sg_tail[2]}",
++)
++
++
++async def _sg_diagnose_publish():
++    """A diagnose press publishes the insight view without a cycle (D9-s1-01), through the shared publish."""
++    _hass, _entry, coord = _r9f13_make("sg_diagnose")
++    real, pubs = _r9f13_cmod._await_process, []
++
++    async def _no_report(*_a, **_k):
++        return None
++
++    _r9f13_cmod._await_process = _no_report
++    coord.data = {"plan": "held"}
++    coord.async_update_listeners = lambda: pubs.append(1)
++    try:
++        await coord.async_diagnose_interval()
++    finally:
++        _r9f13_cmod._await_process = real
++    return coord.data.get("plan"), "insight" in coord.data, len(pubs)
++
++
++_sg_diag = _sg_aio.run(_sg_diagnose_publish())
++R.check(
++    "N-solve-recompute: a diagnose press publishes the insight view on the held payload, once, without a cycle",
++    _sg_diag == ("held", True, 1),
++    f"{_sg_diag}",
++)
++
++
++def _sg_press(cls):
++    """Toggle a duty switch; the name of the coroutine its press hands the entry's background task."""
++    _hass, _entry, coord = _r9f13_make(f"sg_press_{cls.__name__}")
++    handed = []
++
++    class _Entry:
++        entry_id = "sg_press"
++
++        def async_create_background_task(self, _hass, coro, name=None):
++            handed.append(coro.cr_code.co_name)
++            coro.close()
++
++    ent = cls(coord, _Entry())
++    ent.async_write_ha_state = lambda: handed.append("published")
++    _sg_aio.run(ent.async_turn_on())
++    return handed
++
++
++from heatpump_optimizer import switch as _sg_switch  # noqa: E402
++
++_sg_presses = {c.__name__: _sg_press(c) for c in (_sg_switch.BoostSpaceSwitch, _sg_switch.BlockSpaceSwitch)}
++R.check(
++    "N-solve-recompute: a boost or block switch publishes its state, then hands the entry's background "
++    "task the held-plan toggle, not the publish-then-refresh helper's refresh",
++    all(v == ["published", "async_apply_held"] for v in _sg_presses.values()),
++    f"{_sg_presses}",
++)
++
++
+ class _SgUpstreamDebouncer:
+     """``homeassistant.helpers.debounce.Debouncer``'s call path as of 2025.2.0
+     (cooldown, ``immediate=True``), the part the stub's inline one lacks.
+diff --git a/tests/harness.py b/tests/harness.py
+index 4767799316..52f6c5d6a2 100644
+--- a/tests/harness.py
++++ b/tests/harness.py
+@@ -415,6 +415,7 @@ class FakeCoordinator:
+         # One entry per refresh requested: what ``on_refresh`` returned when
+         # it was asked for (a test sets it to read what had been published).
+         self.refreshes: list = []
++        self.held_applies: list = []
+         self.on_refresh = None
+         self.away_calls: list[dict] = []
+         self.boost_calls: list[dict] = []
+@@ -434,6 +435,10 @@ class FakeCoordinator:
+         awaits it outside its cooldown): 30 to 70 s on a Pi."""
+         self.refreshes.append(self.on_refresh() if self.on_refresh else None)
+ 
++    async def async_apply_held(self):
++        """A timed duty switch's toggle; the real one actuates the plan in hand, unsolved."""
++        self.held_applies.append(self.on_refresh() if self.on_refresh else None)
++
+     async def async_set_mode(self, mode, *, refresh=True):
+         self.mode_calls.append(mode)
+         self.mode = mode
+diff --git a/tests/mutation_ledger/killed_by/boost.py/plan_base.RETURN_DEL.2e61f69f.json b/tests/mutation_ledger/killed_by/boost.py/plan_base.RETURN_DEL.2e61f69f.json
+new file mode 100644
+index 0000000000..f0095693a4
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/boost.py/plan_base.RETURN_DEL.2e61f69f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/boost.py:plan_base RETURN_DEL 2e61f69f",
++  "killed_by": "tests/features.py",
++  "old": "    return _PLAN_BASES.get(coord)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_apply_held.GUARD_OFF.ac1f068b.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_apply_held.GUARD_OFF.ac1f068b.json
+new file mode 100644
+index 0000000000..a17770eb51
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_apply_held.GUARD_OFF.ac1f068b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_apply_held GUARD_OFF ac1f068b",
++  "killed_by": "tests/features.py",
++  "old": "        if self._entry_released or not solve_gate.overlay_only(solve_gate.gate_for(self), self._refresh_task is not None, boost.plan_base(self)):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/solve_gate.py/overlay_only.RETURN_DEL.a7ddd8f8.json b/tests/mutation_ledger/killed_by/solve_gate.py/overlay_only.RETURN_DEL.a7ddd8f8.json
+new file mode 100644
+index 0000000000..fba650c5f1
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/solve_gate.py/overlay_only.RETURN_DEL.a7ddd8f8.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/solve_gate.py:overlay_only RETURN_DEL a7ddd8f8",
++  "killed_by": "tests/features.py",
++  "old": "    return bool(base) and not refreshing and not gate.solving",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/seam_map.json b/tests/seam_map.json
+index e71031ec21..ca69a70e02 100644
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
+@@ -271,6 +271,9 @@
+   "target_temperature": "core",
+   "weather_stale_hours": "fetch",
+   "configured_quiet_windows": "dhw",
+-  "async_request_refresh": "core"
++  "async_request_refresh": "core",
++  "_actuate_plan": "core",
++  "async_apply_held": "core",
++  "coordinator._publish_uncycled": "core"
+  }
+ }
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index a1f85a6133..0c9ab00da6 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 17218,
++ "class_excess_loc": 17216,
+  "const_modules_over_50": 4,
+  "coordinator_attrs": 134,
+  "coordinator_multiassigned_attrs": 101,
+@@ -12,13 +12,13 @@
+  "import_cycle_modules": 0,
+  "in_function_copies": 11,
+  "max_cc": 44,
+- "max_class_loc": 7762,
++ "max_class_loc": 7756,
+  "max_method_loc": 373,
+  "methods_over_150": 14,
+  "methods_over_200": 7,
+  "module_excess_loc": 21627,
+  "name_kept_members": 38,
+- "recorded_at": "dbdc71faea358a95a7b33840ed252b0d8a646a31",
++ "recorded_at": "e84856520dc4de8d70b68d67a206c6f2278351ad",
+  "seam_cut_total": 413,
+  "unloaded_package_imports": 5
+ }
