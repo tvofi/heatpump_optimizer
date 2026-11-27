@@ -7076,7 +7076,10 @@
     "branch": null,
     "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab): thermal_model.py: the edit is the trajectory's wall-clock step arithmetic only, which no not-started group's scope touches",
     "pr": 3914
-   }
+   },
+   "carry": [
+    "From r11-owner-features-split, body item 3d3d23cb: open-branch-port and seam-raise-path. Once the freeze PR merges, `tests/features.py` refuses new spans and line growth. Move each new span unchanged to the seam script `python3 dev/audit/harnesses/features_freeze.py --seam <file>` names, and re-pin its own rows with `mutation_table.py --pin-killed` (design revision 5, section 3). A new seam script raises `script_runs_per_push` and `script_runs_full_case_pr` in `tests/ci_budgets.json`. That raise merges only on the owner's approving review at its head, or under a mandate in force with `## Raise justification` and an `Architecture score: dS` line. Mandate 6893738184 ends 2026-12-15T12:00Z. (items 3d3d23cb)"
+   ]
   },
   {
    "group": "R11-HOTFIX-CODEQL-PERMS",
