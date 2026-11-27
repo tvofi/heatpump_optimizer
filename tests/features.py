@@ -104113,4 +104113,138 @@ R.check(
     str(_oc_rows),
 )
 
+# R11-SEAM-store-p2 (round-11 sweep P1, store loaders): a stored flag where a number is declared.
+# Python counts ``True`` as an int, so six loaders admitted a stored ``true`` as
+# 1.0. The store's load boundary reads it as absent, by the store's DOMAINS
+# declaration (store._unflag_numbers), so every loader takes its own default.
+import asyncio as _s2_aio  # noqa: E402
+import json as _s2_json  # noqa: E402
+from harness import FakeEntry as _s2_entry  # noqa: E402
+from homeassistant.helpers import storage as _s2_storage  # noqa: E402
+from heatpump_optimizer import const as _s2_const, off_restore as _s2_off, store as _s2_store  # noqa: E402
+from heatpump_optimizer.coordinator import _storable_sample_count as _s2_count  # noqa: E402
+
+_s2_c = Coord(FakeHass({}), _s2_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home", "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor", "dhw_enabled": True}))
+_s2_eid = _s2_c.entry.entry_id
+
+
+def _s2_disk(suffix, payload):
+    _s2_storage._DISK.clear()
+    _s2_storage._VERSIONS.clear()
+    _s2_storage._DISK[f"{_s2_const.DOMAIN}_{_s2_eid}_{suffix}"] = _s2_json.dumps(payload)
+
+
+_s2_got = {}
+_s2_disk("dhw_draws", {"reservoirs": {"06:00-08:30": [True, 2.0]}, "open_kwh": 0.5})
+_s2_aio.run(_s2_c._dhw_learner.async_load_draws())
+_s2_got["dhw_draws"] = _s2_c._dhw_learner.draw_stats.reservoirs.get("06:00-08:30")
+_s2_disk("accuracy", {"peaks": {"peaks": [True, 3.0], "peak_days": ["2026-01-02", "2026-01-03"]}})
+_s2_aio.run(_s2_c._async_load_accuracy())
+_s2_got["tariff"] = _s2_c._peak_tracker.as_dict().get("peaks")
+_s2_disk("energy", {"space_energy_kwh": True, "dhw_energy_kwh": 4.0})
+_s2_aio.run(_s2_c._async_load_energy_totals())
+_s2_got["energy"] = (_s2_c._energy_totals["space_energy_kwh"], _s2_c._energy_totals["dhw_energy_kwh"])
+_s2_disk("ledger", {"operation_score": True})
+_s2_c._operation_score = None
+_s2_aio.run(_s2_c._async_load_ledger())
+_s2_got["ledger"] = _s2_c._operation_score
+_s2_disk("off_restore", {"armed": {"a": True, "b": {"entity_id": "number.b", "value": True}, "c": 20.5}})
+_s2_got["off_restore"] = dict(_s2_aio.run(_s2_off._armed_record(_s2_c.hass, _s2_c.entry)).armed)
+_s2_g = _s2_c._legionella
+_s2_storage._DISK.clear()
+_s2_storage._DISK[_s2_g.store._store_key] = _s2_json.dumps({
+    "last_cycle": "2026-01-01T00:00:00+00:00", "last_attempt": "2026-01-01T00:00:00+00:00",
+    "last_attempt_peak": True})
+_s2_g.attempt_peak = None
+_s2_aio.run(_s2_g.async_load())
+_s2_got["legionella"] = _s2_g.attempt_peak
+R.check(
+    "a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep "
+    "named; the numbers beside it load as stored (null control)",
+    _s2_got == {"dhw_draws": [2.0], "tariff": [3.0], "energy": (0.0, 4.0), "ledger": None,
+                "off_restore": {"a": None, "b": None, "c": 20.5}, "legionella": None},
+    str(_s2_got),
+)
+
+# The census: every numeric declaration of every store, driven through a
+# QuarantiningStore load with a stored true at that leaf. A key ("~") is JSON
+# text and never a flag; an alias mirrors a store whose own patterns are
+# driven. The control is the flag declarations, whose true loads as stored.
+
+
+def _s2_doc(pattern, leaf):
+    doc = leaf
+    for seg in reversed(pattern.split("/")):
+        doc = [doc] if seg == "#" else {("k" if seg == "*" else seg): doc}
+    return doc
+
+
+def _s2_leaf(doc, pattern):
+    for seg in pattern.split("/"):
+        doc = doc[0] if seg == "#" else doc.get("k" if seg == "*" else seg) if isinstance(doc, dict) else None
+    return doc
+
+
+_s2_rows = {"numeric": [], "flag": [], "skipped": []}
+for _s2_name, _s2_table in _s2_store.DOMAINS.items():
+    for _s2_pat, _s2_dom in _s2_table.items():
+        if isinstance(_s2_dom, str) or _s2_pat.endswith("~"):
+            _s2_rows["skipped"].append((_s2_name, _s2_pat))
+            continue
+        _s2_kind = "numeric" if _s2_dom.kind in ("real", "int") else "flag" if _s2_dom.kind == "flag" else None
+        if _s2_kind is None:
+            continue
+        _s2_key = f"{_s2_const.DOMAIN}_census_{_s2_name}"
+        _s2_storage._DISK.clear()
+        _s2_storage._VERSIONS.clear()
+        _s2_storage._DISK[_s2_key] = _s2_json.dumps(_s2_doc(_s2_pat, True))
+        _s2_loaded = _s2_aio.run(_s2_store.QuarantiningStore(FakeHass({}), 1, _s2_key, lead=None).async_load())
+        _s2_rows[_s2_kind].append((_s2_name, _s2_pat, _s2_leaf(_s2_loaded, _s2_pat)))
+_s2_storage._DISK.clear()
+_s2_storage._VERSIONS.clear()
+_s2_named = {r[0] for r in _s2_rows["numeric"]}
+R.check(
+    "every numeric declaration in store.DOMAINS loads a stored true as absent, every flag one as true; "
+    "the census drove a numeric declaration of each store the six loaders read",
+    _s2_rows["numeric"] and all(v is None for *_, v in _s2_rows["numeric"])
+    and _s2_rows["flag"] and all(v is True for *_, v in _s2_rows["flag"])
+    and {"dhw_draws", "accuracy", "energy", "ledger", "off_restore", "dhw_legionella"} <= _s2_named,
+    f"numeric kept {[r for r in _s2_rows['numeric'] if r[2] is not None]}; "
+    f"flag lost {[r for r in _s2_rows['flag'] if r[2] is not True]}; "
+    f"{len(_s2_rows['numeric'])} numeric, {len(_s2_rows['flag'])} flag, {len(_s2_rows['skipped'])} skipped",
+)
+
+# D3 wave fold (#3755, class I1), pinned through the loaders' own entry points.
+# D3-g03: a stored "since" that is empty or not text leaves the counting start unset.
+_s2_since = {}
+for _s2_label, _s2_value in (("empty", ""), ("number", 20260101), ("date", "2026-01-01")):
+    _s2_c._energy_totals_since = None
+    _s2_disk("energy", {"since": _s2_value})
+    _s2_aio.run(_s2_c._async_load_energy_totals())
+    _s2_since[_s2_label] = _s2_c._energy_totals_since
+R.check(
+    "a stored energy-totals start that is empty or not text is no start; an ISO day is (D3-g03)",
+    _s2_since == {"empty": None, "number": None, "date": "2026-01-01"},
+    str(_s2_since),
+)
+_s2_storage._DISK.clear()
+_s2_storage._VERSIONS.clear()
+
+
+# D3-g12: a stored sample count spans 0 to 2**31 inclusive; one past either end is no fold's.
+def _s2_counts(raw):
+    try:
+        return _s2_count(raw)
+    except ValueError:
+        return "refused"
+
+
+R.check(
+    "a stored sample count of 0 or exactly 2**31 is kept; -1 and 2**31 + 1 are refused (D3-g12)",
+    [_s2_counts(v) for v in (0, 2**31, -1, 2**31 + 1)] == [0, 2**31, "refused", "refused"],
+    str([_s2_counts(v) for v in (0, 2**31, -1, 2**31 + 1)]),
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
