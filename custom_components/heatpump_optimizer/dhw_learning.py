@@ -216,7 +216,6 @@ class DhwProfileLearner:
             DHW_DRAWS_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_draws",
         )
-        self.draws_dirty: bool = False
 
     def normalize_profile(self, profile: list[float]) -> list[float]:
         """Project an hourly profile onto the admitted shapes: every hour in
@@ -384,7 +383,6 @@ class DhwProfileLearner:
     async def async_save_draws(self) -> None:
         async def save() -> None:
             await self.draws_store.async_save(self.draw_stats.as_dict())
-            self.draws_dirty = False
         await save_held(self.draws_store, "DHW draw statistics", save)
 
     def pattern_for(self, weekend: bool) -> list[float]:

@@ -1,0 +1,16 @@
+custom_components/heatpump_optimizer/optimizer.py:5379 CMP_BOUND
+custom_components/heatpump_optimizer/optimizer.py:5379 CMP_BOUND
+custom_components/heatpump_optimizer/sysid.py:2251 CMP_BOUND
+custom_components/heatpump_optimizer/sysid.py:2251 CMP_BOUND
+custom_components/heatpump_optimizer/dhw_planner.py:661 CMP_BOUND
+custom_components/heatpump_optimizer/dhw_planner.py:661 CMP_BOUND
+custom_components/heatpump_optimizer/coordinator.py:10369 CMP_BOUND
+custom_components/heatpump_optimizer/coordinator.py:10369 CMP_BOUND
+custom_components/heatpump_optimizer/thermal_model.py:3682 CMP_BOUND
+custom_components/heatpump_optimizer/thermal_model.py:3682 CMP_BOUND
+custom_components/heatpump_optimizer/sysid.py:2213 CMP_BOUND
+custom_components/heatpump_optimizer/sysid.py:2213 CMP_BOUND
+custom_components/heatpump_optimizer/optimizer.py:4192 CLAMP_DROP
+custom_components/heatpump_optimizer/optimizer.py:4192 CLAMP_DROP
+custom_components/heatpump_optimizer/coordinator.py:10365 CMP_BOUND
+custom_components/heatpump_optimizer/coordinator.py:10365 CMP_BOUND

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast BOOLOP 4fdd8846",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        if self._pv_production is not None and len(production):",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if self._pv_production is not None or len(production):`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

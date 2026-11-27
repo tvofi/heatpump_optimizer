@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_declares_number GUARD_OFF f0bfbb47",
+  "killed_by": "tests/features.py",
+  "old": "    if domain.kind in (\"real\", \"int\"):",
+  "reason": "Recorded by hand before the handoff (R11-SEAM-store-p2 repair of #3932): GUARD_OFF (`if False:`) took the features.py block `# R11-SEAM-store-p2 (round-11 sweep P1` from 0 failed to 2 failed."
+}
