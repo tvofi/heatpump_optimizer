@@ -1,6 +1,0 @@
-prior head 411932ca:
-wrap-oracle: 6 of 5376 cells off
-  America/Santiago autumn now=2026-04-04T23:00:00-04:00 fold=1 win=[(23.5, 24.0), (0.0, 0.5)]: got -0.5 want 0.5
-  America/Santiago autumn now=2026-04-04T23:15:00-04:00 fold=1 win=[(23.5, 24.0), (0.0, 0.5)]: got -0.75 want 0.25
-M6 (date guard off):
-wrap-oracle: 0 of 5376 cells off
