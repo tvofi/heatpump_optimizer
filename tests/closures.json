@@ -2350,6 +2350,7 @@
    "tools/coverage/coverage_tree.sh",
    "tools/devices/gen_device_fixtures.py",
    "tools/devices/measure_prefill_corpus.py",
+   "tools/merge/d6_register.py",
    "tools/merge/ledger_merge.py",
    "tools/plan/durations.json",
    "tools/plan/replan.py",
