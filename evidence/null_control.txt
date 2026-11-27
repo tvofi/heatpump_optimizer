@@ -1,0 +1,8 @@
+772.0 30 ok 60 ok
+836.1 30 ok 60 ok
+1518.1 30 ["lane wall time 1518.1 s > 0.8 x (30 min - 20 s) = 1424.0 s; raise the replay job's timeout-minutes to at least 32"] 60 ok
+1476.4 30 ["lane wall time 1476.4 s > 0.8 x (30 min - 20 s) = 1424.0 s; raise the replay job's timeout-minutes to at least 32"] 60 ok
+1798.0 30 ["lane wall time 1798.0 s > 0.8 x (30 min - 20 s) = 1424.0 s; raise the replay job's timeout-minutes to at least 38"] 60 ok
+1751.8 30 ["lane wall time 1751.8 s > 0.8 x (30 min - 20 s) = 1424.0 s; raise the replay job's timeout-minutes to at least 37"] 60 ok
+2505.3 30 ["lane wall time 2505.3 s > 0.8 x (30 min - 20 s) = 1424.0 s; raise the replay job's timeout-minutes to at least 53"] 60 ok
+2768.1 30 ["lane wall time 2768.1 s > 0.8 x (30 min - 20 s) = 1424.0 s; raise the replay job's timeout-minutes to at least 59"] 60 ok
