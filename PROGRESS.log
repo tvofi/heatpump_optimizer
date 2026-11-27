@@ -7,3 +7,4 @@
 1795740410 HB alive
 1795740671 CKPT body written; running scoped prepr snapshot 7cbaa0ba7e15
 1795741013 HB alive
+1795741203 CKPT ledger repaired, head dc3d55e; rerunning prepr snapshot c7c578e2ca5e
