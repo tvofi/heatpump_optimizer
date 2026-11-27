@@ -1,5 +1,0 @@
-tests / replay, job 139918878679, run 45821055133, head 8e0391b08fa316937564766964e3e13c3a1fb97d, started 2026-11-26T12:52:30Z completed 13:34:40Z, conclusion failure
-2026-11-26T13:34:37.8620931Z replay lane wall time 2505.3 s
-2026-11-26T13:34:37.8622021Z   FAIL lane wall time within the pull-request replay job's headroom  [lane wall time 2505.3 s > 0.8 x (45 min - 20 s) = 2144.0 s; raise the replay job's timeout-minutes to at least 53]
-2026-11-26T13:34:37.8623326Z 1 of 202 replay checks FAILED
-(every other replay check in the tail ok, owner-2026-10-30-away.json cycle_cost and synthetic-dhw-only.json cycle_cost included)
