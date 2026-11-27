@@ -1,0 +1,5 @@
+custom_components/heatpump_optimizer/grid_fee.py:apply_catalog RETURN_DEL d7923b87#3
+custom_components/heatpump_optimizer/price_model.py:<module> CONST 5633f4fc
+custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day GUARD_OFF 6ea17095#2
+custom_components/heatpump_optimizer/price_model.py:_profile_index CMP_BOUND 7c9e7277
+custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum CLAMP_DROP 39986157
