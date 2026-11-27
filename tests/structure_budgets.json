@@ -1,5 +1,5 @@
 {
- "class_excess_loc": 17220,
+ "class_excess_loc": 17200,
  "const_modules_over_50": 4,
  "coordinator_attrs": 134,
  "coordinator_multiassigned_attrs": 101,
@@ -12,13 +12,13 @@
  "import_cycle_modules": 0,
  "in_function_copies": 11,
  "max_cc": 44,
- "max_class_loc": 7762,
+ "max_class_loc": 7748,
  "max_method_loc": 373,
  "methods_over_150": 14,
  "methods_over_200": 7,
- "module_excess_loc": 21646,
+ "module_excess_loc": 22011,
  "name_kept_members": 38,
- "recorded_at": "dbdc520e86e4453755f553ab21a39de205a70b34",
+ "recorded_at": "7194ff84c09dd9d54a99f8208c906136981fd9dc",
  "seam_cut_total": 413,
  "unloaded_package_imports": 5
 }
