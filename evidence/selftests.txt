@@ -1,8 +1,0 @@
-head 21b920ba64892ade1446b8c7e804461cfb12b41b
-sweep self-test: 145 checks, 0 failed
-prelude self-test: 162 checks, 0 failed
-gate self-test: 133 checks, 0 failed
-merge-tree origin/main HEAD rc=0
-finder harness ci3885_queue.py fetch 2026-11-26:
-gh api repos/tvofi/heatpump_optimizer/actions/runs/45912715031/jobs?filter=all&per_page=100: gh: Server Error (HTTP 502)
-rc=1

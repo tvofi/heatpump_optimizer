@@ -1,0 +1,31 @@
+head: 88da7f9bc11961a25be34db44d990efa7383ce9c
+delta: git diff 21b920ba64892ade1446b8c7e804461cfb12b41b 88da7f9bc11961a25be34db44d990efa7383ce9c -> tools/ci/sweep_selftest.py +11 only
+diff --git a/tools/ci/sweep_selftest.py b/tools/ci/sweep_selftest.py
+index 2241c37a0c..c8d8ee0421 100644
+--- a/tools/ci/sweep_selftest.py
++++ b/tools/ci/sweep_selftest.py
+@@ -304,6 +304,12 @@ def run_checks():
+     rc, out = w.sweep()
+     ok("W2 completion arm null: a green gate that does not cover the newest event re-runs nothing",
+        w.posts == [] and "reruns=0" in out)
++    w = World([run(1, "1", g="success", started="4", units=["3"]), run(3, "1", started="2"),
++               run(9, "3", status="in_progress", started="5")], 9)
++    w.caller = 9        # V's own sweep-self: V still in progress, its red gate after run 1's covering green one
++    rc, out = w.sweep()
++    ok("W2 completion arm null: a run still in progress is no completion; settle re-runs the red that judged early",
++       w.posts == ["repos/o/r/actions/jobs/30/rerun"] and "still busy" not in out)
+     w = World([run(1, "1", status="in_progress", g="failure"), v_run()], 9)
+     w.runs[1]["gate"]["status"] = "completed"
+     out = w.sweep()[1]
+@@ -853,6 +859,11 @@ def run_checks():
+     rc, out = w.sweep()
+     ok("W1: a deferred run whose decider is still busy is left, nothing posted; the decider's completion sweeps",
+        w.posts == [] and "run(s) [9] still adding sources" in out)
++    w = World([deferring(1), run(2, "2", status="in_progress", gstatus="in_progress", started="6"),
++               run(9, "3", g="success", started="4")], 9)
++    rc, out = w.sweep()
++    ok("W1: a deferred run left while its sources are busy is not re-judged by its gate alone from a green sweep",
++       w.posts == [] and "run(s) [2] still adding sources" in out and "re-ran gate of run 1" not in out)
+     w = World([deferring(1), v_run()], 1)
+     w.sweep()
+     ok("W1: the deferred run's own completion, its decider already concluded, re-runs it (the race closed)",
