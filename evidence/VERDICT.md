@@ -1,0 +1,24 @@
+Fix review: merge 5806efb53efc70f645ed0c4baa92fb52f233b829
+bus-nonce: ab561940b8330ba8059d98d61a7ff4d4
+
+Round 1, full review (first round: no reviewed head). Reviewer reviewer-rev-3913c, detached worktree /tmp/hpo-rev-3913c at the head; base worktree at merge base d66452586467967848c7cd6012c43bc955f0f9dc. Roles diff merge-base...origin/main is empty, so the contract is current.
+
+RESULT head=5806efb53efc70f645ed0c4baa92fb52f233b829 (the body's 95b952b90b plus one bot ledger pin, quick_setup.py stored_answers CMP_BOUND; no code delta)
+RESULT finder_harness p1_probes.py sha1 c3329ae93e605d234a3199968163f02b4a2c7792: config_effective_stored_wrong_type_raised B 20 H 0; opt_other describe_setup B 3 H 0; _slot_extras B 3 H 0; measured_ceiling_kw B 3 H 0; every null arm 0 at both ends (matches the body)
+RESULT p1_seams.py sha1 22c4de9babe2ff4b9ea7119da019435e4fc96f3c opt-float: B seams=12 flagged=7, H seams=5 flagged=0; judged D1-s2-05 leaves the flagged list
+RESULT class_rule stored_option_coercions.py: B seams=118, H seams=97 at merge base d6645258; keyed (coercion, spelling, file, function) 14 functions gone, 0 new; the gone set is exactly the body's fourteen readers. The planted precondition refuses an empty tree (REFUSED: no module)
+RESULT class_open: none. Spot-read 30 of the 97 head seams (binary_sensor, climate, entity, topology 739/1214, sensor 1620/1654/2978/3080/3097, repairs, coordinator 2452/4390/5626/7676/8783/8853/8936-8942/9273-9277): each reads a computed action/plan/simulation, a store payload, a feed or schema-coerced service data, never a raw stored option
+RESULT mutation_proof re-run (pre-fix expression restored, script run, file restored, git status clean): M01 comfort_band.effective 8 of 730 FAILED; M09 buffer_max_temp 1; M13 modbus_prefill._plant 1; M14 quick_setup.derive 1; M17 dhw_deadband 2 (config_flow_steps); M18 dhw_deadband against tests/entities.py rc 1, 2 named reds: `apply_schedule reads a wrong-typed stored DHW setpoint or minimum as its default` and the entry-reader census `no migrated module reads a key off a mapping outside a dispositioned site` (matches the body)
+RESULT null_control: under each mutant only the named R11-LATE-P1-OPTIONS arms fail; every `null --` control stays green; config_flow_steps at the head ALL 730 checks PASSED
+RESULT structure.py at head (re-run after the mutants restored, tree clean): STRUCTURE RATCHET PASSED; measured at base module_excess_loc=21646 class_excess_loc=17220, at head 21627 and 17218: the drop is the deleted config_flow._effective copy and services.py's inline deadband read, earned by deletion; duplication_copies 3 at both
+RESULT claims: no golden fixture or claim file in the three-dot diff; VERSION, manifest version and RELEASE_NOTES.md untouched
+RESULT merge-tree origin/main head: rc 0, no conflict
+RESULT live checks at head: gate success (the one required check); only non-success tests / nightly-status (140315931996)
+RESULT semantics read: DEFAULT_MIXING_VALVE_TARGET is 0.0, so from_config's `finite_float(x) or DEFAULT` keeps the old 0-as-unset reading; presets' upper_area_ratio uses the default argument, not `or`, so a stored 0.0 still reads 0.0; `or DEFAULT` sites keep their 0-as-unset fallback as the body says
+
+Note: red-check: tests / nightly-status is red at the head with `NIGHTLY FAILED: nightly-ha (2025.2.0), nightly-ha (stable), slow failed last night.` It reports main's nightly, the diff cannot reach it, it is not required, and the body's ## Red checks does not name it.
+Carry: dismissed: evidence, not a finding
+Note: figure: the class-rule figures were taken against dbdc71faea35 (117/96); at the current merge base the rule prints 118/97. The extra seam is pump_signals.py:381 with_dhw_under_way, `float(action.get("dhw_power", 0.0))` over the computed current action, which main added after the measurement. It is in-memory and outside the claim's set, but the body's disposition list does not name it.
+Carry: dismissed: evidence, not a finding
+Note: builder: stored_option_coercions.py is the fixer's instrument, landed in this PR; the finder's harness is p1_probes.py, which I ran at both ends.
+Carry: dismissed: evidence, not a finding

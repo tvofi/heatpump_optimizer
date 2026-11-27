@@ -1,0 +1,8 @@
+RESULT config_effective_stored_wrong_type_raised=20
+RESULT config_effective_null_well_typed_raised=0
+RESULT opt_other topology.describe_setup stored_wrong_type_raised=3 null=0
+RESULT opt_other topology._slot_extras stored_wrong_type_raised=3 null=0
+RESULT opt_other quiet_windows.silent_cap_kw->measured_ceiling_kw stored_wrong_type_raised=3 null=0
+RESULT price_extreme_stamp_raised=0
+RESULT manual_extreme_stamp_raised=0
+RESULT store_bool_admitted_as_number=6 of 7 (dhw_draws.DrawStats.from_dict,tariff._stored_peaks,off_restore._entry_of,coordinator._async_load_energy_totals,coordinator._async_load_ledger,legionella.LegionellaGuard.async_load)

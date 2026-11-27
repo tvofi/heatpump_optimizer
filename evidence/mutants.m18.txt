@@ -1,0 +1,3 @@
+M18 tests/entities.py rc 1 [] named-fails 2
+      FAIL no migrated module reads a key off a mapping outside a dispositioned site; every module with a mapping read is migrated, residual or not an entry reader; no entry is stale  [STRAY [] STALE [] UNCLASSIFIED ['comfor
+      FAIL R11-LATE-P1-OPTIONS: apply_schedule reads a wrong-typed stored DHW setpoint or minimum as its default  [{"dhw_setpoint='abc'": 'raised ValueError', 'dhw_setpoint=None': 'raised TypeError', "dhw_setpoint={'x': 1}":

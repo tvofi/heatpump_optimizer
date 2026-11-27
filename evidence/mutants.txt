@@ -1,0 +1,18 @@
+M01 tests/config_flow_steps.py rc 1 ['8 of 730 checks FAILED'] named-fails 8
+      FAIL R11-LATE-P1-OPTIONS: config_flow._power_errors on stored heat_pump_min_power reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'; [
+      FAIL R11-LATE-P1-OPTIONS: config_flow._power_errors on stored heat_pump_max_power reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'; [
+      FAIL R11-LATE-P1-OPTIONS: config_flow._partload_errors on stored heat_pump_min_power reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'
+      FAIL R11-LATE-P1-OPTIONS: config_flow._partload_errors on stored heat_pump_max_power reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'
+      FAIL R11-LATE-P1-OPTIONS: config_flow._partload_errors on stored heat_pump_cop_partload_derate reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised 
+      FAIL R11-LATE-P1-OPTIONS: config_flow._dhw_min_too_close on stored dhw_setpoint reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'; [1.
+      FAIL R11-LATE-P1-OPTIONS: config_flow._dhw_min_too_close on stored dhw_min_temperature reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeErro
+      FAIL R11-LATE-P1-OPTIONS: config_flow._uncapped_schedule_errors reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'; [1.0]->'raised Type
+M09 tests/config_flow_steps.py rc 1 ['1 of 730 checks FAILED'] named-fails 1
+      FAIL R11-LATE-P1-OPTIONS: thermal_model.ThermalParameters.from_config on stored buffer_max_temperature reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->
+M13 tests/config_flow_steps.py rc 1 ['1 of 730 checks FAILED'] named-fails 1
+      FAIL R11-LATE-P1-OPTIONS: modbus_prefill._plant reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; {'x': 1}->'raised TypeError'; [1.0]->'raised TypeError'; True->7.0; nan->nan]
+M14 tests/config_flow_steps.py rc 1 ['1 of 730 checks FAILED'] named-fails 1
+      FAIL R11-LATE-P1-OPTIONS: quick_setup.derive on stored heated_area reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'; [1.0]->'raised T
+M17 tests/config_flow_steps.py rc 1 ['2 of 730 checks FAILED'] named-fails 2
+      FAIL R11-LATE-P1-OPTIONS: config_flow._dhw_min_too_close on stored dhw_setpoint reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeError'; [1.
+      FAIL R11-LATE-P1-OPTIONS: config_flow._dhw_min_too_close on stored dhw_min_temperature reads a wrong-typed stored option as its default  ['abc'->'raised ValueError'; None->'raised TypeError'; {'x': 1}->'raised TypeErro
