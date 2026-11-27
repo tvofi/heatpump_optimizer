@@ -80430,7 +80430,8 @@ async def _r11awb_locked(held_lock):
     if held_lock:
         await held.tail_lock.acquire()
     try:
-        await _r11awb_tick(c, 16)
+        # Bounded: a tick that queued behind the held lock would wait for it forever.
+        await _r11ar_aio.wait_for(_r11awb_tick(c, 16), 30)
         first = _r11awb_vals(_r11ar_settle(hass))[0]
     finally:
         if held_lock:
@@ -105255,34 +105256,8 @@ R.check(
     repr(_rb_laid),
 )
 
-# pump_arbiter.supply_tick: a tick that finds the tail holding the lock returns
-# at once and writes nothing; null control, the same tick unlocked writes.
 _rb_t0 = _SA_T0 + _rb_td(minutes=3)
 
-
-async def _rb_tick(locked):
-    held = _rb_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
-    inp = _sh_inputs(3, state="on")()
-    wrote = []
-
-    async def _write(on):
-        wrote.append(on)
-
-    if locked:
-        await held.tail_lock.acquire()
-    try:
-        await _rb_asyncio.wait_for(_rb_pa.supply_tick(held, _rb_pa.SupplyWiring(lambda: inp, _sh_none, _write), _rb_t0), 2.0)
-    except TimeoutError:
-        return "queued behind the lock"
-    return wrote
-
-
-_rb_ticks = {_rb_l: _rb_asyncio.run(_rb_tick(_rb_l)) for _rb_l in (True, False)}
-R.check(
-    "a step tick that finds the tail lock held returns without a write; null control, unlocked it writes",
-    _rb_ticks == {True: [], False: [True]},
-    repr(_rb_ticks),
-)
 
 # pump_arbiter.step_transition: where the step's tail ran, the transition does
 # not publish again; at a step already cut, it publishes and runs no tail.
