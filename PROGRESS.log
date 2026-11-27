@@ -1,3 +1,4 @@
 1795764049 INIT r11-owner-features-split
 1795764061 HB alive
 1795764067 CKPT setup done, role pack rendered snapshot ef082d1cf89e
+1795764188 CKPT measuring: ledger facts in; open PRs touching features.py enumerated (18 of 20) snapshot 47f0fe91d709
