@@ -12,10 +12,13 @@ and the pinned-guess lower clamp (M11). The coordinator residual stays.
 from __future__ import annotations
 
 from types import SimpleNamespace
+from unittest import mock
 
 import asyncio
+import logging
 import math
 import sys
+import warnings
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
@@ -34,6 +37,9 @@ from heatpump_optimizer.dhw_planner import DhwPlanner
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.price_model import PriceShapeModel
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
+from heatpump_optimizer import grid_fee as grid_fee_mod
+from heatpump_optimizer import price_model as price_model_mod
+from heatpump_optimizer import tariff as tariff_mod
 from heatpump_optimizer import topology
 from heatpump_optimizer.wood_fuel import wood_slots_to_kw
 from homeassistant.util import dt as dt_util
@@ -1276,6 +1282,452 @@ def _valve_batch_params_pins() -> dict[str, bool]:
     return out
 
 
+# R11-D3-PINS-money: the money seam's surviving mutants (#3755, class I1),
+# judged at a826f55f8c; ADR-011 fixes the shape. Each pin drives the
+# production entry point with the judge's moving input and asserts the
+# outcome the probe measured at the unpatched tree; the key in each name is
+# the mutant's, and tests/mutation_ledger/killed_by/ holds its row.
+def _money_safe(fn):
+    try:
+        return bool(fn())
+    except Exception:  # noqa: BLE001
+        return False
+
+
+class _MoneyCount(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.WARNING)
+        self.n = 0
+
+    def emit(self, record):
+        self.n += 1
+
+
+def _money_restore(factor, wsum=2.0, samples=1):
+    return tariff_mod.PeakTracker.from_dict({
+        "month": "2026-01", "peaks": [1.0], "peak_days": ["2026-01-05"],
+        "window_key": "2026-01-10T07:00:00|60", "window_sum": wsum,
+        "window_samples": samples, "window_factor": factor})
+
+
+def _money_tar(n=3):
+    return tariff_mod.CapacityTariff(enabled=True, price_per_kw=50.0, peaks_averaged=n)
+
+
+def _money_tiny_warns(fn):
+    with warnings.catch_warnings(record=True) as rec:
+        warnings.simplefilter("always")
+        out = fn()
+    return out, sum(1 for w in rec if issubclass(w.category, RuntimeWarning))
+
+
+def _pin_de935c38():
+    """D3-wave-de935c38786265e7: a non-finite persisted window_factor keeps the window (peak 2.0 survives its close)."""
+    for f in ("nan", "inf", float("nan"), float("inf")):
+        t = _money_restore(f)
+        t.observe(datetime(2026, 1, 10, 9, 0), 0.5, _money_tar())
+        if tuple(round(p, 6) for p in t.peaks) != (2.0, 1.0):
+            return False
+    return True
+
+
+def _pin_7fcaf91c():
+    """D3-wave-7fcaf91cced5ce41: non-finite/negative samples are dropped; the window peak stays 2.0."""
+    for bad in (float("nan"), float("inf"), -1.0):
+        t = tariff_mod.PeakTracker()
+        tar = _money_tar()
+        for i, kw in enumerate([2.0, bad]):
+            t.observe(datetime(2026, 1, 10, 7, 10 * i), kw, tar)
+        t.observe(datetime(2026, 1, 10, 9, 0), 0.5, tar)
+        if [round(p, 6) for p in t.peaks] != [2.0]:
+            return False
+    return True
+
+
+def _pin_3e9a439b():
+    """D3-wave-3e9a439baa86a074: stored 0.0 peaks survive an as_dict/from_dict restart (3 reloaded, billed 1.3333)."""
+    t = tariff_mod.PeakTracker(month="2026-11", peaks=[4.0, 0.0004, 0.0003],
+                      peak_days=["2026-11-03", "2026-11-04", "2026-11-05"],
+                      closed_month="2026-10", closed_peaks=[4.0, 0.0004, 0.0003])
+    t2 = tariff_mod.PeakTracker.from_dict(t.as_dict())
+    tar = _money_tar()
+    return (len(t2.peaks) == 3 and abs(t2.billed_peak_kw(tar) - 1.3333333) < 1e-3
+            and abs(t2.threshold_kw(tar)) < 1e-6)
+
+
+def _pin_9297f123():
+    """D3-wave-9297f123a6265555: apply_catalog(none/''/None) returns None with no warning logged."""
+    h = _MoneyCount()
+    log = logging.getLogger(grid_fee_mod.__name__)
+    log.addHandler(h)
+    try:
+        outs = [grid_fee_mod.apply_catalog(p) for p in (grid_fee_mod.DSO_PRODUCT_NONE, "", None)]
+    finally:
+        log.removeHandler(h)
+    return outs == [None, None, None] and h.n == 0
+
+
+def _pin_911f3cf5():
+    """D3-wave-911f3cf5172ffc44: apply_catalog on a catalog row with unparsable rules returns None."""
+    tmpl = dict(next(iter(grid_fee_mod.SWEDEN_CATALOG.values())))
+    for bad in ("garbage", "Mon = abc"):
+        with mock.patch.dict(grid_fee_mod.SWEDEN_CATALOG, {"stale_row": dict(tmpl, grid_fee_rules=bad)}):
+            if grid_fee_mod.apply_catalog("stale_row") is not None:
+                return False
+    return True
+
+
+def _pin_b5f0a732():
+    """D3-wave-b5f0a73275608684: max_abs_component on a tie with the fixed fee is labelled 'fixed'."""
+    s = grid_fee_mod.GridFeeSchedule(mode=grid_fee_mod.MODE_ENTITY, fixed=0.30)
+    z = grid_fee_mod.GridFeeSchedule(mode=grid_fee_mod.MODE_ENTITY, fixed=0.0)
+    return (grid_fee_mod.max_abs_component(s, 0.30)[1] == "fixed" and grid_fee_mod.max_abs_component(s, -0.30)[1] == "fixed"
+            and grid_fee_mod.max_abs_component(z, 0.0)[1] == "fixed")
+
+
+def _pin_68cc141b():
+    """D3-wave-68cc141bf2c3493a: min_component on a tie with the fixed fee is labelled 'fixed'."""
+    s = grid_fee_mod.GridFeeSchedule(mode=grid_fee_mod.MODE_ENTITY, fixed=-0.20)
+    z = grid_fee_mod.GridFeeSchedule(mode=grid_fee_mod.MODE_ENTITY, fixed=0.0)
+    return grid_fee_mod.min_component(s, -0.20)[1] == "fixed" and grid_fee_mod.min_component(z, 0.0)[1] == "fixed"
+
+
+def _pin_2043855e():
+    """D3-wave-2043855ef5cf151d: parse_rules(None) and parse_rules('') are [], spec_problem(None) is None."""
+    return grid_fee_mod.parse_rules(None) == [] and grid_fee_mod.parse_rules("") == [] and grid_fee_mod.spec_problem(None) is None
+
+
+def _pin_24604339():
+    """D3-wave-246043395831f540: peaks_averaged 0 gives marginal_price_per_kw 0.0 (no ZeroDivisionError)."""
+    return (_money_tar(0).marginal_price_per_kw == 0.0 and _money_tar(-1).marginal_price_per_kw == 0.0
+            and abs(_money_tar(3).marginal_price_per_kw - 16.6666667) < 1e-4)
+
+
+def _pin_4ad3dc13():
+    """D3-wave-4ad3dc13bfdb70a8: a persisted window_factor of exactly 0.0 is kept (window restored, factor 0.0)."""
+    t = _money_restore(0.0)
+    d = t.as_dict()
+    return d["window_factor"] == 0.0 and d["window_sum"] == 2.0 and d["window_samples"] == 1
+
+
+def _pin_37b3c9a0():
+    """D3-wave-37b3c9a03326d207: _one_per_day keeps every undated peak."""
+    return (tariff_mod._one_per_day([(3.0, ""), (2.0, "")]) == [(3.0, ""), (2.0, "")]
+            and tariff_mod._one_per_day([(3.0, ""), (2.0, ""), (1.0, "2026-01-05")])
+            == [(3.0, ""), (2.0, ""), (1.0, "2026-01-05")])
+
+
+def _pin_6536ff6b():
+    """D3-wave-6536ff6b094f971d: _smooth_topk_sum with k<=0 or empty input is 0.0."""
+    x = np.array([3.0, 1.0, 2.0])
+    return (tariff_mod._smooth_topk_sum(x, 0, 0.05) == 0.0 and tariff_mod._smooth_topk_sum(x, -1, 0.05) == 0.0
+            and tariff_mod._smooth_topk_sum(np.array([]), 3, 0.05) == 0.0)
+
+
+def _pin_5371ee2b():
+    """D3-wave-5371ee2b5e897750: _smooth_topk_sum with no positive entry is 0.0 (negative / nan-only too)."""
+    f = tariff_mod._smooth_topk_sum
+    return (f(np.array([-1.0, -2.0]), 1, 0.05) == 0.0 and f(np.array([0.0, 0.0, 0.0]), 2, 0.05) == 0.0
+            and f(np.array([float("nan")]), 1, 0.05) == 0.0)
+
+
+def _pin_2d037a10():
+    """D3-wave-2d037a10caa62e28: realised_peak of empty series is 0.0."""
+    e = np.array([])
+    return tariff_mod.realised_peak(e, e, 60, 0.25) == 0.0 and tariff_mod.realised_peak(e, e, 15, 0.25, 2) == 0.0
+
+
+def _pin_5f094dbc():
+    """D3-wave-5f094dbca9a593e9: _smooth_topk_sum on a 1e-8 kW plateau (recorded 9.97887e-09 / 1.99579e-08 for k=1/2)."""
+    x1 = np.array([1e-8] * 3 + [5e-9, 0.0, 1e-8 / 3])
+    x2 = np.array([1e-8] * 4 + [5e-9, 0.0, 1e-8 / 3])
+    return (abs(tariff_mod._smooth_topk_sum(x1, 1, 0.05) - 9.978865e-09) < 2e-12
+            and abs(tariff_mod._smooth_topk_sum(x2, 2, 0.05) - 1.995794e-08) < 4e-12)
+
+
+def _pin_996dce51():
+    """D3-wave-996dce5148e02763: _smooth_topk_sum_batch on 1e-8 kW rows (recorded 9.97887e-09 / 1.99579e-08 for k=1/2)."""
+    x1 = np.array([[1e-8] * 3 + [5e-9, 0.0, 1e-8 / 3]] * 2)
+    x2 = np.array([[1e-8] * 4 + [5e-9, 0.0, 1e-8 / 3]] * 2)
+    return (bool(np.all(np.abs(tariff_mod._smooth_topk_sum_batch(x1, 1, 0.05) - 9.978865e-09) < 2e-12))
+            and bool(np.all(np.abs(tariff_mod._smooth_topk_sum_batch(x2, 2, 0.05) - 1.995794e-08) < 4e-12)))
+
+
+def _pin_1894e6dc():
+    """D3-wave-1894e6dcd2251a30: metering_windows of an empty series is empty (not a one-element nan), no warning."""
+    e = np.array([])
+    out, n = _money_tiny_warns(lambda: [tariff_mod.metering_windows(e, w, 0.25, o) for w, o in ((60, 0), (60, 2), (15, 0))])
+    return n == 0 and all(r.size == 0 for r in out)
+
+
+_MONEY_DAY = [0.30, 0.25, 0.20, 0.20, 0.22, 0.35, 0.80, 1.20, 1.10, 0.90, 0.70, 0.60,
+       0.55, 0.50, 0.60, 0.80, 1.10, 1.50, 1.40, 1.00, 0.80, 0.60, 0.45, 0.35]
+_MONEY_DAY2 = _MONEY_DAY[::-1]
+_MONEY_WEEKDAYS = [datetime(2026, 1, 5 + i, 12) for i in range(5)]  # Mon..Fri
+_MONEY_WEEKEND = [datetime(2026, 1, 10, 12), datetime(2026, 1, 11, 12),
+           datetime(2026, 1, 17, 12), datetime(2026, 1, 18, 12)]  # Sat Sun Sat Sun
+_MONEY_WED = datetime(2026, 1, 7, 12)
+
+
+def _money_close(a, b, tol=1e-3):
+    return abs(float(a) - float(b)) <= tol
+
+
+def _money_model(days, whens=_MONEY_WEEKDAYS):
+    m = PriceShapeModel()
+    for when, d in zip(whens, days):
+        m.observe_day(when, d)
+    return m
+
+
+def _money_quarters(hourly, ramp=(0.9, 0.97, 1.03, 1.1)):
+    return [p * r for p in hourly for r in ramp]
+
+
+def _money_trained5():
+    return _money_model([_MONEY_DAY, _MONEY_DAY2, _MONEY_DAY, _MONEY_DAY2, _MONEY_DAY])
+
+
+def _pin_0ea7620c():
+    """SHAPE_ALPHA: learned hour-17 weekday shape after two different days (0ea7620c)."""
+    return _money_close(_money_model([_MONEY_DAY, _MONEY_DAY2]).summary()["weekday_shape"][17], 2.063)
+
+
+def _pin_213a122a():
+    """SHAPE_CONFIDENCE_DAYS: damped shape after two days (213a122a)."""
+    m = _money_model([_MONEY_DAY, _MONEY_DAY2])
+    return _money_close(m.shape_for(_MONEY_WED)[17], 1.42535, 1e-4)
+
+
+def _pin_b10967dd():
+    """SHAPE_MIN: a near-zero hour is clipped before learning (b10967dd)."""
+    m = _money_model([[0.01] + [1.0] * 23])
+    return _money_close(m.summary()["weekday_shape"][0], 0.198)
+
+
+def _pin_7e5493bc():
+    """QUARTER_ALPHA: quarter factor after a second, different quarter day (7e5493bc)."""
+    m = PriceShapeModel()
+    m.observe_day_quarters(_MONEY_WEEKDAYS[0], _money_quarters(_MONEY_DAY))
+    m.observe_day_quarters(_MONEY_WEEKDAYS[1], _money_quarters(_MONEY_DAY2, (1.5, 0.5, 1.5, 0.5)))
+    return _money_close(m.quarter_factor(datetime(2026, 1, 7, 5, 45)), 1.0112, 1e-3)
+
+
+def _pin_66686e3b():
+    """QUARTER_CONFIDENCE_DAYS: damped quarter factor after one quarter day (66686e3b)."""
+    m = PriceShapeModel()
+    m.observe_day_quarters(_MONEY_WEEKDAYS[0], _money_quarters(_MONEY_DAY))
+    return _money_close(m.quarter_factor(datetime(2026, 1, 7, 5, 45)), 1.02, 1e-4)
+
+
+def _pin_5bf50f5d():
+    """QUARTER_FACTOR_MIN: a tiny quarter is clipped up before learning (5bf50f5d)."""
+    m = PriceShapeModel()
+    m.observe_day_quarters(_MONEY_WEEKDAYS[0], _money_quarters(_MONEY_DAY, (0.01, 0.5, 0.5, 3.0)))
+    return _money_close(m.quarter_factors[0][4 * 5], 0.23585, 1e-4)
+
+
+def _money_spike_day():
+    v = []
+    for i, p in enumerate(_MONEY_DAY):
+        v += [-p, -p, -p, 5 * p] if i == 5 else [p] * 4
+    return v
+
+
+def _pin_cc96ce9e():
+    """QUARTER_FACTOR_MAX: a huge quarter is clipped down before learning (cc96ce9e)."""
+    m = PriceShapeModel()
+    m.observe_day_quarters(_MONEY_WEEKDAYS[0], _money_spike_day())
+    return _money_close(m.quarter_factors[0][4 * 5 + 3], 3.36842, 1e-4)
+
+
+def _pin_b5aef007():
+    """VAR_ALPHA: hour-17 sigma after four alternating days (b5aef007)."""
+    m = _money_model([_MONEY_DAY, _MONEY_DAY2, _MONEY_DAY, _MONEY_DAY2])
+    return _money_close(m.summary()["weekday_sigma"][17], 0.9862, 1e-3)
+
+
+def _pin_b9b6cf1d():
+    """expected_daily_min: no day types or a non-finite / non-positive level gives None (b9b6cf1d)."""
+    m = _money_trained5()
+    return (
+        m.expected_daily_min([], 0.8) is None
+        and m.expected_daily_min([0], float("nan")) is None
+        and m.expected_daily_min([0], 0.0) is None
+        and m.expected_daily_min([0, 1], -0.4) is None
+        and m.expected_daily_min([0], float("inf")) is None
+    )
+
+
+def _pin_a5c9796d():
+    """expected_daily_min: exactly 5 observed days is trusted, 4 is not (a5c9796d)."""
+    five = _money_trained5().expected_daily_min([0], 1.0)
+    four = _money_model([_MONEY_DAY, _MONEY_DAY2, _MONEY_DAY, _MONEY_DAY2]).expected_daily_min([0], 1.0)
+    return five is not None and four is None
+
+
+def _pin_13cadf1a():
+    """from_dict: residual variance exactly at the learner's maximum is kept (13cadf1a)."""
+    top = price_model_mod.RESIDUAL_VAR_MAX
+    row = [top] + [0.5] * 23
+    m = PriceShapeModel.from_dict({"residual_var": [row, list(row)]})
+    return m.residual_var[0][0] == top and m.residual_var[1][1] == 0.5
+
+
+def _pin_0b10a7c7():
+    """observe_day: first day seeds residual variance outright; sigma[17] 1.1858 (0b10a7c7)."""
+    s = _money_model([_MONEY_DAY]).summary()["weekday_sigma"]
+    return _money_close(s[17], 1.1858, 1e-3) and _money_close(s[3], 0.7086, 1e-3)
+
+
+def _pin_c4697335():
+    """observe_day: first day seeds the shape outright; weekday_shape[17] 2.186 (c4697335)."""
+    return _money_close(_money_model([_MONEY_DAY]).summary()["weekday_shape"][17], 2.186)
+
+
+def _pin_4e79ba6e():
+    """observe_day_quarters: an hour averaging exactly 1e-6 keeps factors 1.0 (4e79ba6e)."""
+    hour = [0.5e-6, 1.5e-6, 0.5e-6, 1.5e-6]
+    day = hour + [1.0] * 92
+    if float(np.mean(hour)) != 1e-6:
+        return False
+    m = PriceShapeModel()
+    for when in _MONEY_WEEKDAYS:
+        m.observe_day_quarters(when, day)
+    return (m.quarter_factor(datetime(2026, 1, 7, 0, 0)) == 1.0
+            and m.quarter_factor(datetime(2026, 1, 7, 0, 15)) == 1.0)
+
+
+def _pin_12cd6ddd():
+    """observe_day_quarters: first quarter day seeds factors outright (12cd6ddd)."""
+    m = PriceShapeModel()
+    m.observe_day_quarters(_MONEY_WEEKDAYS[0], _money_quarters(_MONEY_DAY, (0.5, 0.5, 0.5, 2.5)))
+    return _money_close(m.quarter_factors[0][4 * 5 + 3], 2.5, 1e-4)
+
+
+def _pin_3a064c11():
+    """summary: weekday_sigma reports the learned dispersion, not zero (3a064c11)."""
+    s = _money_model([_MONEY_DAY, _MONEY_DAY2, _MONEY_DAY, _MONEY_DAY2]).summary()["weekday_sigma"]
+    return _money_close(s[17], 0.9862, 1e-3) and max(s) > 0.9
+
+
+def _pin_efa02472():
+    """summary: weekend_sigma reports the learned dispersion, not zero (efa02472)."""
+    s = _money_model([_MONEY_DAY, _MONEY_DAY2, _MONEY_DAY, _MONEY_DAY2], _MONEY_WEEKEND).summary()["weekend_sigma"]
+    return _money_close(s[17], 0.9862, 1e-3) and max(s) > 0.9
+
+
+def _pin_a38612ad():
+    """from_dict: an all-zero stored shape is clipped and renormalised to ones (a38612ad)."""
+    m = PriceShapeModel.from_dict({"shapes": [[0.0] * 24, [1.0] * 24]})
+    return all(_money_close(v, 1.0, 1e-9) for v in m.shapes[0])
+
+
+def _pin_28de20de():
+    """observe_day: Saturday folds into the weekend profile (28de20de)."""
+    m = PriceShapeModel()
+    m.observe_day(datetime(2026, 1, 10, 12), _MONEY_DAY)
+    s = m.summary()
+    return s["weekend_days"] == 1 and s["weekday_days"] == 0
+
+
+class _MoneyResp:
+    def __init__(self, status):
+        self.status = status
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def json(self):
+        raise RuntimeError("non-JSON body")
+
+
+class _MoneySession:
+    def __init__(self, status):
+        self.status = status
+
+    def post(self, *a, **k):
+        return _MoneyResp(self.status)
+
+
+def _money_pull(status):
+    cfg = {price_model_mod.CONF_TIBBER_TOKEN: "tok"}
+    return asyncio.run(price_model_mod.pull_prices(_MoneySession(status), cfg))
+
+
+def _pin_e5eea05f():
+    """pull_prices via _tibber_post: non-200 with an unreadable body gives reauth/fail (e5eea05f)."""
+    return (_money_pull(401)[0] == "reauth" and _money_pull(403)[0] == "reauth"
+            and _money_pull(502) == ("fail", "Tibber API error: 502"))
+
+
+def _pin_0d159d7d():
+    """extend_price_series: a model with no confidence repeats the last known price (0d159d7d)."""
+    times = [datetime(2026, 1, 14, 12 + i) for i in range(6)]
+    prices, mask, sigma = price_model_mod.extend_price_series(
+        [1.0, 2.0, 3.0], 6, times, PriceShapeModel())
+    return [float(x) for x in prices[3:]] == [3.0, 3.0, 3.0]
+
+
+def _pin_b539d450():
+    """prices_from_entity_state: unknown state with empty attributes is 'Price entity is empty' (b539d450)."""
+    return all(
+        price_model_mod.prices_from_entity_state(SimpleNamespace(state=s, attributes=a))
+        == "Price entity is empty"
+        for s in ("unknown", "unavailable", "")
+        for a in ({}, (1,))
+    )
+
+
+def _money_pins() -> dict[str, bool]:
+    return {
+        "de935c38 non-finite window_factor keeps window": _money_safe(_pin_de935c38),
+        "7fcaf91c non-finite/negative sample dropped": _money_safe(_pin_7fcaf91c),
+        "3e9a439b zero stored peaks survive restart": _money_safe(_pin_3e9a439b),
+        "9297f123 none/empty product no warning": _money_safe(_pin_9297f123),
+        "911f3cf5 stale catalog row returns None": _money_safe(_pin_911f3cf5),
+        "b5f0a732 max_abs tie labelled fixed": _money_safe(_pin_b5f0a732),
+        "68cc141b min_component tie labelled fixed": _money_safe(_pin_68cc141b),
+        "2043855e parse_rules None is empty": _money_safe(_pin_2043855e),
+        "24604339 zero peaks_averaged marginal 0": _money_safe(_pin_24604339),
+        "4ad3dc13 window_factor 0.0 kept": _money_safe(_pin_4ad3dc13),
+        "37b3c9a0 undated peaks all kept": _money_safe(_pin_37b3c9a0),
+        "6536ff6b smooth topk k<=0 is 0": _money_safe(_pin_6536ff6b),
+        "5371ee2b smooth topk no positive is 0": _money_safe(_pin_5371ee2b),
+        "2d037a10 realised_peak empty is 0": _money_safe(_pin_2d037a10),
+        "5f094dbc smooth topk tiny plateau value": _money_safe(_pin_5f094dbc),
+        "996dce51 smooth topk batch tiny plateau value": _money_safe(_pin_996dce51),
+        "1894e6dc metering_windows empty stays empty": _money_safe(_pin_1894e6dc),
+    
+        "b9b6cf1d expected_daily_min guard": _money_safe(_pin_b9b6cf1d),
+        "c4697335 shape seed on first day": _money_safe(_pin_c4697335),
+        "3a064c11 summary weekday sigma": _money_safe(_pin_3a064c11),
+        "efa02472 summary weekend sigma": _money_safe(_pin_efa02472),
+        "28de20de saturday is weekend": _money_safe(_pin_28de20de),
+        "e5eea05f tibber non-200 no json": _money_safe(_pin_e5eea05f),
+        "0d159d7d zero-confidence flat tail": _money_safe(_pin_0d159d7d),
+        "0ea7620c SHAPE_ALPHA": _money_safe(_pin_0ea7620c),
+        "213a122a SHAPE_CONFIDENCE_DAYS": _money_safe(_pin_213a122a),
+        "b10967dd SHAPE_MIN": _money_safe(_pin_b10967dd),
+        "7e5493bc QUARTER_ALPHA": _money_safe(_pin_7e5493bc),
+        "66686e3b QUARTER_CONFIDENCE_DAYS": _money_safe(_pin_66686e3b),
+        "5bf50f5d QUARTER_FACTOR_MIN": _money_safe(_pin_5bf50f5d),
+        "cc96ce9e QUARTER_FACTOR_MAX": _money_safe(_pin_cc96ce9e),
+        "b5aef007 VAR_ALPHA": _money_safe(_pin_b5aef007),
+        "a5c9796d five days trusted": _money_safe(_pin_a5c9796d),
+        "13cadf1a residual var max kept": _money_safe(_pin_13cadf1a),
+        "0b10a7c7 residual var seed": _money_safe(_pin_0b10a7c7),
+        "4e79ba6e hour mean 1e-6 unusable": _money_safe(_pin_4e79ba6e),
+        "12cd6ddd quarter seed": _money_safe(_pin_12cd6ddd),
+        "a38612ad zero shape renormalised": _money_safe(_pin_a38612ad),
+        "b539d450 empty attrs reason": _money_safe(_pin_b539d450),
+    
+    }
+
+
 def main() -> int:
     R = Results("Guard pins (#805 non-coordinator)")
     R.check(
@@ -1340,6 +1792,8 @@ def main() -> int:
         R.check(name, ok)
     for name, ok in _valve_batch_params_pins().items():
         R.check(name, ok)
+    for name, ok in _money_pins().items():
+        R.check(f"R11-D3-PINS-money {name}", ok)
     return R.close("GUARD PIN CHECKS")
 
 

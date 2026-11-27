@@ -100,6 +100,8 @@ def expr_value(e: str, tmp: str) -> str:
         "needs.closure-scope.outputs.case == 'scoped' && 'scoped' || 'full'": "full",
         "inputs.gate_scope == 'auto' && 'auto' || 'full'": "full",
         "inputs.base || 'main'": "main",
+        # A pull_request run's prelude leaves range_base empty (a push's light range sets it).
+        "inputs.range_base || format('origin/{0}', inputs.base || 'main')": "origin/main",
     }
     if e.startswith("github.event.pull_request.base.sha"):
         return "origin/main"
