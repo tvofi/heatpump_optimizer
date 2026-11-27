@@ -20,3 +20,4 @@
 1795754759 HB alive
 1795755363 HB alive
 1795755613 CKPT BLOCKED.md pushed 95c4c6e68d: #3805's module_excess_loc +49 is prepr's only refusal snapshot 658f7f3d71b9
+1795755617 DONE blocked: prepr's only refusal is #3805's module_excess_loc +49; question in BLOCKED.md at handoff-wip/r11-repair-3907 95c4c6e68d
