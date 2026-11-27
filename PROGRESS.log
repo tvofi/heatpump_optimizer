@@ -12,3 +12,4 @@
 1795743531 CKPT L3 W1 committed (prelude defer + sweep undefer), pushed to handoff-wip snapshot 51f7229d3d90
 1795743562 CKPT BLOCKED.md pushed: W1 built, W2 + carry 2 to fresh context snapshot 76c472dd34f1
 1795743565 DONE blocked: L3 W1 at 328e2b3a7b on handoff-wip; W2, handoff and carry 2 to a fresh context (rotation)
+1795746476 HB alive
