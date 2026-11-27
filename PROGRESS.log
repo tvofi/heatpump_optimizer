@@ -88,4 +88,7 @@
 1795796818 HB pin-killed drive running
 1795797433 HB pin-killed drive running
 1795798497 HB pin-killed drive running
-1795799112 HB pin-killed drive running
+1795798522 HB alive
+1795798550 CKPT resumed at 63ae870a, reproducing mutation-ledger red via prepr snapshot d8f6d6950eb6
+1795798610 CKPT pin-killed drive started on 47 added sites snapshot 07a2112aafcd
+1795799127 HB alive
