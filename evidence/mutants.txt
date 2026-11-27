@@ -1,0 +1,21 @@
+== head-cs
+rc=0
+cancel_superseded self-test: 88 checks, 0 failed
+== head-mt
+rc=0
+merge_train self-test: 841 checks, 0 failed
+== m1-cs-fallback
+rc=1
+cancel_superseded self-test: 88 checks, 1 failed
+== m2-cs-endpoint
+rc=1
+cancel_superseded self-test: 88 checks, 2 failed
+== m3-mt-fallback
+rc=1
+merge_train self-test: 841 checks, 1 failed
+== m4-mt-endpoint
+rc=1
+merge_train self-test: 841 checks, 3 failed
+== m5-mt-always
+rc=1
+merge_train self-test: 841 checks, 5 failed
