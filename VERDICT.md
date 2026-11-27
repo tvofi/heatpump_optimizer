@@ -1,25 +1,23 @@
-Fix review: merge 5f8e2cdb5fe2d236f71c62f8d41b31836df88107
+Fix review: merge e3d8f5c660f77417d2fcde114620a387a62f5a66
 
-bus-nonce: 6ed37cc85a15221671c27fc56354813a
+bus-nonce: 1e8e440d82b4d377635d35948934bd17
 
 ## Scope
 
-Round: delta review after the merge verdict at 1a0d13512588f35397993818aad8d566bf96afbc (fix-review.md step 12). review_carry.py prints FRESH-REVIEW because 4d865cb7 is a hand-resolved merge, so this round reviews that delta: the resolution of origin/main 8f22a3b2 into the branch. The packet's `## Review scope: full` line comes from rendering with --reviewed-head equal to the head; the dispatch names this as a delta review over 1a0d1351, and step 12 governs. The production delta is unchanged (below), so the scope stays at the delta.
+Round: delta review over the merge verdict at 5f8e2cdb5fe2d236f71c62f8d41b31836df88107 (fix-review.md step 12). The delta is four merges of origin/main (up to 7194ff84) plus one branch commit, a268a50d (dev/audit/config/scopes.json). The three earlier blocked verdicts (9f133225 lifecycle-leak, ef876fec ci-red, 61e49d1d test-red) were already resolved by the merge verdicts at 2c1ab822, 1a0d1351 and 5f8e2cdb. The previous verdict had no open block. The only widening is the hand-resolved production hunk in diagnostics.py, named below.
 
 ## Evidence
 
-- RESULT production-unchanged: `git diff <merge-base> 1a0d1351 -- custom_components/` and `git diff 8f22a3b2 5f8e2cdb -- custom_components/` carry identical +/- lines (13 files, +526/-70). The reviewed fix is unchanged.
-- RESULT hand-resolution: the tree at 5f8e2cdb differs from `git merge-tree --write-tree 1a0d1351 8f22a3b2` only in the six files the body names (claims.json, claims.md, claims.py, docs/architecture.md, tests/deployment_shape.py, tests/features.py). 4d865cb7 and 5f8e2cdb have the same tree. Diff in ev/hand_resolution.diff.
-- RESULT features.py-union: the branch's added lines (merge-base..1a0d1351) equal 8f22a3b2..5f8e2cdb's, and main's added and removed lines (merge-base..8f22a3b2, +259/-17) equal 1a0d1351..5f8e2cdb's (+258/-17). The only difference on each side is one blank separator line, which the two sides now share. The R11-OWNER-FAULT-TEXT section and the #3616 R11-OUTSIDE-ROOMS-3B section are both complete, each closing its own `R.check(`. The file parses. No conflict markers are left in any of the six files.
-- RESULT counts re-derived at 5f8e2cdb:
-  - 124 tracked files under custom_components/heatpump_optimizer/ and 105 .py modules.
-  - `claims.py` prints arch_modules_on_disk=105, arch_map_listed=105 and claims_false=0, rc=0. Its regeneration leaves claims.md and claims.json byte-identical.
-  - 37 HA importers: main's 36 plus fault_log.py. comfort_floor.py is not one.
-  - 182 of 561 script pairs at Jaccard >= 0.80 over the production closures in closures.json, among 435 non-empty pairs. Main 8f22a3b2 gives 184 and 1a0d1351 gives 181 under the same rule, matching the history sentence (ev/pairs.txt, script in the review directory).
-  - structure_budgets module_excess_loc: 21762 (merge-base) - 8 (branch, 21754) - 9 (main, 21753) = 21745, the committed value.
-  - tests/structure.py: rc=0.
-- RESULT mutation: CMP_BOUND on config_flow.py:2675 (`>` to `>=` FAULT_TEXT_ENTITIES_MAX) makes tests/config_flow_steps.py go rc=0 to rc=1, failing "five fault-text entities are refused..." (ev/mutant.txt). Source restored.
-- RESULT claims: tests/golden/ is unchanged from 1a0d1351. The single config_flow claim line is the reviewed one. VERSION, manifest and RELEASE_NOTES are untouched in the three-dot diff. `env_drift.py --all` was not completed locally (killed at the 200 s cap), so CI's green gate is cited.
-- RESULT merge: `git merge-tree --write-tree origin/main 5f8e2cdb` rc=0 against origin/main dbdc71fa, so it merges cleanly.
-- RESULT CI: `merge_train.py classify 5f8e2cdb... --pr 3870` prints `GREEN 5f8e2cdb5fe2d236f71c62f8d41b31836df88107 pending: none red: none` (ev/classify.txt). The packet's red nightly-ha (2025.2.0, stable) and nightly-status are not in the `owed-reds` set, so no answer is owed.
-- RESULT prior findings: the previous merge verdict carried no open block. carry_audit at the head reads 3 finding items, 3 routed, 0 unrouted.
+- RESULT merges: f2fc22c3, a9c10725 and e3d8f5c6 have the same tree as `git merge-tree --write-tree` of their parents. ea0c7f82 and 6cc9ae92 differ only in files that the repository's ledger and claim merge drivers resolve. dce9bda8 was hand-resolved in custom_components/heatpump_optimizer/diagnostics.py only (ev/merges.txt).
+- RESULT diagnostics.py: the resolution unions both sides. The import line carries both `boost` (main, #3862) and `fault_log` (this PR). `_VIEWS` keeps this PR's `fault_log` view and main's `external_heat_block_ignore` view, and no conflict marker is left. The fault_log view is byte-identical to the reviewed one. Risk named: losing the fault_log view or import in the resolution. It is not lost.
+- RESULT net PR diff: comparing 8f22a3b2..5f8e2cdb with 7194ff84..e3d8f5c6 file by file, nine files' +/- lines differ (ev/netdiff.txt). The rest of the PR's own diff, including all other production files, is unchanged.
+  - diagnostics.py: the union above.
+  - scopes.json: a268a50d, below.
+  - option_doc_coverage.py, claims.py, deployment_shape.py, docs/architecture.md, claims.md/json: main's FG-1 change (#3911) removed the text counts the branch had moved. At the head these files equal main's, or carry only the branch's non-count rows. Nothing the branch must carry is lost.
+  - structure_budgets.json: the branch still lowers module_excess_loc by 8 (21646 to 21638).
+- RESULT counts at the head: `claims.py` rc=0, claims_false=0, arch_modules_on_disk=107, arch_map_listed=107, ha_module_level_importers=37. `tests/structure.py` rc=0.
+- RESULT scopes.json (a268a50d): `check_scopes.py --repo .` rc=0 at the head. Null control: with main 7194ff84's scopes.json at the same head it is rc=1, `FAIL D5 ... over ledger.max_units 4500: s7 holds 4509 units`. Narrowing s7 to tests/features.py is what clears it. The coverage line reads unclassified=0, so the rest of tests/f* stays covered (ev/check_scopes.txt).
+- RESULT merge: `git merge-tree --write-tree origin/main e3d8f5c6` rc=0 against origin/main b4ebe3dc (ev/merge_tree.txt).
+- RESULT CI, live: gate 140337653398 (CI code run 45936122730) succeeded at this head. Every required check is green except one: the CI edit run 45936123844's gate 140307136103 is red. Its log reads `FAIL run(s) [45936122730] at this head are still being judged; their gate decides`, so that red is a deferral to the code run's green gate, not a code or test red. `merge_train.py classify` prints `WAIT ... pending: gate red: none` (ev/classify.txt). nightly-ha (2025.2.0, stable) and nightly-status are red and not required.
+
+Note: ci-state: the edit run's deferring gate 140307136103 is still listed red beside the code run's green gate, and classify reads WAIT. A gate re-run of 45936123844 should clear it. No code, test or harness in this PR causes it.
