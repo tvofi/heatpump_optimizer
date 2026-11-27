@@ -6,6 +6,10 @@ Builds option D of the approved design `design/R11-OWNER-STEP-KICK` 09fecb1b (re
 
 ## Head
 
+`bcf46f6fb0544871f559837d38d10c2b4dfc194c` merges main `e848565` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`cbd6e64df9e8ae00214ea162a5f587a2ba074339` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 `9740b9e336d8d845e61d9ce2d6f0813daa27c2a1` is the head: one commit on `13aff813b2`, the repair of the `governance / instrument-self-tests` red. It cherry-picks `7df39f349a` (the selftests seat's re-cut, never landed) and changes only `dev/audit/config/scopes.json`. D5 seat s7 narrows from `tests/f*` to `tests/fe*`, and s8 takes `tests/finite_boundary.py` and `tests/frontend.py`. This diff's growth of `tests/features.py` put s7 over `ledger.max_units` 4500. `python3 -I tools/audit/check_scopes.py --repo .` read `s7 holds 4508 units` at `13aff813b2` (FAIL). At this head it reads `s7:1f/0loc/4324u`, `s8:49f/0loc/3999u` (ok). At origin/main `d380053b01` it reads `s7:3f/0loc/4487u` (ok), the null control. Delta for review: `git diff 13aff813b2 9740b9e336`. Its gate scope is `python3 tests/closure.py select --diff 13aff813b2`, which printed `MODE: SCOPED -- 1 script(s) run, 33 scoped out.` (tests/entities.py; result under Figures). `git merge-tree --write-tree origin/main HEAD` exits 0 against `d380053b01`. Stamped 2026-11-27 04:28 UTC.
 
 `13aff813b29d616644628e762198fad2ef88d231` merges the authored code head `5b060f77c58179e811a5324ad6679a8f5c571bb4` and then merges origin/main `190ffb10c2` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
@@ -96,6 +100,18 @@ Architecture score: dS +0.0000 NULL (`python3 tools/audit/archscore/score.py --d
 
 ## Red checks
 
+Red at head `b4fe9231` (`gh pr checks 3883`, run 46027556011), by check name, then the earlier heads' reds.
+
+- `governance / policy-docs` at `b4fe9231` (job 140603738896): `FIELD COVERAGE REFUSED`, four `BLIND` census rows: `structure.py` `dead_methods`, `dead_top_level_symbols`, `name_kept_members` and `unloaded_package_imports`, each `UNGATED, n -> n+1 with one planted member and no refusal`. Cause: this diff's re-record wrote `unloaded_package_imports` as -1 in `tests/structure_budgets.json` (base 0), which `tests/structure.py` refuses as a malformed row before it grades any planted member, so no census plant reached its own metric's refusal. Repair 2f97eb427343 (branch handoff/r11-repair-3883b) restores 0; with it `node tools/policy/field_coverage.mjs` reads blind=0 dead=0 refused=0. Cheaper detector: `python3 tests/structure.py`, 26 s, which printed `FAIL unloaded_package_imports=-1 is below 0` and is in this diff's scope.
+- `tests / fast (3.14, 2/4)` at `b4fe9231` (job 140605362747): `python3 tests/structure.py` exited 1 on the same `unloaded_package_imports=-1 is below 0` malformed row. Same cause, same repair 2f97eb427343; `tests/structure.py` passes after it (`unloaded_package_imports 0 <= 0`).
+- `governance / instrument-self-tests` at `b4fe9231` (job 140603738801): step `Show the pre-PR self-check refusing its own fixtures`, `571 passed, 5 failed`, each `got 1, wanted 0` (the PreToolUse matcher null control, the body-push null control, the V147 `Code:` trailer, CARRY 11, and the unreadable-roster rc 3 row), and `selftest_scope self-test: 173 checks, 5 failed`. This diff touches nothing under `tools/` or the hooks; these rows drive the body lint, which reads `tests/structure_budgets.json`, so the malformed row is the suspected cause. Not re-run to completion locally; the run after 2f97eb427343 decides, and a row still red then is not this diff's.
+- `tests / mutation` at `b4fe9231` (job 140603738941): `MUTATION TABLE REFUSED` on one stale disposition, flow_lift.py `FlowCurveBias.observe_temps` BOOLOP 04143c3f. This diff does not touch flow_lift.py: inherited from main, cured by #3939.
+- `tests / mutation-autofix`: owed only for sites this diff adds; `mutation-pins` had not concluded at `b4fe9231` (queued), so unmeasured. It cannot clear the inherited stale pin.
+- `gate`: aggregates the reds above; no check of its own.
+- `tests / nightly-status`: reports the scheduled nightly on main, not this diff; clears on the next green nightly.
+
+Earlier heads:
+
 Each concluded red on this pull request's heads, by check name:
 
 - `governance / instrument-self-tests` at `13aff813b2` (run 45927526293, job 140272573826): two steps failed, 23 (`owner-only-channel`) and 55 (`self-tests-outside-seat`). `python3 -I tools/ci/selftest_scope.py select --base 190ffb10c2` selects both for this diff (`MODE: SCOPED -- 79 step(s) run`), so the red is this PR's. Both trace to one cause: `tests/features.py`'s growth took D5 seat s7 to 4508 units, past `ledger.max_units` 4500. Step 23's harness `dev/audit/harnesses/owner_only_channel.py` read `RESULT arms=48 failed=1`, `OWNER-ONLY CHANNEL BROKEN: SCOPES null`. Step 55's one failing command was `python3 -I tools/audit/check_scopes.py --self-test --repo .`, with `the default invocation exits 0 on the live scopes: False`. The step's other commands exit 0 at this head. At origin/main `d380053b01`, both read clean: `OWNER-ONLY CHANNEL HELD` with `failed=0`, and no command of step 55 fails. At this head, after the re-cut, `owner_only_channel.py` reads `RESULT arms=48 failed=0`, `OWNER-ONLY CHANNEL HELD`, and `check_scopes.py --self-test --repo .` reads `SELF-TEST passed (every perturbed scope refused)`. Cheaper detector: `python3 -I tools/audit/check_scopes.py --repo .`, measured at 22 s on this host. It names the seat over the cap, and neither `tools/pr/prepr.sh` nor `tools/pr/ci_predict.py` runs it (`grep -n check_scopes` finds neither). The countermeasure and its cost test are the root-cause seat's, which runs apart from the fix (`defect-root-cause.md`, step 2).
@@ -141,5 +157,4 @@ Each concluded red on this pull request's heads, by check name:
 ## Friction
 
 - fixer.md: cost: two fixer seats built R11-OWNER-STEP-KICK. Their heads `58a605d3a6` (the other local seat's ten commits from e6873a7fb1) and `f67fb20bae` (the stopped cloud seat, prepr rc 0), the reviewed `4c2f14778b` and the PR head `bdb3b6885d` are each an ancestor of `280a51a4cc` (`git merge-base --is-ancestor`, rc 0 for all four), so nothing is ported and nothing is dropped. `pump_arbiter.py` keeps 58a605d3a6's coordinator-free `_note_served`/`_settle` shape. Carry: R11-OWNER-STEP-KICK
-
 
