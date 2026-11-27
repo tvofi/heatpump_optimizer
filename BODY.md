@@ -6,6 +6,10 @@ Builds the approved design `design/R11-OWNER-MODE-LEGS` 0e59437a (rev 2, verdict
 
 ## Head
 
+8621e7a3bc318f4ba6f9556460f5d6bddaaf458f
+
+Merge repair: mode-legs: budget metrics re-recorded to measured values
+
 `5d1817eb414426bdbe3cb782a89dfd30c2eecf18` merges the authored code head `73e02042d836a3492370489eae9bcfc57c396265` and then merges origin/main `ef797d7940` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `73e02042d836a3492370489eae9bcfc57c396265` merges `origin/main` ef797d7940 into 928dcb1ac3 and is this PR's head. One file conflicted, `dev/audit/config/scopes.json` (the D5-s7 seat): main's 7df39f349a had re-cut it to `tests/fe*` (the same cap repair, moving `tests/finite_boundary.py` and `tests/frontend.py` to s8), and 928dcb1ac3 re-cut it to `tests/features.py`. Resolved to main's side, since it is the same fix and `tests/features.py` is the only `tests/fe*` file; the repair's one-line change is now redundant. `tests/entities.py` auto-merged. The merged file is main's byte for byte. `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh`: rc=0. `score.py --diff origin/main`: dS +0.0006 IMPROVES. Review delta: `git diff 928dcb1a 73e02042d8`.
@@ -199,6 +203,7 @@ Null control for the triage: a differential probe (scratch, not committed) of `p
 ## Friction
 
 none
+
 
 
 
