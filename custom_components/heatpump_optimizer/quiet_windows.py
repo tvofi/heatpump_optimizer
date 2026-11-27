@@ -71,6 +71,7 @@ from .const import (
     DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
     DEFAULT_SILENT_MODE_FRACTION,
+    finite_float,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -412,10 +413,10 @@ def measured_ceiling_kw(
         config.get(CONF_COMPRESSOR_FREQ_ENTITY),
         config.get(CONF_COMPRESSOR_FREQ_SENSOR),
         get_state,
-        float(config.get(CONF_COMPRESSOR_FREQ_MIN_HZ)
-              or DEFAULT_COMPRESSOR_FREQ_MIN_HZ),
-        float(config.get(CONF_COMPRESSOR_FREQ_MAX_HZ)
-              or DEFAULT_COMPRESSOR_FREQ_MAX_HZ),
+        finite_float(config.get(CONF_COMPRESSOR_FREQ_MIN_HZ))
+        or DEFAULT_COMPRESSOR_FREQ_MIN_HZ,
+        finite_float(config.get(CONF_COMPRESSOR_FREQ_MAX_HZ))
+        or DEFAULT_COMPRESSOR_FREQ_MAX_HZ,
     )
     if hz is not None and hz > 0.0 and hz_max > 0.0:
         return _within_nameplate(hz / hz_max * float(p_max), float(p_max))
