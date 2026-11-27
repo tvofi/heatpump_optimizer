@@ -1,1 +1,6 @@
-merge-tree vs origin/main b4ebe3dcf3 rc=0
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (609 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1615 entries)
+  re-run the gate that owns this file before pushing
+be4d4572f05ad99152ac139efb4285cf912b766f
+rc=0 origin/main=9ffb388f7ec88aada3354a316553908d34c664e8
