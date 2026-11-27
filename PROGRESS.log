@@ -17,3 +17,4 @@
 1795742899 CKPT 39 ledger rows committed bb13a40; scoped gate green; prepr running snapshot 94feb4cd2aad
 1795742928 HB alive
 1795743532 HB alive
+1795744027 DONE handed off bb13a40: 39 money-seam pins in tests/guard_pins.py + 39 ledger rows; b5a48246 non-finding (already killed by features.py)
