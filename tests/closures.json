@@ -5524,6 +5524,7 @@
    "dev/audit/rounds/round11/D2/s3/m5_powerest.py",
    "dev/audit/rounds/round11/D2/s3/m5_sysid.py",
    "dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+   "dev/audit/rounds/round11/D3/pins-plant/run.sh",
    "dev/audit/rounds/round11/D3/s1/box_report.py",
    "dev/audit/rounds/round11/D3/s1/build_report.py",
    "dev/audit/rounds/round11/D3/s1/build_report_rem.py",
@@ -6372,8 +6373,8 @@
    "seconds": 3.3
   },
   "tests/doc_claims.py": {
-   "rc": 1,
-   "seconds": 31.0
+   "rc": 0,
+   "seconds": 62.4
   },
   "tests/dst_checks.py": {
    "rc": 0,
