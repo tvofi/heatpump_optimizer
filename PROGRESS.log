@@ -10,3 +10,4 @@
 1795754398 HB alive
 1795755000 HB alive
 1795755000 CKPT 3883 code at handoff/r11-repair-3883, body refused CARRY-LANDED; 3930 prepr second run snapshot 21eee8abc51f
+1795755513 DONE 3930 handed off (16e9972f8b, dS +1.2247 IMPROVES); 3883 code at 9740b9e336, body REFUSED CARRY-LANDED, BLOCKED.md at handoff-wip 311cbb8b
