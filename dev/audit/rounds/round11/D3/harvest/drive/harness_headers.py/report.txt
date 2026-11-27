@@ -1,0 +1,5 @@
+HARVEST -- 1 of 1 anchor(s) unpinned at HEAD, 1 site(s)
+  1818 unpinned site(s) of 8228 candidate sites, 1818 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 12 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+  SKIP tests/harness_headers.py (this scope does not drive it at all: it measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011))
+DRAIN -- 0 of 1818 unpinned site(s), whole anchors under --seed 20260911, to drive
+DRAIN: nothing drivable

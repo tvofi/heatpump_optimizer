@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 4cc7cd0a",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0))",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`hp_draw = min(drawn - wood_draw, (avail_hp))`) took it from rc=0 failed=0 to rc=1 failed=1; CLAMP_DROP (`hp_draw = (drawn - wood_draw)`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 98853a541b6b5d6a; the second is the same line's outer-min drop, not a wave finding, driven so the anchor is whole)."
+}

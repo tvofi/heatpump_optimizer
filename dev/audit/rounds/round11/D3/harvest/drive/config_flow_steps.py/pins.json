@@ -1,0 +1,22 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._baseline_house_load GUARD_OFF e6a70774": {
+    "killed_by": "tests/config_flow_steps.py",
+    "old": "        if house is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:parse_rules GUARD_OFF d1b1fa4b": {
+    "killed_by": "tests/config_flow_steps.py",
+    "old": "        if line:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._power_to_setpoints RETURN_DEL 635013c9": {
+    "killed_by": "tests/config_flow_steps.py",
+    "old": "        return setpoints",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair BOOLOP f3cb6a95": {
+    "killed_by": "tests/config_flow_steps.py",
+    "old": "        if when is not None and when.date() in self.holiday_dates:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if when is not None or when.date() in self.holiday_dates:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

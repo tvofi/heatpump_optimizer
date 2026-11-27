@@ -1,0 +1,412 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_manual_plan GUARD_OFF 6e67db91": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if not stored:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_data_dict GUARD_OFF 5aa7e660": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._energy_totals_since is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps RETURN_DEL 69eebacf": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return caps if any_cap else None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_confidence_band GUARD_OFF 84feda07": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            if value is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._external_heat_forecast RETURN_DEL e55af298": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return arr if bool(np.any(arr > 0.0)) else None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_capacity_envelope GUARD_OFF ca278eff": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._measured_power is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_internal_gains GUARD_OFF a06a3c57": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if previous_time is None or dt_h <= 1e-6:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._freq_mode RETURN_DEL 007e643c": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return FREQ_MODE_OBSERVE",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._guard_floor_hold RETURN_DEL dd8037c4": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return any(t is not None and float(t) < floor for t in temps)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._input_health_view GUARD_OFF b5c74247": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if health is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._max_pump_rise RETURN_DEL a52019aa": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return float(thermal_kw / capacity)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor GUARD_OFF 34cd4442": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if smaller is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._mold_floor_series RETURN_DEL 0e61d11b": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return np.asarray(np.minimum(floors, cap))",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._predicted_next_room_temp GUARD_OFF f2518540": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if result is None or not result.room_temp_trajectory:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast BOOLOP 4fdd8846": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._pv_production is not None and len(production):",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if self._pv_production is not None or len(production):`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_accuracy BOOLOP 93370855": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if actual_now is not None and indoor_frozen is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if actual_now is not None or indoor_frozen is None:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_quiet_comfort_period GUARD_OFF f2518540": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if result is None or not result.room_temp_trajectory:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification GUARD_OFF e973f3a4": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if override is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._solar_location BOOLOP 8dd05ba8": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            if lat is not None and lon is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if lat is not None or lon is not None:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._solar_location RETURN_DEL a970dd90": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return float(lat), float(lon)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP 7ebc5ce8": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if solar.ok and (solar_value := solar.value) is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if solar.ok or (solar_value := solar.value) is not None:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state BOOLOP f19b31ac": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if valve_target.ok and (valve_value := valve_target.value) is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if valve_target.ok or (valve_value := valve_target.value) is not None:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF dc0904a7": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if buffer_reading.ok and (buffer_value := buffer_reading.value) is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot GUARD_OFF e9fd377b": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if snap is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot RETURN_DEL 7d8da489": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            return False",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization RETURN_DEL 440ee7e3#2": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.configured_dhw_windows RETURN_DEL 3d7df6b9": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return format_windows(params.dhw_windows)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.mode RETURN_DEL 2010f4b4": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return self._mode",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.weather_stale_hours GUARD_OFF de5ff297": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._weather_stale_since is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_bump_worker_fallback GUARD_OFF 372057de": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    if not isinstance(data, dict):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_parse_ecl110_state RETURN_DEL cf02bf93": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return parsed[0], parsed[1]",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_shutdown_process_pool GUARD_OFF ccfc0487": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    if worker is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_sim_coldest RETURN_DEL b1b08690": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return round(min(min(s) for s in series), 2) if series else None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_sim_dhw_low RETURN_DEL 883963c2": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return round(float(min(plan.dhw_temp_trajectory)), 2)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:_worker_fallback_streak GUARD_OFF 372057de": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    if not isinstance(data, dict):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.summary RETURN_DEL 7edb83fa": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return out",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/defrost.py:DefrostWindow._elapsed RETURN_DEL d7923b87": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/defrost.py:_bucket_index RETURN_DEL 463ef486": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return len(edges) - 2 if value >= edges[-1] else 0",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_planner_draws RETURN_DEL 7edb83fa": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return out",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost GUARD_OFF 43601660": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            if solution is None:  # pragma: no cover - success implies a vector",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # pragma: no cover - success implies a vector`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor RETURN_DEL bc2db057": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return plan",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.active RETURN_DEL 96c9f042": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return False",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:apply_catalog GUARD_OFF 0911be3f": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    if row is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:apply_catalog RETURN_DEL d7923b87#2": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:min_component RETURN_DEL 01949f25": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return lowest, source",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:spec_problem RETURN_DEL da9e8e97": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._deferred_energy_cost._capped RETURN_DEL a335b17b": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            return min(value, cap) if cap is not None else value",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._expand_off_blocks GUARD_OFF c5561e21": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if pins is None or not breaches:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._price_known_list GUARD_OFF d8d8aea1": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._price_known is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._pv_self_consumed GUARD_OFF df43b236": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._pv_surplus is None or not np.any(self._pv_surplus > 1e-6):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._safety_release_steps._preceding_off RETURN_DEL 440ee7e3": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._window_offset_steps GUARD_OFF 79491fa3": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if start_time is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._window_offset_steps RETURN_DEL 490abb71": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return max(0, int(round((window - phase) / max(dt * 60.0, 1e-6))))",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize BOOLOP 5fdb76f3": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if power_caps is not None and throttling:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if power_caps is not None or throttling:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF 79491fa3": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if start_time is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_bounds_supported_by_batch RETURN_DEL 80a0007e": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return True",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:_entries_by_day GUARD_OFF 576f9029": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if not starts_at or total is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:_raw_start GUARD_OFF 99b3b67a": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    if start is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/price_model.py:prices_from_entity_attributes GUARD_OFF cc87e130": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    if not isinstance(attrs, dict) or not attrs:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._size_step_power RETURN_DEL 9f13e26c": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return best",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met RETURN_DEL f2ae865e": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return True, \"ready\"",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify GUARD_OFF 6e7499af": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if solution is None or not np.all(np.isfinite(solution)) or rank < n_cols:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF 0b0fd834": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if self._slab_pair is None or self._slab_prior is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF a9c455cd": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if best_x is None or not bool(np.all(np.isfinite(best_x))):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF ef71b6ed": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if series is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab RETURN_DEL b8b6f28c": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "            return self.identify()",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step RETURN_DEL d7923b87": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:_lm_solve RETURN_DEL 2fa84be5": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return x, cost",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:_slab_refusal RETURN_DEL da9e8e97": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:_slab_series RETURN_DEL a6fd9186": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return rooms, outdoors, powers, dts",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/sysid.py:slab_mode_identifiability RETURN_DEL 27a356e8": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "    return True, \"ok\"",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:PeakTracker._close_window GUARD_OFF a7bccd17": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if average is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:PeakTracker._window_mean RETURN_DEL d7923b87": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return None",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict GUARD_OFF d3b18734": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if not isinstance(data, dict):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:PeakTracker.window_snapshot RETURN_DEL 640ddfee": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return key, mean, elapsed, tariff.sample_factor(slot)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.internal_gains_at GUARD_OFF 6c2455c1": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if profile is None or hour_of_day is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_step RETURN_DEL 874a6461": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return state",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch BOOLOP 1455713b": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "                    if wood is not None and T_wood is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if wood is not None or T_wood is not None:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF 99e5fb39": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "                        if two_tank and T_wood is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_ecl110_displace_state RETURN_DEL 874a6461": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return state",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_slab_from_return_temp GUARD_OFF 6141eb23": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        if return_temp is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_slab_from_return_temp RETURN_DEL 874a6461": {
+    "killed_by": "tests/typing_ruler.py",
+    "old": "        return state",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

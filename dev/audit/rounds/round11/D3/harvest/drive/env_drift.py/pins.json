@@ -1,0 +1,132 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._learning_view CMP_BOUND 0f895c32": {
+    "killed_by": "tests/env_drift.py",
+    "old": "            \"dhw_cooling_rate_learned\": self._dhw_learner.cooling_samples > 0,",
+    "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`\"dhw_cooling_rate_learned\": self._dhw_learner.cooling_samples >= 0,`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=5."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom GUARD_OFF ab7034b4": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast RETURN_DEL 2106ba65": {
+    "killed_by": "tests/env_drift.py",
+    "old": "            return np.zeros(n_steps, dtype=float), {}",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=8."
+  },
+  "custom_components/heatpump_optimizer/defrost.py:DefrostDerate._trusted CMP_BOUND fbf39108": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if n <= 0:",
+    "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if n < 0:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=5."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:<module> CONST c062f2eb": {
+    "killed_by": "tests/env_drift.py",
+    "old": "_DHW_REFILL_WINDOW_HOURS = 6.0",
+    "reason": "Recorded by `mutation_table.py --drain`: CONST (`_DHW_REFILL_WINDOW_HOURS = 12.0`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._effective_dhw_windows GUARD_OFF 2b7f3dc4": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if not params.dhw_schedule_enabled:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP eab95f37": {
+    "killed_by": "tests/env_drift.py",
+    "old": "                premium[j] = max(0.0, refill - float(prices[j]))",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`premium[j] = (0.0)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=3."
+  },
+  "custom_components/heatpump_optimizer/grid_fee.py:GridFeeSchedule.current_fee GUARD_OFF a3628a7e": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if self.mode == MODE_RULES:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._anticipatory_weights CLAMP_DROP a61a20b5": {
+    "killed_by": "tests/env_drift.py",
+    "old": "                weights[i] *= max(0.6, 1.0 - future_solar * 0.3)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`weights[i] *= (0.6)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._build_space_power_caps GUARD_OFF b1d590d7": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if throttling or power_caps_extra is not None or space_blocked:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._co_optimize GUARD_OFF c75a8e41": {
+    "killed_by": "tests/env_drift.py",
+    "old": "            if np.allclose(replanned, dhw_power, atol=1e-4):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps GUARD_OFF 4a87f6b2": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if dhw_cap is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=28."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._settlement_caps GUARD_OFF ced33f87": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if p.buffer_is_store:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=7."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._zone_setpoints GUARD_OFF f87bc132": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if not self.model.params.two_zone_enabled:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=28."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.baseline_load_array GUARD_OFF 14bbf2f8": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if self.baseline_load_kw is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_temp_bounds CMP_BOUND 5b24a953": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if start <= hour < end:",
+    "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if start < hour < end:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=14. Each of the 2 sites under this anchor was killed."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_temp_bounds GUARD_OFF 5b24a953": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if start <= hour < end:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=15."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_power_fraction CLAMP_DROP ecc54b75": {
+    "killed_by": "tests/env_drift.py",
+    "old": "    return float(min(1.0, max(0.0, (power - low) / band)))",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return float((1.0))`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=36. Each of the 2 sites under this anchor was killed."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_price_ranked_start CLAMP_DROP 5c6af4a9": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        take = min(p_max, remaining / dt)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`take = (p_max)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=8."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_solver_status GUARD_OFF 164e7925": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if objective(result.x) <= objective(initial_guess):",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_thermostat_demand_two_zone CLAMP_DROP 10777639": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        target + max(0.0, q_lower) / k_slab + 2.0 * (target - t_lower)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`target + (0.0) / k_slab + 2.0 * (target - t_lower)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=14."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:classify_space_steps BOOLOP ac8bdc86": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if i < len(heat_loss_factors) and heat_loss_factors[i] > 1.1:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if i < len(heat_loss_factors) or heat_loss_factors[i] > 1.1:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=32."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:classify_space_steps GUARD_OFF af803eea": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if room <= temp_min_bounds[i] + 0.15:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=13."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:CapacityTariff.sample_factor GUARD_OFF 602d6665": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if not offpeak:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop GUARD_OFF 81c6c0fb": {
+    "killed_by": "tests/env_drift.py",
+    "old": "            if carnot_ref > 1e-9:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=8."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.effective_heat_loss_coefficient GUARD_OFF 5eed5b5e": {
+    "killed_by": "tests/env_drift.py",
+    "old": "        if precipitation > 0.1:  # threshold for \"raining\"",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # threshold for \"raining\"`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=3."
+  }
+}

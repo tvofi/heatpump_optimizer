@@ -296,7 +296,7 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import labels_for
-from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
+from .dhw_learning import DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner, worst_zone_margin_k
@@ -3149,11 +3149,11 @@ def _apply_result_payload(
     # DHW schedule data
     dhw_schedule: list[DhwScheduleStep] = []
     if result.dhw_power_schedule:
-        for i, (ts, dp, dt_val) in enumerate(zip(
+        for ts, dp, dt_val in zip(
             result.timestamps,
             result.dhw_power_schedule,
             result.dhw_temp_trajectory[1:] if result.dhw_temp_trajectory else [0.0] * len(result.timestamps),
-        )):
+        ):
             dhw_schedule.append({
                 "time": ts.isoformat(),
                 "dhw_power": round(dp, 2),
@@ -4085,7 +4085,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             configured_weight=configured_weight,
             learned_weight=configured_weight,
         )
-        self._last_manual_setpoint: float | None = None
 
         # --- What-if simulator (item 21) -----------------------------------
     def _init_ecl110(self) -> None:
@@ -6613,7 +6612,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug(
                 "Shutdown awaiting %d background task(s)", len(pending)
             )
-            done, still_pending = await asyncio.wait(pending, timeout=5.0)
+            _, still_pending = await asyncio.wait(pending, timeout=5.0)
             if still_pending:
                 _LOGGER.warning(
                     "%d background task(s) did not finish within 5 s of "
@@ -9182,7 +9181,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             else min(self._curve_day_worst, margin)
         )
         if margin <= 0.0 and self._curve_learner.bias < 0.0:
-            self._curve_learner.record_miss(now, margin)
+            self._curve_learner.record_miss(margin)
     def _immersion_dhw_margin(self, now: datetime) -> float:
         """#11's gated feedback: extra readiness when rescues recur.
 
@@ -9709,7 +9708,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             peak_kw=ctx._config.pv_peak_kw,
             system_efficiency=ctx._config.pv_system_efficiency,
             export_price=self._pv_export_price(),
-            export_price_entity=ctx._config.pv_export_price_entity,
             production_entity=ctx._config.pv_production_entity,
         )
     def _pv_export_price(self) -> float:
@@ -9925,7 +9923,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # T7 #61: one frequency sample for the kW-per-Hz map (plus the
         # control watchdog, when that stage is armed).
-        self._observe_frequency(now)
+        self._observe_frequency()
         # #1067: and one supply-vs-curve residual, on the same cycle and from
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
@@ -10688,7 +10686,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if number and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
             return FREQ_MODE_CONTROL
         return FREQ_MODE_OBSERVE
-    def _observe_frequency(self, now: datetime) -> None:
+    def _observe_frequency(self) -> None:
         """One cycle of #61: watchdog first, then the kW-per-Hz fold.
 
         The learning fold skips every interval :func:`_freq_fold_blocked`
@@ -10889,7 +10887,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         )
         self._apply_comfort_weight()
-        self._last_manual_setpoint = float(requested)
     def _record_quiet_comfort_period(self) -> None:
         """Feed the learner the "nobody complained" half of the signal."""
         ctx = getattr(self, "_ctx", self)
@@ -11027,7 +11024,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not result.completed:
             return
         params = getattr(self, "_ctx", self)._thermal_params
-        decision = adoption_decision(result, params, self._sysid.config)
+        decision = adoption_decision(result, params)
         self._sysid.result = replace(result, completed=False, reason=decision.reason)
         if not decision.admit:
             _LOGGER.info("System identification not adopted: %s", decision.reason)
