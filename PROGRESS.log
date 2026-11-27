@@ -14,3 +14,4 @@
 1795743565 DONE blocked: L3 W1 at 328e2b3a7b on handoff-wip; W2, handoff and carry 2 to a fresh context (rotation)
 1795746476 HB alive
 1795746512 CKPT setup done, worktree cut snapshot 70ea432d3032
+1795746552 CKPT L4 discovery delegated snapshot 5d7b5a4947c7
