@@ -63828,6 +63828,20 @@ R.check(
     "the Configure page suggests exactly what a fresh page shows on an "
     "unanswered entry, and the entry's own answers on a configured one",
 )
+# The buffer question's bound is inclusive: a volume of exactly the store
+# minimum is the "yes" derive writes, one litre under it a recorded "no".
+# The under-minimum arm is the control a strict bound would also pass.
+_qs_min_l = _qs.BUFFER_STORE_MIN_VOLUME
+_qs_at_min = [
+    (_v, _qs_stored({_qs.CONF_BUFFER_TANK_VOLUME: _v}) if _qs_stored else None)
+    for _v in (_qs_min_l, str(_qs_min_l), _qs_min_l - 1.0)
+]
+R.check(
+    "a stored buffer volume at the store minimum reads yes, under it no",
+    [_s and _s.get(_qs.FIELD_BUFFER_TANK) for _v, _s in _qs_at_min]
+    == [True, True, False],
+    f"stored={_qs_at_min}",
+)
 
 # ---------------------------------------------------------------------------
 R.section("P8 — a price or temperature entity's unit is read at the seam (#1513)")
