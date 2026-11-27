@@ -13,3 +13,4 @@
 1795767412 HB alive
 1795767456 CKPT rev2: verdict, prior note, case_select read; measuring edge kinds snapshot 91d6e6cfaa3c
 1795767711 CKPT rev2: static typed edges measured; waiting on dynamic recording snapshot d33e8bedf6e3
+1795767958 CKPT rev2: R2 references drafted; recording still running snapshot 8daf720f5143
