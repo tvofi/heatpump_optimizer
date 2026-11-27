@@ -5,3 +5,4 @@
 1795760920 HB alive
 1795760967 CKPT s7 re-cut: check_scopes self-test and owner_only_channel green snapshot f6ab79007083
 1795761611 HB alive
+1795761677 CKPT BLOCKED.md pushed: raise needs the owner snapshot 68ba450053e5
