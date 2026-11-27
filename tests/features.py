@@ -101497,17 +101497,20 @@ async def _sg_cycle_tail():
              "_track_realised_peak", "_async_save_accuracy", "_async_save_energy_totals")
     for name in steps:
         setattr(coord, name, _rec(name))
+    coord._next_optimization = None
     await coord._async_update_data()
     _r9f13_dt.freeze(None)
-    return ran == list(steps), ran
+    due = _R9F13_NOW + timedelta(minutes=_r9f13_cmod._ctx_of(coord)._config.optimization_interval)
+    return ran == list(steps) and coord._next_optimization == due, ran, coord._next_optimization
 
 
 _sg_tail = _sg_aio.run(_sg_cycle_tail())
 R.check(
     "N-solve-recompute: the cycle's write tail the toggle shares runs inside every refresh -- action, "
-    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order",
+    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order, and "
+    "the next solve is stamped one configured interval on",
     _sg_tail[0],
-    f"ran {_sg_tail[1]}",
+    f"ran {_sg_tail[1]}, next {_sg_tail[2]}",
 )
 
 
