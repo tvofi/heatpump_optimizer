@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day CLAMP_DROP 96d864d2",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        normalised = np.clip(values / mean, SHAPE_MIN, SHAPE_MAX)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`normalised = (values / mean)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

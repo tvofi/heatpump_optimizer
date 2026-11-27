@@ -1,0 +1,1 @@
+["custom_components/heatpump_optimizer/coordinator.py:_ensure_worker BOOLOP 65dd54c6", "custom_components/heatpump_optimizer/coordinator.py:_worker_env RETURN_DEL 5ab6a509", "custom_components/heatpump_optimizer/process_worker.py:_bootstrap GUARD_OFF e20ed60e"]

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._accumulate_energy CLAMP_DROP 02ce7259",
+  "killed_by": "tests/features.py",
+  "old": "        energy = max(0.0, actual * elapsed_hours)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`energy = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=25."
+}

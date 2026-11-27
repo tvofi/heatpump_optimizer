@@ -1,0 +1,8 @@
+custom_components/heatpump_optimizer/tariff.py:1196 CMP_BOUND
+custom_components/heatpump_optimizer/sysid.py:2192 GUARD_OFF
+custom_components/heatpump_optimizer/tariff.py:801 CMP_BOUND
+custom_components/heatpump_optimizer/defrost.py:204 CLAMP_DROP
+custom_components/heatpump_optimizer/defrost.py:204 CLAMP_DROP
+custom_components/heatpump_optimizer/sysid.py:2131 GUARD_OFF
+custom_components/heatpump_optimizer/coordinator.py:7624 CLAMP_DROP
+custom_components/heatpump_optimizer/sysid.py:1927 GUARD_OFF

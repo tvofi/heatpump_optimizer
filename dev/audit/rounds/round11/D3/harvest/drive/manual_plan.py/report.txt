@@ -1,0 +1,29 @@
+HARVEST -- 19 of 19 anchor(s) unpinned at HEAD, 22 site(s)
+  1818 unpinned site(s) of 8228 candidate sites, 1818 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 12 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+DRAIN -- 22 of 1818 unpinned site(s), whole anchors under --seed 20260911, to drive
+  null control: custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  null control custom_components/heatpump_optimizer/__init__.py:38 NULL_COMMENT survived every driver
+  pinned   custom_components/heatpump_optimizer/__init__.py:117 GUARD_OFF -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:844 GUARD_OFF -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:850 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6056 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6715 BOOLOP -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8410 GUARD_OFF -- killed by tests/manual_plan.py
+  UNPINNED custom_components/heatpump_optimizer/dhw_planner.py:577 CLAMP_DROP -- killed by tests/manual_plan.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/dhw_planner.py:577 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:1029 CLAMP_DROP -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:1029 CLAMP_DROP -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:1536 CLAMP_DROP -- killed by tests/manual_plan.py
+  UNPINNED custom_components/heatpump_optimizer/dhw_planner.py:1882 CLAMP_DROP -- lives
+  UNPINNED custom_components/heatpump_optimizer/dhw_planner.py:1882 CLAMP_DROP -- killed by tests/manual_plan.py, but its anchor also covers a site no run killed
+  pinned   custom_components/heatpump_optimizer/optimizer.py:2482 GUARD_OFF -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:2486 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:5321 GUARD_OFF -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:5392 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:598 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:780 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:814 RETURN_DEL -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:388 GUARD_OFF -- killed by tests/manual_plan.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:870 RETURN_DEL -- killed by tests/manual_plan.py
+PIN KILLED: 18 pinned, 4 left unpinned (4 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+DRAIN: measured, 17 anchor(s) to record, 4 site(s) left for a human verdict
