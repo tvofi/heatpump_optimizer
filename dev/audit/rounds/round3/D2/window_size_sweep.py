@@ -10,7 +10,7 @@ and the honest answer
 is a measurement rather than an argument, so it is committed rather than quoted.
 
 METRIC: `live_tracker_mismatch_<day>_<wm>min` = the number of horizon windows i
-where `window_factors(mask, midnight, n, dt)[i]` differs from the factor
+where `window_factors(mask, midnight, n)[i]` differs from the factor
 PRODUCTION ITSELF ASSIGNED that window -- `PeakTracker.observe` driven over
 `drift.utc_step_starts` instants, then `tracker._window_factor` read back.
 `pre777` re-creates the old production expression (`slot0 + timedelta(...)`)
@@ -116,7 +116,7 @@ def main() -> int:
             )
             n = int(round(24 * 60 / wm))
             slot0 = _window_slot(day, wm)
-            post = list(window_factors(t, day, n, wm / 60.0))
+            post = list(window_factors(t, day, n))
             # The PRE-#777 production expression, reproduced inline as a
             # diagnostic. Nothing asserts against it; it is here so the two
             # ends are one command instead of a checkout.

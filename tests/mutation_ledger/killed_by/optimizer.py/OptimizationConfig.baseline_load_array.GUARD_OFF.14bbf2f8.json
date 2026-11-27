@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.baseline_load_array GUARD_OFF 14bbf2f8",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if self.baseline_load_kw is None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}

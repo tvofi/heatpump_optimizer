@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_lm_solve RETURN_DEL 2fa84be5",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "    return x, cost",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

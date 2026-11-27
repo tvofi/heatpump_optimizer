@@ -1,0 +1,7 @@
+{
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor GUARD_OFF e477a434": {
+    "killed_by": "tests/block_duty.py",
+    "old": "                    if runnable > plan[j] + room_kw + 1e-9:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}
