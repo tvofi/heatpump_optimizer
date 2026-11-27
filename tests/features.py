@@ -5744,6 +5744,46 @@ R.check(
     f"{_p7_until}",
 )
 
+# The countdown runs to the first instant after ``now`` at which the wall
+# clock enters a window. That is its start, read each time that wall time
+# occurs: once, twice in the autumn repeated hour, never in the spring skipped
+# hour. Or it is a DST jump landing inside a window. Europe/Stockholm; the
+# plain day is the null.
+_p7_fold = {
+    k: (_hunw(d.replace(hour=2, minute=30), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30), [(1.5, 2.25)]))
+    for k, d in _p7_days.items() if k != "spring"
+}
+_p7_gap = (_hunw(_p7_days["spring"].replace(minute=30), [(2.5, 4.0)]),
+           _hunw(_p7_days["spring"].replace(minute=30), [(2.25, 2.4)]),
+           _hunw(_p7_days["plain"].replace(minute=30), [(2.25, 2.4)]))
+R.check(
+    "the next-window countdown runs to the first instant the wall clock enters "
+    "a window: from 02:30 in either pass of the autumn repeated hour 0.25 h to "
+    "02:45, 0.75 h or 23.75 h to 02:15, 0.5 h to the jump back into 01:30-02:15; "
+    "from 00:30 on the spring day 1.5 h to the jump into 02:30-04:00 and 24.75 h "
+    "past a 02:15-02:24 window it skips (plain day 23.75, 23.0 and 1.75 h)",
+    _p7_fold == {"autumn": (0.25, 0.25, 0.75, 23.75, 0.5),
+                 "plain": (0.25, 0.25, 23.75, 23.75, 23.0)}
+    and _p7_gap == (1.5, 24.75, 1.75),
+    f"{_p7_fold}, spring/plain gap {_p7_gap}",
+)
+from heatpump_optimizer.pump_schedule import vvc_should_run as _p7_vvc  # noqa: E402
+
+_p7_lead = {
+    (k, f): _p7_vvc(d.replace(hour=2, minute=30, fold=f), [(2.75, 3.5)], 30.0)[0]
+    for k, d in _p7_days.items() if k != "spring" for f in (0, 1)
+}
+R.check(
+    "the circulation pump pre-heats 15 min before a 02:45 window from 02:30 in "
+    "either pass of the autumn repeated hour, as on a plain day",
+    all(_p7_lead.values()) and len(_p7_lead) == 4,
+    f"{_p7_lead}",
+)
+
 
 def _p7_slips(name, day):
     """Steps of 96 whose gains (and DHW draw) hour is off ``day``'s step clock."""

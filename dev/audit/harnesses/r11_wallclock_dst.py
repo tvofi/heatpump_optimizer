@@ -21,6 +21,18 @@ Instances, and the clock each is measured against:
   ``internal_gains_at`` / ``dhw_draw_rates``, against the step clock the
   optimizer builds (``optimizer._step_clock``) for the same start.
 
+* ``next_window_census``: ``hours_until_next_window`` from every quarter-hour
+  wall ``now`` of the zones' spring-forward, fall-back or plain days (both
+  passes of a repeated hour), against a one-window schedule at every
+  quarter-hour start, both against the zone's own clock walked minute by
+  minute: the window opens at the first minute whose local (date, wall time)
+  reaches the start's, today's or tomorrow's. The days are each zone's 2026
+  days whose UTC offset changes (``--day spring``: it grows; ``autumn``: it
+  shrinks), or 10 June (``plain``), for Europe/Stockholm, Australia/Sydney
+  (southern), Australia/Lord_Howe (a 30-minute shift) and America/Santiago
+  (a shift at local midnight). The rule covers the
+  three ways a zone maps a wall start: once, twice (a fold) or never (a gap).
+
 Each trajectory instance is driven with whatever hour argument its signature
 takes: ``step_hours`` (the step clock itself) where the signature has it, else
 ``start_hour`` (the clock's first hour).
@@ -31,7 +43,7 @@ from __future__ import annotations
 import argparse
 import inspect
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -140,6 +152,93 @@ def probe_trajectory(name: str, day: datetime) -> int:
     return 1 if slips else 0
 
 
+CENSUS_ZONES = (
+    "Europe/Stockholm", "Australia/Sydney", "Australia/Lord_Howe", "America/Santiago",
+)
+# Window lengths in minutes: one shorter than any jump (a window a spring jump
+# can skip whole) and one longer (a window a jump can land inside).
+WIDTHS = (5, 90)
+
+
+def _census_days(zone: ZoneInfo, kind: str) -> list[datetime]:
+    """2026 days in ``zone`` whose offset grows (spring) or shrinks (autumn)."""
+    if kind == "plain":
+        return [datetime(2026, 6, 10, tzinfo=zone)]
+    out = []
+    day = datetime(2026, 1, 1)
+    while day.year == 2026:
+        a = day.replace(tzinfo=zone).utcoffset()
+        b = (day + timedelta(days=1)).replace(tzinfo=zone).utcoffset()
+        if (b > a) if kind == "spring" else (b < a):
+            out.append(day.replace(tzinfo=zone))
+        day += timedelta(days=1)
+    return out
+
+
+def _call_next_window(now: datetime, windows):  # noqa: ANN001
+    if "now" in inspect.signature(hours_until_next_window).parameters:
+        return hours_until_next_window(now, windows)
+    return hours_until_next_window(now.hour + now.minute / 60.0, windows)
+
+
+def probe_census(kind: str) -> int:
+    grid = [q * 15 for q in range(96)]
+    cells = mismatches = 0
+    shown: list[str] = []
+    for name in CENSUS_ZONES:
+        zone = ZoneInfo(name)
+        days = _census_days(zone, kind)
+        if not days:
+            return _refuse(f"{name} has no {kind} day in 2026")
+        for day in days:
+            # The zone's own clock: every UTC minute from the day's midnight
+            # to two days on, keyed by its local (date, minute of day).
+            t0 = day.astimezone(timezone.utc)
+            clock = []
+            for m in range(0, 3 * 24 * 60):
+                t = t0 + timedelta(minutes=m)
+                w = t.astimezone(zone)
+                clock.append((t, (w.date(), w.hour * 60 + w.minute)))
+            nows = []
+            for t, (d, mod) in clock:
+                if d == day.date() and mod in grid:
+                    nows.append((t, mod))
+            for start, width in ((s, w) for s in grid for w in WIDTHS):
+                end = min(start + width, 24 * 60)
+                window = [(start / 60.0, end / 60.0)]
+                opens = []
+                for target in (day.date(), day.date() + timedelta(days=1)):
+                    def inside(k, target=target):  # noqa: ANN001, ANN202
+                        return k[0] == target and start <= k[1] < end
+                    opens += [
+                        t for i, (t, k) in enumerate(clock)
+                        if i and inside(k) and not inside(clock[i - 1][1])
+                    ]
+                for t_now, mod in nows:
+                    now = t_now.astimezone(zone)
+                    if start <= mod < end:
+                        want = 0.0
+                    else:
+                        nxt = [t for t in opens if t > t_now]
+                        want = (min(nxt) - t_now).total_seconds() / 3600.0
+                    got = _call_next_window(now, window)
+                    cells += 1
+                    if got is None or abs(got - want) > 1e-9:
+                        mismatches += 1
+                        if len(shown) < 4:
+                            shown.append(
+                                f"{name} {now.isoformat()} fold={now.fold} "
+                                f"start {start // 60:02d}:{start % 60:02d}: "
+                                f"{got} vs {want}"
+                            )
+    if cells == 0:
+        return _refuse("no census cell ran")
+    print(f"next_window_census {kind}: {mismatches} of {cells} cells off the zone's clock")
+    for line in shown:
+        print(f"  {line}")
+    return 1 if mismatches else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -149,10 +248,13 @@ def main() -> int:
             "simulate_trajectory",
             "simulate_trajectory_batch",
             "simulate_trajectory_with_dhw",
+            "next_window_census",
         ),
     )
     ap.add_argument("--day", choices=tuple(DAYS), required=True)
     args = ap.parse_args()
+    if args.instance == "next_window_census":
+        return probe_census(args.day)
     day = DAYS[args.day]
     if args.instance == "hours_until_next_window":
         return probe_next_window(day)
