@@ -8,3 +8,5 @@
 1795753191 CKPT 3883: D5 re-cut applied, self-test steps pass; 3930 suite running snapshot f08f003128a1
 1795753795 HB alive
 1795754398 HB alive
+1795755000 HB alive
+1795755000 CKPT 3883 code at handoff/r11-repair-3883, body refused CARRY-LANDED; 3930 prepr second run snapshot 21eee8abc51f
