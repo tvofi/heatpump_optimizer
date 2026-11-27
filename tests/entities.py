@@ -16285,10 +16285,15 @@ def _mig_raw_reads(entry):
 
 _mig_raw_before = _mig_raw_reads(_mig_raw)
 _mig_raw_ok, _ = _mig_warnings(_mig_raw)
+# Before R11-LATE-P1-OPTIONS the comfort band raised on the text hour until the
+# migration repaired it, and this check required that raise as its control.
+# The band now reads a non-number as the key's default (``comfort_band.effective``
+# through ``finite_float``). So the unmigrated read is required clean, and the
+# migration is still required to repair what is stored.
 R.check(
-    "an old entry's text hour and null tank volume no longer raise in the thermal table or the "
-    "comfort band once migrated",
-    _mig_raw_before is not None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
+    "an old entry's text hour and null tank volume raise in neither the thermal table nor the "
+    "comfort band, before or after the migration, and the migration repairs what is stored",
+    _mig_raw_before is None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
     and {**_mig_raw.data, **_mig_raw.options}
     == {"day_start_hour": const.DEFAULT_DAY_START_HOUR, "ecl110_mqtt_qos": 1},
     f"before={_mig_raw_before} after={_mig_raw_reads(_mig_raw)} "
@@ -16863,6 +16868,43 @@ R.check(
 # Later checks on this entry treat an absent target as "never written".
 _svc_entry.options.pop(const.CONF_DHW_SETPOINT, None)
 _svc_entry.options.pop(const.CONF_TARGET_TEMP, None)
+
+# R11-LATE-P1-OPTIONS: the deadband check reads the stored half of its pair the
+# way the entry's parse does. A wrong-typed stored setpoint or minimum (written
+# past the migration's repair) reads as its default, never a TypeError out of
+# the service; a well-typed stored one is still judged (the null control).
+def _p1_apply(stored, payload):
+    saved = dict(_svc_entry.options)
+    _svc_entry.options.update(stored)
+    try:
+        _svc_call(const.SERVICE_APPLY_SCHEDULE, payload)
+        outcome = "applied"
+    except ServiceValidationError:
+        outcome = "refused"
+    except (TypeError, ValueError) as err:
+        outcome = f"raised {type(err).__name__}"
+    _svc_entry.options.clear()
+    _svc_entry.options.update(saved)
+    return outcome
+
+
+_p1_outcomes = {
+    f"{key}={value!r}": _p1_apply({key: value}, payload)
+    for key, payload in (
+        (const.CONF_DHW_SETPOINT, {"dhw_min_temperature": 40.0}),
+        (const.CONF_DHW_MIN_TEMP, {"dhw_setpoint": 60.0}),
+    )
+    for value in ("abc", None, {"x": 1}, [1.0])
+}
+R.check(
+    "R11-LATE-P1-OPTIONS: apply_schedule reads a wrong-typed stored DHW setpoint or minimum as its default",
+    set(_p1_outcomes.values()) == {"applied"},
+    str(_p1_outcomes),
+)
+R.check(
+    "R11-LATE-P1-OPTIONS: null -- apply_schedule still refuses against a well-typed stored setpoint",
+    _p1_apply({const.CONF_DHW_SETPOINT: 46.0}, {"dhw_min_temperature": 44.0}) == "refused",
+)
 
 # v5.1.7 — the comfort band, on every path that writes it.
 #
