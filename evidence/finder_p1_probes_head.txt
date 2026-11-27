@@ -1,0 +1,1 @@
+RESULT store_bool_admitted_as_number=6 of 7 (dhw_draws.DrawStats.from_dict,tariff._stored_peaks,off_restore._entry_of,coordinator._async_load_energy_totals,coordinator._async_load_ledger,legionella.LegionellaGuard.async_load)

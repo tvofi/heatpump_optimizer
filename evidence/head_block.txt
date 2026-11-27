@@ -1,8 +1,0 @@
-
-=== features block ===
-  ok   a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named; the numbers beside it load as stored (null control)
-  ok   every numeric declaration in store.DOMAINS loads a stored true as absent, every flag one as true; the census drove a numeric declaration of each store the six loaders read
-  ok   a stored energy-totals start that is empty or not text is no start; an ISO day is (D3-g03)
-  ok   a stored sample count of 0 or exactly 2**31 is kept; -1 and 2**31 + 1 are refused (D3-g12)
-
-ALL 4 FEATURES BLOCK PASSED

@@ -1,32 +1,16 @@
-Fix review: blocked aa1bb8d34c5700351a164e3aaf56be65165236d6 class-open: accuracy accuracy/lead_pending/#/1 (a choice declaration of numbers, LEAD_BUCKETS) admits a stored true as lead 1.0
-bus-nonce: 1b9e4b741669372e02a8719fec4104db
+Fix review: merge 86811c25dd0e87528a8e9aaac0d7dda40df70037
+bus-nonce: 8865437414d172e09cab9983126fe468
 
-Round 1 (full review, no --reviewed-head), measured at aa1bb8d34c5700351a164e3aaf56be65165236d6 from a detached worktree. Roles diff merge-base...origin/main is empty, so this contract is current.
+Scope: full (packet names no prior reviewed head). Worktree detached at the head; roles diff against origin/main empty.
 
-RESULT features_block_head=4 of 4 passed (ev/head_block.txt)
-RESULT mutation_delete_unflag=2 of 4 failed (ev/mutant_delete_unflag.txt), the census listing 202 numeric declarations kept true and 0 flags lost
-RESULT stored_true_at_numeric_choice_admitted=1 of 1 at the head (ev/probe_choice_head.txt)
-RESULT merge_tree_vs_origin_main=clean (rc 0)
-RESULT version_manifest_notes_golden_touched=0
+Mutation proof (evidence/mutation_86811c25.txt), block `# R11-SEAM-store-p2 (round-11 sweep P1`: unmutated 4/4 pass; boundary call deleted 2/4 fail; `_KINDS["choice"]` reverted to `v in d.choices` 1/4 fail; `_declares_number` choice arm -> False 2/4 fail; `_unflag_numbers` identity 2/4 fail; list walk off 2/4 fail; dict walk off 2/4 fail. No survivor.
 
-## Blocking
+Null / base end (evidence/base_store_head_block.txt): the head's block against the merge base's store.py reads 2/4 failed, every loader reading the stored true as 1.0 (`lead_pending: [1.0, 3.0]`).
 
-- class-open: the PR's enumeration rule (the census in tests/features.py) reads only declarations of kind `real`/`int`. `store.DOMAINS["accuracy"]["accuracy/lead_pending/#/1"]` is `Domain("choice", choices=LEAD_BUCKETS)`, a choice whose members are all numbers (1.0, 3.0, 6.0, 12.0, 24.0). A stored `true` there is still a flag where a number is declared. At the head, `QuarantiningStore.async_load` returns it unchanged. `in_domain` admits it because `True in (1.0, ...)` is true, which contradicts the docstring's statement that `in_domain` refuses one. `AccuracyTracker.from_dict` then loads it as `(when, 1.0, 2.0)`, so a 1-hour lead that nobody predicted joins `lead_pending`. This is a store loader of the P1 class, one of the six named stores (accuracy). None of the body's census residue categories (map key, alias, never-stored payload) holds it. The probe that reproduces this is ev/probe_choice.py. It is the only numeric choice declaration in DOMAINS: the kind census counts 18 choice declarations and 1 with numeric choices.
-  Suggested fix: in `_unflag_numbers`, also treat a `choice` whose `choices` are all non-bool numbers as numeric (or make `_KINDS["choice"]` refuse a bool against non-bool choices). Then widen the census to drive that declaration and the docstring claim along with it.
-  Carry: R11-SEAM-store-p2
+Finder's harness (evidence/finder_p1_probes_head.txt): `p1_probes.py` reads `store_bool_admitted_as_number=6 of 7` at the head, as the body states. Its arm calls loaders on stub stores past `QuarantiningStore.async_load`. I traced every caller of the six loaders: each is fed by a QuarantiningStore load, the learner snapshot restore included (the `snapshots/#/learners/*` aliases). The finder's payloads, driven through the real load, move from 1.0 to absent (base block above). The harness does not move because the fix sits at the load boundary, which the stubs bypass; that is not a defect in the fix.
 
-## Verified
+Writer side: tests/finite_boundary.py at head, ALL 122 PASSED (evidence/finite_boundary_head.txt): the round-trip of every saver through every loader is unchanged.
 
-- Mutation proof: deleting `data = _unflag_numbers(data, node)` fails both P1 checks. The six-loader check reads 1.0 at every loader, and the census check lists every numeric declaration kept as true. Restored afterwards.
-- Null control holds at the head: the numbers stored beside each true (4.0, 20.5, 2.0, 3.0) load as stored, and all 23 flag declarations load true.
-- Other stores: every store in custom_components goes through QuarantiningStore (LedgerStore included). No plain `Store(` is constructed outside store.py, so no other store bypasses the boundary.
-- Loader tolerance of None at a numeric leaf is the precedent `_sanitize` already set for poisoned leaves, so reading a flag as None adds no new loader state.
-- Live checks at the head: every check except tests / nightly-status (not required) is success or skipped. The two earlier `gate` failures (runs 45937149839, 45934499708) are superseded by the success at 05:53Z (job 140334664392).
-- VERSION, manifest, RELEASE_NOTES.md and tests/golden are untouched (three-dot).
-
-## Not verified
-
-- The $EXPORT companions (p1_e2e.py, p2_companion.py) and d3_fnstate.py are out-of-tree. I did not re-run them. I relied on the features block and the in-tree census for carry 0, and I did not re-measure carry 1's P2 evidence.
-- Finder's harness: the packet names none. The in-tree p1_probes.py store arm, by the body's own account, calls loaders past the load boundary, so it cannot move under this fix. I did not run it.
-
-Note: perf: `_tries()` (uncached) now runs on every load, including stores with `lead=None`. Each load builds the trie and walks the document one more time. This is acceptable at the load cadence, but caching `_tries()` would remove the rebuild.
+Note: red-checks: `gate` 140382618077 is red in duplicate CI run 45959507078 ("run(s) [45959506547] at this head are still being judged; their gate decides"), and that run's `gate` 140409068529 is green. This diff does not cause it, so it is not owed here. Carry: dismissed: duplicate-run deferral by design; the sibling gate at this head is green
+Note: red-checks: `tests / nightly-status` is red because main's scheduled nightly 45919083139 failed. The check is not required, and the PR body's `## Red checks: none` does not record it. Carry: dismissed: main's nightly, not this diff; non-required
+Note: code: `debugger.accuracy_report` reads the accuracy document raw from disk (`_read_stores`), so the self-test would still show a stored true lead as 1.0 where the live load reads it as absent. Carry: dismissed: the self-test reports the disk document as stored; it writes nothing and feeds no plan
