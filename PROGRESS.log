@@ -1,2 +1,3 @@
 1795742236 INIT r11-repair-3882
 1795742245 HB alive
+1795742365 CKPT diagnosed: gate red = tests/mutation (3 survivors frost_hold.py:134/161/164, PR code, not the merge) + budget-raise-gate (owner review) snapshot 7ef3da962716
