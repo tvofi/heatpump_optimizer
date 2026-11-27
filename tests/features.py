@@ -84700,7 +84700,9 @@ class _FdWeather:
 
 _fd_wx = _fd_coord()
 _fd_wx.hass.services = _fd_wx_svc = _FdWeather()
-_fd_wx_svc.rows = [{"datetime": (_FD_T0 + timedelta(hours=h)).isoformat(), "temperature": 3.0}
+# Rows reaching now: an all-past reply is a failed fetch (D1-s2-03).
+_fd_wx_t0 = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+_fd_wx_svc.rows = [{"datetime": (_fd_wx_t0 + timedelta(hours=h)).isoformat(), "temperature": 3.0}
                    for h in range(48)]
 _fd_asyncio.run(_fd_wx._fetch_weather_forecast())
 _fd_wx_good = (len(_fd_wx._weather_forecast), _fd_wx._weather_stale_since)

@@ -306,11 +306,10 @@ custom_components/heatpump_optimizer/
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
 `dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
-`store`, `supply_hold`. One module outside that set touches it at all: `inputs`
-reaches for `homeassistant.util.dt` inside a function, as the fallback when no
-clock function was injected.
+`store`, `supply_hold`. No module outside that set touches it: `inputs` takes
+its clock from its caller, and falls back to the standard library's UTC now.
 
-The other 69 modules are deliberately free of it, so each can be driven
+The other 70 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
