@@ -96,7 +96,8 @@ jobs:
       # `gh_read.py` it imports and the `required-contexts.json` it reads are the
       # base's too, or a diff editing merge_train.py would choose which reds it
       # owes. tests/entities.py pins every python3 program policy_lint spawns,
-      # with its local import closure, to a pathspec of this list.
+      # with its local import closure, to a pathspec of this list: tests/run.sh is
+      # tools/ci/shards.py's read, which gate.py reaches through prelude.py.
       - name: Restore the check source from the base commit
         env:
           # The event's base commit; a dispatch carries none, and falls back to
@@ -119,6 +120,7 @@ jobs:
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/gh_read.py' \
             'tools/policy/fixtures/required-contexts.json' \
+            'tests/run.sh' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \

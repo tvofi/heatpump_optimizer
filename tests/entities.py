@@ -1178,15 +1178,27 @@ _arch_anywhere = sorted(
     if any(_arch_ha_import(n) for n in ast.walk(ast.parse(p.read_text())))
 )
 
-_arch_open = _re.search(r"(\d+) modules, of which\s+(\d+) import", _arch)
+# FG-1 (2026-11-26): the prose states no module count. A count here moved
+# with every module-adding pull request. Two such branches each re-derived
+# it, and git merged their sentences as text. The counts are derived and
+# printed here instead, and doc_claims.py refuses a module count anywhere in
+# the reader corpus.
+print(
+    f"  derived: package modules={len(_arch_disk)}, importing homeassistant "
+    f"at module level={len(_arch_modlevel)}, touching it anywhere="
+    f"{len(_arch_anywhere)}, free of it={len(_arch_disk) - len(_arch_anywhere)}"
+)
+_arch_open = _re.search(
+    r"fewer than half of the modules import the\s+`homeassistant` package at "
+    r"module level", _arch)
 R.check(
-    "architecture.md's opening counts name the package it describes",
+    "architecture.md's opening share of homeassistant importers is the tree's",
     _arch_open is not None
-    and int(_arch_open.group(1)) == len(_arch_disk)
-    and int(_arch_open.group(2)) == len(_arch_modlevel),
-    f"architecture.md says {_arch_open.groups() if _arch_open else '?'}; the "
-    f"package holds {len(_arch_disk)} modules, {len(_arch_modlevel)} of them "
-    f"importing homeassistant at module level",
+    and 0 < len(_arch_modlevel)
+    and 2 * len(_arch_modlevel) < len(_arch_disk),
+    f"opening sentence found={_arch_open is not None}; the package holds "
+    f"{len(_arch_disk)} modules, {len(_arch_modlevel)} of them importing "
+    f"homeassistant at module level",
 )
 
 _arch_map = _re.search(r"## The module map\n+```text\n(.*?)\n```", _arch, _re.S)
@@ -1206,22 +1218,20 @@ R.check(
 # follows is about a different claim (the one function-level toucher, pinned
 # below), and sweeping it in would make 22 names out of 21 importers.
 _arch_bound = _re.search(
-    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    r"These modules\s+import `homeassistant` at module level:\s+(.*?)\.",
     _arch, _re.S,
 )
 _arch_named = (
-    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(3))))
+    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(1))))
     if _arch_bound is not None
     else []
 )
 R.check(
     "architecture.md's HA boundary names exactly the module-level importers",
     _arch_bound is not None
-    and int(_arch_bound.group(1)) == len(_arch_modlevel)
-    and int(_arch_bound.group(2)) == len(_arch_disk)
+    and bool(_arch_modlevel)
     and _arch_named == _arch_modlevel,
-    f"documented {_arch_bound.group(1) if _arch_bound else '?'} of "
-    f"{_arch_bound.group(2) if _arch_bound else '?'}, named {_arch_named}; "
+    f"named {len(_arch_named)}: {_arch_named}; "
     f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
 )
 
@@ -1237,16 +1247,18 @@ R.check(
     f"{_arch_touchers}",
 )
 
-_arch_free = _re.search(
-    r"The other (\d+) modules are deliberately free", _arch
-)
+_arch_free = _re.search(r"Every other module is deliberately free", _arch)
 R.check(
-    "architecture.md's HA-free count is the tree's",
+    "architecture.md's HA-free remainder is the tree's: every module but the "
+    "named importers and the one toucher",
     _arch_free is not None
-    and int(_arch_free.group(1)) == len(_arch_disk) - len(_arch_anywhere),
-    f"architecture.md says {_arch_free.group(1) if _arch_free else '?'}; "
-    f"{len(_arch_disk)} modules less {len(_arch_anywhere)} that touch "
-    f"homeassistant anywhere leaves {len(_arch_disk) - len(_arch_anywhere)}",
+    and len(_arch_disk) - len(_arch_anywhere)
+    == len(_arch_disk) - len(_arch_modlevel) - 1 > 0,
+    f"sentence found={_arch_free is not None}; {len(_arch_disk)} modules less "
+    f"{len(_arch_anywhere)} that touch homeassistant anywhere leaves "
+    f"{len(_arch_disk) - len(_arch_anywhere)}, against "
+    f"{len(_arch_disk) - len(_arch_modlevel) - 1} outside the named set and "
+    "the toucher",
 )
 
 _arch_pages = _re.search(
@@ -4239,13 +4251,19 @@ def _p2_registry(sources):
              match=_p2_match_defrost_decides,
              owners=["freq_control.py::defrost_interval"],
              dispositions={
-                 "coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen":
+                 # R11-SEAM-learners (ADR-008): the gate moved out of
+                 # ``_learning_frozen``; the coordinator reads the flag into
+                 # the facts, and the predicate module decides on it.
+                 "learning_freeze.py::_shared":
                      "the plant-wide gate: it decides whether ANY learner "
                      "ingests the interval and owns the reason string it "
                      "returns. The frequency map deliberately folds intervals "
                      "that gate freezes (external heat, #781), so the "
                      "frequency pair's own predicate decides the two "
                      "frequency questions the gate cannot express",
+                 "coordinator.py::_freeze_facts":
+                     "the gate's input: it copies the pump's defrost flag into "
+                     "the facts learning_freeze._shared decides on, deciding nothing",
              }),
         # R10-CLONE-2238 (#2238): the F5_clone instances, one fact per entry,
         # each routed through one owner in the module that held both copies.
@@ -4425,6 +4443,14 @@ _P2_CENSUSES = {
     "replay_numeric_domain": (
         "tests/debug_collect.py",
         "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # R11-LATE-P2-REPLAY-FINITE: replay_doc's number shape and its coordinate
+    # cut keep exactly what numeric admits.
+    "replay_number_finite": (
+        "tests/debug_collect.py",
+        "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric"),
+    "replay_coordinate_finite": (
+        "tests/debug_collect.py",
+        "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses"),
     # D7-s3-03: every reader of the plan step covering now takes plan_step's
     # index; the census drives the four on one plan, past its end included.
     "plan_step_covering": (
@@ -4637,11 +4663,7 @@ _p2_planted = {
         {**_P2_SOURCES, "topology.py": _P2_SOURCES["topology.py"] + plant}, _P2_REGISTRY))
     for fact, plant in _P2_PLANTS.items()
 }
-_P2_FENCE_RECORD = (
-    "await _best_effort_cycle_step(\n"
-    "                self._record_accuracy, \"Accuracy pairing skipped: %s\"\n"
-    "            )"
-)
+_P2_FENCE_RECORD = 'await _best_effort_cycle_step(self._record_accuracy, "Accuracy pairing skipped: %s")'
 _p2_unfenced = _p2_fails(_p2_scan(
     {**_P2_SOURCES, "coordinator.py": _P2_SOURCES["coordinator.py"].replace(
         _P2_FENCE_RECORD, "await self._record_accuracy()")}, _P2_REGISTRY))
@@ -18160,12 +18182,12 @@ R.check(
 # #1218 (D3-08): the deployment-shape lane's measured closure is the whole
 # tracked package -- it materialises the package file by file, and the
 # gate's tracer records every read -- so every diff touching any production
-# file selects the lane. The same recording pairs 53 of the 276 scripts at
-# 0.80 or more of shared production-module closure. The numbers are
-# re-derived here exactly as dev/audit/rounds/round5/D3/resource_r5.py derived
-# them (Jaccard over the closure files under
-# custom_components/heatpump_optimizer/, empty sets skipped), and the lane's
-# docstring records them as this repository's selection-cost note. A
+# file selects the lane. The same recording pairs scripts at 0.80 or more of
+# shared production-module closure. The numbers are derived here exactly as
+# dev/audit/rounds/round5/D3/resource_r5.py derived them (Jaccard over the
+# closure files under custom_components/heatpump_optimizer/, empty sets
+# skipped) and printed below; the lane's docstring is this repository's
+# selection-cost note and names this block as their source. A
 # SELECTION cost only: which mutants each script kills was never measured
 # (the pre-screen stops at the first killer), so nothing claims two
 # overlapping scripts are redundant.
@@ -18228,25 +18250,73 @@ R.check(
     f"it={_D308_SELECTED} -- this is the cost the note beside the lane "
     "records",
 )
-# The note carries the derived numbers, so a re-record that moves them fails
-# HERE instead of leaving stale prose behind. The text is whitespace-
-# normalised first so a future re-wrap of the paragraph cannot flip these.
+# The numbers are derived and printed HERE, never carried in the note
+# (FG-1, 2026-11-26). The pair count is a threshold function of the whole
+# recording, so it does not add across a merge. Two branches each re-derived
+# it, and git merged the two sentences as text. The merged tree derived a
+# third number (#3838, #3866, #3870). The note names the cost and this block;
+# a count written back into it is refused. The text is whitespace-normalised
+# first so a re-wrap of the paragraph cannot flip these.
+_D308_SAME = sorted(
+    (_a, _b, _n) for _jac, _a, _b, _n in _D308_PAIRS if _jac == 1.0)
+_D308_DERIVED = (
+    f"  derived (#1218): the lane reaches all {len(_D308_PROD)} production "
+    f"files; {len(_D308_PAIRS)} of the {_D308_TOTAL} script pairs share >= 0.80 "
+    f"of their production closure, among {_D308_COMPARABLE} comparable pairs; "
+    f"{len(_D308_SAME)} at exactly 1.00: "
+    + ", ".join(f"{_a}/{_b} ({_n})" for _a, _b, _n in _D308_SAME)
+)
+print(_D308_DERIVED)
 _D308_DS_TEXT = " ".join((_closure.ROOT / _D308_DS).read_text().split())
+# A count is a number, in digits or spelled out, up to three words before
+# "file(s)" or "pair(s)", or directly before "until". The derived line's own
+# wording ("reaches all 124 production files"), a bare "190 script pairs" and
+# "Eighteen of the pairs" all match; the planted corpus below pins each.
+_D308_NUM = (
+    r"(?:\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven"
+    r"|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen"
+    r"|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)"
+)
+_D308_COUNT_RE = _re.compile(
+    rf"\b{_D308_NUM}(?:[\s-]+[\w./-]+){{0,3}}?\s+(?:files?|pairs?)\b"
+    rf"|\b{_D308_NUM}\s+until\b",
+    _re.IGNORECASE,
+)
+_D308_CARRIED = _D308_COUNT_RE.findall(_D308_DS_TEXT)
 R.check(
-    "and the lane's docstring records those measured numbers as the "
-    "selection-cost note (#1218)",
+    "and the lane's docstring is the selection-cost note, naming this block "
+    "as the source of its numbers and carrying none of them (#1218, FG-1)",
     all(_s in _D308_DS_TEXT for _s in (
-        "D3-08", "#1218", "selection cost",
-        f"all {len(_D308_PROD)} files",
-        f"{len(_D308_PAIRS)} of the {_D308_TOTAL}",
-        f"{_D308_COMPARABLE} pairs",
+        "D3-08", "#1218", "selection cost", "tests/entities.py",
     ))
-    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY),
-    "the note cites numbers this tree derives: "
-    f"{len(_D308_PROD)} production files; {len(_D308_PAIRS)} of "
-    f"{_D308_TOTAL} pairs at >= 0.80; {_D308_COMPARABLE} pairs comparable; "
-    f"no production closure in {_D308_EMPTY}; missing markers -> "
-    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'all %d files' % len(_D308_PROD), '%d of the %d' % (len(_D308_PAIRS), _D308_TOTAL), '%d pairs' % _D308_COMPARABLE) if s not in _D308_DS_TEXT]}",
+    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY)
+    and not _D308_CARRIED,
+    "missing markers -> "
+    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'tests/entities.py') if s not in _D308_DS_TEXT]}; "
+    f"no production closure in {_D308_EMPTY}; hand-kept counts -> {_D308_CARRIED}",
+)
+# The refusal's own null control: every count wording, the derived line
+# printed above included, is matched. Narrowed back to the old phrasings, the
+# pattern lets the derived line be written into the note unrefused.
+_D308_PLANTED = (
+    _D308_DERIVED,
+    "the lane reaches all 124 production files",
+    "all 124 files",
+    "190 script pairs",
+    "190 of the 561 script pairs",
+    "Eighteen of the pairs",
+    "EIGHTEEN PAIRS",
+    "twenty-one shared production files",
+    "1,204 files",
+    "96 until R9 F2.2",
+    "eleven until",
+)
+_D308_MISSED = [_t for _t in _D308_PLANTED if not _D308_COUNT_RE.search(_t)]
+R.check(
+    "the #1218 note's count refusal matches the derived line's wording, a "
+    "bare pair count and a spelled-out one (planted corpus, FG-1)",
+    not _D308_MISSED,
+    f"not refused -> {_D308_MISSED}",
 )
 # The predicate itself, on synthetic closures built from real production
 # names: equal sets count, disjoint and below-boundary do not, an exactly
@@ -21476,8 +21546,8 @@ R.check(
 # `gate_required` is the list the ruleset and the seat readers will key on. The
 # check reads the module itself (loaded by path, as stamp.py is above), never a
 # copy, and pins its sorted union equal to the fixture list, which must hold no
-# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
-# red check, not a truncated run.
+# duplicate; `contexts` is `gate` alone since P2b's cut-over. A load failure
+# is a red check, not a truncated run.
 _CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
 import importlib.util as _cig_util
 try:
@@ -33967,7 +34037,8 @@ R.check(
 # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
 _PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
 _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
-_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+# A chained read, ROOT / "tests" / "run.sh", is the one file tests/run.sh, never the directory.
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT((?:\s*/\s*\"[^\"]+\")+)", re.M)
 
 
 def _pcr_spawned(mjs: str) -> "list[str]":
@@ -33988,7 +34059,7 @@ def _pcr_closure(roots) -> "list[str]":
         text = Path(f).read_text()
         todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
                  if Path(q).is_file()]
-        todo += _PCR_READ.findall(text)
+        todo += ["/".join(re.findall(r'"([^"]+)"', m)) for m in _PCR_READ.findall(text)]
     return sorted(seen)
 
 

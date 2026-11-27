@@ -44,6 +44,9 @@ import numpy as np  # noqa: E402
 import harness  # noqa: E402,F401  (puts custom_components on the path)
 from heatpump_optimizer import presets  # noqa: E402
 from heatpump_optimizer import sysid as S  # noqa: E402
+#: The switch: a config field before R11-SEAM-learners (ADR-003), arm's argument (default on)
+#: after it; so the same file runs at both ends.
+_SID_ON = {"enabled": True} if "enabled" in S.SysIdConfig.__dataclass_fields__ else {}
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState  # noqa: E402
 from profiles import house as _house  # noqa: E402
 from stress import BUILDINGS  # noqa: E402
@@ -74,7 +77,7 @@ def drive(declared: ThermalParameters, true: ThermalParameters, sigma: float, se
     ua_true = true.heat_loss_coefficient * true.house_heat_loss_scale
     gains_true = float(true.internal_gains)
     ua_decl = declared.heat_loss_coefficient * declared.house_heat_loss_scale
-    sid = S.SystemIdentification(S.SysIdConfig(enabled=True, min_days_between_runs=0.0))
+    sid = S.SystemIdentification(S.SysIdConfig(**_SID_ON, min_days_between_runs=0.0))
     if not sid.arm(NOW, plant=declared):
         return sid, None, ua_true
     outdoor = 0.0
@@ -108,7 +111,7 @@ def drive(declared: ThermalParameters, true: ThermalParameters, sigma: float, se
 def verdict(result, declared):
     if result is None or not result.completed or result.heat_loss_kw_per_c is None:
         return None, False, (result.reason if result is not None else "not armed")
-    d = S.adoption_decision(result, declared, S.SysIdConfig(enabled=True))
+    d = S.adoption_decision(result, declared, S.SysIdConfig(**_SID_ON))
     WEIGHT[0] = d.weight
     return result.heat_loss_kw_per_c, d.admit, d.reason
 

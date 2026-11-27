@@ -37,105 +37,27 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 125
-files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (124 until the merge joining R11-OUTSIDE-HONEST-DHW-RUNS's ``dhw_charges.py`` to #3848's ``dhw_start.py``, 123 until the merge joining #3848's ``dhw_start.py`` and R11-OUTSIDE-ROOMS-3B's ``comfort_floor.py``, 122 until either, 121 until R11-OWNER-FLOWCAP's ``flow_limit.py``, 120 until R11-SEAM-cycle-solve's ``solve_gate.py``, 118 until R11-SEAM-actuation-release's ``duty_ledger.py`` and ``number_restore.py``, 117 until its ``circulation.py``, 115 until R11-OUTSIDE-ROOMS-P3's ``room_history.py`` and ``room_record.py``, 114 until R11-OUTSIDE-ROOMS-P1's ``rooms.py``, 113 until R11-OUTSIDE-HONEST-STARTS-RUNS's ``runs.py``, 112 until #3616's ``slab_seed.py``, 111 until R10-START-COUNTER-EDGES's ``running_signal.py``, 110 until
-R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
-``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
-R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
-images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
-``payload.py``, 87 until R9-UX-4's ``notifier.py``, 88 until R9-SW-1's
-``quiet_windows.py``, 89 until R9-DBG-1's ``debugger.py``, 90 until
-R9-EG-B11's ``entry_config.py``, 91 until R9-UX-9's ``flow_meter.py``, 92
-until the live power clamp's ``draw_range.py``, 93 until the live-fix wave's
-``early_cutoff.py``, 94 until R10-FAHRENHEIT's ``issues.py``, 95 until
-R10-N-log-flood's ``log_latch.py``, 96 until R10-PUMP-MODEL's ``plan_step.py``, 97 until R10-DIAG-REPLAY's ``replay_doc.py``, 98 until R10-ADVISOR's ``price_tiles.py``, 99 until R10-LEARNER-ETA's ``learner_progress.py``, 100 until R10-HEAT-METER's ``heat_energy.py``, 101 until R10-ADVISOR-WHATIF's ``plan_slots.py``, 102 until R10-GRADE-DRIVERS's ``driving_grade.py``, 103 until R10-WHY-NOW-WIDGET's ``slot_drivers.py``, 104 until R10-I18N-DE's ``translations/de.json``, 105 until R10-GENERIC-HEAT-CURVE's ``heat_curve.py`` and ``off_restore.py``) -- one of the three closures in ``tests/closures.json`` that reach
-every production file; the second is ``tests/arch_score_head.py``'s
-(R9-EG-A1), which measures today's tree with the architecture score and so
-must read all of it, and the third is ``tests/entities.py``'s (round 9),
-which drives the CI ratchet's archscore measurement and so opens the package
-the way this lane's recorder does. A diff touching any production file
-therefore selects this lane. That is a selection cost, not a
-duplicate-assertion one: the same
-recording finds 192 of the 561 script pairs (34 choose 2) sharing 0.80 or more
-of their production-module closure (190 on R11-OUTSIDE-HONEST-DHW-RUNS's branch and
-190 on main before the merge joining #3848's dhw_start.py to that branch's dhw_charges.py;
-186 on #3863's branch and 182 on
-main before the merge joining them, main's R11-SEAM-entity-service services.yaml
-having taken config_flow_steps.py's pairs with debug_collect.py and wood_advisor.py
-under 0.80, 184 on main and 180 on that branch before it landed; on the #3863
-branch, 184 on each side before the merge joining
-R11-OWNER-FLOWCAP's flow_limit.py and #3848's dhw_start.py (R11-OUTSIDE-ROOMS-3B's comfort_floor.py on that branch), which put
-card_drift.mjs and wood_advisor.py each with features.py at the 0.80 floor; 182
-before flow_limit.py on main and dhw_start.py on its branch (comfort_floor.py on rooms-3b's) each lifted
-env_drift.py/manual_plan.py and golden.py/manual_plan.py to 0.80; 169 of 528 before R11-SEAM-tests's
-cycle_lane.py, whose closure opens the whole package, and 180 on its branch
-before the merge bringing R11-SEAM-actuation-release's three production
-modules; 167 before both; 164 on each side before the merge joining
-R11-OUTSIDE-ROOMS-P1's rooms.py, read by every closure that imports the
-coordinator, the input reader, the config flow or the sensor platform, and
-R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which joined
-config_flow_steps.py/debug_collect.py at 0.80; 162 before #3616 re-recorded the
-closures that import the coordinator), all 192 among the 435 pairs whose two
-scripts each have a non-empty production closure (``tests/arch_score.py``,
-``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
-``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
-R9 F10.3's strace instrument recorded its round-harness children's imports;
-doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
-added icons.json and services.yaml to doc_claims.py's closure; #1935's
-tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80;
-``tests/debug_collect.py`` joined when the debug-collector pin driver was
-recorded, adding 7 pairs at >= 0.80; the live-fix wave's early_cutoff.py,
-R9-UX-9's flow_meter.py and the live power clamp's draw_range.py, each read
-by every full-coverage closure, lifted the census from 120 to 123 pairs at
-the 0.80 floor; round 9's CI ratchet then grew entities.py's closure past
-doc_claims.py's and harness_headers.py's, moving the count from 123 to 122
-and putting entities.py itself in the full-coverage set; R10-ARCH-SHAPES's
-pins (#2819) grew guard_pins.py's closure to coordinator.py and sensor.py,
-adding its 9 pairs at >= 0.80 and moving the count from 122 to 131;
-R10-WOOD-NOTIFY's wood_advisor.py closure gained binary_sensor.py, lifting
-its pairs with finite_boundary.py, structure.py and typing_ruler.py from
-0.798 to 0.81 and the count from 131 to 134; R10-GRADE-DRIVERS's
-driving_grade.py re-recorded every closure that imports the coordinator,
-putting block_duty.py and boost_drift_replay.py each with finite_boundary.py
-and structure.py, plan_view.py with both, and card.mjs with features.py at
-the 0.80 floor, and the count from 134 to 141; the bot's closure re-record
-then added driving_grade.py to typing_ruler.py's closure, which had been
-recorded without it, putting block_duty.py, boost_drift_replay.py and
-plan_view.py each with typing_ruler.py at the 0.80 floor, and the count from
-141 to 144; R10-WHY-NOW-WIDGET's slot_drivers.py, imported by optimizer.py,
-joined the 27 closures that measure the optimizer, and the count from 144
-to 145; R10-I18N-DE's ``translations/de.json``, read by every closure that
-reads the catalogues, moved card.mjs with config_flow_steps.py from 0.800 to
-0.802 and left the count at 145; R10-GENERIC-HEAT-CURVE's heat_curve.py and
-off_restore.py, read by every closure that imports the coordinator, moved it
-from 145 to 146; R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py, read by every
-closure that imports the arbiter, the sensor platform or the store, from 146 to 148; the supply-hold PR's
-supply_hold.py, read by every closure that imports the coordinator, from 148 to 154;
-R10-DUTY-SWITCH-PLANNER-PRICE's duty_legs.py, read by every closure that
-imports the optimizer or the arbiter, left it at 154: measured alone on the
-148 recording it moves the same count to 154, the pairs it lifts being ones
-supply_hold.py lifts too; R10-ADVISOR-STEADY-START's whatif.py, read by every
-closure that imports the coordinator, left it at 154 too;
-R10-OUTSIDE-DHW-START-HYSTERESIS's block_duty.py check that the coordinator's
-input read puts the pump's start hysteresis on the state builds a coordinator,
-which grew that script's closure from 74 to 91 production files (75 to 92
-beside whatif.py): nine pairs joined at the 0.80 floor and one left, the
-count from 154 to 162; #3616's re-record moved it to 163, and
-R11-OUTSIDE-HONEST-STARTS-RUNS's recordings, which add runs.py, to 164; 184 on main after R11-OUTSIDE-ROOMS-3B's comfort_floor.py, 190 on the merge joining that main to #3848's branch, and 192 on the merge joining that merged main to R11-OUTSIDE-HONEST-DHW-RUNS's branch, each re-derived from the merged closures).
-Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
-arch_score_head.py/entities.py and deployment_shape.py/entities.py
-(98 shared production files each), doc_claims.py/harness_headers.py
-(88), structure.py/typing_ruler.py, finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (80 each), plan_view.py/solar_alignment.py,
-boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
-(62 each), the optimality.py/validate.py/edge.py/backtest.py four (22, six
-pairs), golden.py/env_drift.py (94), card.mjs/card_drift.mjs (61) -- and which
-mutants each script actually kills
-was never measured, so nothing here says those runs are redundant either:
-the pre-screen stops at the first killer, and where a narrower closure here
-or a merged script for an exactly-equal pair would pay is recorded rather
-than attempted (#1218).
+records every read, so this lane's recorded closure is the package: every file
+under ``custom_components/heatpump_optimizer/``, Python and non-Python alike --
+one of the three closures in ``tests/closures.json`` that reach every
+production file; the second is ``tests/arch_score_head.py``'s (R9-EG-A1),
+which measures today's tree with the architecture score and so must read all
+of it, and the third is ``tests/entities.py``'s (round 9), which drives the CI
+ratchet's archscore measurement and so opens the package the way this lane's
+recorder does. A diff touching any production file therefore selects this
+lane. That is a selection cost, not a duplicate-assertion one: the same
+recording pairs scripts sharing 0.80 or more of their production-module
+closure, among the pairs whose two scripts each have a non-empty production
+closure (``tests/arch_score.py``, ``tests/ha_contract.py``, ``tests/layout.py``
+and ``tests/md_tables.mjs`` have none), and some pairs share exactly the same
+production files. ``tests/entities.py``'s #1218 block derives and prints every
+one of those numbers and the exactly-equal pairs; this note carries none of
+them, because each moves with any recording that adds a production module and
+two branches merging their counts as text left a number neither tree derives
+(FG-1). Which mutants each script actually kills was never measured, so
+nothing here says those runs are redundant either: the pre-screen stops at the
+first killer, and where a narrower closure here or a merged script for an
+exactly-equal pair would pay is recorded rather than attempted (#1218).
 
     python tests/deployment_shape.py
 """

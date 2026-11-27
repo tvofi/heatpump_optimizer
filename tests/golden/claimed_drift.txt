@@ -62,19 +62,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.4
+# claims-for: 10.1.5
 #
-# v10.1.4: cooling guard, external-heat pill, duty-switch pricing, cycle solve gate, store schema, actuation release. The stamp empties the list; the
+# v10.1.5: set-point clamp and high limit, external-heat override, honest DHW start. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-valve_storage  # baseline_cost LOWER (129.949 -> 129.251)
-valve_storage_flat_prices  # baseline_cost HIGHER (105.998 -> 107.513), plan re-solved
-valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 127.893), plan re-solved
-valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 127.884), plan re-solved
-valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
-wood_coil  # baseline_cost LOWER (144.781 -> 144.082)
-wood_two_tank  # baseline_cost LOWER (129.949 -> 129.251)
-wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.251)
 cycling_cost  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 14 -> 0, combined draw 11 -> 0, charges 9 -> 3, starts 4 -> 3, energy 40.97 -> 42.45 kWh, predicted_cost 32.07 -> 33.76 (up: the committed charges buy what the trickles under the floor did not), worst gap under the hot-water requirement 0.557 -> 0.439 K
 everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as runs: hot-water steps under the floor 10 -> 0, combined draw 4 -> 0, charges 5 -> 3, starts 4 -> 3, energy 67.09 -> 66.48 kWh, predicted_cost 60.71 -> 60.39 (down), worst gap under the hot-water requirement 0.550 -> 0.438 K
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
@@ -102,14 +94,10 @@ everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as run
 # one was restored.
 #
 #
-# (R11-SEAM-two-zone-slab suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R11-SEAM-two-zone-slab suspends wood_two_tank's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R11-SEAM-two-zone-slab suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# (R11-SEAM-two-zone-slab suspends wood_coil's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
@@ -197,8 +185,7 @@ everything_on  # R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed as run
 # byte-identical on the dev box), runner-conditional for the same reason;
 # judged keys still fail. Remove when drift lanes are pinned or the polish
 # improvement scale leaves 5e-5-2e-2.
-# (R11-SEAM-two-zone-slab suspends valve_storage's may-drift entry for its claim below; restore it,
-#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
