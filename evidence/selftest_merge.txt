@@ -1,0 +1,10 @@
+   population arms: 28/28 held
+SELF-TEST passed (every perturbed scope refused)
+rc=0
+merge rc=0
+ef797d794017c98f7fb2d8a168d7de63d435ef3b
+gate completed failure
+gate completed failure
+tests / nightly-status completed failure
+
+[exited with code 0]
