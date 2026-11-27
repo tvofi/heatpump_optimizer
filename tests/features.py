@@ -5744,6 +5744,42 @@ R.check(
     f"{_p7_until}",
 )
 
+# The countdown's opening instant is the first one after ``now`` whose wall
+# clock reads the window's start, for each way a zone maps a wall time onto
+# instants: once (any plain time), twice (the autumn repeated hour, either
+# pass of ``now``) or never (the spring skipped hour, which the clock passes at
+# the transition). Europe/Stockholm, 02:30 local; the plain day is the null.
+_p7_fold = {
+    k: (_hunw(d.replace(hour=2, minute=30), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.25, 2.4)]))
+    for k, d in _p7_days.items() if k != "spring"
+}
+_p7_gap = _hunw(_p7_days["spring"].replace(minute=30), [(2.5, 4.0)])
+R.check(
+    "the next-window countdown opens at the first instant the wall clock reads "
+    "the start: either pass of the autumn repeated hour (02:30 to 02:45 is "
+    "0.25 h, to 02:15 is 0.75 h in the first pass and 23.75 h in the second) "
+    "and the spring skipped hour (00:30 to 02:30 is 1.5 h, at the jump)",
+    _p7_fold == {"autumn": (0.25, 0.25, 0.75, 23.75),
+                 "plain": (0.25, 0.25, 23.75, 23.75)}
+    and _p7_gap == 1.5,
+    f"{_p7_fold}, spring gap {_p7_gap}",
+)
+from heatpump_optimizer.pump_schedule import vvc_should_run as _p7_vvc  # noqa: E402
+
+_p7_lead = {
+    (k, f): _p7_vvc(d.replace(hour=2, minute=30, fold=f), [(2.75, 3.5)], 30.0)[0]
+    for k, d in _p7_days.items() if k != "spring" for f in (0, 1)
+}
+R.check(
+    "the circulation pump pre-heats 15 min before a 02:45 window from 02:30 in "
+    "either pass of the autumn repeated hour, as on a plain day",
+    all(_p7_lead.values()) and len(_p7_lead) == 4,
+    f"{_p7_lead}",
+)
+
 
 def _p7_slips(name, day):
     """Steps of 96 whose gains (and DHW draw) hour is off ``day``'s step clock."""
