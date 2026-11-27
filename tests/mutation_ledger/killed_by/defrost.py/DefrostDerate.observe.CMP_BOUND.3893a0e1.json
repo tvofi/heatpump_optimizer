@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe CMP_BOUND 3893a0e1",
+  "killed_by": "tests/features.py",
+  "old": "        if delivered_ratio <= 0 or delivered_ratio > 3.0:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'Defrost derate (item 14)'): CMP_BOUND (`if delivered_ratio < 0 or delivered_ratio > 3.0:`) took it from rc=0 failed=0 to rc=1 failed=1; CMP_BOUND (`if delivered_ratio <= 0 or delivered_ratio >= 3.0:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 5366f1e6254f603c, efb33eb6212be24e)."
+}

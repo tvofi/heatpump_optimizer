@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot GUARD_OFF e9fd377b",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        if snap is None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF 1455713b",
+  "killed_by": "tests/features.py",
+  "old": "                    if wood is not None and T_wood is not None:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'The batched trajectory'): GUARD_OFF (`if False:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 78b7f2ebcf85c8a1)."
+}

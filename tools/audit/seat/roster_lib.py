@@ -395,6 +395,7 @@ _ROUND_DIR = re.compile(r"\Around\d+\Z")
 ROUND_RECORDS = frozenset({
     ("tools/audit/seat/roster_lib.py", "CARRY_CUTOVER"),   # round 10's carry cut-over commit
     ("tools/release/stamp.py", "REGISTER_DIR"),            # the D6 register round 4 built
+    ("tools/merge/ledger_merge.py", "D6_REGISTER"),        # the same register, its merge arm
     ("tools/policy/agreement_py.py", "SEARCH"),            # round 4's and 6's D11 libraries
     ("tools/pr/gh_comment.py", "REAL_NEGATIVES"),          # bodies really posted, verbatim
 })

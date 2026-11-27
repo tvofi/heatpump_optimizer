@@ -88,6 +88,9 @@ import sys
 import tempfile
 
 DRIVER_NAME = "ledgermerge"
+#: The D6 register's directory: a fixed record of the round that built it, as
+#: tools/release/stamp.py's REGISTER_DIR (roster_lib.ROUND_RECORDS).
+D6_REGISTER = "dev/audit/rounds/round4/D6"
 #: Path -> how a number both sides changed is merged.
 LEDGERS = {
     "tests/mutation_budgets.json": "sum",
@@ -98,9 +101,18 @@ LEDGERS = {
     # path list, so a key-by-key merge would mix two sides' indices. Its own
     # writer merges it (tests/case_select.py merge_tables, `_TABLE_ARMS`).
     "tests/case_closures.json": "table",
+    # The D6 register, claims.py's committed output: rows keyed by claim id,
+    # many carrying a count derived from the tree that every module- or
+    # entity-adding branch re-derives (tools/merge/d6_register.py).
+    f"{D6_REGISTER}/claims.json": "table",
+    f"{D6_REGISTER}/claims.md": "table",
 }
 #: Ledgers merged by their own writer's three-way function, not by merge3.
-_TABLE_ARMS = {"tests/case_closures.json": ("tests/case_select.py", "merge_tables")}
+_TABLE_ARMS = {
+    "tests/case_closures.json": ("tests/case_select.py", "merge_tables"),
+    f"{D6_REGISTER}/claims.json": ("tools/merge/d6_register.py", "merge_json"),
+    f"{D6_REGISTER}/claims.md": ("tools/merge/d6_register.py", "merge_md"),
+}
 #: Ledgers written in tests/closure.py's layout (R9-CI-2b): every table's keys
 #: and string lists sorted, ``sort_keys``. GitHub merges with no driver, so the
 #: layout is what keeps two branches apart there; the driver writes it from
@@ -381,15 +393,20 @@ def merge_text(base: str, ours: str, theirs: str, numbers: str,
     return json.dumps(merged, ensure_ascii=not raw, **fmt) + "\n"
 
 
+def _load_arm(rel: str):
+    """The module at ``rel`` under the checkout, loaded by path."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_ledger_arm", os.path.join(ROOT, rel))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _table_arm(pathname: str, base: str, ours: str, theirs: str) -> str:
     """Merge a ledger with its own writer's three-way function; ``Refuse`` on any failure."""
-    import importlib.util
     rel, fn = _TABLE_ARMS[pathname]
     try:
-        spec = importlib.util.spec_from_file_location("_ledger_arm", os.path.join(ROOT, rel))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return getattr(mod, fn)(base, ours, theirs)
+        return getattr(_load_arm(rel), fn)(base, ours, theirs)
     except Exception as exc:  # noqa: BLE001 - the text merge is the fallback
         raise Refuse(f"{rel} {fn} failed: {exc!r}")
 
@@ -408,7 +425,7 @@ def run_driver(base_path: str, ours_path: str, theirs_path: str,
     try:
         if pathname in _TABLE_ARMS:
             merged = _table_arm(pathname, base, ours, theirs)
-            notes.append(f"{pathname}: merged span by span by its writer")
+            notes.append(f"{pathname}: merged by {' '.join(_TABLE_ARMS[pathname])}")
         else:
             merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes,
                                 raw=pathname in RAW, layout=LAYOUT.get(pathname, ()))
@@ -883,6 +900,24 @@ def self_test() -> int:
         check("driver: a format refusal falls back to a clean text merge",
               rc == 0 and text_merged["k0"] == 100 and text_merged["k11"] == 100)
 
+        # The D6 register through its writer-side arm, in the replay's shape:
+        # both branches re-derived one row's count, so a line merge conflicts.
+        reg = f"{D6_REGISTER}/claims.json"
+        rows = lambda n: [{"id": "C32", "result": f"documented={n} measured={n}"},
+                          {"id": "C33", "result": "missing=[]"}]
+        for name, n in (("O", 98), ("A", 99), ("B", 101)):
+            with open(os.path.join(tmp, name), "w") as f:
+                f.write(json.dumps(rows(n), indent=1))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = run_driver(*paths, "7", reg)
+        with open(paths[1]) as f:
+            got_reg = f.read()
+        check("driver: the D6 register merges row by row through its arm",
+              rc == 0 and got_reg == json.dumps(rows(101), indent=1))
+        check("driver: and says the register is owed a re-run",
+              "re-run the gate" in err.getvalue())
+
     def fake_git(rc: int):
         def git(*a):
             if a[0] == "log":
@@ -925,6 +960,13 @@ def self_test() -> int:
     check("bugclasses refuses: a class both sides added an instance to (equal counts, both wrong)",
           refused(lambda: merge_text(_dump(gb, FORMATS[2]), _dump(go2, FORMATS[2]),
                                      _dump(gt2, FORMATS[2]), LEDGERS[reg])))
+    # The D6 register arm's own cases: it has no entry point of its own, so
+    # this is where CI and tests/entities.py run them.
+    with contextlib.redirect_stdout(io.StringIO()) as d6_out:
+        d6_rc = _load_arm("tools/merge/d6_register.py").self_test()
+    check("the D6 register arm's own cases pass (tools/merge/d6_register.py)", d6_rc == 0)
+    if d6_rc:
+        print(d6_out.getvalue(), end="")
     check(".gitattributes routes every ledger to the driver",
           gitattributes_error() is None)
     check("a .gitattributes routing only one ledger is refused",

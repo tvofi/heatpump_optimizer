@@ -1,0 +1,18 @@
+HARVEST -- 11 of 11 anchor(s) unpinned at HEAD, 11 site(s)
+  1818 unpinned site(s) of 8228 candidate sites, 1818 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 12 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+DRAIN -- 11 of 1818 unpinned site(s), whole anchors under --seed 20260911, to drive
+  null control: custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  null control custom_components/heatpump_optimizer/coordinator.py:388 NULL_COMMENT survived every driver
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1806 CONST -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4687 GUARD_OFF -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5094 CLAMP_DROP -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5489 CLAMP_DROP -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8300 GUARD_OFF -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8338 CLAMP_DROP -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8340 GUARD_OFF -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:115 CONST -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:546 GUARD_OFF -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:403 GUARD_OFF -- killed by tests/finite_boundary.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:287 CMP_BOUND -- killed by tests/finite_boundary.py
+PIN KILLED: 11 pinned, 0 left unpinned
+DRAIN: measured, 11 anchor(s) to record, 0 site(s) left for a human verdict
