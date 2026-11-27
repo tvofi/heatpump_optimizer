@@ -88,6 +88,9 @@ import sys
 import tempfile
 
 DRIVER_NAME = "ledgermerge"
+#: The D6 register's directory: a fixed record of the round that built it, as
+#: tools/release/stamp.py's REGISTER_DIR (roster_lib.ROUND_RECORDS).
+D6_REGISTER = "dev/audit/rounds/round4/D6"
 #: Path -> how a number both sides changed is merged.
 LEDGERS = {
     "tests/mutation_budgets.json": "sum",
@@ -101,14 +104,14 @@ LEDGERS = {
     # The D6 register, claims.py's committed output: rows keyed by claim id,
     # many carrying a count derived from the tree that every module- or
     # entity-adding branch re-derives (tools/merge/d6_register.py).
-    "dev/audit/rounds/round4/D6/claims.json": "table",
-    "dev/audit/rounds/round4/D6/claims.md": "table",
+    f"{D6_REGISTER}/claims.json": "table",
+    f"{D6_REGISTER}/claims.md": "table",
 }
 #: Ledgers merged by their own writer's three-way function, not by merge3.
 _TABLE_ARMS = {
     "tests/case_closures.json": ("tests/case_select.py", "merge_tables"),
-    "dev/audit/rounds/round4/D6/claims.json": ("tools/merge/d6_register.py", "merge_json"),
-    "dev/audit/rounds/round4/D6/claims.md": ("tools/merge/d6_register.py", "merge_md"),
+    f"{D6_REGISTER}/claims.json": ("tools/merge/d6_register.py", "merge_json"),
+    f"{D6_REGISTER}/claims.md": ("tools/merge/d6_register.py", "merge_md"),
 }
 #: Ledgers written in tests/closure.py's layout (R9-CI-2b): every table's keys
 #: and string lists sorted, ``sort_keys``. GitHub merges with no driver, so the
@@ -899,7 +902,7 @@ def self_test() -> int:
 
         # The D6 register through its writer-side arm, in the replay's shape:
         # both branches re-derived one row's count, so a line merge conflicts.
-        reg = "dev/audit/rounds/round4/D6/claims.json"
+        reg = f"{D6_REGISTER}/claims.json"
         rows = lambda n: [{"id": "C32", "result": f"documented={n} measured={n}"},
                           {"id": "C33", "result": "missing=[]"}]
         for name, n in (("O", 98), ("A", 99), ("B", 101)):
