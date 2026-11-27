@@ -104292,6 +104292,39 @@ R.check(
     f"live {_ifr_out_live}, none {_ifr_out_none}",
 )
 
+# The covering row's edges: no rows, untimestamped rows (positional), before
+# the first row (row 0), the covering row at zero wind, and the outdoor
+# lookup's own end rule.
+_ifr_fresh = _ifr_rows(1)
+_ifr_wx._weather_forecast = _ifr_rows(0)
+_ifr_edges = (
+    _ifr_cm.covering_forecast_row([], _ifr_now),
+    _ifr_cm.covering_forecast_row([{"temperature": 1.0}, {"temperature": 2.0}], _ifr_now),
+    _ifr_cm.covering_forecast_row(_ifr_fresh, _ifr_now) is _ifr_fresh[0],
+    _ifr_wx._current_weather(),
+    _ifr_cm.forecast_outdoor_now(_ifr_rows(-60), _ifr_now),
+    _ifr_cm.forecast_outdoor_now(_ifr_rows(0), _ifr_now),
+)
+R.check(
+    "the covering row: none for no rows, row 0 untimestamped or before the "
+    "first row, zero wind kept, and no outdoor value past the end",
+    _ifr_edges == (None, {"temperature": 1.0}, True, (0.0, 0.0), None, 0.7),
+    f"{_ifr_edges}",
+)
+
+# An unavailable input stays an Input Problem: the quiet mark is the stale
+# branch's alone.
+_ifr_gone = InputReader(
+    FakeHass({"sensor.x": FakeState("unavailable", last_updated=_ifr_now)}),
+    {"heat_pump_defrost_entity": "sensor.x"}, now=lambda: _ifr_now,
+)
+_ifr_gone.read_bool("heat_pump_defrost_entity")
+R.check(
+    "an unavailable pushed flag is still listed as an input problem",
+    [d["input"] for d in _ifr_gone.health.details()] == ["heat_pump_defrost_entity"],
+    f"{_ifr_gone.health.details()}",
+)
+
 # D1-s3-02: a JSON bool is never an ECL110 displacement; a number still is.
 _ifr_ecl = [_ifr_cm._parse_ecl110_state(p, None)[0]
             for p in ("true", "false", '{"displace": true}', "7", '{"displace": "3"}')]
