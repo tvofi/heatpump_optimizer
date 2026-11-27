@@ -94338,9 +94338,16 @@ R.check(
 # whose presence alone turns an auto config two-zone (TWO_ZONE_FIELDS). The
 # census asserts its precondition (the set is non-empty and is exactly what
 # the rule reads), so a key the rule starts reading is driven the day it lands.
+# A key the rule stops reading is caught by the literal set below, written
+# independently of TWO_ZONE_FIELDS: the rule's output is compared with it and
+# the refusals drive it, so deleting a key from the constant fails both (a
+# census of the constant against itself would not). The literal encodes a
+# design choice: these four keys are the two-zone model's own parameters.
 from heatpump_optimizer import thermal_model as _zg_tm  # noqa: E402
 from heatpump_optimizer import coordinator as _zg_coord  # noqa: E402
 
+_zg_values = {"upper_floor_thermal_mass": 40.0, "lower_floor_thermal_mass": 40.0,
+              "inter_zone_heat_transfer": 1.5, "radiator_power_fraction": 0.9}
 _zg_rule_set = {
     k for k in _zg_coord._THERMAL_PARAM_FIELDS
     if _zg_tm.two_zone_from_config({k: 1.0})
@@ -94351,10 +94358,14 @@ R.check(
     bool(_zg_rule_set) and _zg_rule_set == set(getattr(_zg_tm, "TWO_ZONE_FIELDS", ())),
     f"rule={sorted(_zg_rule_set)} declared={sorted(getattr(_zg_tm, 'TWO_ZONE_FIELDS', ()))}",
 )
-_zg_values = {"upper_floor_thermal_mass": 40.0, "lower_floor_thermal_mass": 40.0,
-              "inter_zone_heat_transfer": 1.5, "radiator_power_fraction": 0.9}
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the presence rule turns an auto config two-zone "
+    "on each of the four zone keys, and on no other action field",
+    _zg_rule_set == set(_zg_values),
+    f"rule={sorted(_zg_rule_set)} pinned={sorted(_zg_values)}",
+)
 _zg_before = _pm_svc_one.runtime_data._thermal_params
-for _zg_field in sorted(_zg_rule_set):
+for _zg_field in sorted(_zg_values):
     _zg_out = _svc_call(
         _pm_svc1_hass, "set_thermal_parameters", {_zg_field: _zg_values[_zg_field]}
     )
@@ -94369,9 +94380,9 @@ R.check(
     all(
         getattr(_pm_svc_one.runtime_data._thermal_params, a)
         == getattr(_zg_before, a)
-        for k, a in _zg_coord._THERMAL_PARAM_FIELDS.items() if k in _zg_rule_set
+        for k, a in _zg_coord._THERMAL_PARAM_FIELDS.items() if k in _zg_values
     )
-    and not (_zg_rule_set & set(_pm_svc_one.options)),
+    and not (set(_zg_values) & set(_pm_svc_one.options)),
     f"options={sorted(_pm_svc_one.options)}",
 )
 _zg_two_out = _svc_call(
