@@ -28,6 +28,10 @@ Departures from the note, each made for a measured reason and each open to the r
 
 ## Head
 
+Merged origin/main into the head (merge 7c4c5a2e64f648381b6ae05f51828fcbeaa98a52). One conflict: dhw_planner.py, the external-heat suppression block; main removed the suppress_steps counter and external_heat_suppressed_steps, this branch added whole_charges(self.charge_runs, schedule, mask); kept the whole_charges line, dropped the counter. tests/structure_budgets.json merged by the claim driver and re-measured (max_class_loc 7759, module_excess_loc 21656; structure.py passes). Ran features, manual_plan, guard_pins, block_duty, config_flow_steps, plan_view, cycle_lane, validate, edge, typing_ruler, structure.
+
+`1838649dbabd3906fafb93734c78f5415f27f724` merges the authored code head `e382689b46df3209f45f09359893289c7300f314` and then merges origin/main `e84856520d` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `17cb5c02e608993b19e4c7046479ee61e1d95baf` merges the authored code head `ae8b9e3ae399c463f6a206e0dcd0f75c717c92c6`.
 
 `ae8b9e3ae399c463f6a206e0dcd0f75c717c92c6` merges `origin/main` `ef797d7940` into the PR head `39a573a214`, with no conflict. It takes main's D5 re-cut `7df39f349a`, which repairs the `instrument-self-tests` red (`## Red checks`), and changes nothing else of this group's.
@@ -325,6 +329,7 @@ New at this round's commits, before the handoff: `tests/features.py` red at `baf
 - `fixer.md`: `unclear`: step 2: `prepr.sh`'s drive mutates the first 40 added lines in file order, which on this diff is `dhw_planner.py`'s first 40 of 237; the survivors that mattered (the build's call of `whole_charges`, the kernel's two flags) were past it and found only by raising `--max-mutants`. Carry: dismissed: one fixer's reading, no second instance
 - `gate-scoping.md`: `cost`: `tests/run.sh` keeps no log of a failed script (the lane log is overwritten), so `tests/features.py`'s seven failures cost a second 15-minute run to read. Carry: dismissed: one occurrence, not measured against a second
 - `finding-propagation.md`: `unclear`: a dependency on a handed-off, unmerged predecessor (P2's mutants file) has no tree to land a carry in; it is named in this body only. Carry: dismissed: one occurrence, its predecessor has since merged
+
 
 
 
