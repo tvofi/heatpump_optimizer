@@ -1,3 +1,4 @@
 1795759297 INIT r11-repair-3932
 1795759314 HB alive
 1795759342 CKPT worktree at aa1bb8d3, reading diff snapshot d21feace6aa0
+1795759536 CKPT fix + census committed 8b0156a912, mutants killed; running scoped gate snapshot 2e11741b2f5d
