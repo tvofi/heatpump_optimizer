@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quick_setup.py:stored_answers CMP_BOUND 550e9454",
+  "killed_by": "tests/features.py",
+  "old": "        answers[FIELD_BUFFER_TANK] = volume >= BUFFER_STORE_MIN_VOLUME",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`answers[FIELD_BUFFER_TANK] = volume > BUFFER_STORE_MIN_VOLUME`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
