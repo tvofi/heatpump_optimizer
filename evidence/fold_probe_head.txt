@@ -1,0 +1,2 @@
+fold=0 now=2026-10-25T02:30:00+02:00 utc=00:30:00 window 02:45-03:30 -> 0.25 (True, 'window opens within 30 min; pre-heating the loop')
+fold=1 now=2026-10-25T02:30:00+01:00 utc=01:30:00 window 02:45-03:30 -> -0.75 (False, 'outside every demand window')
