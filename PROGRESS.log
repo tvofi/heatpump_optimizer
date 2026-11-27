@@ -4,3 +4,4 @@
 1795737794 HB alive
 1795738397 HB alive
 1795738589 CKPT verdict drafted (merge), carry_audit rc 0; waiting on CI classify snapshot e472d7e8aee1
+1795738988 DONE verdict merge c499d7a6 pending-ci: gate pushed to probe/rev-3924-0ae5f2d7 (7bf6813a)
