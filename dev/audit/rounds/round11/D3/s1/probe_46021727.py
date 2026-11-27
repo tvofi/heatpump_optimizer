@@ -96,7 +96,7 @@ with mock.patch.object(sysid, "slab_mode_tau_fast", spy):
     for t in degenerate_in:
         sysid.slab_mode_one_state_identifiability(*t, cfg)
         sysid.slab_mode_identifiability(ThermalParameters(room_thermal_mass=t[0], slab_thermal_mass=t[1],
-                                                          slab_heat_transfer=t[2]), cfg)
+                                                          slab_heat_transfer=t[2]))
 print(f"RESULT reach_degenerate_inputs_offered={len(degenerate_in) * 2} count")
 print(f"RESULT reach_callers_with_degenerate={sum(1 for t in seen if not all(v > 1e-9 for v in t))} count")
 with mock.patch.object(sysid, "slab_mode_tau_fast", mut):

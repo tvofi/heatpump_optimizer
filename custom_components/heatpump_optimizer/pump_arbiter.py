@@ -195,7 +195,7 @@ from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
+    InputReader, SetpointGrid, read_setpoint, setpoint_grid, setpoint_range_c,
     write_setpoint_c,
 )
 from .log_latch import log_held

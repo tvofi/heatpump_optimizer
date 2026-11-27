@@ -119,17 +119,19 @@ def curve_supply_temp(
 
 @dataclass
 class FlowCurveBias:
-    """The learned supply-vs-curve offset, and this cycle's two readings.
+    """The learned supply-vs-curve offset, and this cycle's readings.
 
     Inert with zero evidence: ``bias_k`` is exactly 0.0 at zero samples, so an
     install that never maps the supply slot gets a bias that changes nothing,
     and every arithmetic downstream of it is the arithmetic that ran before
     this existed.
 
-    The two readings ride here rather than on the coordinator because they are
-    this feature's inputs and belong beside the thing they feed, and because
+    The readings are the supply temperature and the flow meter's output.
+    They ride here rather than on the coordinator because they are this
+    feature's inputs and belong beside the thing they feed, and because
     holding them in one place is what lets the fold be a single module-level
-    predicate. They are deliberately NOT persisted -- see :meth:`as_dict`.
+    predicate.
+    They are deliberately NOT persisted -- see :meth:`as_dict`.
     """
 
     #: Measured supply minus curve supply, kelvin, from
@@ -143,10 +145,6 @@ class FlowCurveBias:
     #: unconfigured, unreadable or past its horizon. ``None`` acts on nothing,
     #: exactly as an absent pump flag does (``pump_signals``).
     last_supply_c: float | None = None
-    #: This cycle's return reading, same rules. Held for the diagnostics and
-    #: for W1067-G3; nothing in this group's fold reads it, because the bias
-    #: is a property of the SUPPLY side against the supply curve.
-    last_return_c: float | None = None
     #: This cycle's thermal output in kW read off the flow meter, or
     #: ``None`` (#2016). Set by ``observe_temps``; not persisted.
     heat_output_kw: float | None = None
@@ -154,11 +152,10 @@ class FlowCurveBias:
     def observe_temps(
         self,
         supply: float | None,
-        return_temp: float | None,
         heat_output_kw: float | None = None,
     ) -> None:
-        """Record this cycle's readings, or clear them: the two water
-        temperatures and the flow meter's thermal output.
+        """Record this cycle's readings, or clear them: the supply
+        water temperature and the flow meter's thermal output.
 
         Called every cycle, with ``None`` for a slot that was unconfigured,
         unavailable or stale. Clearing rather than keeping is the whole point:
@@ -169,11 +166,6 @@ class FlowCurveBias:
         self.last_supply_c = (
             float(supply)
             if supply is not None and np.isfinite(supply)
-            else None
-        )
-        self.last_return_c = (
-            float(return_temp)
-            if return_temp is not None and np.isfinite(return_temp)
             else None
         )
         self.heat_output_kw = heat_output_kw
@@ -207,7 +199,7 @@ class FlowCurveBias:
     def as_dict(self) -> dict[str, Any]:
         """The learned state only.
 
-        The two readings are absent on purpose. They are one cycle's
+        The readings are absent on purpose. They are one cycle's
         measurement of water that has since cooled, and restoring one hours
         later would hand the bias fold a "fresh" supply temperature
         that is nothing of the kind -- the exact failure the horizons in

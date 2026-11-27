@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_entries_by_day GUARD_OFF 576f9029",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        if not starts_at or total is None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

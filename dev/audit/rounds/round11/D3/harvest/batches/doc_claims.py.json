@@ -1,0 +1,1 @@
+["custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast CLAMP_DROP f4adce60", "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._repair_dhw_floor GUARD_OFF 1198d8b3", "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.marginal_cop GUARD_OFF ccd76ca9"]

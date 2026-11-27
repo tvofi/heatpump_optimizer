@@ -1,0 +1,135 @@
+HARVEST -- 115 of 115 anchor(s) unpinned at HEAD, 128 site(s)
+  1818 unpinned site(s) of 8228 candidate sites, 1818 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 12 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+DRAIN -- 128 of 1818 unpinned site(s), whole anchors under --seed 20260911, to drive
+  null control: custom_components/heatpump_optimizer/accuracy.py:66 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  null control custom_components/heatpump_optimizer/accuracy.py:66 NULL_COMMENT survived every driver
+  pinned   custom_components/heatpump_optimizer/accuracy.py:365 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/accuracy.py:377 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/accuracy.py:483 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:426 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:543 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:673 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1262 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1659 CONST -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1880 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1930 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1955 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:2987 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:3193 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4198 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4893 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5196 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5652 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5670 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:5976 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6086 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6536 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6666 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6679 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6725 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:6852 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:7056 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:7096 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:7297 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8661 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8709 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8849 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8872 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8895 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8941 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:8941 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9025 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9025 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9043 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9184 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9404 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9418 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9954 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9964 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:10132 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:10239 CLAMP_DROP -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:10365 CMP_BOUND -- lives
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:10365 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  pinned   custom_components/heatpump_optimizer/coordinator.py:10365 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:10369 CMP_BOUND -- lives
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:10369 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  pinned   custom_components/heatpump_optimizer/coordinator.py:10395 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:10690 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:106 CONST -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:167 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:419 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:739 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:744 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/defrost.py:808 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:74 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:391 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/dhw_planner.py:661 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/dhw_planner.py:661 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:800 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:922 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:1690 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:1942 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/dhw_planner.py:1944 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/grid_fee.py:306 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/grid_fee.py:355 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:2237 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:2368 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:2890 CMP_BOUND -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:4192 CLAMP_DROP -- killed by tests/features.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:4192 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/optimizer.py:4728 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:4871 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:5002 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:5379 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:5379 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/optimizer.py:5869 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:6165 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:6686 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/optimizer.py:6732 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:56 CONST -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:516 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:612 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/price_model.py:812 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:855 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1466 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1486 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1564 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1760 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1764 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1784 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:1795 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:2094 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:2159 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:2213 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:2213 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/sysid.py:2228 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:2251 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/sysid.py:2251 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/sysid.py:2251 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/sysid.py:2330 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:64 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:148 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:148 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:235 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:580 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:716 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:746 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:746 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:766 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:768 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/tariff.py:911 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:798 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:1309 CMP_BOUND -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2936 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2942 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2942 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:2944 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:3034 CLAMP_DROP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:3102 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3682 CMP_BOUND -- killed by tests/features.py, but its anchor also covers a site no run killed
+  UNPINNED custom_components/heatpump_optimizer/thermal_model.py:3682 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:4769 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/thermal_model.py:4955 BOOLOP -- killed by tests/features.py
+PIN KILLED: 112 pinned, 16 left unpinned (16 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+DRAIN: measured, 107 anchor(s) to record, 16 site(s) left for a human verdict

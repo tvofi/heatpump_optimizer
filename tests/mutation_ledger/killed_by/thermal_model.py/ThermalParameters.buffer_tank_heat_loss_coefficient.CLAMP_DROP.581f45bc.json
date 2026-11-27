@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient CLAMP_DROP 581f45bc",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        rate = min(max(float(rate), low), high)",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`rate = min((float(rate)), high)`) took it from rc=0 failed=0 to rc=1 failed=1; CLAMP_DROP (`rate = (max(float(rate), low))`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave b2faf84904db389e, 05b5a15efaaf70de)."
+}

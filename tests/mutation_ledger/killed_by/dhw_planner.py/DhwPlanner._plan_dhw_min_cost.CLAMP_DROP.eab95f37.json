@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP eab95f37",
+  "killed_by": "tests/env_drift.py",
+  "old": "                premium[j] = max(0.0, refill - float(prices[j]))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`premium[j] = (0.0)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=3."
+}
