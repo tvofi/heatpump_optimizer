@@ -1,0 +1,4 @@
+ .github/workflows/ci.yml       | 74 +++++++++++++++++++-----------------------
+ dev/programme/delivery/3923.md |  1 +
+ tests/entities.py              | 59 ++++++++++++++++++++++++++++-----
+ 3 files changed, 85 insertions(+), 49 deletions(-)
