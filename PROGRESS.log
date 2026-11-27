@@ -33,3 +33,4 @@
 1795771830 CKPT rev3: plain/one done (null empty, 852 s); swap aborted on a raise, containment added, swap2 + store-drop + line-reach running snapshot a7518105cadd
 1795771862 HB alive
 1795772457 HB alive
+1795772788 CKPT rev3: swap diff at base = 2 spans (spy patch); P0-edited copy running; V2 cost measured snapshot fd347f99eca8
