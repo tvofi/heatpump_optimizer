@@ -682,6 +682,18 @@ R.check(
     ThermalModel(_r9f41_p).curve_flow_temp(float("nan")) is None,
     f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
 )
+# R11-D3-PINS-plant pins (#3755)
+_r11pp_warm = flow_lift.FlowCurveBias()
+for _r11pp_r in (0.0, 0.0, 0.0, 0.0, 10.0):
+    _r11pp_warm.observe(25.0 + _r11pp_r, 25.0)
+_r11pp_mean5 = _r11pp_warm.bias_k
+_r11pp_warm.observe(35.0, 25.0)
+R.check(
+    "the flow-curve bias is a plain mean for its first five samples, then an "
+    "EWMA from the sixth (D3-wave-2aa0f17a216035ee)",
+    abs(_r11pp_mean5 - 2.0) < 1e-9 and abs(_r11pp_warm.bias_k - 2.8) < 1e-9,
+    f"after 5 {_r11pp_mean5}, after 6 {_r11pp_warm.bias_k}",
+)
 
 # --- R9 N-future-instant (#1660): a stored instant ahead of the clock --------
 R.section("R9 N-future-instant: a persisted instant ahead of the clock (FI-sw1, FI-sw2, FI-sw3, FI-sw4, FI-rca1)")
@@ -5590,6 +5602,186 @@ R.check(
     f"{_shortcut_bad} of 4000 sampled answers (hit and miss alike) left "
     "1.0 -- the uniform shortcut is what keeps a data-less derate inert "
     "to the last bit, not a speed choice",
+)
+
+# R11-D3-PINS-plant pins (#3755)
+import logging as _r11pp_logging  # noqa: E402
+from heatpump_optimizer import defrost as _r11pp_df  # noqa: E402
+
+
+class _R11ppInfo(_r11pp_logging.Handler):
+    def __init__(self):
+        super().__init__(_r11pp_logging.INFO)
+        self.msgs = []
+
+    def emit(self, record):
+        if record.levelno == _r11pp_logging.INFO:
+            self.msgs.append(record.getMessage())
+
+
+def _r11pp_info_of(fn):
+    sink, lg = _R11ppInfo(), _r11pp_df._LOGGER
+    old = lg.level
+    lg.setLevel(_r11pp_logging.INFO)
+    lg.addHandler(sink)
+    try:
+        out = fn()
+    finally:
+        lg.removeHandler(sink)
+        lg.setLevel(old)
+    return out, sink.msgs
+
+
+# DERATE_ALPHA: twelve 0.8 ratios at one bucket.
+_r11pp_a = DefrostDerate()
+for _ in range(12):
+    _r11pp_a.observe(2.0, 85.0, 0.8)
+R.check(
+    "twelve 0.8 delivered ratios learn a bucket derate of 0.908 at the "
+    "inferred estimator's slow rate (D3-wave-3b9eddc7ba9a7488)",
+    _r11pp_a.summary()[0]["learned"] == 0.908,
+    f"summary {_r11pp_a.summary()}",
+)
+
+# The estimator tie: equal derates, measured wins (with its own sample count).
+_r11pp_t = DefrostDerate()
+_r11pp_t.factors[3][1] = derate_from_duty(0.1)
+_r11pp_t.counts[3][1] = 5
+_r11pp_t.duty[3][1] = 0.1
+_r11pp_t.duty_counts[3][1] = 5
+_r11pp_row = _r11pp_t.summary()[0]
+R.check(
+    "an exact tie between the inferred and measured derate is read as measured, "
+    "at equal evidence (D3-wave-d1197dfed14a6927)",
+    _r11pp_row["source"] == "measured" and _r11pp_row["samples"] == 5,
+    f"row {_r11pp_row}",
+)
+
+# v1 store upgrade logs once; a v2 store does not.
+_r11pp_v1 = DefrostDerate().as_dict()
+for _k in ("duty", "duty_counts", "duty_events"):
+    _r11pp_v1.pop(_k)
+_r11pp_up, _r11pp_upmsgs = _r11pp_info_of(lambda: DefrostDerate.from_dict(_r11pp_v1))
+_r11pp_v2, _r11pp_v2msgs = _r11pp_info_of(
+    lambda: DefrostDerate.from_dict(DefrostDerate().as_dict())
+)
+R.check(
+    "loading a v1 store logs the upgrade once and a v2 store logs none "
+    "(D3-wave-3e3fbb5fcbbe9bcc)",
+    _r11pp_up.migrated
+    and len(_r11pp_upmsgs) == 1
+    and "upgraded" in _r11pp_upmsgs[0]
+    and not _r11pp_v2.migrated
+    and _r11pp_v2msgs == [],
+    f"v1 {_r11pp_upmsgs}, v2 {_r11pp_v2msgs}",
+)
+
+# Restore bounds of a stored duty cell: 0.0 and 1.0 are both legal.
+for _r11pp_key, _r11pp_val in (
+    ("1ba9abbe8e702464", 1.0),
+    ("4aac8e694ddc5dfe", 0.0),
+):
+    _r11pp_data = DefrostDerate().as_dict()
+    _r11pp_data["duty"][2][1] = _r11pp_val
+    _r11pp_data["duty_counts"][2][1] = 12
+    _r11pp_back = DefrostDerate.from_dict(_r11pp_data)
+    R.check(
+        f"a stored duty of {_r11pp_val} is a valid cell and restores its "
+        f"count (D3-wave-{_r11pp_key})",
+        _r11pp_back.duty_counts[2][1] == 12 and _r11pp_back.duty[2][1] == _r11pp_val,
+        f"count {_r11pp_back.duty_counts[2][1]}, duty {_r11pp_back.duty[2][1]}",
+    )
+
+# The inferred observation's ratio gate: 0 is refused, 3.0 is accepted.
+_r11pp_z = DefrostDerate()
+_r11pp_z.observe(2.0, 85.0, 0.0)
+R.check(
+    "an inferred delivered ratio of exactly 0 is discarded "
+    "(D3-wave-5366f1e6254f603c)",
+    _r11pp_z.total_samples == 0 and _r11pp_z.factor(2.0, 85.0) == 1.0,
+    f"samples {_r11pp_z.total_samples}",
+)
+_r11pp_h = DefrostDerate()
+_r11pp_h.observe(2.0, 85.0, 3.0)
+R.check(
+    "an inferred delivered ratio of exactly 3.0 is still counted "
+    "(D3-wave-efb33eb6212be24e)",
+    _r11pp_h.total_samples == 1,
+    f"samples {_r11pp_h.total_samples}",
+)
+
+# The handover log needs inferred evidence behind it.
+_r11pp_bare = DefrostDerate()
+
+
+def _r11pp_fold12():
+    for _ in range(12):
+        _r11pp_bare.observe_duty(2.0, 85.0, 0.1)
+
+
+_, _r11pp_bmsgs = _r11pp_info_of(_r11pp_fold12)
+_r11pp_inf = DefrostDerate()
+_r11pp_inf.observe(2.0, 85.0, 0.9)
+
+
+def _r11pp_fold12b():
+    for _ in range(12):
+        _r11pp_inf.observe_duty(2.0, 85.0, 0.1)
+
+
+_, _r11pp_imsgs = _r11pp_info_of(_r11pp_fold12b)
+R.check(
+    "the inferred-to-measured handover is logged only for a bucket that had "
+    "inferred evidence (D3-wave-0e3569fef6b39497)",
+    _r11pp_bmsgs == [] and len(_r11pp_imsgs) == 1,
+    f"no-inferred {_r11pp_bmsgs}, with-inferred {len(_r11pp_imsgs)}",
+)
+
+# An inferred-only bucket's summary row carries no measured-duty fields.
+_r11pp_io = DefrostDerate()
+_r11pp_io.observe(2.0, 85.0, 0.8)
+_r11pp_iorow = _r11pp_io.summary()
+R.check(
+    "an inferred-only bucket's summary row omits the measured duty fields "
+    "(D3-wave-24d9995ccee4252e)",
+    len(_r11pp_iorow) == 1
+    and _r11pp_iorow[0]["source"] == "inferred"
+    and not {"duty", "events", "duty_samples"} & set(_r11pp_iorow[0]),
+    f"rows {_r11pp_iorow}",
+)
+
+# A defrost still on is counted by a peek that does not close the window.
+_r11pp_t0 = datetime(2026, 2, 1, 12, 0, tzinfo=timezone.utc)
+_r11pp_w1 = DefrostWindow()
+_r11pp_w1.observe(_r11pp_t0, True)
+_r11pp_p1 = _r11pp_w1.peek(_r11pp_t0 + timedelta(minutes=10))
+R.check(
+    "peeking a window whose defrost is still on counts the open on-period "
+    "(D3-wave-8297234e122897ff)",
+    abs(_r11pp_p1.duty - 1.0) < 1e-9 and _r11pp_p1.any_defrost,
+    f"duty {_r11pp_p1.duty}",
+)
+_r11pp_w2 = DefrostWindow()
+_r11pp_w2.observe(_r11pp_t0, False)
+_r11pp_w2.observe(_r11pp_t0 + timedelta(minutes=5), True)
+_r11pp_p2 = _r11pp_w2.peek(_r11pp_t0 + timedelta(minutes=15))
+R.check(
+    "the open on-period's seconds are the elapsed time since it began: 10 of "
+    "15 minutes is a duty of 2/3 (D3-wave-681130c48add1573)",
+    abs(_r11pp_p2.duty - 2.0 / 3.0) < 1e-9 and _r11pp_p2.seconds == 900.0,
+    f"duty {_r11pp_p2.duty}, seconds {_r11pp_p2.seconds}",
+)
+
+# A value on the top temperature edge belongs to the warmest bucket.
+_r11pp_e = DefrostDerate()
+for _ in range(12):
+    _r11pp_e.observe_duty(40.0, 90.0, 0.3)
+_r11pp_erow = _r11pp_e.summary()
+R.check(
+    "a 40 C duty is folded into the warmest bucket, not the coldest "
+    "(D3-wave-c61a89f42607c92b)",
+    len(_r11pp_erow) == 1 and _r11pp_erow[0]["outdoor_range"] == [8.0, 40.0],
+    f"rows {_r11pp_erow}",
 )
 
 
