@@ -90655,6 +90655,7 @@ for _fh_name, _fh_got, _fh_want in (
     ("a held write (None) passes unchanged", _fh_gate([-3.0], value=None), [(None, False)]),
     ("a switch reading off is switched back on", _fh_gate([-3.0], state="off"), [(True, True)]),
     ("null control: the switch reading off at +5 °C is left off", _fh_gate([5.0], state="off"), [(False, False)]),
+    ("no power switch configured: an OFF at -3 °C is not held", _fh_gate([-3.0, None], switch=None), [(False, False)] * 2),
 ):
     R.check(f"frost hold gate: {_fh_name}", _fh_got == _fh_want, f"{_fh_got} != {_fh_want}")
 
@@ -90694,9 +90695,9 @@ class _FhBare:
     """A host with no arbiter_inputs (as _SysIdHost): no hold on, nothing is read."""
 
 
-def _fh_take(out, enabled=True):
+def _fh_take(out, enabled=True, switch="switch.hp"):
     held = _sa_pa.ArbiterState()
-    return _fh.take_off(held, _fh_inp(out, enabled=enabled), _SA_T0), held.frost_holding
+    return _fh.take_off(held, _fh_inp(out, enabled=enabled, switch=switch), _SA_T0), held.frost_holding
 
 
 def _fh_freeze(power, out=-3.0, at=10, later=None, mode="auto"):
@@ -90726,6 +90727,7 @@ for _fh_name, _fh_got, _fh_want in (
     ("the cut-off below the threshold is refused and the hold takes over", _fh_take(-3.0), (True, True)),
     ("null control: above it the cut-off cuts", _fh_take(4.0), (False, False)),
     ("null control: opted out the cut-off cuts", _fh_take(-3.0, enabled=False), (False, False)),
+    ("no power switch configured: the cut-off cuts", _fh_take(-3.0, switch=None), (False, False)),
     ("a held pump the meter reads running freezes the learners", _fh_freeze(1.5), _fh.FREEZE_FROST),
     ("a held pump with no meter freezes them (fail closed)", _fh_freeze(None), _fh.FREEZE_FROST),
     ("null control: a held pump the meter reads idle does not", _fh_freeze(0.0), None),
