@@ -67,7 +67,7 @@ m0 = run(SEQ + [(nan, 25.0)], mut_fn)
 nb = run(SEQ + [(29.0, 25.0)]).bias_k
 nm = run(SEQ + [(29.0, 25.0)], mut_fn).bias_k
 t = fl.FlowCurveBias()
-t.observe_temps(nan, 20.0)
+t.observe_temps(nan)
 print(f"RESULT bias_baseline={b0.bias_k} K")
 print(f"RESULT bias_mutant={m0.bias_k} K")
 print(f"RESULT samples_baseline={b0.samples} count")

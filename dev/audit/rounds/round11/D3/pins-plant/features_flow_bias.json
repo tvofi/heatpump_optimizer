@@ -1,0 +1,8 @@
+[
+ {
+  "name": "2aa0f17a216035ee",
+  "file": "custom_components/heatpump_optimizer/flow_lift.py",
+  "old": "FLOW_BIAS_MIN_SAMPLES = 5\n",
+  "new": "FLOW_BIAS_MIN_SAMPLES = 10\n"
+ }
+]
