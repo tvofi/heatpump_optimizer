@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek BOOLOP d8122347",
+  "killed_by": "tests/features.py",
+  "old": "            observed=self._observed and not self._dark,",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`observed=self._observed or not self._dark,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
