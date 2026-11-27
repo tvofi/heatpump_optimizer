@@ -49,3 +49,4 @@
 1795767234 HB alive
 1795767839 HB alive
 1795768412 CKPT handoff pushed: code 63ae870a7d, body 8aac66c850 snapshot 545a3f11a27d
+1795768417 DONE returned: handoff/r11-arch-fabric-learner 63ae870a7d, handoff-body 8aac66c850; prepr rc=0; cut reads coord_footprint -47 (design note 48), raised in body
