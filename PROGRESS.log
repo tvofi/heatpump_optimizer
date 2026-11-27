@@ -26,3 +26,4 @@
 1795770681 CKPT rev3: verdict V1-V3 and prior note read snapshot f0650c975b7b
 1795770833 CKPT rev3: V3 reference set classified (scout); starting V1 swap-run spike snapshot aec177fa1963
 1795770935 CKPT rev3: swap-run spike written, step A reproduced; plain/swap/one/bare runs started snapshot fc684b5ad869
+1795771041 CKPT rev3: diff and line-reach tools written; runs in progress snapshot 0cf671eb69f8
