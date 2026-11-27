@@ -64,7 +64,6 @@ from .const import (
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_SILENT_MODE_WINDOWS,
     CONF_SPACE_SETPOINT_UNIT,
-    CONF_UPPER_FLOOR_THERMAL_MASS,
     DEFAULT_HEAT_PUMP_COP_NOMINAL,
 )
 from .const import finite_float

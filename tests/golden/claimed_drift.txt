@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.5
+# claims-for: 10.1.6
 #
-# v10.1.5: set-point clamp and high limit, external-heat override, honest DHW start. The stamp empties the list; the
+# v10.1.6: Stored options and booleans of the wrong type read as defaults; review verdict auto-carry; CI queue changes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 config_flow # R11-OWNER-FAULT-TEXT (#3857): Heat pump telemetry gains the fault-text list (heat_pump_fault_text_entities, a multiple entity selector of sensor, text and input_text), so the plain render, the seeded render and the seed each gain it; the 3 leaves that move are each "present on one side only", ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads the slot: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null.

@@ -1,3 +1,28 @@
+## v10.1.6
+
+**Patch stamp: 13 merges since v10.1.5 (`git log --first-parent --merges --format=%h v10.1.5..HEAD | wc -l`): a stored option of the wrong type now reads as its default instead of raising, a stored boolean in the persisted store reads as absent where a number is declared, and the rest is test pins, review and CI tooling.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes.
+
+### #3913 Stored options of the wrong type read as their default (R11-LATE-P1-OPTIONS)
+
+A configuration option stored as something other than a number (for example an empty string left by an older version) no longer raises out of the readers that convert it; each reader treats it as unset and uses its default, as it does for a missing option.
+
+### #3932 Stored booleans read as absent at the store's load boundary (R11-SEAM-store part 2)
+
+When the persisted store holds `true` or `false` where a number is declared, loading now treats the value as absent instead of reading it as 1 or 0. Follows part 1, #3875.
+
+### Tooling, tests and CI
+
+- #3928, #3927: tests-only pins for the plant-model and money seams' mutants the full gate did not kill.
+- #3936: review verdicts carry automatically to a head whose own diff is unchanged.
+- #3935, #3929, #3926, #3923: CI queue changes from #3885 (a run that would wait on another run's sources defers at once; scheduling and cancellation steps).
+- #3937: the D6 claim register merges row by row by claim id.
+- #3924: the instrument self-tests run in shards.
+- #3912, #3911: flow-metrics replay timeout and merge counts.
+
 ## v10.1.5
 
 **Patch stamp: 24 merges since v10.1.4 (`git log --first-parent --merges --format=%h v10.1.4..HEAD | wc -l`): set-point writes stay inside the range the entity accepts, with an optional manual high limit; a switch lets the plan run while external heat is detected; a hot-water run the pump would not start is no longer kept on the first step; a two-zone valve-fed slab is priced in the flow set; the room lift is named in the plan and narrative; one predicate decides which intervals the learners may ingest; the rest is entity metadata, refactors, tooling, CI, audit records and the round-11 roster.**

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_unflag_numbers RETURN_DEL ed392b3b",
+  "killed_by": "tests/features.py",
+  "old": "    return None if numeric and isinstance(value, bool) else value",
+  "reason": "Recorded by hand before the handoff (R11-SEAM-store-p2): RETURN_DEL (`pass`) took the features.py block `# R11-SEAM-store-p2 (round-11 sweep P1` from 0 failed to 3 failed."
+}
