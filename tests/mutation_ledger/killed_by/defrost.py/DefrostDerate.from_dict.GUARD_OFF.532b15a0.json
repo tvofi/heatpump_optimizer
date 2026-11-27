@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.from_dict GUARD_OFF 532b15a0",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if duty is not None and duty_counts is not None:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=4."
+}

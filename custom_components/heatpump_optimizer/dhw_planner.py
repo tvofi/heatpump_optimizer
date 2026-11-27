@@ -262,7 +262,6 @@ class DhwPlan:
     legionella_due: bool
     legionella_hour: float | None
     legionella_step: int | None
-    external_heat_suppressed_steps: int
     max_lead_hours: float
 
 
@@ -396,7 +395,6 @@ class DhwPlanner:
 
     def _baseline_dhw_economics(
         self,
-        initial_state: ThermalState,
         outdoor_temps: np.ndarray,
         n_steps: int,
         dhw_setpoint: float,
@@ -1216,7 +1214,6 @@ class DhwPlanner:
         # temperature on its own, the coordinator's existing observer resets
         # the timer and the requirement disappears by itself. That is a real
         # saving and an easy one to miss.
-        suppress_steps = 0
         if getattr(initial_state, "external_heat_active", False) or getattr(
             initial_state, "peak_guard_active", False
         ):
@@ -1233,7 +1230,6 @@ class DhwPlanner:
             mask[:horizon] = covered[:horizon]
             if legionella_step is not None:
                 mask[legionella_step] = False
-            suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
             schedule = np.where(mask, 0.0, schedule)
 
         next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)
@@ -1288,7 +1284,6 @@ class DhwPlanner:
                 round(legionella_hour, 2) if legionella_hour is not None else None
             ),
             legionella_step=legionella_step,
-            external_heat_suppressed_steps=suppress_steps,
             max_lead_hours=max_lead_hours,
         ), requirement
 
