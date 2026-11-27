@@ -5745,9 +5745,10 @@ R.check(
 )
 
 # The countdown runs to the first instant after ``now`` at which the wall
-# clock enters a window: its start, read each time that wall time occurs (once,
-# twice in the autumn repeated hour, never in the spring skipped hour), or a
-# DST jump landing inside a window. Europe/Stockholm; the plain day is the null.
+# clock enters a window. That is its start, read each time that wall time
+# occurs: once, twice in the autumn repeated hour, never in the spring skipped
+# hour. Or it is a DST jump landing inside a window. Europe/Stockholm; the
+# plain day is the null.
 _p7_fold = {
     k: (_hunw(d.replace(hour=2, minute=30), [(2.75, 3.5)]),
         _hunw(d.replace(hour=2, minute=30, fold=1), [(2.75, 3.5)]),

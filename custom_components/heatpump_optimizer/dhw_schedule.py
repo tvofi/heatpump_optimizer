@@ -562,9 +562,11 @@ def hours_until_next_window(
     has a window.
 
     A window start is a wall-clock time in ``now``'s zone, and the answer is
-    the time between the two instants (P7, issue 3786). On a spring-forward
-    day that is 2.5 h from 00:30 to a 04:00 window, not the 3.5 h the wall
-    times differ by. A naive ``now`` is UTC (``drift.utc_instant``).
+    the time to the first instant the wall clock enters a window (P7, issue
+    3786). On a spring-forward day that is 2.5 h from 00:30 to a 04:00 window,
+    not the 3.5 h the wall times differ by. In an autumn repeated hour either
+    pass opens a start after ``now``. A naive ``now`` is UTC
+    (``drift.utc_instant``).
     """
     if windows and hour_in_windows(now.hour + now.minute / 60.0, windows):
         return 0.0
@@ -595,16 +597,16 @@ def _window_entries(zone: tzinfo, on: date, windows: list[Window]) -> list[datet
             if instant.astimezone(zone).replace(tzinfo=None) == wall.replace(tzinfo=None):
                 out.append(instant)
     jump = _offset_change(zone, on)
-    if jump is not None:
-        before, after = (
-            (t.astimezone(zone), t.astimezone(zone).hour + t.astimezone(zone).minute / 60.0)
-            for t in (jump - timedelta(seconds=1), jump)
-        )
-        if after[0].date() == on and hour_in_windows(after[1], windows) and not (
-            before[0].date() == on and hour_in_windows(before[1], windows)
-        ):
-            out.append(jump)
+    if jump is not None and _wall_inside(jump.astimezone(zone), on, windows) and not _wall_inside(
+        (jump - timedelta(seconds=1)).astimezone(zone), on, windows
+    ):
+        out.append(jump)
     return out
+
+
+def _wall_inside(wall: datetime, on: date, windows: list[Window]) -> bool:
+    """Whether the wall time ``wall`` falls on ``on`` and inside one of ``windows``."""
+    return wall.date() == on and hour_in_windows(wall.hour + wall.minute / 60.0, windows)
 
 
 def _offset_change(zone: tzinfo, on: date) -> datetime | None:
