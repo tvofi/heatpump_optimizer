@@ -7,3 +7,4 @@
 1795740934 CKPT L4 handed off; BLOCKED.md pushed for L3 rotation snapshot e3a330164dc0
 1795740942 DONE L4 handed off (handoff/r11-ci-3885-queue-l4 77f41cbb0d, body 5991e2dd73); L3 + carry 2 left for rotation, BLOCKED.md on handoff-wip/r11-ci-3885-queue-l4l3 91adb50d2c
 1795743043 HB alive
+1795743107 CKPT L3: worktree on L4 head 77f41cbb0d; reading sweep.py for W1/W2 snapshot b686d13d1264
