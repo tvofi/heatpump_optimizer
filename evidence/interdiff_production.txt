@@ -1,0 +1,6 @@
+721,722c721,722
+< -    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
+< +    InputReader, SetpointGrid, delivers_to, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c,
+---
+> -    InputReader, SetpointGrid, read_setpoint, setpoint_grid, setpoint_range_c,
+> +    InputReader, SetpointGrid, delivers_to, read_setpoint, setpoint_grid, setpoint_range_c,
