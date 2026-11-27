@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe GUARD_OFF 84e98156",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if not np.isfinite(house_power_kw) or house_power_kw < 0:",
+  "reason": "Recorded by `mutation_table.py --anchor`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
