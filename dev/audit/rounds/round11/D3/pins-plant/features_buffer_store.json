@@ -1,0 +1,8 @@
+[
+ {
+  "name": "cde383447b865539",
+  "file": "custom_components/heatpump_optimizer/thermal_model.py",
+  "old": "            and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME\n",
+  "new": "            and self.buffer_tank_volume > BUFFER_STORE_MIN_VOLUME\n"
+ }
+]

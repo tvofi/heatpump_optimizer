@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.observe_duty CMP_BOUND f555379b",
+  "killed_by": "tests/features.py",
+  "old": "            and self.counts[t][h] > 0",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'Defrost derate (item 14)'): CMP_BOUND (`and self.counts[t][h] >= 0`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 0e3569fef6b39497)."
+}

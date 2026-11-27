@@ -1,0 +1,74 @@
+[
+ {
+  "name": "3b9eddc7ba9a7488",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "DERATE_ALPHA = 0.05\n",
+  "new": "DERATE_ALPHA = 0.1\n"
+ },
+ {
+  "name": "d1197dfed14a6927",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "        if inferred < measured:\n",
+  "new": "        if inferred <= measured:\n"
+ },
+ {
+  "name": "3e3fbb5fcbbe9bcc",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "            if instance.migrated:\n",
+  "new": "            if False:\n"
+ },
+ {
+  "name": "1ba9abbe8e702464",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "            return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it\n",
+  "new": "            return 0.0 <= v < 1.0  # observe_duty's gate; NaN fails it\n"
+ },
+ {
+  "name": "4aac8e694ddc5dfe",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "            return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it\n",
+  "new": "            return 0.0 < v <= 1.0  # observe_duty's gate; NaN fails it\n"
+ },
+ {
+  "name": "5366f1e6254f603c",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "        if delivered_ratio <= 0 or delivered_ratio > 3.0:\n",
+  "new": "        if delivered_ratio < 0 or delivered_ratio > 3.0:\n"
+ },
+ {
+  "name": "efb33eb6212be24e",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "        if delivered_ratio <= 0 or delivered_ratio > 3.0:\n",
+  "new": "        if delivered_ratio <= 0 or delivered_ratio >= 3.0:\n"
+ },
+ {
+  "name": "0e3569fef6b39497",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "            and self.counts[t][h] > 0\n",
+  "new": "            and self.counts[t][h] >= 0\n"
+ },
+ {
+  "name": "24d9995ccee4252e",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "                if self.duty_counts[t][h] > 0:\n",
+  "new": "                if self.duty_counts[t][h] >= 0:\n"
+ },
+ {
+  "name": "8297234e122897ff",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "        seconds_on = self._seconds_on\n        if self._state and self._since is not None:\n            open_for = self._elapsed(now, self._since)\n",
+  "new": "        seconds_on = self._seconds_on\n        if False:\n            open_for = self._elapsed(now, self._since)\n"
+ },
+ {
+  "name": "681130c48add1573",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "            seconds_on += max(0.0, open_for) if open_for is not None else 0.0\n",
+  "new": "            seconds_on += (0.0) if open_for is not None else 0.0\n"
+ },
+ {
+  "name": "c61a89f42607c92b",
+  "file": "custom_components/heatpump_optimizer/defrost.py",
+  "old": "    return len(edges) - 2 if value >= edges[-1] else 0\n",
+  "new": "    return len(edges) - 2 if value > edges[-1] else 0\n"
+ }
+]

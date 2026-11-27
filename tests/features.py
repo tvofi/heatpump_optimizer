@@ -682,6 +682,18 @@ R.check(
     ThermalModel(_r9f41_p).curve_flow_temp(float("nan")) is None,
     f"priced {ThermalModel(_r9f41_p).curve_flow_temp(float('nan'))}",
 )
+# R11-D3-PINS-plant pins (#3755)
+_r11pp_warm = flow_lift.FlowCurveBias()
+for _r11pp_r in (0.0, 0.0, 0.0, 0.0, 10.0):
+    _r11pp_warm.observe(25.0 + _r11pp_r, 25.0)
+_r11pp_mean5 = _r11pp_warm.bias_k
+_r11pp_warm.observe(35.0, 25.0)
+R.check(
+    "the flow-curve bias is a plain mean for its first five samples, then an "
+    "EWMA from the sixth (D3-wave-2aa0f17a216035ee)",
+    abs(_r11pp_mean5 - 2.0) < 1e-9 and abs(_r11pp_warm.bias_k - 2.8) < 1e-9,
+    f"after 5 {_r11pp_mean5}, after 6 {_r11pp_warm.bias_k}",
+)
 
 # --- R9 N-future-instant (#1660): a stored instant ahead of the clock --------
 R.section("R9 N-future-instant: a persisted instant ahead of the clock (FI-sw1, FI-sw2, FI-sw3, FI-sw4, FI-rca1)")
@@ -5592,6 +5604,186 @@ R.check(
     "to the last bit, not a speed choice",
 )
 
+# R11-D3-PINS-plant pins (#3755)
+import logging as _r11pp_logging  # noqa: E402
+from heatpump_optimizer import defrost as _r11pp_df  # noqa: E402
+
+
+class _R11ppInfo(_r11pp_logging.Handler):
+    def __init__(self):
+        super().__init__(_r11pp_logging.INFO)
+        self.msgs = []
+
+    def emit(self, record):
+        if record.levelno == _r11pp_logging.INFO:
+            self.msgs.append(record.getMessage())
+
+
+def _r11pp_info_of(fn):
+    sink, lg = _R11ppInfo(), _r11pp_df._LOGGER
+    old = lg.level
+    lg.setLevel(_r11pp_logging.INFO)
+    lg.addHandler(sink)
+    try:
+        out = fn()
+    finally:
+        lg.removeHandler(sink)
+        lg.setLevel(old)
+    return out, sink.msgs
+
+
+# DERATE_ALPHA: twelve 0.8 ratios at one bucket.
+_r11pp_a = DefrostDerate()
+for _ in range(12):
+    _r11pp_a.observe(2.0, 85.0, 0.8)
+R.check(
+    "twelve 0.8 delivered ratios learn a bucket derate of 0.908 at the "
+    "inferred estimator's slow rate (D3-wave-3b9eddc7ba9a7488)",
+    _r11pp_a.summary()[0]["learned"] == 0.908,
+    f"summary {_r11pp_a.summary()}",
+)
+
+# The estimator tie: equal derates, measured wins (with its own sample count).
+_r11pp_t = DefrostDerate()
+_r11pp_t.factors[3][1] = derate_from_duty(0.1)
+_r11pp_t.counts[3][1] = 5
+_r11pp_t.duty[3][1] = 0.1
+_r11pp_t.duty_counts[3][1] = 5
+_r11pp_row = _r11pp_t.summary()[0]
+R.check(
+    "an exact tie between the inferred and measured derate is read as measured, "
+    "at equal evidence (D3-wave-d1197dfed14a6927)",
+    _r11pp_row["source"] == "measured" and _r11pp_row["samples"] == 5,
+    f"row {_r11pp_row}",
+)
+
+# v1 store upgrade logs once; a v2 store does not.
+_r11pp_v1 = DefrostDerate().as_dict()
+for _k in ("duty", "duty_counts", "duty_events"):
+    _r11pp_v1.pop(_k)
+_r11pp_up, _r11pp_upmsgs = _r11pp_info_of(lambda: DefrostDerate.from_dict(_r11pp_v1))
+_r11pp_v2, _r11pp_v2msgs = _r11pp_info_of(
+    lambda: DefrostDerate.from_dict(DefrostDerate().as_dict())
+)
+R.check(
+    "loading a v1 store logs the upgrade once and a v2 store logs none "
+    "(D3-wave-3e3fbb5fcbbe9bcc)",
+    _r11pp_up.migrated
+    and len(_r11pp_upmsgs) == 1
+    and "upgraded" in _r11pp_upmsgs[0]
+    and not _r11pp_v2.migrated
+    and _r11pp_v2msgs == [],
+    f"v1 {_r11pp_upmsgs}, v2 {_r11pp_v2msgs}",
+)
+
+# Restore bounds of a stored duty cell: 0.0 and 1.0 are both legal.
+for _r11pp_key, _r11pp_val in (
+    ("1ba9abbe8e702464", 1.0),
+    ("4aac8e694ddc5dfe", 0.0),
+):
+    _r11pp_data = DefrostDerate().as_dict()
+    _r11pp_data["duty"][2][1] = _r11pp_val
+    _r11pp_data["duty_counts"][2][1] = 12
+    _r11pp_back = DefrostDerate.from_dict(_r11pp_data)
+    R.check(
+        f"a stored duty of {_r11pp_val} is a valid cell and restores its "
+        f"count (D3-wave-{_r11pp_key})",
+        _r11pp_back.duty_counts[2][1] == 12 and _r11pp_back.duty[2][1] == _r11pp_val,
+        f"count {_r11pp_back.duty_counts[2][1]}, duty {_r11pp_back.duty[2][1]}",
+    )
+
+# The inferred observation's ratio gate: 0 is refused, 3.0 is accepted.
+_r11pp_z = DefrostDerate()
+_r11pp_z.observe(2.0, 85.0, 0.0)
+R.check(
+    "an inferred delivered ratio of exactly 0 is discarded "
+    "(D3-wave-5366f1e6254f603c)",
+    _r11pp_z.total_samples == 0 and _r11pp_z.factor(2.0, 85.0) == 1.0,
+    f"samples {_r11pp_z.total_samples}",
+)
+_r11pp_h = DefrostDerate()
+_r11pp_h.observe(2.0, 85.0, 3.0)
+R.check(
+    "an inferred delivered ratio of exactly 3.0 is still counted "
+    "(D3-wave-efb33eb6212be24e)",
+    _r11pp_h.total_samples == 1,
+    f"samples {_r11pp_h.total_samples}",
+)
+
+# The handover log needs inferred evidence behind it.
+_r11pp_bare = DefrostDerate()
+
+
+def _r11pp_fold12():
+    for _ in range(12):
+        _r11pp_bare.observe_duty(2.0, 85.0, 0.1)
+
+
+_, _r11pp_bmsgs = _r11pp_info_of(_r11pp_fold12)
+_r11pp_inf = DefrostDerate()
+_r11pp_inf.observe(2.0, 85.0, 0.9)
+
+
+def _r11pp_fold12b():
+    for _ in range(12):
+        _r11pp_inf.observe_duty(2.0, 85.0, 0.1)
+
+
+_, _r11pp_imsgs = _r11pp_info_of(_r11pp_fold12b)
+R.check(
+    "the inferred-to-measured handover is logged only for a bucket that had "
+    "inferred evidence (D3-wave-0e3569fef6b39497)",
+    _r11pp_bmsgs == [] and len(_r11pp_imsgs) == 1,
+    f"no-inferred {_r11pp_bmsgs}, with-inferred {len(_r11pp_imsgs)}",
+)
+
+# An inferred-only bucket's summary row carries no measured-duty fields.
+_r11pp_io = DefrostDerate()
+_r11pp_io.observe(2.0, 85.0, 0.8)
+_r11pp_iorow = _r11pp_io.summary()
+R.check(
+    "an inferred-only bucket's summary row omits the measured duty fields "
+    "(D3-wave-24d9995ccee4252e)",
+    len(_r11pp_iorow) == 1
+    and _r11pp_iorow[0]["source"] == "inferred"
+    and not {"duty", "events", "duty_samples"} & set(_r11pp_iorow[0]),
+    f"rows {_r11pp_iorow}",
+)
+
+# A defrost still on is counted by a peek that does not close the window.
+_r11pp_t0 = datetime(2026, 2, 1, 12, 0, tzinfo=timezone.utc)
+_r11pp_w1 = DefrostWindow()
+_r11pp_w1.observe(_r11pp_t0, True)
+_r11pp_p1 = _r11pp_w1.peek(_r11pp_t0 + timedelta(minutes=10))
+R.check(
+    "peeking a window whose defrost is still on counts the open on-period "
+    "(D3-wave-8297234e122897ff)",
+    abs(_r11pp_p1.duty - 1.0) < 1e-9 and _r11pp_p1.any_defrost,
+    f"duty {_r11pp_p1.duty}",
+)
+_r11pp_w2 = DefrostWindow()
+_r11pp_w2.observe(_r11pp_t0, False)
+_r11pp_w2.observe(_r11pp_t0 + timedelta(minutes=5), True)
+_r11pp_p2 = _r11pp_w2.peek(_r11pp_t0 + timedelta(minutes=15))
+R.check(
+    "the open on-period's seconds are the elapsed time since it began: 10 of "
+    "15 minutes is a duty of 2/3 (D3-wave-681130c48add1573)",
+    abs(_r11pp_p2.duty - 2.0 / 3.0) < 1e-9 and _r11pp_p2.seconds == 900.0,
+    f"duty {_r11pp_p2.duty}, seconds {_r11pp_p2.seconds}",
+)
+
+# A value on the top temperature edge belongs to the warmest bucket.
+_r11pp_e = DefrostDerate()
+for _ in range(12):
+    _r11pp_e.observe_duty(40.0, 90.0, 0.3)
+_r11pp_erow = _r11pp_e.summary()
+R.check(
+    "a 40 C duty is folded into the warmest bucket, not the coldest "
+    "(D3-wave-c61a89f42607c92b)",
+    len(_r11pp_erow) == 1 and _r11pp_erow[0]["outdoor_range"] == [8.0, 40.0],
+    f"rows {_r11pp_erow}",
+)
+
 
 # ===========================================================================
 # Weekly DHW windows: different days, different windows (owner request #3)
@@ -6774,6 +6966,45 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
             f"entry has to be an exact 0.0 rather than scipy's 0/0",
         )
 
+# R11-D3-PINS-plant: the floored draw and the carried wood reading of the batch.
+def _r11pp_batch(extra, buf, wood_t, zone=True, n=24):
+    p = ThermalParameters.from_config({**_grad_house(two_zone=zone), **extra})
+    m = ThermalModel(p)
+    ot, wi, ra, so = (x[:n] for x in _grad_weather("winter_cold", _dt_grad(2026, 1, 15)))
+    st = ThermalState(
+        room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=float(ot[0]),
+        upper_floor_temperature=21.2, lower_floor_temperature=20.1,
+        buffer_tank_temperature=buf, wood_tank_temperature=wood_t)
+    ws = _WS(ot, wi, ra, so, np.full(n, 78.0), np.zeros(n))
+    powers = np.zeros((2, n))
+    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0),
+            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0))
+
+
+_r11pp_res, _r11pp_scal = _r11pp_batch(
+    {"mixing_valve_mode": "manual", "two_zone_mode": "on",
+     "wood_furnace_enabled": True, "wood_tank_top_entity": "sensor.w_top"},
+    20.8, 20.9)
+_r11pp_parity = all(
+    np.allclose(_r11pp_res[_k][0], np.asarray(_r11pp_scal[_i], dtype=float), rtol=0, atol=1e-9)
+    for _k, _i in (("buffer", 4), ("wood", 6), ("room", 0)))
+R.check(
+    "batch two-tank wood draw is floored at zero, matching the scalar trajectory (D3-wave-7068e39e4608027f)",
+    _r11pp_parity,
+    "buffer, wood and room rows of the batch must equal the scalar trajectory",
+)
+R.check(
+    "batch two-tank heat-pump draw is floored at zero, matching the scalar trajectory (D3-wave-6462c28df2f973e0)",
+    _r11pp_parity,
+    "buffer, wood and room rows of the batch must equal the scalar trajectory",
+)
+_r11pp_res, _ = _r11pp_batch({"mixing_valve_mode": "manual"}, 48.0, 85.0, zone=False)
+R.check(
+    "a single-zone batch carries a wood-tank reading through its trajectory (D3-wave-78b7f2ebcf85c8a1)",
+    _r11pp_res["wood"] is not None
+    and np.allclose(_r11pp_res["wood"], 85.0, rtol=0, atol=1e-6),
+    "the wood row stays at the 85 C it started at",
+)
 
 import heatpump_optimizer.optimizer as _grad_optmod
 
@@ -10856,6 +11087,14 @@ R.check(
     "a 35 L tank behind a valve is not a store",
     not _p_tiny.buffer_is_store,
     "the default volume must land below the threshold decisively",
+)
+R.check(
+    "a buffer of exactly the minimum store volume behind a valve is a store (D3-wave-cde383447b865539)",
+    ThermalParameters(
+        buffer_tank_volume=_r9f41_const.BUFFER_STORE_MIN_VOLUME,
+        mixing_valve_mode="manual",
+    ).buffer_is_store is True,
+    "the threshold itself counts as a store",
 )
 _caps_tiny = _opt_tiny._settlement_caps(_outdoor)
 R.check(
@@ -20039,6 +20278,27 @@ _tp_grey = ThermalParameters(greywater_recovery=0.3)
 R.check(
     "greywater recovery scales the draw chain down by its effectiveness",
     abs(_tp_grey.dhw_draw_power - 0.7 * _old_draw) < 1e-12,
+)
+
+_r11pp_base_draw = ThermalParameters(greywater_recovery=0.0).dhw_draw_power
+R.check(
+    "greywater recovery is clipped to [0, 0.9] in the DHW draw (D3-wave-1b476993921016f9)",
+    abs(_r11pp_base_draw - 0.32625000000000004) < 1e-6
+    and abs(ThermalParameters(greywater_recovery=0.9).dhw_draw_power - 0.032625000000000005) < 1e-6
+    and abs(ThermalParameters(greywater_recovery=5.0).dhw_draw_power - 0.032625000000000005) < 1e-6
+    and abs(ThermalParameters(greywater_recovery=-0.5).dhw_draw_power - _r11pp_base_draw) < 1e-6,
+    "recovery 0.9 and 5.0 both draw 0.032625 kW, -0.5 draws the 0.32625 kW base",
+)
+R.check(
+    "a DHW setpoint below the mains inlet draws no power, not negative (D3-wave-ea888783bb621669)",
+    ThermalParameters(dhw_setpoint=5.0).dhw_draw_power == 0.0,
+    f"{ThermalParameters(dhw_setpoint=5.0).dhw_draw_power}",
+)
+R.check(
+    "a negative seasonal inlet amplitude leaves the inlet at its mean (D3-wave-b098598faf0d87dc)",
+    ThermalParameters(dhw_inlet_seasonal_amplitude=-3.0).seasonal_inlet_temp(60)
+    == ThermalParameters().dhw_inlet_temp,
+    f"{ThermalParameters(dhw_inlet_seasonal_amplitude=-3.0).seasonal_inlet_temp(60)}",
 )
 
 # --- the presence rule ignores None (the phantom-enable fix) --------------------
@@ -104694,6 +104954,187 @@ R.check(
     all(card and card == want for _, card, want in _oc_rows)
     and all(want and card[:-1] != want for _, card, want in _oc_rows),
     str(_oc_rows),
+)
+
+# R11-SEAM-store-p2 (round-11 sweep P1, store loaders): a stored flag where a number is declared.
+# Python counts ``True`` as an int, so six loaders admitted a stored ``true`` as
+# 1.0. The store's load boundary reads it as absent, by the store's DOMAINS
+# declaration (store._unflag_numbers), so every loader takes its own default.
+import asyncio as _s2_aio  # noqa: E402
+import json as _s2_json  # noqa: E402
+from harness import FakeEntry as _s2_entry  # noqa: E402
+from homeassistant.helpers import storage as _s2_storage  # noqa: E402
+from heatpump_optimizer import const as _s2_const, off_restore as _s2_off, store as _s2_store  # noqa: E402
+from heatpump_optimizer.coordinator import _storable_sample_count as _s2_count  # noqa: E402
+
+_s2_c = Coord(FakeHass({}), _s2_entry(data={
+    "tibber_token": "x", "weather_entity": "weather.home", "indoor_temp_entity": "sensor.indoor",
+    "outdoor_temp_entity": "sensor.outdoor", "dhw_enabled": True}))
+_s2_eid = _s2_c.entry.entry_id
+
+
+def _s2_disk(suffix, payload):
+    _s2_storage._DISK.clear()
+    _s2_storage._VERSIONS.clear()
+    _s2_storage._DISK[f"{_s2_const.DOMAIN}_{_s2_eid}_{suffix}"] = _s2_json.dumps(payload)
+
+
+_s2_got = {}
+_s2_disk("dhw_draws", {"reservoirs": {"06:00-08:30": [True, 2.0]}, "open_kwh": 0.5})
+_s2_aio.run(_s2_c._dhw_learner.async_load_draws())
+_s2_got["dhw_draws"] = _s2_c._dhw_learner.draw_stats.reservoirs.get("06:00-08:30")
+_s2_disk("accuracy", {"peaks": {"peaks": [True, 3.0], "peak_days": ["2026-01-02", "2026-01-03"]},
+                     "accuracy": {"lead_pending": [["2026-01-01T00:00:00+00:00", True, 2.0],
+                                                   ["2026-01-01T00:00:00+00:00", 3.0, 2.0]]}})
+_s2_aio.run(_s2_c._async_load_accuracy())
+_s2_got["tariff"] = _s2_c._peak_tracker.as_dict().get("peaks")
+# A choice of numbers (accuracy/lead_pending/#/1, LEAD_BUCKETS) declares a number too (review of #3932).
+_s2_got["lead_pending"] = [lead for _, lead, _ in _s2_c._accuracy.lead_pending]
+_s2_disk("energy", {"space_energy_kwh": True, "dhw_energy_kwh": 4.0})
+_s2_aio.run(_s2_c._async_load_energy_totals())
+_s2_got["energy"] = (_s2_c._energy_totals["space_energy_kwh"], _s2_c._energy_totals["dhw_energy_kwh"])
+_s2_disk("ledger", {"operation_score": True})
+_s2_c._operation_score = None
+_s2_aio.run(_s2_c._async_load_ledger())
+_s2_got["ledger"] = _s2_c._operation_score
+_s2_disk("off_restore", {"armed": {"a": True, "b": {"entity_id": "number.b", "value": True}, "c": 20.5}})
+_s2_got["off_restore"] = dict(_s2_aio.run(_s2_off._armed_record(_s2_c.hass, _s2_c.entry)).armed)
+_s2_g = _s2_c._legionella
+_s2_storage._DISK.clear()
+_s2_storage._DISK[_s2_g.store._store_key] = _s2_json.dumps({
+    "last_cycle": "2026-01-01T00:00:00+00:00", "last_attempt": "2026-01-01T00:00:00+00:00",
+    "last_attempt_peak": True})
+_s2_g.attempt_peak = None
+_s2_aio.run(_s2_g.async_load())
+_s2_got["legionella"] = _s2_g.attempt_peak
+R.check(
+    "a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep "
+    "named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null control)",
+    _s2_got == {"dhw_draws": [2.0], "tariff": [3.0], "lead_pending": [3.0], "energy": (0.0, 4.0), "ledger": None,
+                "off_restore": {"a": None, "b": None, "c": 20.5}, "legionella": None},
+    str(_s2_got),
+)
+
+# The census: every declaration of every store, driven through a QuarantiningStore
+# load with a stored true at its leaf. The rule for "declares a number" is the
+# declaration's own content: kind real or int, or a choice whose members are all
+# numbers that are not flags. Every other kind (flag, text, instant, day, month, a
+# choice of no numbers) keeps a stored true, the control. Residue by category: a
+# map key ("~") is JSON text and never a flag; an alias mirrors a store whose own
+# patterns are driven. The census refuses a declaration it cannot place (an
+# unknown kind, a choice mixing numbers with other members), so a new kind or a
+# mixed choice is classified before it can be skipped.
+
+
+def _s2_doc(pattern, leaf):
+    doc = leaf
+    for seg in reversed(pattern.split("/")):
+        doc = [doc] if seg == "#" else {("k" if seg == "*" else seg): doc}
+    return doc
+
+
+def _s2_leaf(doc, pattern):
+    for seg in pattern.split("/"):
+        doc = doc[0] if seg == "#" else doc.get("k" if seg == "*" else seg) if isinstance(doc, dict) else None
+    return doc
+
+
+def _s2_is_number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _s2_class(dom):
+    if dom.kind in ("real", "int"):
+        return "numeric"
+    if dom.kind == "flag":
+        return "flag"
+    if dom.kind in ("text", "instant", "day", "month"):
+        return "other"
+    if dom.kind == "choice":
+        numbers = [v for v in dom.choices if _s2_is_number(v)]
+        if not numbers:
+            return "other"
+        return "numeric" if len(numbers) == len(dom.choices) else None
+    return None
+
+
+def _s2_load(name, pattern, leaf):
+    key = f"{_s2_const.DOMAIN}_census_{name}"
+    _s2_storage._DISK.clear()
+    _s2_storage._VERSIONS.clear()
+    _s2_storage._DISK[key] = _s2_json.dumps(_s2_doc(pattern, leaf))
+    loaded = _s2_aio.run(_s2_store.QuarantiningStore(FakeHass({}), 1, key, lead=None).async_load())
+    return _s2_leaf(loaded, pattern)
+
+
+_s2_rows = {"numeric": [], "flag": [], "other": [], "skipped": [], "unplaced": [], "admitted": [], "member": []}
+for _s2_name, _s2_table in _s2_store.DOMAINS.items():
+    for _s2_pat, _s2_dom in _s2_table.items():
+        if isinstance(_s2_dom, str) or _s2_pat.endswith("~"):
+            _s2_rows["skipped"].append((_s2_name, _s2_pat))
+            continue
+        _s2_kind = _s2_class(_s2_dom)
+        if _s2_kind is None:
+            _s2_rows["unplaced"].append((_s2_name, _s2_pat, _s2_dom.kind))
+            continue
+        _s2_rows[_s2_kind].append((_s2_name, _s2_pat, _s2_dom.kind, _s2_load(_s2_name, _s2_pat, True)))
+        if _s2_kind == "numeric" and _s2_store.in_domain(_s2_dom, True):
+            _s2_rows["admitted"].append((_s2_name, _s2_pat))
+        if _s2_kind == "numeric" and _s2_dom.kind == "choice":
+            _s2_member = _s2_dom.choices[0]
+            _s2_rows["member"].append((_s2_name, _s2_pat, _s2_member, _s2_load(_s2_name, _s2_pat, _s2_member)))
+_s2_storage._DISK.clear()
+_s2_storage._VERSIONS.clear()
+_s2_named = {r[0] for r in _s2_rows["numeric"]}
+_s2_kinds = {r[2] for r in _s2_rows["numeric"]}
+R.check(
+    "every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a "
+    "stored true as absent and in_domain refuses it; every other declaration keeps it; a numeric choice's "
+    "member loads as stored; the census placed every declaration and drove each numeric kind",
+    _s2_rows["numeric"] and all(r[3] is None for r in _s2_rows["numeric"])
+    and _s2_rows["flag"] and all(r[3] is True for r in _s2_rows["flag"])
+    and _s2_rows["other"] and all(r[3] is True for r in _s2_rows["other"])
+    and not _s2_rows["unplaced"] and not _s2_rows["admitted"]
+    and _s2_rows["member"] and all(r[2] == r[3] for r in _s2_rows["member"])
+    and _s2_kinds == {"real", "int", "choice"}
+    and {"dhw_draws", "accuracy", "energy", "ledger", "off_restore", "dhw_legionella"} <= _s2_named,
+    f"numeric kept {[r for r in _s2_rows['numeric'] if r[3] is not None]}; "
+    f"in_domain admits {_s2_rows['admitted']}; unplaced {_s2_rows['unplaced']}; "
+    f"flag or other lost {[r for r in _s2_rows['flag'] + _s2_rows['other'] if r[3] is not True]}; "
+    f"member lost {[r for r in _s2_rows['member'] if r[2] != r[3]]}; numeric kinds {sorted(_s2_kinds)}; "
+    f"{len(_s2_rows['numeric'])} numeric, {len(_s2_rows['flag'])} flag, {len(_s2_rows['other'])} other, "
+    f"{len(_s2_rows['skipped'])} skipped",
+)
+
+# D3 wave fold (#3755, class I1), pinned through the loaders' own entry points.
+# D3-g03: a stored "since" that is empty or not text leaves the counting start unset.
+_s2_since = {}
+for _s2_label, _s2_value in (("empty", ""), ("number", 20260101), ("date", "2026-01-01")):
+    _s2_c._energy_totals_since = None
+    _s2_disk("energy", {"since": _s2_value})
+    _s2_aio.run(_s2_c._async_load_energy_totals())
+    _s2_since[_s2_label] = _s2_c._energy_totals_since
+R.check(
+    "a stored energy-totals start that is empty or not text is no start; an ISO day is (D3-g03)",
+    _s2_since == {"empty": None, "number": None, "date": "2026-01-01"},
+    str(_s2_since),
+)
+_s2_storage._DISK.clear()
+_s2_storage._VERSIONS.clear()
+
+
+# D3-g12: a stored sample count spans 0 to 2**31 inclusive; one past either end is no fold's.
+def _s2_counts(raw):
+    try:
+        return _s2_count(raw)
+    except ValueError:
+        return "refused"
+
+
+R.check(
+    "a stored sample count of 0 or exactly 2**31 is kept; -1 and 2**31 + 1 are refused (D3-g12)",
+    [_s2_counts(v) for v in (0, 2**31, -1, 2**31 + 1)] == [0, 2**31, "refused", "refused"],
+    str([_s2_counts(v) for v in (0, 2**31, -1, 2**31 + 1)]),
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

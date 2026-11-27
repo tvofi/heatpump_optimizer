@@ -725,10 +725,12 @@ SWEEP_QUEUED = "sweep-run"
 SWEEP_SETTLE_POLLS = 1
 
 #: How long after its run_started_at a started ci.yml run at a deferring head is
-#: waited on past `polls`: the longest job ceiling in ci.yml (prelude, 150 min),
-#: one named constant in place of reading each job's timeout-minutes. A wait on
-#: a run past it, or on a queued one, is bounded by `polls` alone (TIMEOUT).
-CODE_RUN_DEADLINE_SECONDS = 150 * 60
+#: waited on past `polls`: the longest job ceiling in ci.yml (prelude, 30 min
+#: since #3885 L3 W1 made a prelude that would wait on another run's sources
+#: defer at once), one named constant in place of reading each job's
+#: timeout-minutes. A wait on a run past it, or on a queued one, is bounded by
+#: `polls` alone (TIMEOUT).
+CODE_RUN_DEADLINE_SECONDS = 30 * 60
 
 
 def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
@@ -7900,10 +7902,10 @@ def _gate_race_self_test(check) -> None:
         return datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     started = lambda st, ago: _jl([{"id": 42237558473, "status": st, "run_started_at": iso(ago)}])
     red, sb = wait([[edit_gate]] * 8 + [[rerun_green, code_gate]],
-                   [started("in_progress", 5000)] * 7 + [done], polls=3)
+                   [started("in_progress", CODE_RUN_DEADLINE_SECONDS - 600)] * 7 + [done], polls=3)
     check("carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls` (#3398: 5863 s, "
           "polls=24 is ~5832 s), not TIMEOUT", red == [] and len(sb) > 3)
-    red, _ = wait([[edit_gate]], [started("queued", 5000)], polls=3)
+    red, _ = wait([[edit_gate]], [started("queued", CODE_RUN_DEADLINE_SECONDS - 600)], polls=3)
     check("carry 4 (1) null: a QUEUED sibling keeps the polls bound (TIMEOUT)", red == ["TIMEOUT"])
     red, sb = wait([[edit_gate]], [started("in_progress", CODE_RUN_DEADLINE_SECONDS + 60)], polls=3)
     check("carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)",
@@ -7921,9 +7923,9 @@ def _gate_race_self_test(check) -> None:
               and edge("in_progress", CODE_RUN_DEADLINE_SECONDS + 1) is False and edge("queued", 5) is False
               and tb._sibling_in_deadline([(1, "in_progress", "")]) is False)
     tick = iter(range(10 ** 6))
-    red, sb = wait([[edit_gate]], [started("in_progress", 5000)], polls=3, wall=lambda: NOW + 600 * next(tick))
+    red, sb = wait([[edit_gate]], [started("in_progress", 0)], polls=3, wall=lambda: NOW + 300 * next(tick))
     check("carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded "
-          "(the wall advances 600 s a read)", red == ["TIMEOUT"] and 3 < len(sb) < 40)
+          "(it starts at the first read and the wall advances 300 s a read)", red == ["TIMEOUT"] and 3 < len(sb) < 40)
     red, sb = wait([[edit_gate]], [done])
     check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
           red == [GATE] and len(sb) == 1)

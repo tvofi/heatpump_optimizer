@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.compute_solar_gain GUARD_OFF eae534b7",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if solar_radiation <= 0:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): GUARD_OFF (`if False:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave f7e051cc469b465f)."
+}
