@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.from_dict CMP_BOUND 55d61241",
+  "killed_by": "tests/guard_pins.py",
+  "old": "            or not 0.0 <= tracker._window_factor <= 1.0",
+  "reason": "Recorded by `mutation_table.py --anchor`: CMP_BOUND (`or not 0.0 < tracker._window_factor <= 1.0`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

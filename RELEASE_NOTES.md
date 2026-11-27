@@ -1,3 +1,47 @@
+## v10.1.5
+
+**Patch stamp: 24 merges since v10.1.4 (`git log --first-parent --merges --format=%h v10.1.4..HEAD | wc -l`): set-point writes stay inside the range the entity accepts, with an optional manual high limit; a switch lets the plan run while external heat is detected; a hot-water run the pump would not start is no longer kept on the first step; a two-zone valve-fed slab is priced in the flow set; the room lift is named in the plan and narrative; one predicate decides which intervals the learners may ingest; the rest is entity metadata, refactors, tooling, CI, audit records and the round-11 roster.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes. Changes you may notice without acting: a new optional option, `space_setpoint_high_limit_c` (entities page, indoor group, shown for a water set-point only), caps the space flow set-point where the pump advertises no limit (#3866); a new switch, External Heat Block Override, lets the plan run while external heat is detected (#3874); plan steps held up by the room lift now read `room_floor`, with a `room_lift` driver row (#3838); the system-identification and diagnose buttons now report why nothing ran (#3841).
+
+### #3866 Set-point writes clamped to the entity range; manual high flow limit (R11-OWNER-FLOWCAP)
+
+Every set-point write is clamped to the minimum and maximum the target entity states, rounded onto its step. The new optional option `space_setpoint_high_limit_c` (30–70 °C, no default) sets a high limit for the space water set-point; where the pump also advertises one, the lower of the two binds, and a limit below the lowest heating write is dropped and logged once.
+
+### #3874 External Heat Block Override switch (R11-OWNER-EXTHEAT-OVERRIDE)
+
+While the switch is on and external-heat detection is enabled, a detected fire no longer holds back hot water or the space plan. Detection, the External Heat Source sensor and the learning freeze keep running. Strings in en, sv and de.
+
+### #3863 A hot-water run the pump would not start is dropped (R11-OUTSIDE-3848)
+
+Reported and first fixed by outside contributor Bankaifan in #3848. On a re-plan the first step was always treated as a charge under way, so a hot-water run the pump would never start was kept and heating was locked out. The first step is now exempt only while the compressor runs in a mode serving hot water.
+
+### #3879 Two-zone valve-fed slab priced in the flow set (R11-SEAM-two-zone-slab)
+
+Behind a two-zone valve that feeds the slab, the flow set now includes the slab between the floor circuit and the lower floor, and the house's internal gains, so the curve holds the room the thermostat reads.
+
+### #3838 The room lift named in the plan (R11-OUTSIDE-ROOMS-3B)
+
+Part of #3616. Steps the room lift holds up read `room_floor`, and the why-now drivers show a `room_lift` row beside `comfort_floor`, in the card and narrative in en, sv and de. The plan itself does not change.
+
+### #3841 Entity metadata and service outcomes (R11-SEAM-entity-service)
+
+The arm and diagnose buttons raise a translated error naming why nothing ran. Three temperature-difference sensors take the temperature-delta device class on Home Assistant 2025.11 and later. The thermal-parameter service fields accept any value on their range. New installs get object ids led by their entity family; existing ids are unchanged.
+
+### #3835 One learning-freeze predicate (R11-SEAM-learners)
+
+One predicate decides which intervals each learner may ingest: away periods, unplanned charges, an open hot-water charge and a ceiling at the running floor are refused uniformly. Refs #3760, which stays open.
+
+### #3873, #3910 Refactors and replay
+
+Boost and diagnostics read the mode from their own state (#3873); the replay document drops non-finite numbers (#3910).
+
+### Tooling, CI and records
+
+#3908, #3902, #3909, #3905, #3906, #3904, #3901, #3900, #3896, #3899, #3890, #3894, #3895, #3891, #3892.
+
 ## v10.1.4
 
 **Patch stamp: 19 merges since v10.1.3 (`git log --first-parent --merges --format=%h v10.1.3..HEAD | wc -l`): a pump whose mode reads cooling is left alone; the card's status pill names external heat and what is heating; an unlatched duty switch is priced before the learner latches; the cycle owns when a solve runs; the store's schema is one declaration; every written entity is returned to its baseline on Off, stale plans and unload; the rest is tooling, CI, audit records and the round-11 roster.**

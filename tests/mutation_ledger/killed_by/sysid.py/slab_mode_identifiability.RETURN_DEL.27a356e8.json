@@ -1,6 +1,6 @@
 {
   "anchor": "custom_components/heatpump_optimizer/sysid.py:slab_mode_identifiability RETURN_DEL 27a356e8",
-  "killed_by": "tests/typing_ruler.py",
+  "killed_by": "tests/features.py",
   "old": "    return True, \"ok\"",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 }

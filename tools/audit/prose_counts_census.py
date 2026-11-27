@@ -5,7 +5,7 @@
     ... --rows   # each unread row with its line, not only the per-noun totals
 
 The rule that enumerates the stale-prose-count class's seams. `tests/doc_claims`
-`check_prose_tree_counts` reads eleven count SHAPES over the reader corpus and
+`check_prose_tree_counts` reads the count SHAPES over the reader corpus and
 compares each to a measurement the tree derives; this command enumerates every
 `<number> <plural noun>` the corpus states, subtracts the spans those shapes
 claimed, and prints what is left against a disposition. A noun with no entry is
