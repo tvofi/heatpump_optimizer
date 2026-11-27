@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.apply_dhw_coil CMP_BOUND 1fb67ec6",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if q_coil > 0.0:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CMP_BOUND (`if q_coil >= 0.0:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 5b8e7044ee7974f8)."
+}

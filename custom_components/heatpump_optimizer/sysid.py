@@ -611,9 +611,7 @@ def slab_mode_tau_fast(c_r: float, c_s: float, k_s: float) -> float:
     return c_r * c_s / ((c_r + c_s) * k_s)
 
 
-def slab_mode_identifiability(
-    params: ThermalParameters, config: SysIdConfig
-) -> tuple[bool, str]:
+def slab_mode_identifiability(params: ThermalParameters) -> tuple[bool, str]:
     """Whether the experiment's own fit can identify this plant (#942, #1329).
 
     The declared-plant experiment is fitted in the TWO-STATE slab form
@@ -1240,7 +1238,7 @@ class AdoptionDecision:
 
 
 def adoption_decision(
-    result: SysIdResult, params: ThermalParameters, config: SysIdConfig
+    result: SysIdResult, params: ThermalParameters
 ) -> AdoptionDecision:
     """Whether a finished experiment seeds the heat-loss learner, and why.
 
@@ -1270,7 +1268,7 @@ def adoption_decision(
             f"heat-loss interval ({width}) is wider than the "
             f"+-{bar_pct:.0f} % adoption bar"
         )
-    identifiable, why = slab_mode_identifiability(params, config)
+    identifiable, why = slab_mode_identifiability(params)
     if not identifiable:
         return refuse(why)
     if result.heat_loss_kw_per_c is None:
@@ -1479,7 +1477,7 @@ class SystemIdentification:
         if plant is not None and kind == KIND_PROBE:
             self._two_zone_plant = replace(plant) if plant.two_zone_enabled else None
         elif plant is not None:
-            identifiable, why = slab_mode_identifiability(plant, self.config)
+            identifiable, why = slab_mode_identifiability(plant)
             if not identifiable:
                 _LOGGER.info("System identification not armed: %s", why)
                 self.result = SysIdResult(completed=False, reason=why)
@@ -1979,7 +1977,7 @@ class SystemIdentification:
         prior_sd = 0.5 / max(self.config.thermal_mass_prior, 0.1)
         n_cols = a.shape[1]
         try:
-            pass1, _res1, rank1, _ = np.linalg.lstsq(a, b, rcond=None)
+            pass1, *_ = np.linalg.lstsq(a, b, rcond=None)
             resid = b - a @ pass1
             dof = max(len(rows) - n_cols, 1)
             s_noise = float(np.sqrt(np.sum(resid**2) / dof))
@@ -2111,7 +2109,7 @@ class SystemIdentification:
             # the two-column fit rather than discarding the experiment.
             a = a[:, :2]
             try:
-                solution, residuals, rank, _ = np.linalg.lstsq(
+                solution, _, rank, _ = np.linalg.lstsq(
                     a, b, rcond=None
                 )
             except np.linalg.LinAlgError:
@@ -2324,7 +2322,7 @@ class SystemIdentification:
             return SysIdResult(
                 completed=False, reason="not enough usable intervals"
             )
-        rooms, outdoors, powers, dts = series
+        rooms, _, _, dts = series
         slab_mass, slab_transfer = self._slab_pair
         ua0, cr0 = self._slab_prior
         if bool(np.any((dts <= 1e-3) | (dts > 2.0))):

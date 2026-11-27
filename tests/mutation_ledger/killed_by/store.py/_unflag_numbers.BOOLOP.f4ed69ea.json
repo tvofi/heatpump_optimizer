@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:_unflag_numbers BOOLOP f4ed69ea",
+  "killed_by": "tests/features.py",
+  "old": "    numeric = isinstance(domain, Domain) and _declares_number(domain)",
+  "reason": "Recorded by hand before the handoff (R11-SEAM-store-p2 repair of #3932): BOOLOP (`numeric = isinstance(domain, Domain) or _declares_number(domain)`) took the features.py block `# R11-SEAM-store-p2 (round-11 sweep P1` from 0 failed to 1 failed."
+}

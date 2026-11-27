@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:extend_price_series GUARD_OFF 6c8cede1",
+  "killed_by": "tests/features.py",
+  "old": "    if known_count == 0:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
