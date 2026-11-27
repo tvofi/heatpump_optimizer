@@ -7712,8 +7712,8 @@ R.check(
 )
 
 # The floor is taken at the forecast the SOLVE used, not at the thermometer:
-# a real solve under a -10 °C forecast with the outdoor thermometer reading
-# +8 °C, a 17 °C room at 65 % RH and a 21 °C target. The expected floor is
+# a real solve under a -10 °C forecast with a stale outdoor thermometer last
+# reading +8 °C, a 17 °C room at 65 % RH and a 21 °C target. The expected floor is
 # the one _mold_floor_series returned to the solve itself, recorded as the
 # solve called it; the floor at the thermometer's +8 °C is lower and would
 # leave the sensor quiet.
@@ -7731,7 +7731,13 @@ try:
     _solve_hass = FakeHass()
     for _eid, _state in {
         "sensor.indoor": FakeState("17.0"),
-        "sensor.outdoor": FakeState("8.0"),
+        # Stale (4 h, past its 180 min limit): a live thermometer now plans
+        # the current hour (D17-s2-02) and would equal the solve's floor, so
+        # the separation this check draws needs the solve on the forecast.
+        "sensor.outdoor": FakeState(
+            "8.0", last_updated=_solve_now - timedelta(hours=4),
+            last_reported=_solve_now - timedelta(hours=4),
+        ),
         "sensor.humidity": FakeState("65.0", last_updated=_solve_now),
     }.items():
         _solve_hass.states.set(_eid, _state)
