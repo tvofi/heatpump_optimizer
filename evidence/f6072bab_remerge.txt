@@ -1,0 +1,33 @@
+f6072bab94bf7b03bec4a643083dde9ccdc929b8
+
+diff --git a/tests/features.py b/tests/features.py
+remerge CONFLICT (content): Merge conflict in tests/features.py
+index b204305324..557bd74182 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -105153,7 +105153,6 @@ R.check(
+     str(_oc_rows),
+ )
+ 
+-<<<<<<< edd73523de (Merge commit '133e1d92db4498da15f3c8b8da8758897eb13f4b' into fix/r11-seam-actuation-writes)
+ 
+ # ---------------------------------------------------------------------------
+ R.section("R11 seam actuation writes — the added write rails, each driven at its own branch")
+@@ -105303,7 +105302,8 @@ R.check(
+     "a transition that ran the step's tail does not publish again; null control, at a step already cut it publishes",
+     _rb_tr == {False: (["peak_guard"], []), True: ([], [True])},
+     repr(_rb_tr),
+-=======
++)
++
+ # R11-SEAM-store-p2 (round-11 sweep P1, store loaders): a stored flag where a number is declared.
+ # Python counts ``True`` as an int, so six loaders admitted a stored ``true`` as
+ # 1.0. The store's load boundary reads it as absent, by the store's DOMAINS
+@@ -105483,7 +105483,6 @@ R.check(
+     "a stored sample count of 0 or exactly 2**31 is kept; -1 and 2**31 + 1 are refused (D3-g12)",
+     [_s2_counts(v) for v in (0, 2**31, -1, 2**31 + 1)] == [0, 2**31, "refused", "refused"],
+     str([_s2_counts(v) for v in (0, 2**31, -1, 2**31 + 1)]),
+->>>>>>> e902170b22 (Merge pull request #3932 from tvofi/fix/r11-seam-store-part2)
+ )
+ 
+ sys.exit(R.close("FEATURE CHECKS"))

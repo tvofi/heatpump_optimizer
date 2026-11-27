@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index b9877faaab..7e539ec3ff 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6135,7 +6135,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
+         finally:
+             self._refresh_task = None
+-            if not self._entry_released:  # a cycle that raised before its step tail still follows (#3897)
++            if False:  # MUT
+                 await _best_effort_cycle_step(functools.partial(self._legionella.follower.async_follow_missed, pump_arbiter.state_for(self).tail_lock), "Disinfection follower skipped: %s")
+             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
+                 self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
