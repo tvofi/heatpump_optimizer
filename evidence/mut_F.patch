@@ -1,8 +1,10 @@
---- a/custom_components/heatpump_optimizer/thermal_model.py (TWO_ZONE_FIELDS, head d554d42e9a645841ccf87da65d24fb1b6660f9a9)
-+++ b/custom_components/heatpump_optimizer/thermal_model.py
-@@ TWO_ZONE_FIELDS
+--- head/custom_components/heatpump_optimizer/thermal_model.py	2026-11-27 04:33:06
++++ mutF/custom_components/heatpump_optimizer/thermal_model.py	2026-11-27 07:12:59
+@@ -1148,7 +1148,6 @@
      const.CONF_UPPER_FLOOR_THERMAL_MASS,
      const.CONF_LOWER_FLOOR_THERMAL_MASS,
      const.CONF_INTER_ZONE_TRANSFER,
 -    const.CONF_RADIATOR_POWER_FRACTION,
  )
+ 
+ 
