@@ -1,0 +1,435 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_schedule.py b/custom_components/heatpump_optimizer/dhw_schedule.py
+index df3e527961..c1ce27230a 100644
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -56,11 +56,11 @@ from __future__ import annotations
+ import logging
+ import re
+ from collections.abc import Collection, Mapping
+-from datetime import date, datetime, time, timedelta
++from datetime import date, datetime, time, timedelta, timezone, tzinfo
+ from typing import Any, Final
+ 
+ from . import const
+-from .drift import utc_elapsed_seconds
++from .drift import utc_elapsed_seconds, utc_instant
+ 
+ # (start_hour, end_hour) as floats in [0, 24); end may be <= start when the
+ # window wraps past midnight.
+@@ -562,25 +562,63 @@ def hours_until_next_window(
+     has a window.
+ 
+     A window start is a wall-clock time in ``now``'s zone, and the answer is
+-    the time between the two instants (P7, issue 3786). On a spring-forward
+-    day that is 2.5 h from 00:30 to a 04:00 window, not the 3.5 h the wall
+-    times differ by. A naive ``now`` is UTC (``drift.utc_instant``).
++    the time to the first instant the wall clock enters a window (P7, issue
++    3786). On a spring-forward day that is 2.5 h from 00:30 to a 04:00 window,
++    not the 3.5 h the wall times differ by. In an autumn repeated hour either
++    pass opens a start after ``now``. A naive ``now`` is UTC
++    (``drift.utc_instant``).
+     """
+-    h = now.hour + now.minute / 60.0
+-    if windows and hour_in_windows(h, windows):
++    if windows and hour_in_windows(now.hour + now.minute / 60.0, windows):
+         return 0.0
+-    starts = [start - h for start, _ in windows if start > h] + [
+-        start + 24.0 - h for start, _ in (windows if tomorrow is None else tomorrow)
++    zone = now.tzinfo or timezone.utc
++    day = now.date()
++    opens = [
++        t
++        for on, day_windows in ((day, windows), (day + timedelta(days=1), windows if tomorrow is None else tomorrow))
++        for t in _window_entries(zone, on, day_windows)
++        if t > utc_instant(now)
+     ]
+-    if not starts:
++    return utc_elapsed_seconds(min(opens), now) / 3600.0 if opens else None
++
++
++def _window_entries(zone: tzinfo, on: date, windows: list[Window]) -> list[datetime]:
++    """The UTC instants on ``on`` at which ``zone``'s wall clock enters one of ``windows``.
++
++    The clock enters a window at its start, read at each instant that wall time
++    occurs: once, twice in an autumn repeated hour, never in a spring skipped
++    one. It also enters at a DST jump that lands inside a window it was outside.
++    """
++    out = []
++    for start, _ in windows:
++        day, minute = divmod(round(start * 60.0), 24 * 60)
++        for fold in (0, 1):
++            wall = datetime.combine(on + timedelta(days=day), time(minute // 60, minute % 60, fold=fold), zone)
++            instant = utc_instant(wall)
++            if instant.astimezone(zone).replace(tzinfo=None) == wall.replace(tzinfo=None):
++                out.append(instant)
++    jump = _offset_change(zone, on)
++    if jump is not None and _wall_inside(jump.astimezone(zone), on, windows) and not _wall_inside(
++        (jump - timedelta(seconds=1)).astimezone(zone), on, windows
++    ):
++        out.append(jump)
++    return out
++
++
++def _wall_inside(wall: datetime, on: date, windows: list[Window]) -> bool:
++    """Whether the wall time ``wall`` falls on ``on`` and inside one of ``windows``."""
++    return wall.date() == on and hour_in_windows(wall.hour + wall.minute / 60.0, windows)
++
++
++def _offset_change(zone: tzinfo, on: date) -> datetime | None:
++    """The UTC instant, to the second, in ``on``'s local day at which ``zone``'s offset changes."""
++    lo, hi = (utc_instant(datetime.combine(on + timedelta(days=d), time(), zone)) for d in (0, 1))
++    first = lo.astimezone(zone).utcoffset()
++    if hi.astimezone(zone).utcoffset() == first:
+         return None
+-    # The window's own wall time in ``now``'s zone, built from its date and
+-    # minute: no ``+ timedelta`` walks a zoned stamp.
+-    day, minute = divmod(round((h + min(starts)) * 60.0), 24 * 60)
+-    opens = datetime.combine(
+-        now.date() + timedelta(days=day), time(minute // 60, minute % 60), now.tzinfo
+-    )
+-    return utc_elapsed_seconds(opens, now) / 3600.0
++    while hi - lo > timedelta(seconds=1):
++        mid = lo + timedelta(seconds=(hi - lo).total_seconds() // 2)
++        lo, hi = (mid, hi) if mid.astimezone(zone).utcoffset() == first else (lo, mid)
++    return hi
+ 
+ 
+ def is_valid_spec(spec: str) -> bool:
+diff --git a/dev/audit/harnesses/r11_wallclock_dst.py b/dev/audit/harnesses/r11_wallclock_dst.py
+index d7b1d56688..926acac211 100644
+--- a/dev/audit/harnesses/r11_wallclock_dst.py
++++ b/dev/audit/harnesses/r11_wallclock_dst.py
+@@ -21,6 +21,18 @@ Instances, and the clock each is measured against:
+   ``internal_gains_at`` / ``dhw_draw_rates``, against the step clock the
+   optimizer builds (``optimizer._step_clock``) for the same start.
+ 
++* ``next_window_census``: ``hours_until_next_window`` from every quarter-hour
++  wall ``now`` of the zones' spring-forward, fall-back or plain days (both
++  passes of a repeated hour), against a one-window schedule at every
++  quarter-hour start, both against the zone's own clock walked minute by
++  minute: the window opens at the first minute whose local (date, wall time)
++  reaches the start's, today's or tomorrow's. The days are each zone's 2026
++  days whose UTC offset changes (``--day spring``: it grows; ``autumn``: it
++  shrinks), or 10 June (``plain``), for Europe/Stockholm, Australia/Sydney
++  (southern), Australia/Lord_Howe (a 30-minute shift) and America/Santiago
++  (a shift at local midnight). The rule covers the
++  three ways a zone maps a wall start: once, twice (a fold) or never (a gap).
++
+ Each trajectory instance is driven with whatever hour argument its signature
+ takes: ``step_hours`` (the step clock itself) where the signature has it, else
+ ``start_hour`` (the clock's first hour).
+@@ -31,7 +43,7 @@ from __future__ import annotations
+ import argparse
+ import inspect
+ import sys
+-from datetime import datetime
++from datetime import datetime, timedelta, timezone
+ from zoneinfo import ZoneInfo
+ 
+ import numpy as np
+@@ -140,6 +152,93 @@ def probe_trajectory(name: str, day: datetime) -> int:
+     return 1 if slips else 0
+ 
+ 
++CENSUS_ZONES = (
++    "Europe/Stockholm", "Australia/Sydney", "Australia/Lord_Howe", "America/Santiago",
++)
++# Window lengths in minutes: one shorter than any jump (a window a spring jump
++# can skip whole) and one longer (a window a jump can land inside).
++WIDTHS = (5, 90)
++
++
++def _census_days(zone: ZoneInfo, kind: str) -> list[datetime]:
++    """2026 days in ``zone`` whose offset grows (spring) or shrinks (autumn)."""
++    if kind == "plain":
++        return [datetime(2026, 6, 10, tzinfo=zone)]
++    out = []
++    day = datetime(2026, 1, 1)
++    while day.year == 2026:
++        a = day.replace(tzinfo=zone).utcoffset()
++        b = (day + timedelta(days=1)).replace(tzinfo=zone).utcoffset()
++        if (b > a) if kind == "spring" else (b < a):
++            out.append(day.replace(tzinfo=zone))
++        day += timedelta(days=1)
++    return out
++
++
++def _call_next_window(now: datetime, windows):  # noqa: ANN001
++    if "now" in inspect.signature(hours_until_next_window).parameters:
++        return hours_until_next_window(now, windows)
++    return hours_until_next_window(now.hour + now.minute / 60.0, windows)
++
++
++def probe_census(kind: str) -> int:
++    grid = [q * 15 for q in range(96)]
++    cells = mismatches = 0
++    shown: list[str] = []
++    for name in CENSUS_ZONES:
++        zone = ZoneInfo(name)
++        days = _census_days(zone, kind)
++        if not days:
++            return _refuse(f"{name} has no {kind} day in 2026")
++        for day in days:
++            # The zone's own clock: every UTC minute from the day's midnight
++            # to two days on, keyed by its local (date, minute of day).
++            t0 = day.astimezone(timezone.utc)
++            clock = []
++            for m in range(0, 3 * 24 * 60):
++                t = t0 + timedelta(minutes=m)
++                w = t.astimezone(zone)
++                clock.append((t, (w.date(), w.hour * 60 + w.minute)))
++            nows = []
++            for t, (d, mod) in clock:
++                if d == day.date() and mod in grid:
++                    nows.append((t, mod))
++            for start, width in ((s, w) for s in grid for w in WIDTHS):
++                end = min(start + width, 24 * 60)
++                window = [(start / 60.0, end / 60.0)]
++                opens = []
++                for target in (day.date(), day.date() + timedelta(days=1)):
++                    def inside(k, target=target):  # noqa: ANN001, ANN202
++                        return k[0] == target and start <= k[1] < end
++                    opens += [
++                        t for i, (t, k) in enumerate(clock)
++                        if i and inside(k) and not inside(clock[i - 1][1])
++                    ]
++                for t_now, mod in nows:
++                    now = t_now.astimezone(zone)
++                    if start <= mod < end:
++                        want = 0.0
++                    else:
++                        nxt = [t for t in opens if t > t_now]
++                        want = (min(nxt) - t_now).total_seconds() / 3600.0
++                    got = _call_next_window(now, window)
++                    cells += 1
++                    if got is None or abs(got - want) > 1e-9:
++                        mismatches += 1
++                        if len(shown) < 4:
++                            shown.append(
++                                f"{name} {now.isoformat()} fold={now.fold} "
++                                f"start {start // 60:02d}:{start % 60:02d}: "
++                                f"{got} vs {want}"
++                            )
++    if cells == 0:
++        return _refuse("no census cell ran")
++    print(f"next_window_census {kind}: {mismatches} of {cells} cells off the zone's clock")
++    for line in shown:
++        print(f"  {line}")
++    return 1 if mismatches else 0
++
++
+ def main() -> int:
+     ap = argparse.ArgumentParser()
+     ap.add_argument(
+@@ -149,10 +248,13 @@ def main() -> int:
+             "simulate_trajectory",
+             "simulate_trajectory_batch",
+             "simulate_trajectory_with_dhw",
++            "next_window_census",
+         ),
+     )
+     ap.add_argument("--day", choices=tuple(DAYS), required=True)
+     args = ap.parse_args()
++    if args.instance == "next_window_census":
++        return probe_census(args.day)
+     day = DAYS[args.day]
+     if args.instance == "hours_until_next_window":
+         return probe_next_window(day)
+diff --git a/tests/features.py b/tests/features.py
+index 8b8906efee..eab369906e 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -5744,6 +5744,46 @@ R.check(
+     f"{_p7_until}",
+ )
+ 
++# The countdown runs to the first instant after ``now`` at which the wall
++# clock enters a window. That is its start, read each time that wall time
++# occurs: once, twice in the autumn repeated hour, never in the spring skipped
++# hour. Or it is a DST jump landing inside a window. Europe/Stockholm; the
++# plain day is the null.
++_p7_fold = {
++    k: (_hunw(d.replace(hour=2, minute=30), [(2.75, 3.5)]),
++        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.75, 3.5)]),
++        _hunw(d.replace(hour=2, minute=30), [(2.25, 2.4)]),
++        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.25, 2.4)]),
++        _hunw(d.replace(hour=2, minute=30), [(1.5, 2.25)]))
++    for k, d in _p7_days.items() if k != "spring"
++}
++_p7_gap = (_hunw(_p7_days["spring"].replace(minute=30), [(2.5, 4.0)]),
++           _hunw(_p7_days["spring"].replace(minute=30), [(2.25, 2.4)]),
++           _hunw(_p7_days["plain"].replace(minute=30), [(2.25, 2.4)]))
++R.check(
++    "the next-window countdown runs to the first instant the wall clock enters "
++    "a window: from 02:30 in either pass of the autumn repeated hour 0.25 h to "
++    "02:45, 0.75 h or 23.75 h to 02:15, 0.5 h to the jump back into 01:30-02:15; "
++    "from 00:30 on the spring day 1.5 h to the jump into 02:30-04:00 and 24.75 h "
++    "past a 02:15-02:24 window it skips (plain day 23.75, 23.0 and 1.75 h)",
++    _p7_fold == {"autumn": (0.25, 0.25, 0.75, 23.75, 0.5),
++                 "plain": (0.25, 0.25, 23.75, 23.75, 23.0)}
++    and _p7_gap == (1.5, 24.75, 1.75),
++    f"{_p7_fold}, spring/plain gap {_p7_gap}",
++)
++from heatpump_optimizer.pump_schedule import vvc_should_run as _p7_vvc  # noqa: E402
++
++_p7_lead = {
++    (k, f): _p7_vvc(d.replace(hour=2, minute=30, fold=f), [(2.75, 3.5)], 30.0)[0]
++    for k, d in _p7_days.items() if k != "spring" for f in (0, 1)
++}
++R.check(
++    "the circulation pump pre-heats 15 min before a 02:45 window from 02:30 in "
++    "either pass of the autumn repeated hour, as on a plain day",
++    all(_p7_lead.values()) and len(_p7_lead) == 4,
++    f"{_p7_lead}",
++)
++
+ 
+ def _p7_slips(name, day):
+     """Steps of 96 whose gains (and DHW draw) hour is off ``day``'s step clock."""
+diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.BOOLOP.9ca8508f.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.BOOLOP.9ca8508f.json
+deleted file mode 100644
+index 4eeba94597..0000000000
+--- a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.BOOLOP.9ca8508f.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window BOOLOP 9ca8508f",
+-  "killed_by": "tests/features.py",
+-  "old": "    if windows and hour_in_windows(h, windows):",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if windows or hour_in_windows(h, windows):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+-}
+diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.2982fad3.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.2982fad3.json
+deleted file mode 100644
+index f85f896078..0000000000
+--- a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.2982fad3.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window GUARD_OFF 2982fad3",
+-  "killed_by": "tests/features.py",
+-  "old": "    if not starts:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+-}
+diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.9ca8508f.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.9ca8508f.json
+deleted file mode 100644
+index 09db586f13..0000000000
+--- a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.9ca8508f.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window GUARD_OFF 9ca8508f",
+-  "killed_by": "tests/features.py",
+-  "old": "    if windows and hour_in_windows(h, windows):",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
+diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.056b2341.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.056b2341.json
+deleted file mode 100644
+index 4e8fd672bf..0000000000
+--- a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.056b2341.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window RETURN_DEL 056b2341",
+-  "killed_by": "tests/features.py",
+-  "old": "    return utc_elapsed_seconds(opens, now) / 3600.0",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+-}
+diff --git a/tests/mutation_ledger/survivor_triage/dhw_schedule.py/_offset_change.GUARD_OFF.171717b6.json b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/_offset_change.GUARD_OFF.171717b6.json
+new file mode 100644
+index 0000000000..25f4fa2a4c
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/_offset_change.GUARD_OFF.171717b6.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_offset_change GUARD_OFF 171717b6",
++  "old": "    if hi.astimezone(zone).utcoffset() == first:",
++  "reason": "Equivalent in output, a cost guard (GUARD_OFF, `if False:`): on a day with no offset change the bisection keeps moving `lo`, so it returns `hi`, the next local midnight, as a phantom jump. `_window_entries` then reads that instant's wall time as the next date, and `_wall_inside` requires the entry's own date, so the phantom adds no entry; the guard only skips about 17 `astimezone` calls per plain day. Measured by the R11-SEAM-wallclock-dst repair fixer: with the mutant applied, the features.py P7 block read ALL 3 PASSED and next_window_census read 0 cells off on spring, autumn and plain.",
++  "verdict": "equivalent"
++}
+diff --git a/tests/mutation_ledger/survivor_triage/dhw_schedule.py/hours_until_next_window.CMP_BOUND.e2e8012d.json b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/hours_until_next_window.CMP_BOUND.e2e8012d.json
+new file mode 100644
+index 0000000000..d5f5664077
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/hours_until_next_window.CMP_BOUND.e2e8012d.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window CMP_BOUND e2e8012d",
++  "old": "        if t > utc_instant(now)",
++  "reason": "Equivalent on every reachable input (CMP_BOUND, `t > utc_instant(now)` -> `>=`): the two differ only when a window entry falls exactly at `now`. An entry at a window's start, or at a DST jump landing inside a window, puts the wall clock at `now` inside that window, so `hour_in_windows` has already returned 0.0 at the top of hours_until_next_window; equality reaches the filter only for a zero-length window, and dhw_schedule._parse_one_range, the one parser of every window spec, raises DHWWindowError on `start == end` except `00:00-00:00`, which it returns as FULL_DAY. Measured by the R11-SEAM-wallclock-dst repair fixer: with the mutant applied, the features.py P7 block (`# P7, issue 3786: a wall-clock hour` to `def _p7_slips`) read ALL 3 PASSED, and dev/audit/harnesses/r11_wallclock_dst.py next_window_census read 0 cells off on spring, autumn and plain, where the same drive killed the fold-loop, jump and round-trip mutants.",
++  "verdict": "equivalent"
++}
+diff --git a/tests/mutation_ledger/survivor_triage/dhw_schedule.py/hours_until_next_window.CMP_BOUND.efe0497c.json b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/hours_until_next_window.CMP_BOUND.efe0497c.json
+deleted file mode 100644
+index 4a03b02783..0000000000
+--- a/tests/mutation_ledger/survivor_triage/dhw_schedule.py/hours_until_next_window.CMP_BOUND.efe0497c.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window CMP_BOUND efe0497c",
+-  "old": "    starts = [start - h for start, _ in windows if start > h] + [",
+-  "reason": "Equivalent on every reachable input (CMP_BOUND, `start > h` -> `start >= h`): the two differ only when a window starts exactly at `h`. A window of nonzero length that starts at `h` contains `h`, so `hour_in_windows` has already returned 0.0 two lines above; the comparison is reached with `start == h` only for a zero-length window, and no such window reaches hours_until_next_window: dhw_schedule._parse_one_range, the one parser of every window spec (demand, weekly, holiday and per-day), raises DHWWindowError on `start == end` except `00:00-00:00`, which it returns as FULL_DAY. Measured by the #3841 fixer's `mutation_table.py --pin-killed --scripts tests/features.py` drive at the merge of 534bde9fe4: the mutant lived (features.py baseline rc=0 failed=0), against the three other added sites of the same drive killed by a failing check, and the NULL_COMMENT control survived.",
+-  "verdict": "equivalent"
+-}
+diff --git a/tests/open_meteo.py b/tests/open_meteo.py
+index bb3793aace..c9a3444e9d 100644
+--- a/tests/open_meteo.py
++++ b/tests/open_meteo.py
+@@ -471,16 +471,19 @@ check("diagnostics report both series", d["forecast_points"] == 5 and d["observe
+ 
+ print("\n== small getters, and current_irradiance's forecast fallback ==")
+ 
+-# The forecast getter is asserted against two DISTINCT, non-default objects
+-# planted in the client's private state. Comparing a getter to the private
+-# attribute it reads pins nothing: __init__ assigns _forecast and _observed the
+-# SAME module-level `_EMPTY` singleton, so `client.forecast is client._forecast`
+-# is `_EMPTY is _EMPTY` -- true whatever the property body returns. That is tests/README.md's "a test that
+-# cannot fail" class. Naming the OTHER series in the check is what makes a
+-# getter that returns the wrong series, or the untouched default, fail.
++# The forecast getter, and diagnostics' read of the observed series (the
++# class has no observed getter: nothing outside it reads one), are asserted
++# against two DISTINCT, non-default objects planted in the client's private
++# state. Comparing a getter to the private attribute it reads pins nothing:
++# __init__ assigns _forecast and _observed the SAME module-level `_EMPTY`
++# singleton, so `client.forecast is client._forecast` is `_EMPTY is _EMPTY` --
++# true whatever the property body returns. That is tests/README.md's "a test
++# that cannot fail" class. Naming the OTHER series in each check, and giving
++# the two series different lengths, is what makes a reader that takes the wrong
++# series, or the untouched default, fail.
+ ident_client = om.OpenMeteoSolar(hass=None, latitude=3.0, longitude=4.0)
+ ident_forecast = om._parse_block(block(0, [0.0, 0.0, 0.0, 400.0, 800.0]), "shortwave_radiation")
+-ident_observed = om._parse_block(block(0, [11.0, 22.0, 33.0, 44.0, 55.0]), "shortwave_radiation")
++ident_observed = om._parse_block(block(0, [11.0, 22.0, 33.0]), "shortwave_radiation")
+ # A fixture precondition, deliberately an assert and not a check(): it guards
+ # the checks below from silently degenerating back into tautologies if
+ # _parse_block ever starts returning the _EMPTY singleton here. It is not a
+@@ -491,6 +494,7 @@ assert (
+     ident_forecast is not ident_observed
+     and ident_forecast is not om._EMPTY
+     and ident_observed is not om._EMPTY
++    and len(ident_forecast.times) != len(ident_observed.times)
+ ), "getter fixture degenerated: the planted series are not distinct"
+ ident_client._forecast = ident_forecast
+ ident_client._observed = ident_observed
+@@ -499,6 +503,13 @@ check(
+     ident_client.forecast is ident_forecast and ident_client.forecast is not ident_observed,
+     f"got {ident_client.forecast.values}",
+ )
++ident_diag = ident_client.diagnostics()
++check(
++    "diagnostics count the observed series as observed, not the forecast one",
++    ident_diag["observed_points"] == len(ident_observed.times)
++    and ident_diag["forecast_points"] == len(ident_forecast.times),
++    f"got observed_points={ident_diag['observed_points']} forecast_points={ident_diag['forecast_points']}",
++)
+ 
+ getter_client = om.OpenMeteoSolar(hass=None, latitude=1.0, longitude=2.0)
+ getter_client._forecast = conv  # built above: hourly, 00:00-04:00, [0,0,0,400,800]
+@@ -629,7 +640,7 @@ check(
+ # blocks carry six samples, so a check asserting only len(...) == 6 stays green
+ # when production parses _humidity from the snowfall key -- and vice versa --
+ # which is the "test that cannot fail" class again, and the same shape as the
+-# forecast getter repaired above: a name asserting WHICH series lands
++# forecast getter and observed count repaired above: a name asserting WHICH series lands
+ # on WHICH attribute, backed by a fixture that cannot tell the two apart.
+ #
+ # Each expectation is read back out of the fixture by the fixture's OWN literal

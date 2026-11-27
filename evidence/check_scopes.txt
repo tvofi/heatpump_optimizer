@@ -1,0 +1,12 @@
+ok D17 mode=cells seats=3 universe=114 [s1:114f/79131loc, s2:114f/79131loc, s3:114f/79131loc]
+ok DX0 mode=cells seats=5 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc, s4:1f/0loc, s5:1f/0loc]
+ok coverage tracked=17569 in_universe=1768 excluded=15801 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
+FAIL D5 mode=cells seats=10 universe=947 [s1:16f/0loc/0u, s2:16f/0loc/76u, s3:51f/39319loc/3074u, s4:57f/56412loc/3610u, s5:79f/0loc/3942u, s6:267f/0loc/4187u, s7:3f/0loc/4509u, s8:47f/0loc/3818u, s9:69f/0loc/3907u, s10:358f/0loc/1957u]
+   over ledger.max_units 4500: s7 holds 4509 units
+ok D6 mode=files seats=7 universe=392 [s1:15f/0loc/4299u, s2:112f/0loc/4189u, s3:108f/79131loc/3457u, s4:2f/16600loc/4019u, s5:152f/0loc/3708u, s6:1f/0loc/2384u, s7:2f/0loc/2664u]
+ok coverage tracked=17569 in_universe=1768 excluded=15801 unclassified=0
+null-control rc=1
+
+[exited with code 0]
