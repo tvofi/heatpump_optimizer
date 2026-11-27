@@ -1,11 +1,12 @@
 """Button entities for Heat Pump Cost Optimizer.
 
-Six momentary actions with no lasting state, which is exactly what a
+Seven momentary actions with no lasting state, which is exactly what a
 ``ButtonEntity`` is for. A switch would have to bounce itself back off, and
 until it did, the UI would imply a state that does not exist:
 
 * "Optimize Now" — run an optimization without waiting for the next interval,
 * "Learning Run System Identification" — arm the commissioning step test,
+* "Learning Measure Power Response" — arm the power-response sweep,
 * "Learning Reset Comfort Weight" — undo the revealed-preference comfort
   tuning,
 * "Learning Reset Heat Loss" — return the learned heat-loss scale and
@@ -13,7 +14,7 @@ until it did, the UI would imply a state that does not exist:
 * "Prediction Accuracy Diagnose Last Interval" — attribute the last
   interval's temperature residual,
 
-and a sixth, "Finalize Debug Collection", which ends the week's collection
+and a seventh, "Finalize Debug Collection", which ends the week's collection
 now and is unavailable unless that option is on.
 
 The runs take real time — an optimization fetches prices and weather and then
@@ -61,6 +62,7 @@ async def async_setup_entry(
     buttons: list[_OptimizerButtonBase] = [
         ForceOptimizationButton(coordinator, entry),
         SystemIdentificationButton(coordinator, entry),
+        PowerResponseSweepButton(coordinator, entry),
         ResetComfortWeightButton(coordinator, entry),
         ResetHeatLossButton(coordinator, entry),
         DiagnoseIntervalButton(coordinator, entry),
@@ -142,6 +144,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
     """
 
     _attr_entity_category = None
+    _sweep = False
 
     def __init__(
         self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
@@ -163,7 +166,7 @@ class SystemIdentificationButton(_OptimizerButtonBase):
         the refresh that publishes the armed phase runs off the action, as
         the optimize-now press's does.
         """
-        refused = self.coordinator.arm_system_identification()
+        refused = self.coordinator.arm_system_identification(sweep=self._sweep)
         off_the_action(self, self.coordinator.async_request_refresh())
         if refused == sysid.ARM_REFUSED_DISABLED:
             raise ServiceValidationError(
@@ -179,6 +182,25 @@ class SystemIdentificationButton(_OptimizerButtonBase):
                 translation_key="system_identification_not_armed",
                 translation_placeholders={"entry_ids": self._entry.entry_id, "reason": refused},
             )
+
+
+class PowerResponseSweepButton(SystemIdentificationButton):
+    """Arm the power-response sweep (R10-DRAW-MAP-EVIDENCE part B).
+
+    The one press that arms a sweep: the system-identification button never
+    picks it. It shares that button's gate and busy state, since one
+    experiment runs at a time, runs on the same kind of night, and refuses
+    a press the same way.
+    """
+
+    _sweep = True
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        _OptimizerButtonBase.__init__(
+            self, coordinator, entry, "power_response_sweep", "learning_measure_power_response"
+        )
 
 
 class ResetComfortWeightButton(_OptimizerButtonBase):
