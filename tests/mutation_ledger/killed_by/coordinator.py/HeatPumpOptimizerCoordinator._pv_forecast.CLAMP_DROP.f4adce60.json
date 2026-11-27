@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast CLAMP_DROP f4adce60",
+  "killed_by": "tests/doc_claims.py",
+  "old": "            production[0] = min(self._pv_production, config.peak_kw)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`production[0] = (self._pv_production)`) took tests/doc_claims.py from rc=0 failed=0 to rc=1 failed=1."
+}
