@@ -1256,15 +1256,16 @@ R.check(
 _arch_free = _re.search(r"Every other module is deliberately free", _arch)
 R.check(
     "architecture.md's HA-free remainder is the tree's: every module but the "
-    "named importers and the one toucher",
+    "named importers and the documented touchers",
     _arch_free is not None
+    and _arch_documented is not None
     and len(_arch_disk) - len(_arch_anywhere)
-    == len(_arch_disk) - len(_arch_modlevel) - 1 > 0,
+    == len(_arch_disk) - len(_arch_modlevel) - len(_arch_documented) > 0,
     f"sentence found={_arch_free is not None}; {len(_arch_disk)} modules less "
     f"{len(_arch_anywhere)} that touch homeassistant anywhere leaves "
     f"{len(_arch_disk) - len(_arch_anywhere)}, against "
-    f"{len(_arch_disk) - len(_arch_modlevel) - 1} outside the named set and "
-    "the toucher",
+    f"{len(_arch_disk) - len(_arch_modlevel) - len(_arch_documented or [])} "
+    f"outside the named set and the documented touchers {_arch_documented}",
 )
 
 _arch_pages = _re.search(
