@@ -1,0 +1,25 @@
+== M0 unmutated ()
+ALL 4 FEATURES BLOCK PASSED
+== M1 boundary call deleted (1+/1-)
+  FAIL a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null co
+  FAIL every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numer
+2 of 4 FEATURES BLOCK FAILED
+== M2 choice reverted (1+/1-)
+  FAIL every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numer
+1 of 4 FEATURES BLOCK FAILED
+== M3 choice arm false (1+/1-)
+  FAIL a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null co
+  FAIL every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numer
+2 of 4 FEATURES BLOCK FAILED
+== M4 unflag identity (1+/1-)
+  FAIL a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null co
+  FAIL every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numer
+2 of 4 FEATURES BLOCK FAILED
+== M5 list walk off (3+/3-)
+  FAIL a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null co
+  FAIL every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numer
+2 of 4 FEATURES BLOCK FAILED
+== M6 dict walk off (4+/4-)
+  FAIL a stored true where a number is declared loads as absent at each of the six loaders the P1 sweep named and at the accuracy tracker's pending leads; the numbers beside it load as stored (null co
+  FAIL every declaration in store.DOMAINS that declares a number (a real, an int, a choice of numbers) loads a stored true as absent and in_domain refuses it; every other declaration keeps it; a numer
+2 of 4 FEATURES BLOCK FAILED
