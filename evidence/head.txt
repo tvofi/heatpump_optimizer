@@ -1,0 +1,6 @@
+head: cd52e10e014d943ade2bc403b100ee1bc206feae
+harness: python3 -I dev/audit/harnesses/hotfile_conflicts.py --main ef797d794017c98f7fb2d8a168d7de63d435ef3b --days 10
+head run: claims.json 13/0/0, claims.md 13/0/0, other files 84/84/84, merges with any conflict 76/74/49 (matches body)
+mutant (_pick final return theirs -> raise Refuse): self-test 2 FAIL; harness claims.json/md driver 13/13, other files 84/84/84
+ledger_merge.py --self-test at head: all passed
+merge-tree origin/main HEAD: exit 0
