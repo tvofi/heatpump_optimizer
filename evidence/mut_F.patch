@@ -1,0 +1,8 @@
+--- a/custom_components/heatpump_optimizer/thermal_model.py (TWO_ZONE_FIELDS, head d554d42e9a645841ccf87da65d24fb1b6660f9a9)
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ TWO_ZONE_FIELDS
+     const.CONF_UPPER_FLOOR_THERMAL_MASS,
+     const.CONF_LOWER_FLOOR_THERMAL_MASS,
+     const.CONF_INTER_ZONE_TRANSFER,
+-    const.CONF_RADIATOR_POWER_FRACTION,
+ )
