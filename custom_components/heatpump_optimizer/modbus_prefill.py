@@ -232,7 +232,7 @@ def _plant(
     snap: Mapping[str, tuple[str, str, float]], current: Mapping[str, Any]
 ) -> dict[str, Any]:
     capacity = _number(snap, "unit_capacity")
-    cop = float(current.get(CONF_HEAT_PUMP_COP_NOMINAL) or DEFAULT_HEAT_PUMP_COP_NOMINAL)
+    cop = finite_float(current.get(CONF_HEAT_PUMP_COP_NOMINAL)) or DEFAULT_HEAT_PUMP_COP_NOMINAL
     water = _register(snap, 4109) == _WATER_TEMPERATURE_CONTROL
     return {
         CONF_SILENT_MODE_WINDOWS: _window(snap, 518, 519),
