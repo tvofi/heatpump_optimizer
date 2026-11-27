@@ -1,0 +1,4 @@
+ALL 6276 FEATURE CHECKS PASSED
+561:  ok   the next-window countdown runs to the first instant the wall clock enters a window: from 02:30 in either pass of the autumn repeated hour 0.25 h to 02:45, 0.75 h or 23.75 h to 02:15, 0.5 h to the jump back into 01:30-02:15; from 00:30 on the spring day 1.5 h to the jump into 02:30-04:00 and 24.75 h past a 02:15-02:24 window it skips (plain day 23.75, 23.0 and 1.75 h)
+562:  ok   the circulation pump pre-heats 15 min before a 02:45 window from 02:30 in either pass of the autumn repeated hour, as on a plain day
+6019:  ok   the next DHW window on an empty horizon is None, and a repeated hour reads tomorrow as the ordinary day, not the holiday-flagged step after it (null control: a real midnight wrap does read that step's holiday windows)

@@ -1,1 +1,0 @@
-base 02:30 (either fold) window 02:45-03:30 -> 0.25 (True, 'window opens within 30 min; pre-heating the loop')
