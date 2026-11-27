@@ -20,3 +20,4 @@
 1795747118 CKPT carry 2 measured, BLOCKED.md pushed 1e392fb621 snapshot 7ae8b54478dc
 1795747121 DONE blocked: carry 2 measured on handoff-wip 1e392fb621; L3 W2 + handoff to fresh context
 1795751735 HB alive
+1795751956 CKPT L3 W2: sweep completion arm + self_swept poll written; 2 legacy rows (#3400, #3544) under analysis snapshot e53bf9ae6064
