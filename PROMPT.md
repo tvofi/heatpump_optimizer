@@ -6,31 +6,16 @@ Never write to any branch except your return refs. Never work around a hook or a
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-# Design: R11-OWNER-FEATURES-SPLIT
+# Design revision 2: R11-OWNER-FEATURES-SPLIT
 
 Role: dev/governance/roles/designer.md. Identity: tvofi <70032254+tvofi@users.noreply.github.com>.
 
-This is an owner order (tvofi, 2026-11-27), folded into round 11. The group's brief is on the roster branch handoff/audit-r11-roster at 97f98df563830e77a4849219f67e866bca18b02c. Read it there with `jq` on the round-11 roster file.
+Your note at design/r11-owner-features-split 7b9c5331fe got `Design review: revise`. Read the verdict at ref design-verdict/R11-OWNER-FEATURES-SPLIT (VERDICT.md). Re-cut the note on the same branch and answer every finding:
+- R1: the partition must respect the section dependencies recorded in tests/case_closures.json (tests/case_select.py). Measure cross-part links and give a rule that settles; no section may need state built in two parts.
+- R2: cover tests/case_select.py, the per-script table in tests/case_closures.json, tests/closure.py and tests/shards.py in the migration.
+- R3: commit a section-to-part manifest, and port open PRs by that manifest, never by a global rule.
+- R4: give a measured cost for the mutation re-check and a cheaper sound plan if it is large.
 
-## The design
+Order (orchestrator ruling): this split lands after the R11-CI-CASE-SELECT design's case-closure work, and builds on its tables; say how.
 
-Write the architect note at design/R11-OWNER-FEATURES-SPLIT. It covers splitting tests/features.py by feature seam into several scripts. Its aims:
-- end the append-at-end merge conflicts;
-- keep each D5 finder scope under tools/audit/check_scopes.py's max_units;
-- keep every test, pin and mutation kill.
-
-The note must give:
-1. **The seam partition**, measured at your merge base. For each part: its feature seam, its test count, and its D5 units (from check_scopes).
-2. **The migration of the generated artifacts**, each a mechanical, script-driven step:
-   - tests/mutation_ledger killed_by paths;
-   - tests/closures.json entries;
-   - the INERT and closure classification of each new script;
-   - the mutation budgets and structure budgets. These may not grow, or a raise follows CLAUDE.md rule 2.
-3. **The null control**: the killed-mutant set and the test-id set are identical before and after. Give the command that proves it.
-4. **The order and conflict plan**: how the split lands while other open PRs edit tests/features.py, so it does not cause the churn it removes.
-
-No production code. Merge main only if the note's branch is DIRTY.
-
-## Handoff
-
-Push the note to design/R11-OWNER-FEATURES-SPLIT. Seats never open a PR. If blocked, write BLOCKED.md with the exact refusal and a Question line.
+No production code. Merge main only if the branch is DIRTY. Push to design/r11-owner-features-split. If blocked, write BLOCKED.md with the exact refusal and a Question line.
