@@ -1,0 +1,6 @@
+{"anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_parse_time CMP_BOUND a387ecf9", "part": "actuation", "spans": 194, "in_part_fails": 0, "other_part_fails": 2, "first": null, "completed": false, "cpu_s": 742.0}
+{"anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._capacity_caps BOOLOP f3835ba8", "part": "model", "spans": 59, "in_part_fails": 0, "other_part_fails": 0, "first": null, "completed": true, "cpu_s": 177.7}
+{"anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify_slab GUARD_OFF 21c9402c", "part": "model", "spans": 145, "in_part_fails": 0, "other_part_fails": 1, "first": null, "completed": true, "cpu_s": 537.0}
+{"anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison GUARD_OFF 8635e542", "part": "cycle", "spans": 121, "in_part_fails": 1, "other_part_fails": 0, "first": "#369/#370/#1738 \u2014 the duplication window can fire, and --record refuses a laundered regression :: FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']", "completed": true, "cpu_s": 483.3}
+in-part fails over 4 baselines: 1
+[exited with code 0]

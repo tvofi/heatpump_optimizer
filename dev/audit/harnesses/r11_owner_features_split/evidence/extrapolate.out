@@ -1,0 +1,4 @@
+rows 25 {(1, True): 4, (2, True): 20, (1, False): 1}
+rule 1: sampled 5, killed 4, first candidate killed 4, drives/row 1.00, CPU-s/row mean 466 min 180 max 737, x 748 rows = 348374
+rule 2: sampled 20, killed 20, first candidate killed 7, drives/row 2.15, CPU-s/row mean 619 min 16 max 2083, x 3565 rows = 2205879
+extrapolated rules 1+2: 2554253 CPU-s; sample measured 14704 CPU-s
