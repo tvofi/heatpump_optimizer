@@ -307,11 +307,11 @@ FEEDBACK_STOP_MARGIN_K = 0.2
 #: so the loop's lowest write is the gate plus one entity step (I2).
 FEEDBACK_GATE_CLEAR_K = 0.01
 #: Where a pass's space write came from (:func:`pass_origin`, the one place
-#: it is decided), the origin column of ``draw_range``'s map rows: the plan's
-#: level mapped open-loop; the feedback loop's start-hold (today's target)
-#: and its moved target; a boost's ceiling; the gate of a step that does not
-#: heat; the baseline's hold; the experiment's fit, ceiling probe or
-#: power-response sweep.
+#: it is decided). This is the origin column of ``draw_range``'s map rows.
+#: The values are: the plan's level mapped open-loop; the feedback loop's start-hold (today's target)
+#: and its moved target; a boost's ceiling. Then the gate of a step that does
+#: not heat, and the baseline's hold. Last the experiment's fit, ceiling
+#: probe or power-response sweep.
 ORIGIN_PLAN = "plan"
 ORIGIN_FEEDBACK_START = "feedback_start"
 ORIGIN_FEEDBACK = "feedback"
@@ -1370,8 +1370,8 @@ def _hold_sweep(held: ArbiterState, inp: ArbiterInputs) -> None:
     """Through a power-response sweep, hold the floor its levels map on.
 
     Read once, at the sweep's first pass, so every level maps to one
-    set-point however the water warms under it: mapped on the inlet of each
-    pass a level wrote a set-point a minute, and later levels collapsed onto
+    set-point however the water warms under it. Mapped on the inlet of each
+    pass, a level wrote a set-point a minute, and later levels collapsed onto
     the ceiling (``dev/audit/harnesses/draw_map_sweep.py``, ``yield``). Any
     pass whose action is not a sweep's forgets it, so a finished, aborted or
     stood-down sweep leaves no set-point in force.

@@ -1049,10 +1049,10 @@ def fold(
     become rows (``MapRows.commit_runs``) unless ``frozen`` or ``distorted``;
     they never reach the window.
 
-    A sweep's interval -- one any of whose passes the sweep commanded
-    (``MapRows.commit_runs`` says so) -- is the one place decided here to feed the map
-    rows, and the ceiling store where it ``takes_ceiling`` (its band-top
-    level, the probe's command exactly), and nothing else: never the window,
+    A sweep's interval is one any of whose passes the sweep commanded
+    (``MapRows.commit_runs`` says so). It is the one place decided here to
+    feed the map rows. It also feeds the ceiling store where it ``takes_ceiling``
+    (its band-top level, the probe's command exactly). It feeds nothing else: never the window,
     whose latch and draw-floor judgement read the plan's asks, and never an
     idle reading.
     """

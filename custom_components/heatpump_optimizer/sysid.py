@@ -1366,8 +1366,8 @@ def armable(
 
     Otherwise the ceiling probe first where the pump's top is unlearned and
     the probe's clock allows (R10-DRAW-MAP-EVIDENCE [CE] 2, owner ruling
-    2026-11-14): the learned top sets every plan's booked level, the fit only
-    refines the house, and an unconverged house used to keep the probe from
+    2026-11-14). The learned top sets every plan's booked level. The fit only
+    refines the house. An unconverged house used to keep the probe from
     ever running. Then the fit while the house learner is unconverged and its
     own clock allows; then the probe on its clock (``_probe_waits``). An
     install that cannot probe arms as it always did.
@@ -1670,8 +1670,8 @@ def override_action(
 
     The one place the experiment's action is shaped; ``pump_arbiter`` reads
     its ``mode``, ``kind`` and ``power``. The experiment's draw is not the
-    plan's -- booked under the overridden plan's reason it would say
-    "cheapest hours" or whatever the plan claimed for this step -- so the
+    plan's. Booked under the overridden plan's reason it would say
+    "cheapest hours" or whatever the plan claimed for this step. So the
     experiment names itself as the cause on both channels (T6, #2256).
     """
     return {

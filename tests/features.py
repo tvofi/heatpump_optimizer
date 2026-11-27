@@ -102539,8 +102539,8 @@ R.check(
 )
 # --- R10-DRAW-MAP-EVIDENCE part B (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
 # approved at design-verdict f10dd418, its notes r12 and r14 to r18, and the
-# owner's rulings of 2026-11-14): the power-response sweep, armed only by its
-# own button, holds up to five levels of the band at one set-point each; its
+# owner's rulings of 2026-11-14). This is the power-response sweep, armed only by its
+# own button. It holds up to five levels of the band at one set-point each. Its
 # intervals feed the map rows and, at the band top, the ceiling store, and
 # nothing else; and the button arms the ceiling probe before the fit where
 # the pump's top is unlearned. Synthetic fixtures throughout.
@@ -103026,9 +103026,9 @@ class _SwCoord:
 
 
 class _SwPump:
-    """A synthetic pump behind ``_SwCoord``: it runs while the register sits
-    above the inlet, drawing 0.4 kW + 0.25 kW per K of lift up to a 3.2 kW
-    top under the configured 4.0; the inlet rises ``drift`` K a minute."""
+    """A synthetic pump behind ``_SwCoord``. It runs while the register sits
+    above the inlet. It draws 0.4 kW + 0.25 kW per K of lift up to a 3.2 kW
+    top under the configured 4.0. The inlet rises ``drift`` K a minute."""
 
     def __init__(self, coord, inlet=30.0, drift=0.02):
         self.coord, self.inlet, self.drift = coord, inlet, drift
