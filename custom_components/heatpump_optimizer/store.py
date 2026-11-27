@@ -673,9 +673,9 @@ def _unflag_numbers(value: Any, node: Mapping[str, Any]) -> Any:
     with each ``bool`` where a number is declared read as absent (``None``).
 
     Python counts a flag as an ``int``, so a loader's ``isinstance(x, (int,
-    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1); no writer
-    stores a flag where it declares a number (``_declares_number``: a real, an
-    int or a choice of numbers), and ``in_domain`` refuses one there. Read
+    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1). No writer
+    stores a flag where ``_declares_number`` holds (a real, an int or a choice
+    of numbers), and ``in_domain`` refuses one there. Read
     here, at the one load boundary, as the absent value each loader already
     defaults, so no loader repeats the exclusion. A field the trie does not
     declare passes untouched: the load never rewrites what it cannot name.
