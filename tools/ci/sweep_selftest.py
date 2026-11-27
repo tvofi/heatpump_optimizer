@@ -35,7 +35,7 @@ class World:
         if m := re.search(r"/actions/runs/(\d+)$", path):
             r = self.runs[int(m[1])]
             return 200, {}, dict(r, head_sha="H", pull_requests=[{"number": 7}])
-        if path.endswith("/actions/runs"):
+        if path.endswith("/actions/runs") or path.endswith("/actions/workflows/ci.yml/runs"):   # sweep's, prelude's
             self.listings += 1
             return 200, {}, {"workflow_runs": [dict(r, path=sweep.CI_PATH) for r in self.runs.values()]}
         if re.search(r"/pulls/7$", path):
@@ -779,6 +779,49 @@ def run_checks():
     rc, out = w.sweep()
     ok("#3544 bound: D, green, sweeping itself, re-runs each deferral at the head once in place and dispatches nothing",
        w.posts == [rerun_of(i) for i in sorted(REC3544) if i != D3544 and i != R2_3544] and "dispatches=0" in out)
+    # #3885 L3 W1: a deferred run (its prelude failed on DEFER_STEP, holding no runner) is re-run by its
+    # failed jobs once no source at the head is busy, by prelude.busy_sources, the prelude's own predicate.
+    def deferring(rid, created="1", attempt=1, started="5"):
+        r = run(rid, created, attempt=attempt, started=started)
+        r["units"] = [{"name": "prelude", "status": "completed", "conclusion": "failure", "completed_at": "1",
+                       "steps": [{"name": sweep.DEFER_STEP, "conclusion": "failure"}]}]
+        return r
+    undeferred = "repos/o/r/actions/runs/1/rerun-failed-jobs"
+    w = World([deferring(1), v_run()], 9)
+    rc, out = w.sweep()
+    ok("W1: a decider's green completion re-runs the deferred run's failed jobs, once, never its gate alone",
+       rc == 0 and w.posts == [undeferred] and "deferred run 1" in out)
+    w = World([deferring(1), v_run()], 9)
+    w.runs[1]["units"][0]["steps"] = [{"name": "Derive kind, PR, base, scope and legs", "conclusion": "failure"}]
+    w.sweep()
+    ok("W1 null: a prelude that failed on another step is no deferral: its gate is re-run as before",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    w = World([deferring(1), run(9, "1", status="in_progress", gstatus="in_progress", started="4")], 1)
+    rc, out = w.sweep()
+    ok("W1: a deferred run whose decider is still busy is left, nothing posted; the decider's completion sweeps",
+       w.posts == [] and "run(s) [9] still adding sources" in out)
+    w = World([deferring(1), v_run()], 1)
+    w.sweep()
+    ok("W1: the deferred run's own completion, its decider already concluded, re-runs it (the race closed)",
+       w.posts == [undeferred])
+    w = World([deferring(1), run(9, "1", g="cancelled", started="4")], 9)
+    w.sweep()
+    ok("W1: a decider cancelled at the live head still re-runs the run that deferred to it", w.posts == [undeferred])
+    w = World([deferring(1, attempt=44), v_run()], 9)
+    rc, out = w.sweep()
+    ok("W1 bound: a deferred run at attempt 44 is left at the cap", w.posts == [] and "at the cap" in out)
+    w = pinned(deferring(1), v_run())
+    rc, out = w.sweep()
+    ok("W1 stale pin: a deferred run pinned before a tools/ci change on its base takes ONE dispatch, no re-run",
+       w.posts == [dispatch] and "STALE-PIN P0" in out and "dispatches=1" in out)
+    w = pinned(deferring(1), v_run(), files=("docs/x.md",))
+    w.sweep()
+    ok("W1 stale pin null: the same deferred run at a current pin is re-run by its failed jobs, nothing dispatched",
+       w.posts == [undeferred])
+    w = pinned(deferring(1), run(2, "1", started="5", units=["6"]), code_red(), v=2)
+    rc, out = w.sweep()
+    ok("W1 stale pin, fresh's leave-rule: a code unit red at the head leaves the deferred run, its line printed",
+       w.posts == [] and "STALE-PIN P0: run 1 left: tests / fast (3.14) failed at this head" in out)
     return checks
 
 

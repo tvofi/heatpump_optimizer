@@ -72,6 +72,17 @@ and codeql's analyses at the time of writing), because the fresh run grades it w
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
+DEFERRED RUNS (#3885 L3 W1): a run whose prelude would have waited on another run's sources fails
+at once on ci.yml's step DEFER_STEP and holds no runner (prelude.busy_sources). Every sweep, before
+any gate is judged, takes each COMPLETED run at the live head whose latest prelude failed on that step
+(`deferred`) and asks the prelude's own predicate, busy_sources, whether a run it orders after can
+still add a source. None: the run is routed as a stale gate is (`stale_pin`, then `fresh`, whose
+leave-rules apply), and otherwise its failed jobs are re-run (`rerun-failed-jobs`: the same event at
+the same head, prelude, pr-contract and gate again); one still busy: left, because that run's own
+completion sweeps. A decider's completion of any conclusion, cancelled included, sweeps (gate-sweep.yml
+skips no conclusion), as does the deferred run's own completion, which closes the race of a decider
+finishing first. Once per sweep, never past ATTEMPT_CAP; a deferred run's gate is never re-run alone.
+
 Pure decision code over JSON: `get(path, params=None)` and `post(path, body=None)` are
 injected and return (status, headers, json) as ghapi's do. RateLimited is ghapi's, matched
 by name so a program run with `-I` needs no import of it.
@@ -94,6 +105,7 @@ PINNED_EVENTS = ("pull_request", "pull_request_review")   # ci.yml's restore rea
 PINNED_PROGRAMS = "tools/ci/"                             # its pathspec 'tools/ci/*.py' (a git glob crosses '/')
 SWEEP_ACTOR = "github-actions[bot]"   # gate-sweep.yml's github.token; ci.yml's refresh posts as it too
 SELF_JOB = "sweep-self"               # ci.yml's job sweeping its own run from inside it (module doc)
+DEFER_STEP = "Defer: sources still running"   # ci.yml's prelude step a deferring run fails on (module doc)
 
 
 class RateLimited(Exception):
@@ -132,6 +144,13 @@ def pinned_graders(workflows=WORKFLOWS):
                 elif in_jobs and job and "PINNED:" in line and PIN_MARK in line:
                     out.add(f"{unit} / {(name or job).split('${{')[0]}")
     return tuple(sorted(out))
+
+
+def deferred(jobs):
+    """Whether a run's latest listing shows its prelude failed on DEFER_STEP."""
+    pre = next((j for j in jobs if j.get("name") == "prelude"), None)
+    return bool(pre) and pre.get("conclusion") == "failure" and any(
+        st.get("name") == DEFER_STEP and st.get("conclusion") == "failure" for st in pre.get("steps") or ())
 
 
 def latest_gate(jobs):
@@ -213,6 +232,7 @@ class Sweep:
         self.caller = caller          # the calling run's id: V's own is sweep-self (module doc)
         self.green = None             # V, once its gate is green and covers the newest event
         self.reruns, self.rerun_ids = 0, set()
+        self.deferred_ids = set()     # runs `undefer` owns: their gate is never re-run alone
         self.pull, self.pin, self.dispatches = None, (), 0
 
     def j(self, path, params=None):
@@ -325,10 +345,40 @@ class Sweep:
         runs = self.j("actions/runs", {"head_sha": head, "per_page": 100})["workflow_runs"]
         return [r for r in runs if r.get("path", "").split("@")[0] == CI_PATH]
 
+    def undefer(self, runs, head):
+        """Re-run each completed deferred run at the head none of whose sources is busy (module doc)."""
+        import prelude                   # the prelude's own predicate, never restated here
+        for r in sorted(runs, key=lambda r: r["id"]):
+            if r["status"] != "completed" or not deferred(self.jobs_of(r["id"])):
+                continue
+            self.deferred_ids.add(r["id"])
+            if r["id"] in self.rerun_ids:
+                continue
+            try:
+                busy = prelude.busy_sources({"repo": self.repo, "head": head, "run_id": r["id"]}, self.get)
+            except prelude.ghapi.ApiError as e:
+                self.out(f"SWEEP left deferred run {r['id']}: its sources unread ({e}); the next completion re-reads")
+                continue
+            if busy:
+                self.out(f"SWEEP left deferred run {r['id']}: run(s) {busy} still adding sources; their completion sweeps")
+                continue
+            if int(r.get("run_attempt") or 1) >= ATTEMPT_CAP - 1:
+                self.out(f"SWEEP left deferred run {r['id']}: attempt {r['run_attempt']} at the cap; push a new commit")
+                continue
+            pin = self.stale_pin(r)
+            if pin and self.fresh(r, latest_gate(self.jobs_of(r["id"])) or {}, runs, pin):
+                continue
+            self.rerun_ids.add(r["id"])
+            self.post(f"repos/{self.repo}/actions/runs/{r['id']}/rerun-failed-jobs")
+            self.reruns += 1
+            self.out(f"SWEEP re-ran the failed jobs of deferred run {r['id']} (attempt {r['run_attempt']}): "
+                     "no source at the head is busy")
+
     def judge(self, run, gate, why, runs=()):
         """Re-run a completed, not-successful gate once, if its run is idle and has attempts left;
-        a stale-pinned one is re-judged by a fresh run instead (module doc)."""
-        if gate.get("conclusion") == "success" or run["id"] in self.rerun_ids:
+        a stale-pinned one is re-judged by a fresh run instead (module doc). A deferred run is
+        `undefer`'s: its gate alone would judge a prelude that never ran."""
+        if gate.get("conclusion") == "success" or run["id"] in self.rerun_ids or run["id"] in self.deferred_ids:
             return
         if run["status"] != "completed" or not must_rerun(gate, run["run_attempt"]):
             self.out(f"SWEEP left run {run['id']}: attempt {run['run_attempt']} at the cap, or the run still busy; push a new commit")
@@ -350,6 +400,7 @@ class Sweep:
             return 0
         pr = self.pull_number = prs[0]["number"]
         runs = self.runs_at(head)
+        self.undefer(runs, head)
         vg = self.gate_of(run_id)
         if not covers_newest(vg, runs):
             return self.settle(run_id, pr, head)

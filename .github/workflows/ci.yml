@@ -85,8 +85,8 @@ concurrency:
 jobs:
   prelude:
     runs-on: ubuntu-latest
-    # A verdict run waits for every earlier run at its head (max measured 3450 s).
-    timeout-minutes: 150
+    # #3885 L3 W1: a run that would wait on another run's sources defers at once (prelude.busy_sources).
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
@@ -159,6 +159,16 @@ jobs:
               --head "$HEAD_SHA" > "$RUNNER_TEMP/changed.txt"
           fi
           python3 -I tools/ci/prelude.py --changed-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
+      # #3885 L3 W1: no runner is held while another run at this head can still add a source.
+      # This step fails at once and names those runs; tools/ci/sweep.py keys on its name
+      # (sweep.DEFER_STEP) and re-runs this run's failed jobs once they have completed.
+      - name: "Defer: sources still running"
+        if: steps.derive.outputs.defer != ''
+        env:
+          DEFER: ${{ steps.derive.outputs.defer }}
+        run: |
+          echo "::error title=deferred::run(s) $DEFER at this head can still add a source; the gate sweep re-runs this run when they complete"
+          exit 1
 
   # The one copy (R10-CI-CONCURRENCY): from a non-bot pull_request run at the
   # PR's live head, cancel this workflow's older runs at a DIFFERENT head; never
