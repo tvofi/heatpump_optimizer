@@ -10,3 +10,4 @@
 1795750461 CKPT merge of origin/main 190ffb10 committed 4070ef1fac, pushed to handoff-wip snapshot 369a13c7b345
 1795750534 HB alive
 1795751137 HB alive
+1795751509 CKPT coverage at merged head: approach 97.39, runs 100, comfort_floor 100 (features.py alone); pin-killed and run.sh running snapshot 865cbf2a481c
