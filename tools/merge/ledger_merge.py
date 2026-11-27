@@ -390,15 +390,20 @@ def merge_text(base: str, ours: str, theirs: str, numbers: str,
     return json.dumps(merged, ensure_ascii=not raw, **fmt) + "\n"
 
 
+def _load_arm(rel: str):
+    """The module at ``rel`` under the checkout, loaded by path."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_ledger_arm", os.path.join(ROOT, rel))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _table_arm(pathname: str, base: str, ours: str, theirs: str) -> str:
     """Merge a ledger with its own writer's three-way function; ``Refuse`` on any failure."""
-    import importlib.util
     rel, fn = _TABLE_ARMS[pathname]
     try:
-        spec = importlib.util.spec_from_file_location("_ledger_arm", os.path.join(ROOT, rel))
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return getattr(mod, fn)(base, ours, theirs)
+        return getattr(_load_arm(rel), fn)(base, ours, theirs)
     except Exception as exc:  # noqa: BLE001 - the text merge is the fallback
         raise Refuse(f"{rel} {fn} failed: {exc!r}")
 
@@ -952,6 +957,13 @@ def self_test() -> int:
     check("bugclasses refuses: a class both sides added an instance to (equal counts, both wrong)",
           refused(lambda: merge_text(_dump(gb, FORMATS[2]), _dump(go2, FORMATS[2]),
                                      _dump(gt2, FORMATS[2]), LEDGERS[reg])))
+    # The D6 register arm's own cases: it has no entry point of its own, so
+    # this is where CI and tests/entities.py run them.
+    with contextlib.redirect_stdout(io.StringIO()) as d6_out:
+        d6_rc = _load_arm("tools/merge/d6_register.py").self_test()
+    check("the D6 register arm's own cases pass (tools/merge/d6_register.py)", d6_rc == 0)
+    if d6_rc:
+        print(d6_out.getvalue(), end="")
     check(".gitattributes routes every ledger to the driver",
           gitattributes_error() is None)
     check("a .gitattributes routing only one ledger is refused",

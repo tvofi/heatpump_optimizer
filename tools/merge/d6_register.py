@@ -27,13 +27,13 @@ does not reproduce byte for byte, a row without a unique string ``id``, a
 Markdown row that is not ``| <id> | ...``, a Markdown preamble both sides
 changed differently, or a row one side rewrote and the other deleted.
 
-    python3 tools/merge/d6_register.py --self-test
+Its cases (``self_test``) run inside ``ledger_merge.py``'s own self-test, the
+one CI wires, so the arm is exercised wherever the driver is.
 """
 from __future__ import annotations
 
 import json
 import re
-import sys
 
 ROW = re.compile(r"^\| ([^|\s]+) \|")
 
@@ -200,9 +200,3 @@ def self_test() -> int:
           merge_md(md(base), md(base), "A" + md(base)).startswith("A# t"))
     return 0 if ok else 1
 
-
-if __name__ == "__main__":
-    if sys.argv[1:] == ["--self-test"]:
-        sys.exit(self_test())
-    print(__doc__.strip().splitlines()[-1].strip(), file=sys.stderr)
-    sys.exit(2)
