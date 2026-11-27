@@ -2,3 +2,4 @@
 1795737585 INIT r11-repair-3805
 1795737594 HB alive
 1795737733 CKPT merged origin/main into e69d1f0c at dffa3f7df9; structure ok snapshot 56ab654fc8f2
+1795737879 CKPT body edited; scoped prepr running at dffa3f7df9 snapshot 8f40b4254a0d
