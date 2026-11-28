@@ -52,7 +52,7 @@ The reviewer's three mutants, applied verbatim to the new head, each run against
 
 ## Red checks
 
-none
+- `tests / nightly-status` at the PR head `9ea84ecca8a8` (red at the 76ecf989 push too): it reports main's scheduled nightly lane, not this diff, which touches only `tools/audit/seat/closeout.py` and `tools/audit/seat/prune_refs.py`. The nightly's red is CodeQL alert 69, `py/redos` at `tests/replay.py:989` (the replay-job timeout regex, exponential backtracking on repeated `    ` lines), inherited from main; #3941 (open) bounds that regex to one parse per line. Cheaper detector: none for this diff, the alert is raised on main's scan.
 
 ## Forward-carry
 
