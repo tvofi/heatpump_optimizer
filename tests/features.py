@@ -100807,12 +100807,12 @@ R.check(
 )
 
 # 2d, through the planner. The solve hands commit_charges the state's
-# dhw_charge_under_way: with the compressor running the store program
-# enters on a run and places step 0 as a continuation, so only that reading
-# refuses a charge the pump would not start. everything_on, engaged (a start
-# priced), compressor running, tank at 52 degC over a 3 K hysteresis: no
-# charge under way, step 0 is off; the null, the same solve under way,
-# keeps the step-0 charge.
+# dhw_charge_under_way. With the compressor running the store program
+# enters on a run and places step 0 as a continuation. So only that reading
+# refuses a charge the pump would not start. The case: everything_on,
+# engaged (a start priced), compressor running, tank at 52 degC over a 3 K
+# hysteresis. With no charge under way step 0 is off. The null, the same
+# solve under way, keeps the step-0 charge.
 def _hdr_p0_capture(under_way):
     kept, kept_runs, runs = _hdr_om.HeatPumpOptimizer.optimize, _hdr_om._charge_runs, []
 
