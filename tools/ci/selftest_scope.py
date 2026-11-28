@@ -321,7 +321,7 @@ def compact_probes(probes: set[str], dirs: set[str], tracked: set[str]) -> list[
     delete under one selects the step anyway), then collapsed like files."""
     keep = {p for p in probes if not p.endswith("/**")
             and not any(a in dirs for a in _ancestors(p))}
-    return sorted(collapse(keep, tracked) + [p for p in probes if p.endswith("/**")])
+    return sorted(set(collapse(keep, tracked)) | {p for p in probes if p.endswith("/**")})
 
 
 def _ancestors(path: str) -> list[str]:
@@ -1013,8 +1013,11 @@ def retired_paths(root: Path) -> list[str]:
 
 
 def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
+    """The table, each read of a step written once: files and probes compacted,
+    the other list kinds sorted and unique."""
     tracked, _ = _tracked(root)
-    entries = {k: {**v, "files": collapse(set(v["files"]), tracked),
+    entries = {k: {**v, **{x: sorted(set(v.get(x, ()))) for x in LIST_KINDS},
+                   "files": collapse(set(v["files"]), tracked),
                    "probes": compact_probes(set(v["probes"]), set(v["dirs"]), tracked)}
                for k, v in entries.items()}
     out.write_text(json.dumps({"_comment": TABLE_COMMENT, "workflow": WORKFLOW, "job": JOB,
@@ -1528,7 +1531,29 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
        collapse({"a/x", "a/y", "c/z"}, {"a/x", "a/y", "c/z"}) == ["a/**", "c/z"])
     ck("compact_probes drops a probe under a listed directory and keeps the rest",
        compact_probes({"d/p", "e/p", "f/**"}, {"d"}, {"e/q"}) == ["e/p", "f/**"])
+    ck("compact_probes writes a directory it collapses to once when the recording already names it whole "
+       "(null control: the collapse to a directory not named is still made)",
+       compact_probes({"g/x", "g/y", "g/**"}, set(), {"g/x", "g/y"}) == ["g/**"]
+       and compact_probes({"g/x", "g/y"}, set(), {"g/x", "g/y"}) == ["g/**"])
     ck("an undecodable escape is kept as written", _unescape("\\x4") == "\\x4")
+    # The generator writes each read once (#3551's 13 duplicates came from
+    # compact_probes): read back from the table write_table wrote.
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        wt = Path(os.path.realpath(td))
+        env = throwaway_git_init(wt, "-q")
+        for f in ("g/x", "g/y"):
+            (wt / f).parent.mkdir(parents=True, exist_ok=True)
+            (wt / f).write_text("1\n")
+        subprocess.run(["git", "add", "-A"], cwd=wt, env=env, check=True)
+        (wt / TABLE).parent.mkdir(parents=True)
+        write_table(wt / TABLE, {"a": {"run_sha": "s", "files": ["t/a.py"], "probes": ["g/x", "g/y", "g/**"],
+                                       "dirs": ["d", "d"], "git": ["log", "log"], "index": False,
+                                       "objects": False}}, wt)
+        lists = {k: v for k, v in json.loads((wt / TABLE).read_text())["steps"]["a"].items()
+                 if isinstance(v, list)}
+        ck("write_table lists each read of a step once in every list kind, read back from the written table",
+           sorted(lists) == sorted(LIST_KINDS) and all(v == sorted(set(v)) for v in lists.values())
+           and lists["probes"] == ["g/**"] and lists["dirs"] == ["d"] and lists["git"] == ["log"])
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "t.json"
         p.write_text(json.dumps({"steps": {"a": {"files": []}}}))
