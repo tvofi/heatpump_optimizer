@@ -96,12 +96,14 @@ def warm(sha: str, directory: str) -> int:
     scratch = Path(tempfile.mkdtemp(prefix="drift_warm_"))
     tree = scratch / "wt"
     git("worktree", "add", "-q", "--detach", str(tree), sha)
+    # Keyed before the capture, so an edit to env_drift.py while it runs
+    # cannot file it under a driver it was not taken with.
+    inputs = env_drift.cache_key_inputs(str(ROOT), sha, True)
     try:
         out = scratch / "capture.json"
         env = {**os.environ, "PYTHONPATH": str(tree / "tests" / "hastub")}
         subprocess.run([sys.executable, env_drift.__file__, "--capture", str(tree), str(out), "--all"],
                        check=True, env=env)
-        inputs = env_drift.cache_key_inputs(str(ROOT), sha, True)
         key = env_drift.cache_key(inputs)
         env_drift.cache_store(env_drift.cache_entry_path(directory, key), key, inputs, sha,
                               out.read_text())

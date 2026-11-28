@@ -44818,6 +44818,16 @@ R.check(
     == [_bl_light2, _bl_light1],
     str(_env_drift.baseline_candidates(_bl_repo, _bl_heavy, _bl_reaches)),
 )
+Path(_bl_repo, "tests").mkdir()
+Path(_bl_repo, "tests", "closures.json").write_text(
+    json.dumps({"closures": {"tests/env_drift.py": ["notes.md"]}}))
+_bl_guarded = _env_drift.baseline_candidates(_bl_repo, _bl_light2, _bl_reaches)
+Path(_bl_repo, "tests", "closures.json").unlink()
+R.check(
+    "a checkout whose closure for env_drift differs from the fork point's never walks (#3885)",
+    _bl_guarded == [_bl_light2],
+    str(_bl_guarded),
+)
 _bl_inputs = _env_drift.cache_key_inputs(_bl_repo, _bl_light2, True)
 _bl_dir = _tempfile.mkdtemp(prefix="bl_cache_")
 _bl_heavy_inputs = _env_drift.cache_key_inputs(_bl_repo, _bl_heavy, True)

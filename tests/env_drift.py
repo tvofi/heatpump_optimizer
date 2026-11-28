@@ -520,6 +520,8 @@ def _baseline_identity(repo: str, sha: str) -> dict:
 #: actions/cache takes at most ten keys in one restore (the key and nine
 #: restore-keys), so a baseline resolves across at most this many commits.
 BASELINE_KEYS_MAX = 10
+#: This script's name in tests/closures.json.
+DRIFT_SELF = "tests/env_drift.py"
 
 
 def capture_reaches(files: list[str], base: dict | None = None) -> bool:
@@ -533,7 +535,7 @@ def capture_reaches(files: list[str], base: dict | None = None) -> bool:
     import closure  # beside this script; imported only on the cache path
 
     plan = closure.select(files, base)
-    return plan["mode"] != "scoped" or "tests/env_drift.py" in plan["run"]
+    return plan["mode"] != "scoped" or DRIFT_SELF in plan["run"]
 
 
 def _closures_at(repo: str, sha: str) -> dict | None:
@@ -553,7 +555,7 @@ def baseline_candidates(repo: str, ref_sha: str, reaches=capture_reaches,
     commit thereby finds the baseline the nearest recording push warmed.
 
     The walk ends at the first ancestor that fails, at `limit` commits, and on
-    any git error. A checkout whose tests/closures.json differs from
+    any git error. A checkout whose closure for this script differs from
     `ref_sha`'s never starts it: the default `reaches` reads the checkout's.
     """
     out = [ref_sha]
@@ -561,7 +563,12 @@ def baseline_candidates(repo: str, ref_sha: str, reaches=capture_reaches,
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
 
-    if git("diff", "--quiet", ref_sha, "--", "tests/closures.json").returncode != 0:
+    try:
+        here = json.loads(pathlib.Path(repo, "tests", "closures.json").read_text())["closures"]
+    except (OSError, ValueError, KeyError, TypeError):
+        here = None
+    there = _closures_at(repo, ref_sha)
+    if (here or {}).get(DRIFT_SELF) != (there or {}).get(DRIFT_SELF):
         return out
     chain = git("rev-list", "--first-parent", f"--max-count={limit}", ref_sha)
     if chain.returncode != 0:
