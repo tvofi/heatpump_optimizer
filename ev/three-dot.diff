@@ -1,0 +1,252 @@
+diff --git a/dev/programme/delivery/3944.md b/dev/programme/delivery/3944.md
+new file mode 100644
+index 0000000000..2af1f4e559
+--- /dev/null
++++ b/dev/programme/delivery/3944.md
+@@ -0,0 +1 @@
++- [#3944](https://github.com/tvofi/heatpump_optimizer/pull/3944) — **open**, Measure CI waits by API time, not sleep time (#3885 L3) (R11-OUTSIDE-CI-3885)
+diff --git a/tools/ci/ghapi.py b/tools/ci/ghapi.py
+index 5afe52a98b..d831f2df5e 100644
+--- a/tools/ci/ghapi.py
++++ b/tools/ci/ghapi.py
+@@ -13,6 +13,7 @@ there that imports urllib (contract item 2), stdlib only.
+                                          SARIF `Accept`); additive, the contract's form stands
+     post(path, body=None)  -> Resp
+     paginate(path, params) -> list       every item of every page, Link-followed
++    Meter(get=None)                      a `get` of the same signature that accounts its time
+ 
+ A GET retries a 5xx or a TRANSPORT failure twice (RETRY_5XX backoffs) before
+ answering, or raising the last transport failure. A non-2xx
+@@ -24,6 +25,11 @@ hook re-runs before the reset. GitHub words the primary limit "API rate limit
+ exceeded" and the secondary one "You have exceeded a secondary rate limit":
+ both are matched. `paginate` raises `ApiError` on any non-200 page. The token
+ is GITHUB_TOKEN, else GH_TOKEN.
++
++A `Meter` splits a caller's wall time in GETs into `api_s`, spent in the transport,
++and `sleep_s`, spent in RETRY_5XX backoffs, each nap with the path that caused it
++(#3885 L3): over the real client it times each attempt and each nap apart; over an
++injected `get` (a self-test's) all of a call's time is `api_s`.
+ """
+ from __future__ import annotations
+ 
+@@ -108,12 +114,15 @@ def _sleep(seconds: float) -> None:
+     time.sleep(seconds)
+ 
+ 
+-def get(path: str, params=None, headers=None):
++def get(path: str, params=None, headers=None, meter=None):
+     """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), and so is a TRANSPORT
+     failure (#2859: prelude red on one IncompleteRead), so a GET retries either after each
+     backoff in RETRY_5XX and then returns what it got, or raises the last transport failure; any
+-    other status, a rate limit included, answers at once. A POST is never retried."""
++    other status, a rate limit included, answers at once. A POST is never retried. A `meter`
++    is credited each attempt's time as API time and each backoff's as sleep."""
++    clock = meter.clock if meter else None
+     for nap in RETRY_5XX + (None,):
++        t0 = clock and clock()
+         try:
+             resp = _request("GET", path, params, headers=headers)
+         except TRANSPORT:
+@@ -122,7 +131,37 @@ def get(path: str, params=None, headers=None):
+         else:
+             if resp[0] < 500 or nap is None:
+                 return resp
++        finally:
++            if clock:
++                meter.api_s += clock() - t0
++        t0 = clock and clock()
+         _sleep(nap)
++        if clock:
++            meter.slept(path, clock() - t0)
++
++
++class Meter:
++    """A `get` that accounts its wall time: `api_s` and `calls` in the API, `sleep_s` and
++    `naps` [(path, seconds)] in backoffs. Over `get=None` (the real client) the split is
++    ghapi.get's own; over an injected `get` the whole call is API time."""
++
++    def __init__(self, get=None, clock=time.monotonic):
++        self._inner, self.clock = get, clock
++        self.api_s, self.sleep_s, self.calls, self.naps = 0.0, 0.0, 0, []
++
++    def slept(self, path: str, seconds: float) -> None:
++        self.sleep_s += seconds
++        self.naps.append((path.split("?")[0], round(seconds, 3)))
++
++    def __call__(self, path: str, params=None, headers=None):
++        self.calls += 1
++        if self._inner is None:
++            return get(path, params, headers, meter=self)
++        t0 = self.clock()
++        try:
++            return self._inner(path, params) if headers is None else self._inner(path, params, headers)
++        finally:
++            self.api_s += self.clock() - t0
+ 
+ 
+ def post(path: str, body=None):
+@@ -312,6 +351,23 @@ def self_test() -> int:
+                 check("a non-transport exception raises", "returned", "raised")
+             except ValueError:
+                 check("a non-transport exception raises at once (null control)", len(calls), 1)
++            # #3885 L3: a Meter splits API time from backoff time, and names the path that slept.
++            t = [0.0]
++            _open = lambda req, seq=iter([502, 200]): (t.__setitem__(0, t[0] + 0.5),  # noqa: E731
++                                                         serve(next(seq), b"{}")(req))[1]
++            _sleep = lambda s: t.__setitem__(0, t[0] + s)  # noqa: E731
++            m = Meter(clock=lambda: t[0])
++            check("Meter: a 502 then a 200 answers the 200", m("repos/o/r/actions/runs/1/jobs")[0], 200)
++            check("Meter: two attempts' transport time is API time, the backoff is sleep",
++                  (m.calls, m.api_s, m.sleep_s, m.naps), (1, 1.0, float(RETRY_5XX[0]),
++                                                          [("repos/o/r/actions/runs/1/jobs", RETRY_5XX[0])]))
++            _open = lambda req: (t.__setitem__(0, t[0] + 0.25), serve(200, b"{}")(req))[1]  # noqa: E731
++            m = Meter(clock=lambda: t[0])
++            m("x")
++            check("Meter: an answer at once sleeps nothing (null control)", (m.api_s, m.sleep_s, m.naps), (0.25, 0.0, []))
++            m = Meter(lambda path, params=None: (t.__setitem__(0, t[0] + 3.0), (200, {}, None))[1], clock=lambda: t[0])
++            m("x")
++            check("Meter: an injected get's whole call is API time", (m.calls, m.api_s, m.sleep_s), (1, 3.0, 0.0))
+         finally:
+             _sleep = saved_sleep
+         _open = serve(200, b"{}")
+diff --git a/tools/ci/prelude.py b/tools/ci/prelude.py
+index 029d14e5e7..ab941553ca 100644
+--- a/tools/ci/prelude.py
++++ b/tools/ci/prelude.py
+@@ -42,6 +42,9 @@ held while a source runs. A busy head prints `defer=<run ids>`, and ci.yml's ste
+ `Defer: sources still running` fails the prelude at once; tools/ci/sweep.py re-runs
+ the failed jobs of that run when a run it deferred to completes (`sweep.undefer`).
+ A failed read or a rate limit (`RATE-LIMITED`) fails closed (A1 item 4).
++Every exit past the argument check also prints one `PRELUDE-TIMING {json}` line to
++stderr and the step summary (`timing`, #3885 L3): GET time, backoff time and the runs
++deferred to, measured by a ghapi.Meter; it decides nothing and never fails the job.
+ """
+ from __future__ import annotations
+ 
+@@ -719,7 +722,37 @@ def outputs(ctx: dict, changed: list[str] | None, get, proof=proof_scope,
+     return out, why
+ 
+ 
+-def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
++TIMING = "PRELUDE-TIMING"
++
++
++def timing(meter: ghapi.Meter, wall_s: float, outcome: str, defer: str, attempt: int) -> str:
++    """#3885 L3: the one machine-readable line of where this prelude's wall time went --
++    `api_s` in GitHub GETs, `sleep_s` in their 5xx/transport backoffs (each nap and the path
++    that caused it), the rest local work -- and the runs it DEFERRED to: a deferral holds no
++    runner, so its wait is the gap to the attempt the sweep starts, `attempt` + 1."""
++    r = lambda x: round(x, 3)  # noqa: E731
++    return TIMING + " " + json.dumps({
++        "outcome": outcome, "attempt": attempt, "wall_s": r(wall_s), "api_s": r(meter.api_s),
++        "api_calls": meter.calls, "sleep_s": r(meter.sleep_s), "naps": [list(n) for n in meter.naps],
++        "local_s": r(max(0.0, wall_s - meter.api_s - meter.sleep_s)),
++        "defer": [int(i) for i in defer.split()]}, separators=(",", ":"))
++
++
++def report(line: str, env) -> None:
++    """The timing line to the job log (stderr: stdout is GITHUB_OUTPUT) and the step summary.
++    A summary that cannot be written is named, never a failure: it decides nothing."""
++    print(line, file=sys.stderr)
++    path = env.get("GITHUB_STEP_SUMMARY")
++    if path:
++        try:
++            with open(path, "a") as fh:
++                fh.write(f"### prelude timing\n\n`{line}`\n")
++        except OSError as e:
++            print(f"NOTE step summary unwritten: {e}", file=sys.stderr)
++
++
++def main(argv: list[str], get=None, env=os.environ, clock=None) -> int:
++    """`get` is ghapi's client unless injected; either way it is metered (`timing`)."""
+     if argv == ["--self-test"]:
+         return self_test()
+     changed = None
+@@ -728,18 +761,26 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
+     elif argv:
+         print("usage: prelude.py [--changed-from FILE] | --self-test", file=sys.stderr)
+         return 2
+-    ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
++    meter = ghapi.Meter(get, **({"clock": clock} if clock else {}))
++    t0, outcome, out = meter.clock(), "fail", {}
+     try:
+-        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get, fast=shards.outputs)
+-    except ghapi.RateLimited as e:
+-        print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
+-        return 3
+-    for k, v in out.items():
+-        print(f"{k}={v}")
+-    if why:
+-        print(f"FAIL {why}", file=sys.stderr)
+-        return 1
+-    return 0
++        ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
++        try:
++            out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, meter, fast=shards.outputs)
++        except ghapi.RateLimited as e:
++            outcome = "rate-limited"
++            print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
++            return 3
++        for k, v in out.items():
++            print(f"{k}={v}")
++        if why:
++            print(f"FAIL {why}", file=sys.stderr)
++            return 1
++        outcome = "defer" if out.get("defer") else "ok"
++        return 0
++    finally:
++        report(timing(meter, meter.clock() - t0, outcome, out.get("defer", ""),
++                      int(env.get("GITHUB_RUN_ATTEMPT") or 1)), env)
+ 
+ 
+ def self_test() -> int:
+@@ -1119,6 +1160,49 @@ def self_test() -> int:
+         with contextlib.redirect_stderr(io.StringIO()) as err:
+             rc = main([], limited, {**env, "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": path})
+         check("rate limit fails closed", (rc, err.getvalue().split()[:1]), (3, ["RATE-LIMITED"]))
++        # #3885 L3: every exit reports where its wall time went, to the log and the step summary.
++        tick = [0.0]
++
++        def slow(gt, dt):
++            return lambda p, q=None: (tick.__setitem__(0, tick[0] + dt), gt(p, q))[1]
++
++        def timed(fake_outputs, get, attempt="1"):
++            global outputs
++            saved, outputs = outputs, fake_outputs
++            fd2, summ = tempfile.mkstemp(suffix=".md")
++            os.close(fd2)
++            try:
++                with contextlib.redirect_stderr(io.StringIO()) as e2, contextlib.redirect_stdout(io.StringIO()):
++                    rc = main([], get, {**env, "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": path,
++                                        "GITHUB_STEP_SUMMARY": summ, "GITHUB_RUN_ATTEMPT": attempt},
++                              clock=lambda: tick[0])
++                lines = [x for x in e2.getvalue().splitlines() if x.startswith(TIMING + " ")]
++                return rc, [json.loads(x.split(" ", 1)[1]) for x in lines], Path(summ).read_text()
++            finally:
++                outputs = saved
++                os.unlink(summ)
++
++        def deferring(c, ch, get, **kw):
++            tick[0] += 0.5                                 # local work: no get is running
++            return {"defer": " ".join(str(i) for i in busy_sources(c, get)), "kind": "review"}, ""
++        busy = slow(once(run(40, "code", "in_progress", done("code", gate=False)),
++                         run(41, "code", "in_progress", done("code", gate=False))), 2.0)
++        rc, got, summ = timed(deferring, busy, attempt="2")
++        t = got[0] if got else {}
++        check("L3: a deferring prelude prints ONE timing line", (rc, len(got)), (0, 1))
++        check("L3: ... naming the runs it deferred to, its attempt and outcome",
++              (t.get("defer"), t.get("attempt"), t.get("outcome")), ([40, 41], 2, "defer"))
++        check("L3: ... its GET time is API time, apart from local work and sleep",
++              (t.get("api_calls"), t.get("api_s"), t.get("local_s"), t.get("sleep_s"), t.get("wall_s")),
++              (3, 6.0, 0.5, 0.0, 6.5))
++        check("L3: ... and the same line is in the step summary", bool(got) and json.dumps(t, separators=(",", ":"))
++              in summ, True)
++        rc, got, _ = timed(lambda c, ch, get, **kw: ({"defer": "", "kind": "review"}, ""), busy)
++        check("L3 null: a prelude deferring to nothing names no run", (rc, [g["defer"] for g in got],
++                                                                       [g["outcome"] for g in got]), (0, [[]], ["ok"]))
++        rc, got, _ = timed(lambda c, ch, get, **kw: get("x"), lambda p, q=None: limited(p, q))
++        check("L3: a rate-limited prelude still reports, as rate-limited", (rc, [g["outcome"] for g in got]),
++              (3, ["rate-limited"]))
+     finally:
+         os.unlink(path)
+     # The wiring: each machinery lane gates on exactly the output its

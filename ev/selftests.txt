@@ -1,0 +1,5 @@
+ghapi self-test: 36 checks, 0 failed
+prelude self-test: 168 checks, 0 failed
+STRUCTURE RATCHET PASSED
+claims hygiene: origin/main ok
+drift=0

@@ -1,0 +1,5 @@
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/ghapi.py changes the gate itself, so every closure is suspect
+  ok   and an indented `import a, b` names both modules (null control: the finder's reader missed mutation_table this way)
+  ok   every base-restoring step names each file it restores at the path tests/layout.json moves it to, listed so that a PINNED holding either path restores and one holding neither fails
+Architecture score: dS +0.0000 NULL
