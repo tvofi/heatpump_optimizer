@@ -16,8 +16,13 @@ refs/pull/1/head of the origin, beside a branch of OURS with the fork's branch
 name. remerge_main.sh must refuse before it fetches, mints a token, merges or
 pushes, whatever the fork's state (a stale head, a head main conflicts with),
 and a fake `curl` and fake tools/pr/app_mint.sh record any call. --mutant=<name>
-deletes the line ending `# mut:<name>` (remergeforkrefuse) and expects the
-self-test to fail.
+deletes the line ending `# mut:<name>` (remergeforkrefuse, remergefresh) and
+expects the self-test to fail.
+
+The freshness cases (PC-1113-10): a commit lands on the origin's main after the
+clone, under tools/pr or tools/audit/seat (refused at step `fresh`, nothing merged
+or pushed), under docs/ (null control: pushes), or under tools/pr with
+HPO_ALLOW_STALE_TOOLS=1 (a NOTICE, then the push).
 """
 import os
 import shutil
@@ -36,7 +41,9 @@ def sh(*a, cwd=None, env=None):
     return subprocess.run(a, cwd=cwd, capture_output=True, text=True, env={**throwaway_git_env(), **(env or {})})
 
 
-def case(root, script, detached):
+def case(root, script, detached, main_adds=None, env=None):
+    """One remerge of fix/x. main_adds: a path committed on the origin's main after the clone, so
+    the checkout holding the tools is behind origin/main by one commit touching it."""
     o, r, w = root / "o", root / "r", root / "w"
     for d in (o, r, w):
         shutil.rmtree(d, ignore_errors=True)
@@ -74,8 +81,16 @@ def case(root, script, detached):
     # the script's sleep 5 is the real one; shorten it in the copy
     (r / "tools/audit/seat/remerge_main.sh").write_text(
         (r / "tools/audit/seat/remerge_main.sh").read_text().replace("sleep 5;", ""))
-    return sh("bash", "tools/audit/seat/remerge_main.sh", "1", str(w), "fix/x", str(body), cwd=r,
-              env={"PATH": f"{bindir}:{os.environ['PATH']}"})
+    if main_adds:
+        (o / main_adds).parent.mkdir(parents=True, exist_ok=True)
+        (o / main_adds).write_text("main moved\n")
+        sh("git", "add", main_adds, cwd=o)
+        sh("git", "commit", "-qm", "main: " + main_adds, cwd=o)
+    before = sh("git", "rev-parse", "HEAD", cwd=w).stdout
+    run = sh("bash", "tools/audit/seat/remerge_main.sh", "1", str(w), "fix/x", str(body), cwd=r,
+             env={"PATH": f"{bindir}:{os.environ['PATH']}", **(env or {})})
+    run.unmoved = sh("git", "rev-parse", "HEAD", cwd=w).stdout == before
+    return run
 
 
 FORK = "contributor/heatpump_optimizer"
@@ -173,11 +188,28 @@ def main():
         root = Path(d)
         det = case(root, script, True)
         att = case(root, script, False)
+        stale = case(root, script, False, "tools/pr/zz")
+        stale_seat = case(root, script, False, "tools/audit/seat/zz")
+        docs = case(root, script, False, "docs/zz")
+        allow = case(root, script, False, "tools/pr/zz", {"HPO_ALLOW_STALE_TOOLS": "1"})
         fork = fork_checks(root, script)
     checks = {
         "a refused push (detached worktree) exits non-zero and says REMERGE FAILED at push":
             det.returncode != 0 and "REMERGE FAILED 1 at push" in det.stdout,
         "null control: the attached worktree pushes and exits 0": att.returncode == 0 and "PUSHED" in att.stdout,
+        # PC-1113-10's first addendum: the tools' checkout behind origin/main under tools/ (pr_tools_fresh)
+        "a checkout behind origin/main by a commit under tools/pr refuses: one REMERGE FAILED line at fresh "
+        "naming STALE CHECKOUT and the count, nothing merged or pushed":
+            stale.returncode != 0 and "PUSHED" not in stale.stdout and stale.unmoved
+            and any(ln.startswith("REMERGE FAILED 1 at fresh: STALE CHECKOUT ") and "by 1 commit(s)" in ln
+                    for ln in stale.stdout.splitlines()),
+        "... and under tools/audit/seat alike":
+            stale_seat.returncode != 0 and "REMERGE FAILED 1 at fresh: STALE CHECKOUT" in stale_seat.stdout
+            and "PUSHED" not in stale_seat.stdout,
+        "null control: origin/main ahead only under docs/ is no refusal; the remerge pushes":
+            docs.returncode == 0 and "PUSHED" in docs.stdout and "STALE CHECKOUT" not in docs.stdout,
+        "HPO_ALLOW_STALE_TOOLS=1 names the stale tools in a NOTICE and goes on to the push":
+            allow.returncode == 0 and "PUSHED" in allow.stdout and "remerge: NOTICE: STALE CHECKOUT" in allow.stdout,
         **fork,
     }
     for k, v in checks.items():

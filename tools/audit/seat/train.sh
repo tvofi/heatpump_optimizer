@@ -56,6 +56,22 @@ recommended() {
   grep '^RECOMMENDED = (' "$(dirname -- "$0")/merge_train.py" | grep -o '"--[a-z-]*"' | tr -d '"'
 }
 
+# The checkout's tools against origin/main (PC-1113-10's first addendum: a train run from a
+# checkout days behind main drove every recarry and merge with tools main had replaced). Every
+# tool the train runs is <checkout>'s: merge_train.py, remerge_main.sh, app_push.sh. So after a
+# fetch of origin main INTO that checkout, pr_args.sh's pr_tools_fresh -- open_pr.sh's and
+# update_pr.sh's rule -- refuses a checkout that origin/main has commits over under tools/audit/seat
+# or tools/pr; HPO_ALLOW_STALE_TOOLS=1 names it and goes on. A plain git fetch, unretried: the
+# seat venv's python3 is first on PATH by now, and a refused launch is relaunched by its caller.
+checkout_fresh() { # <checkout>: rc 0 with any NOTICE printed, else the REFUSE via die
+  local f r=0
+  git -C "$1" fetch -q origin main 2>/dev/null \
+    || die "could not fetch origin main into $1, so whether its tools are behind main is unknown (fail closed): fetch it, then relaunch"
+  f=$(. "$(dirname -- "$0")/pr_args.sh" && PR_ARGS_DIR=$1 PR_NAME=train.sh pr_tools_fresh 2>&1) || r=$?
+  [ "$r" = 0 ] || die "${f#train.sh: REFUSE: }"  # mut:trainfresh
+  [ -z "$f" ] || printf '%s\n' "$f" >&2
+}
+
 selftest=0
 add_pr="" add_verdict="" add_comment="" add_prio="" add_front="" add_flags=()
 if [ "${1:-}" = add ]; then
@@ -126,6 +142,21 @@ effective="${set_flags[*]:-none}"
 
 if [ "$selftest" = 1 ]; then
   [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded train bash "$0" --self-test; }  # pr_args.sh's self-test bound
+  # 0. every arm runs this script from a throwaway clone of a local bare origin, so each launch's
+  #    checkout_fresh fetches that origin, never this repository's: a branch behind main would
+  #    otherwise refuse its own self-test. The copy is of "$0", so a mutant is what runs.
+  if [ -z "${TRAIN_FX:-}" ]; then
+    . "$(dirname -- "$0")/../../../tests/throwaway_git.sh" && throwaway_git_env
+    fx=$(mktemp -d)
+    git init -q --bare -b main "$fx/o.git" && git clone -q "$fx/o.git" "$fx/c" 2>/dev/null \
+      && mkdir -p "$fx/c/tools/audit/seat" && cp "$0" "$fx/c/tools/audit/seat/train.sh" \
+      && cp "$(dirname -- "$0")/pr_args.sh" "$(dirname -- "$0")/merge_train.py" "$fx/c/tools/audit/seat/" \
+      && git -C "$fx/c" add -A && git -C "$fx/c" commit -qm fixture && git -C "$fx/c" push -q origin HEAD:main \
+      || { rm -rf "$fx"; die "self-test: the fixture checkout could not be built"; }
+    TRAIN_FX=$fx bash "$fx/c/tools/audit/seat/train.sh" --self-test; rc=$?
+    rm -rf "$fx"; exit "$rc"
+  fi
+  fxclone() { git clone -q "$TRAIN_FX/o.git" "$1" 2>/dev/null; }  # a checkout of the fixture's origin
   # 1. missing required arguments refuse.
   for miss in "--repo x" "--state-dir x"; do
     if "$0" --queue /dev/null $miss >/dev/null 2>&1; then
@@ -328,7 +359,7 @@ if [ "$selftest" = 1 ]; then
   #    while a pid of the tree was still alive.
   for sig in TERM HUP; do
     st=$(mktemp -d)
-    mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
+    fxclone "$st/C"; mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
     ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
     printf '#!/bin/bash\necho $$ >> "%s/pids"\nbash -c '"'"'sleep 30; :'"'"' & echo $! >> "%s/pids"\nbash -c '"'"'sleep 30 & echo $! >> "$0"; wait'"'"' "%s/pids" & echo $! >> "%s/pids"\nwait\n' \
       "$st" "$st" "$st" "$st" > "$st/tree.sh"
@@ -361,7 +392,7 @@ if [ "$selftest" = 1 ]; then
   #     would cut short. The stub's child G marks a TERM it gets; the stub, TERMed,
   #     waits 0.5 s, writes "early" when G was TERMed beside it, then ends G.
   st=$(mktemp -d)
-  mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
+  fxclone "$st/C"; mkdir -p "$st/venv-ci/bin" "$st/state" "$st/C/tools/audit/seat"
   ln -s "$(command -v python3)" "$st/venv-ci/bin/python3"
   printf 'import os, signal, subprocess, sys, time\nopen("%s/pids", "a").write("%%d\\n" %% os.getpid())\ng = subprocess.Popen(["bash", "-c", "trap \\"echo G >> %s/marks; exit 0\\" TERM; while :; do sleep 0.1; done"])\nopen("%s/pids", "a").write("%%d\\n" %% g.pid)\ndef stop(*_):\n    time.sleep(0.5)\n    if "G" in open("%s/marks").read(): open("%s/marks", "a").write("early\\n")\n    g.terminate(); g.wait(); sys.exit(143)\nsignal.signal(signal.SIGTERM, stop)\nwhile True: time.sleep(0.1)\n' \
     "$st" "$st" "$st" "$st" "$st" > "$st/C/tools/audit/seat/merge_train.py"
@@ -398,8 +429,33 @@ if [ "$selftest" = 1 ]; then
     "-u|tools/audit/seat/merge_train.py|add|7|$sha|--repo|x/r|--state-dir|"*"|--verdict-comment|42|--front|--|--repo|x/r|--state-dir|"*"|--overlap|") : ;;
     *) die "self-test: add's argv shape wrong: $flags" ;;
   esac
+  # 12. the checkout's tools against origin/main (checkout_fresh). A commit lands on the fixture
+  #     origin's main after the checkout was cut: under docs/ the launch runs (null control); under
+  #     tools/pr the launch and `add` refuse STALE CHECKOUT before the child runs, and
+  #     HPO_ALLOW_STALE_TOOLS=1 names it and goes on. Last, because the origin stays moved.
+  st=$(mktemp -d)
+  mkdir -p "$st/venv-ci/bin" "$st/state"
+  printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
+    > "$st/venv-ci/bin/python3"
+  chmod +x "$st/venv-ci/bin/python3"
+  : > "$st/queue.json"; fxclone "$st/w"
+  mainadds() { mkdir -p "$st/w/$(dirname "$1")" && echo m > "$st/w/$1" && git -C "$st/w" add "$1" \
+    && git -C "$st/w" commit -qm "main: $1" && git -C "$st/w" push -q origin HEAD:main; }
+  launch() { rm -f "$st/argv"; out=$(HPO_STATE_DIR="$st" "$@" 2>&1); rc=$?; ran=$([ -s "$st/argv" ] && echo ran || echo unrun); }
+  mainadds docs/zz
+  launch "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state"
+  case "$rc $ran $out" in "0 ran "*STALE*) bad="docs: $rc $ran stale" ;; "0 ran "*) bad="" ;; *) bad="docs: $rc $ran $out" ;; esac
+  mainadds tools/pr/zz
+  launch "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state"
+  case "$rc $ran $out" in "2 unrun "*"train.sh: REFUSE: STALE CHECKOUT "*" by 1 commit(s) touching tools/audit/seat tools/pr"*) : ;; *) bad="$bad|stale: $rc $ran $out" ;; esac
+  launch "$0" add 7 "$sha" --repo x/r --state-dir "$st/state"
+  case "$rc $ran $out" in "2 unrun "*"REFUSE: STALE CHECKOUT"*) : ;; *) bad="$bad|add: $rc $ran $out" ;; esac
+  HPO_ALLOW_STALE_TOOLS=1 launch "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state"
+  case "$rc $ran $out" in "0 ran "*"train.sh: NOTICE: STALE CHECKOUT"*) : ;; *) bad="$bad|allow: $rc $ran $out" ;; esac
+  rm -rf "$st"
+  [ -z "$bad" ] || die "self-test: the checkout's freshness misjudged: $bad"
   echo "train.sh self-test: effective set of a bare launch: $want"
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, a bare launch runs the six-flag recommended set, --no-<flag> and the mandate file switch it, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)"
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, a bare launch runs the six-flag recommended set, --no-<flag> and the mandate file switch it, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile, a checkout behind origin/main under tools/ refuses)"
   exit 0
 fi
 
@@ -412,6 +468,7 @@ if [ -n "$add_pr" ]; then
   PATH=$_HPO_STATE/venv-ci/bin:$PATH; export PATH
   [ -n "$checkout" ] || checkout=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || die "no repository around $0; pass --checkout"
   cd "$checkout" || die "checkout directory not found: $checkout"
+  checkout_fresh "$checkout"  # add starts a train when none is live
   mkdir -p "$state" || die "cannot create state dir $state"
   echo "mandate: $mandate_note"
   # No pidfile: `add` is no train. Its own lines go to the caller and to the train's log.
@@ -464,6 +521,7 @@ if [ -z "$checkout" ]; then
   checkout=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || die "no repository around $0; pass --checkout"
 fi
 [ -d "$checkout" ] || die "checkout directory not found: $checkout"
+checkout_fresh "$checkout"
 
 log=$state/train.log
 echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT%TZ)" >> "$log"

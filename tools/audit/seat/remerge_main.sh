@@ -37,13 +37,25 @@ export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.githu
 # MERGE CONFLICT is printed only for a merge that left unmerged paths (carry f7d2bf7c): a fetch that
 # spent its transient budget or git rejected, a refused reset, or a merge stopped for another reason
 # is REMERGE FAILED naming its step, with git's own words above it, and owes no fixer a resolution.
-step=fetch
-( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$SRC" ) && step=reset \
+# The tools this recarry runs are its checkout's (merge_train.py calls this script from there), so a
+# checkout behind origin/main under tools/ would recarry with tools main has since replaced
+# (PC-1113-10's first addendum: a train run from a checkout days behind main). Judged after the
+# fetch and before the reset: pr_args.sh's pr_tools_fresh, open_pr.sh's and update_pr.sh's rule and
+# its HPO_ALLOW_STALE_TOOLS override, its refusal one REMERGE FAILED line at step fresh.
+tools_fresh() {
+  fresh=$(PR_NAME=remerge pr_tools_fresh 2>&1) || return 1  # mut:remergefresh
+  :
+}
+step=fetch; fresh=""
+( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$SRC" ) && step=fresh \
+  && tools_fresh && step=reset \
   && git -C "$W" reset -q --hard "$TIP" && step=merge && git -C "$W" merge --no-edit -q origin/main
 rc=$?
+[ -z "$fresh" ] || [ "$step" = fresh ] || printf '%s\n' "$fresh"  # the override's NOTICE
 if [ "$rc" -ne 0 ]; then
   why="MERGE CONFLICT $PR"
   { [ "$step" = merge ] && [ -n "$(git -C "$W" diff --name-only --diff-filter=U)" ]; } || why="REMERGE FAILED $PR at $step (rc=$rc)"  # mut:remergeconflict
+  [ "$step" != fresh ] || why="REMERGE FAILED $PR at fresh: ${fresh#remerge: REFUSE: }"
   git -C "$W" merge --abort 2>/dev/null || git -C "$W" reset -q --hard "$TIP" 2>/dev/null || :  # mut:remergeabort
   echo "$why"; exit 1
 fi
