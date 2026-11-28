@@ -19,32 +19,27 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SECURITY-PRIVACY (stage carries-open, branch `fix/r11-pre-security-privacy-p2`): `git fetch origin fix/r11-pre-security-privacy-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PREPR-STEP-TIMING (stage carries-open, branch `handoff/r11-prepr-step-timing`): `git fetch origin handoff/r11-prepr-step-timing && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-dead-state (stage carries-open, branch `handoff/r11-seam-dead-state`): `git fetch origin handoff/r11-seam-dead-state && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-freshness (stage in-progress, branch `handoff/r11-seam-inputs-freshness`): `git fetch origin handoff/r11-seam-inputs-freshness && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-learners (stage carries-open, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-writes (stage in-progress, branch `handoff/r11-seam-actuation-writes`): `git fetch origin handoff/r11-seam-actuation-writes && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage carries-open, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-reporting (stage in-progress, branch `handoff/r11-seam-cycle-reporting`): `git fetch origin handoff/r11-seam-cycle-reporting && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-entity-service (stage carries-open, branch `handoff/r11-seam-entity-service`): `git fetch origin handoff/r11-seam-entity-service && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-tests (stage carries-open, branch `handoff/r11-seam-tests`): `git fetch origin handoff/r11-seam-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-production (stage carries-open, branch `handoff/r11-seam-comments-production`): `git fetch origin handoff/r11-seam-comments-production && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-fabric-learner (stage in-progress, branch `handoff/r11-arch-fabric-learner`): `git fetch origin handoff/r11-arch-fabric-learner && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-wallclock-dst (stage in-progress): no branch pushed yet, so nothing to fetch
-- R11-OUTSIDE-ROOMS-3B (stage carries-open, branch `handoff/r11-outside-rooms-3b`): `git fetch origin handoff/r11-outside-rooms-3b && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-CARD-EXTERNAL-HEAT (stage carries-open, branch `handoff/r11-owner-card-external-heat`): `git fetch origin handoff/r11-owner-card-external-heat && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FROST-HOLD (stage in-progress, branch `handoff/r11-owner-frost-hold`): `git fetch origin handoff/r11-owner-frost-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-HOLD (stage in-progress, branch `handoff/r11-owner-fault-hold`): `git fetch origin handoff/r11-owner-fault-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-MODE-LEGS (stage in-progress, branch `handoff/r11-owner-mode-legs`): `git fetch origin handoff/r11-owner-mode-legs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-STEP-KICK (stage in-progress, branch `handoff/r11-owner-step-kick`): `git fetch origin handoff/r11-owner-step-kick && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-COOLING-GUARD (stage carries-open, branch `handoff/r11-owner-cooling-guard`): `git fetch origin handoff/r11-owner-cooling-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-TEXT (stage in-progress, branch `handoff/r11-owner-fault-text`): `git fetch origin handoff/r11-owner-fault-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COOLING-AUTORETURN (stage in-progress, branch `handoff/r11-owner-cooling-autoreturn`): `git fetch origin handoff/r11-owner-cooling-autoreturn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-LATE-P2-ZONE-GATE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-START-APPROACH (stage in-progress, branch `handoff/r11-outside-start-approach`): `git fetch origin handoff/r11-outside-start-approach && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-D3-PINS-money (stage carries-open, branch `handoff/r11-d3-pins-money`): `git fetch origin handoff/r11-d3-pins-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R11-CLOSEOUT-CLEANUP, R11-D3-PINS-money, R11-LATE-P2-ZONE-GATE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OUTSIDE-ROOMS-3B, R11-OWNER-CARD-EXTERNAL-HEAT, R11-OWNER-COOLING-GUARD, R11-OWNER-FEATURES-SPLIT, R11-OWNER-FROST-HOLD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-dead-state, R11-SEAM-entity-service, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-store-p2, R11-SEAM-tests, R11-SEAM-wallclock-dst
+Ready next (after-edges satisfied; nothing open constrains them): R11-CLOSEOUT-CLEANUP, R11-D3-PINS-money, R11-LATE-P2-ZONE-GATE, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OWNER-FEATURES-SPLIT, R11-OWNER-FROST-HOLD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SECURITY-PRIVACY, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PREPR-STEP-TIMING, R11-PRODUCT-TEXT-PINS, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-store-p2, R11-SEAM-tests, R11-SEAM-wallclock-dst
 
 ## Resume steps
 
