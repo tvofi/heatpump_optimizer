@@ -168,13 +168,11 @@ def instrument_of(words: list[str], files: set[str]) -> str | None:
         w = [] if not args or args[0] in ("-", "-c", "-m") else args[:1]
     if not w:
         return None
-    x = w[0].removeprefix("./")
+    x = "/" + w[0].removeprefix("./")
     for d in INSTRUMENT_DIRS:
         i = x.rfind("/" + d)
-        rel = x if x.startswith(d) else (x[i + 1:] if i >= 0 else "")
-        if rel in files:
-            return rel
-    return None
+        if i >= 0 and x[i + 1:] in files:
+            return x[i + 1:]
 
 
 def _text(content) -> str:
@@ -359,7 +357,7 @@ def _use(uid: str, tool: str, t: str, **inp) -> str:
         {"type": "tool_use", "id": uid, "name": tool, "input": inp}]}}) + "\n"
 
 
-def _res(uid: str, t: str, text: str, err: bool = False) -> str:
+def _res(uid: str, t: str, text, err: bool = False) -> str:
     return json.dumps({"type": "user", "timestamp": t, "message": {"role": "user", "content": [
         {"type": "tool_result", "content": text, "is_error": err, "tool_use_id": uid}]}}) + "\n"
 
@@ -406,7 +404,15 @@ def self_test() -> int:
               "read as an argument is no run of it",
               instrument_of(["A=1", "timeout", "5", "bash", "-e", "tools/pr/push.sh"], files) == "tools/pr/push.sh"
               and instrument_of(["sed", "-n", "1,5p", "tools/pr/push.sh"], files) is None
-              and instrument_of(["python3", "-", "tools/pr/push.sh"], files) is None)
+              and instrument_of(["python3", "-", "tools/pr/push.sh"], files) is None
+              and instrument_of(["nohup", "tools/pr/push.sh"], files) == "tools/pr/push.sh")
+        check("a quoted instrument path is the path; an unbalanced quote falls back to the separators",
+              [instrument_of(w, files) for w in simple_commands('bash "tools/pr/push.sh" && echo')]
+              == ["tools/pr/push.sh", None]
+              and [w[:2] for w in simple_commands("bash tools/pr/push.sh 'x; ls")] == [["bash", "tools/pr/push.sh"], ["ls"]])
+        check("every instrument's declared wait code is deferred, and only there",
+              all(classify(3, "", f) == "deferred" for f in ("tools/audit/seat/merge_pr.sh",
+                  "tools/audit/seat/merge_train.py", "tools/audit/seat/record_row.py", "tools/audit/seat/toolchain.py")))
 
         proj = Path(tmp) / "proj"
         (proj / "s1" / "subagents").mkdir(parents=True)
@@ -433,7 +439,8 @@ def self_test() -> int:
             + _bash("b11", T(12), "python3 tools/audit/seat/x.py", 75, "x: BUSY\n")
             + _bash("b12", T(13), "bash tools/audit/seat/merge_pr.sh 5", 3, "WAIT-EXHAUSTED: classify still reads WAIT\n")
             + _bash("b13", T(14), "bash tools/pr/push.sh | tail -3", 1, "REFUSE x\n")
-            + _bash("b14", T(15), "python3 tools/audit/seat/x.py", 0, "x: REFUSED 2 rows (report only)\n")
+            + _use("b14", "Bash", T(15), command="python3 tools/audit/seat/x.py")
+            + _res("b14", T(15), [{"type": "text", "text": "x: REFUSED 2 rows (report only)\n"}])
             + _bash("b15", T(16), "python3 tools/audit/seat/x.py", 0, "x: NOT REFUSED\n")
             + _bash("b16", T(17), "python3 tools/audit/seat/x.py", 0, "", run_in_background=True)
             # a hook denial is a refusal of the hook
