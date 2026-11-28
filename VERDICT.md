@@ -1,48 +1,48 @@
-Fix review: blocked 6ade1643e20a9518e7600703c348abe46feba4a1 mutation-vacuous: coordinator.py _solve_record approach= input forced None survives the block and the whole tests/features.py
+Fix review: blocked 8c3f64114f6eb60679562cbd6e0f6a1fdab4b588 introduced-red: the tests/features.py freeze refuses this PR's two new spans (tests / fast (3.14, 1/4), tests/entities.py)
 
-bus-nonce: a5a48a0b5d9b4c656c204a9013bd8f8d
+bus-nonce: 3f921e39b026ff6eaa67d741a3b8df38
 
 ## Block
 
-The diff adds one production line that carries the learned approach into the plan: `coordinator.py:6313`, in `_solve_record`, `approach=draw_range.solve_approach(self._accuracy.draw, params, solve_now.timestamp())`. `optimizer.py:4654` reads it as `self._approach = inputs.approach`. No other production road takes the learned profile to `runs.received` in the true objective (`optimizer.py:351`), to the entry energy in `runs.commit` (`optimizer.py:554`) or to the published trajectory.
+At this head, `tests / fast (3.14, 1/4)` (job 141060416123) reads `5 of 2800 ENTITY CHECKS FAILED` in `tests/entities.py`, section `The tests/features.py freeze (R11-OWNER-FEATURES-SPLIT)`. The required `gate` is red on it. `tests / fast (3.14)` is in the owed-reds set (`ev/owed_reds.txt`).
 
-This round's delta re-resolved exactly this line. `8f63a92211` had a content conflict at `coordinator.py:6309-6317`, between main's `compressor_running=running` and this branch's `compressor_running=duty_switch.running_now(...)` plus `approach=...`. The resolution is correct at this head: it keeps main's walrus `running` and this branch's `approach=` (`ev/delta_coordinator.diff`, `ev/coordinator_6306_6316.txt`). But nothing in the tree would have refused a resolution that took main's side and dropped the `approach=` line. That is the non-obvious risk CI would not detect, so fix-review.md step 12 widens the scope to this one line.
+The freeze reached this branch through the main merge into this head. Main froze `tests/features.py` in 62d50e9990 and re-recorded the manifest in 94d05d861c. Neither commit is an ancestor of the previous reviewed head 6ade1643e2. This is precondition state (d): the branch's tests were written before the rule existed.
 
-Measured, with one hand mutant at the head: the line replaced by `approach=None`, and nothing else changed (`git diff --stat` shows 1 line):
-- The PR's block, `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "exec(open(P).read())" "R11-OUTSIDE-START-APPROACH: a run's"`, reads `ALL 23 FEATURES BLOCK PASSED` (`ev/mut_MC.txt`).
-- The whole script, `PYTHONPATH=tests/hastub python3 tests/features.py`, reads `ALL 6365 FEATURE CHECKS PASSED`, rc 0 (`ev/mut_MC_whole_features.log`).
-- No other script under `tests/` names `solve_approach`, `inputs.approach` or `_approach`. The only other file that does is the synthetic harness `dev/audit/harnesses/r11_honest_starts_runs.py`, which does not build the coordinator.
-- CI's `tests / mutation` draws no mutant of this kind on a keyword-argument line, and the body's 93-site list does not include it. CI's green would not show the survivor either.
+Reproduced locally with the harness's own live check, `features_freeze.tree_refusals` (`dev/audit/harnesses/features_freeze.py`; `ev/freeze_tree_refusals.txt`):
+- At the head it returns 3 refusals:
+  - `span: tests/features.py has span "R11-OUTSIDE-START-APPROACH: a run's first steps draw what the pump draws (Bankaifan, comment 6944433306 on #3670)", which tests/features_frozen_budgets.json does not list`. This is this group's block.
+  - The same refusal for `"R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store"`. That block comes from the stacked predecessor #3805 and is in this PR's three-dot diff.
+  - `lines: tests/features.py has 106539 lines, above the 104695` recorded.
+- At origin/main a59a1b0d9a it returns 1 refusal, `lines` only (104990 > 104695). Main is over its own line cap, so the lines refusal is not this PR's alone. The two span refusals are absent at main, so this PR introduces them.
 
-With the mutant in place, every install plans and costs as if no approach had been learned, and the whole suite stays green. The feature's headline effect, the approach "learned and priced", is therefore unpinned at its only production entry. The body's mutation table covers the optimizer and runs side through a hand-set `opt._approach`, and the coordinator meter side (case 7), but not this wiring.
-
-Repair, for the fixer to choose: add a coordinator check that drives `_solve_record` (or the solve path above it) with a learned `DrawRange.approach`, and asserts that `SolveInputs.approach` is the profile `solve_approach` returns. Its null arm is a draw with no evidence, which gives `None`. The check must fail under this mutant. The scratch solve at `coordinator.py:11240` has the same shape and was not driven here.
+The freeze sends new tests to a seam script. `features_freeze.py --seam tests/features.py` names the homes (`ev/seam_homes.txt`): `plan` for this group's block and `surface` for #3805's. Repair, for the fixer to carry out:
+- Move both sections, with their helpers, into `tests/features_plan.py` and `tests/features_surface.py`. The harness docstring lists what that move owes: the `run` line in `tests/run.sh`, the closure, and no import of `tests/features.py`.
+- Bring the line count to the manifest's cap.
+- Never re-record the manifest to admit the spans. `spans` is FROZEN under budget-raise-gate.
+- Re-drive the mutation table's hand mutants against the moved block, the case-8 pair included.
 
 ## Findings
 
-- Note: figure: the body's `## Figures` says the block "rerun at the head, passes 19". At this head the same command reads `ALL 23 FEATURES BLOCK PASSED` (`ev/block_head.txt`). The four extra checks came in with the merged handoff commits. Carry: dismissed: paperwork, the fixer updates the body with the repair above
+- Note: freeze-on-main: origin/main a59a1b0d9a already reads the freeze's `lines` refusal (104990 > 104695) with no PR applied, so `tests / fast (3.14, 1/4)` stays red for any branch on that main until main re-records or nets out its own growth (#3934's merge, ac9045c223, is the latest touch of `tests/features.py` on main). This PR's repair cannot clear that refusal alone. Carry: dismissed: main's own check, owned by the orchestrator, who repairs main's lane (defect-root-cause.md); recorded here so this PR's fixer does not chase it
+- Note: stacked-predecessor span: the second refused span is #3805's (R11-OUTSIDE-HONEST-DHW-RUNS), still open. #3805 needs the same move before it can merge. Carry: dismissed: #3805 is its own open PR, and the merge train re-proves it against the freeze on current main; this verdict asks the fixer of this branch, which carries the span, to move it or take #3805's move
 
 ## Evidence
 
-- Head measured: 6ade1643e20a9518e7600703c348abe46feba4a1 (`ev/HEAD.txt`). Round: second review, a later round over 46cdd1f9191180fc1f420a0d5eedd0f758b947ad. Scope: delta per the packet's `## Review scope` (`ev/review-packet.md`), widened only to `coordinator.py:6313` as stated under `## Block`. Roles drift `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty. Carry: dismissed: evidence, not a finding
-- Merge with main: `git merge-tree --write-tree origin/main 6ade1643e2` exits 0 (`ev/merge_tree.txt`), with origin/main at cb2026c3b5, the head's own merge base. Carry: dismissed: evidence, not a finding
-- Delta: one merge, `6ade1643e2` of `89f93f8f71`. That merge carries main `cb2026c3b5`, #3805's head `0a0dba2c18`, and handoff `95c0bc2719`. To isolate the fixer's resolutions I diffed the head against `git merge-tree --write-tree cb2026c3b5 46cdd1f919` (tree bea50b1c25). The production part is four resolved conflicts:
-  - `coordinator.py`: as under `## Block`.
-  - `dhw_planner.py`: imports from `dhw_charges`, with the start helpers on `dhw_start`; `commit_charges(..., space_demand, running)`; `suppress_steps` dropped.
-  - `optimizer.py`: #3805's `net_under` and `build` exchange, with main's `step_hours=h.step_hours`. It is byte-identical to #3805's `0a0dba2c18` except for that keyword. `simulate_trajectory` takes `step_hours`, and there is no `start_hour=float` call left in `custom_components/`.
-  - `dhw_charges.py`: takes #3805's text.
-  - Each matches the body's account.
-  - Carry: dismissed: evidence, not a finding
-- Previous verdict's block 1 is resolved:
-  - `python3 -I tools/audit/check_scopes.py --repo .` reads `ok D5 ... s7:1f/0loc/4399u`, rc 0.
-  - `--self-test` reads `SELF-TEST passed`, rc 0.
-  - `dev/audit/harnesses/owner_only_channel.py` reads `RESULT arms=48 failed=0`, `OWNER-ONLY CHANNEL HELD`, rc 0.
-  - Logs: `ev/prior_block_rechecks.txt`, `ev/check_scopes_selftest.txt`.
-  - Carry: dismissed: evidence, not a finding
-- Previous verdict's block 2 is resolved: `334dd1bf31` is an ancestor of the head. `tests/features.py` defines `_fl_coord` once (`:35883`), and `_fcap_coord` is at `:66400`. The whole script runs to `ALL 6365 FEATURE CHECKS PASSED`, under the one-line mutant above. Carry: dismissed: evidence, not a finding
-- Previous verdict's note (unpinned-sites, the `Span` hot-water field) is still carried as dismissed. This round's delta does not touch it. Carry: dismissed: evidence, not a finding
-- Control mutant M4 (`optimizer.py:351`, `space if descent else runs.received(` replaced by `runs.received(`) is killed at this head: `1 of 23 FEATURES BLOCK FAILED`, on the true objective's received-draw check (`ev/mut_M4.txt`). The block does exercise the optimizer side of the approach. Carry: dismissed: evidence, not a finding
-- Budget: `tests/structure_budgets.json` `module_excess_loc` goes 21600 -> 21649 against main. `tests/structure.py` at the head prints `RESULT module_excess_loc=21649` and `STRUCTURE RATCHET PASSED`. The +49 is the one #3805's `0a0dba2c18` records over its base (21607 -> 21656), as the body's `## Raise justification` states. `budget-raise-gate` is the gate's own answer. Carry: dismissed: evidence, not a finding
-- Claim files: the three-dot diff of `tests/golden/claimed_drift.txt` holds only #3805's `cycling_cost` and `everything_on` claims and their may-drift suspensions. `VERSION` (10.1.7), the manifest and `RELEASE_NOTES.md` are untouched (`ev/version_claims.txt`). Carry: dismissed: evidence, not a finding
-- CI: `merge_train.py classify 6ade1643e2 --pr 3907` was polled every ~60 s from 10:06Z and read `WAIT ... pending: gate red: none` through 10:29Z (`ev/classify_poll.txt`). No red was read, so no `## Red checks` answer is owed by this verdict. The owed-reds set is in `ev/owed_reds.txt`. The block above stands on a local measurement, whatever CI concludes. Carry: dismissed: evidence, not a finding
-- Not re-derived by this seat: the harness-arm figures, the axis grep counts, the closures counts and the architecture-score dS. They are outside a delta round, and CI's `arch-score` was queued. Carry: dismissed: evidence, not a finding
+- Head measured: 8c3f64114f6eb60679562cbd6e0f6a1fdab4b588 (`ev/HEAD.txt`), the body's `## Head` SHA. Round: third review, a later round over 6ade1643e20a9518e7600703c348abe46feba4a1 (verdict `mutation-vacuous`). Scope: delta (fix-review.md step 12). The packet printed `full (first round: no --reviewed-head)` because no reviewed head was passed to it.
+- Roles drift: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+- Merge with main: `git merge-tree --write-tree origin/main 8c3f64114f` exits 0 (origin/main a59a1b0d9a, the head's merge base). The ledger driver printed `LEDGER-MERGE: resolved` for `tests/structure_budgets.json` and `tests/closures.json` (`ev/merge_tree.txt`).
+- Delta isolated: `git merge-tree --write-tree a59a1b0d9a 6ade1643e2` (tree ccfdcd43f9) diffed against the head shows `tests/features.py` +39 and nothing else (`ev/delta_stat.txt`). That is the case-8 check of e50d72615a plus 2b0a25318f's comment re-wording. There is no production delta, so step 12 does not widen.
+- Prior block (mutation-vacuous, case 8) resolved at this head. The block was run by `features_block.py` with its `--emit-prelude` prelude:
+  - Control: `ALL 24 FEATURES BLOCK PASSED`, rc 0.
+  - `coordinator.py:6312` `_solve_record` `approach=...` replaced by `approach=None`: `1 of 24 FEATURES BLOCK FAILED`, rc 1 (`record None want Approach(...)`).
+  - `coordinator.py:11238` `_whatif_solve` `approach=...` replaced by `approach=None`: `1 of 24 FEATURES BLOCK FAILED`, rc 1.
+  - Each mutant was restored and the tree left clean. Logs: `ev/mut_case8.log`, `ev/mut_control.txt`, `ev/mut_case8a.txt`, `ev/mut_case8b.txt`.
+- `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are untouched in the three-dot diff.
+- CI at this head:
+  - `merge_train.py classify 8c3f64114f --pr 3907` read `WAIT ... pending: gate red: none` from 18:46Z to the last run (`ev/classify_poll.txt`). `tests / mutation-pins` shards were still running.
+  - The block above rests on the failed `tests / fast (3.14, 1/4)` job and the local reproduction, not on classify.
+  - Other reds in the digest (`ev/review-packet.md`):
+    - `tests / mutation` is the ADDED UNPINNED red that `mutation-autofix` repairs (ci-autofix.md).
+    - `budget-raise-gate` is the inherited #3805 raise answered in the body's `## Raise justification`.
+    - `tests / nightly-status` grades main and is not in the owed set.
+- Not re-derived by this seat: the harness-arm figures, the axis grep counts, the closures counts and the architecture-score dS. A delta round has no production change that would reopen them.

@@ -1,0 +1,10 @@
+== 8c3f64114f6eb60679562cbd6e0f6a1fdab4b588 8c3f64114f6eb60679562cbd6e0f6a1fdab4b588
+REFUSALS 3
+ - span: tests/features.py has span "R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store", which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)
+ - span: tests/features.py has span "R11-OUTSIDE-START-APPROACH: a run's first steps draw what the pump draws (Bankaifan, comment 6944433306 on #3670)", which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)
+ - lines: tests/features.py has 106539 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate
+rc=0
+== origin/main a59a1b0d9ac782fabbe01eb84f4d4ff5a17aee43
+REFUSALS 1
+ - lines: tests/features.py has 104990 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate
+rc=0
