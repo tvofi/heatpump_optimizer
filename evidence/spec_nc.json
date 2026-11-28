@@ -1,0 +1,20 @@
+[
+ {
+  "name": "NC1_refusal_call",
+  "file": "custom_components/heatpump_optimizer/dhw_charges.py",
+  "old": "charge_refusal(candidate, start_below, temps_of, held, charge_running)",
+  "new": "charge_refusal(candidate, start_below, temps_of, held)"
+ },
+ {
+  "name": "NC2_mask",
+  "file": "custom_components/heatpump_optimizer/dhw_charges.py",
+  "old": "startable_steps(plan, walk, start_below, charge_running)",
+  "new": "startable_steps(plan, walk, start_below)"
+ },
+ {
+  "name": "NC3_drop_unstartable",
+  "file": "custom_components/heatpump_optimizer/dhw_charges.py",
+  "old": "drop_unstartable(candidate, start_below, temps_of, charge_running)",
+  "new": "drop_unstartable(candidate, start_below, temps_of)"
+ }
+]

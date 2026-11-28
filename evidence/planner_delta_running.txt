@@ -1,0 +1,20 @@
+102:+        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), initial_state.dhw_charge_under_way
+112:+        ), running)
+113:+        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand, running)
+        # window (stress: winter_mild). Top up at the cheapest usable step
+        # before each breach until the simulated trajectory honours the
+        # requirement, then re-apply the rating, which always wins.
+        start_below = dhw_start_temps(params, initial_state, n_steps, legionella_step)
+        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), initial_state.dhw_charge_under_way
+        schedule = place_startable(schedule, start_below, partial(self._ctx_temps, *tank), partial(
+            self._repair_dhw_floor,
+            ctx,
+            initial_temp=initial_state.dhw_temperature,
+            draw_rates=draw_rates,
+            requirement=requirement,
+            max_temp=max_temp,
+            forced_off=forced_off,
+        ), running)
+        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand, running)
+        # Not re-clamped here, because the repair now carries the clamp
+        # inside its own loop: every top-up it places is followed by one,
