@@ -363,10 +363,10 @@ def arm_alone():
             live = seams.shadow(opt, params, {}).optimize(inputs=given)
             sim = seams.shadow(opt, params, asked).optimize(inputs=sim_given)
             figs.append(price_tiles.monthly_deltas(live, sim, sek, 24.0, steady=(live, sim))[whatif.STEADY_KEY])
-        mid = float(np.median(np.abs(figs)))
+        size = [abs(f) for f in figs]
         print(f"  alone {name} by hour {', '.join(f'{h:02d}' for h in HOURS)}: " + " ".join(f"{f:+.1f}" for f in figs))
         print(f"RESULT alone {name}: both signs {min(figs) < 0 < max(figs)}, range {min(figs):+.1f}..{max(figs):+.1f}, "
-              f"widest over median |figure| {(max(figs) - min(figs)) / mid if mid else float('inf'):.1f}")
+              f"largest over smallest |figure| {max(size) / min(size) if min(size) >= 0.05 else float('inf'):.1f}")
 
 
 ARMS = {"asks": arm_asks, "valve": arm_valve, "pv": arm_pv, "loop": arm_loop, "pvloop": arm_pvloop, "alone": arm_alone}
