@@ -31,7 +31,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
 import aiohttp
 import numpy as np
@@ -92,6 +92,11 @@ VAR_ALPHA = 0.15
 # largest at most SHAPE_MAX / SHAPE_MIN times the smallest), so no residual
 # exceeds that ratio.
 RESIDUAL_VAR_MAX = (SHAPE_MAX / SHAPE_MIN) ** 2
+
+# Days each seen-set keeps. A price refresh carries today and tomorrow, so
+# de-duplication needs only recent days; 90 is the window the store has
+# always persisted, and an unbounded set grows with uptime.
+DAYS_SEEN_RETENTION = 90
 
 
 def _stored_rows(raw: Any, width: int, what: str) -> list[list[float]] | None:
@@ -455,15 +460,16 @@ class PriceShapeLearner:
                     and self.model.observe_day_quarters(when, quarters):
                 self.quarter_days_seen.add(day)
                 learned = True
+        if learned:
+            self.days_seen = _newest_days(self.days_seen)
+            self.quarter_days_seen = _newest_days(self.quarter_days_seen)
         return learned
 
     def store_payload(self) -> dict[str, Any]:
-        # Only recent days matter for de-duplication, and an unbounded set
-        # would grow forever.
         return {
             "model": self.model.as_dict(),
-            "days_seen": sorted(self.days_seen)[-90:],
-            "quarter_days_seen": sorted(self.quarter_days_seen)[-90:],
+            "days_seen": sorted(_newest_days(self.days_seen)),
+            "quarter_days_seen": sorted(_newest_days(self.quarter_days_seen)),
         }
 
     def restore(self, stored: dict[str, Any]) -> None:
@@ -471,14 +477,19 @@ class PriceShapeLearner:
         self.model = PriceShapeModel.from_dict(stored.get("model"))
         days = stored.get("days_seen")
         if isinstance(days, list):
-            self.days_seen = {str(d) for d in days}
+            self.days_seen = _newest_days(str(d) for d in days)
         qdays = stored.get("quarter_days_seen")
         if isinstance(qdays, list):
-            self.quarter_days_seen = {str(d) for d in qdays}
+            self.quarter_days_seen = _newest_days(str(d) for d in qdays)
 
     def adopt_model(self, payload: dict[str, Any]) -> None:
         """A snapshot's model (the drift rollback); the days already folded stay folded."""
         self.model = PriceShapeModel.from_dict(payload)
+
+
+def _newest_days(days: Iterable[str]) -> set[str]:
+    """The newest ``DAYS_SEEN_RETENTION`` ISO days: one bound for memory and store (#3795)."""
+    return set(sorted(days)[-DAYS_SEEN_RETENTION:])
 
 
 def _noon(day: str) -> datetime | None:

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fabric_learning.py:<module> CONST d2a59a3b",
+  "killed_by": "tests/features.py",
+  "old": "LEARNER_TRUST_REGION = 0.5",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`LEARNER_TRUST_REGION = 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

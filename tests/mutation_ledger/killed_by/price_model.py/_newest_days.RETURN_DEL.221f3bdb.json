@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_newest_days RETURN_DEL 221f3bdb",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    return set(sorted(days)[-DAYS_SEEN_RETENTION:])",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=6."
+}

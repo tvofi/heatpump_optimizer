@@ -114,7 +114,6 @@
   "_guard_floor_hold": "core",
   "_horizon_step_starts": "core",
   "_heat_loss_anchors": "core",
-  "_house_heat_loss_anchor": "core",
   "_void_heat_loss_learners": "learning",
   "_immersion_dhw_margin": "dhw",
   "_indoor_humidity_value": "core",

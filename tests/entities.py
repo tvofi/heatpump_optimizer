@@ -2835,7 +2835,6 @@ R.check(
 )
 from heatpump_optimizer.coordinator import (
     COP_LEARNING_MAX_STEP,
-    HOUSE_LOSS_MAX_STEP,
     PLAN_STALE_FLOOR_MINUTES,
     SOLVE_FAILURE_ISSUE_COUNT,
     house_loss_confidence,
@@ -2844,7 +2843,6 @@ R.check(
     "facade symbols stay importable from heatpump_optimizer.coordinator",
     HeatPumpOptimizerCoordinator is coordinator_module.HeatPumpOptimizerCoordinator
     and COP_LEARNING_MAX_STEP == coordinator_module.COP_LEARNING_MAX_STEP
-    and HOUSE_LOSS_MAX_STEP == coordinator_module.HOUSE_LOSS_MAX_STEP
     and PLAN_STALE_FLOOR_MINUTES == coordinator_module.PLAN_STALE_FLOOR_MINUTES
     and SOLVE_FAILURE_ISSUE_COUNT == coordinator_module.SOLVE_FAILURE_ISSUE_COUNT
     and house_loss_confidence is coordinator_module.house_loss_confidence,
@@ -44076,7 +44074,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
     },
     "once per event by the function's own state (a refit, an issue raised, a "
     "rollback per alarm, a malformed month closed so it is not retried)": {
-        ("coordinator.py", "_reanchor_house_heat_loss_scale"): 2,
+        # One line per learner reset, on a load or a restore whose stored
+        # anchors the coordinator hands in; the anchors it then saves gate the next.
+        ("fabric_learning.py", "reanchor_learned"): 2,
         # One line per learner voided: a sensor swap, voided once because the
         # save records the new id, or a reset the user asked for.
         ("coordinator.py", "_void_heat_loss_learners"): 1,

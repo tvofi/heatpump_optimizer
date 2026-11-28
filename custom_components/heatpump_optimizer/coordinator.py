@@ -125,7 +125,6 @@ from .const import (
     HEAT_LOSS_LEARNERS,
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
-    DHW_COOLING_REFERENCE_DELTA,
     MIXING_VALVE_WRITE_EPSILON,
     MODE_AUTO,
     MODE_COMFORT,
@@ -183,8 +182,6 @@ from .const import (
     SOLAR_APERTURE_MIN_IRRADIANCE,
     SOLAR_APERTURE_ALPHA,
     SOLAR_APERTURE_MIN_SAMPLES,
-    INTERNAL_GAINS_ALPHA,
-    INTERNAL_GAINS_MAX_FACTOR,
     INTERNAL_GAINS_MIN_UA_CONFIDENCE,
     CONFIDENCE_MARGIN_CAP_C,
     MOLD_SURFACE_RH_LIMIT,
@@ -220,6 +217,20 @@ from .external_heat import (
 from . import away as away_mode
 from . import external_heat as extheat
 from . import boost
+from .fabric_learning import (
+    HOUSE_LOSS_ALPHA,
+    HeatLossLearned,
+    LEARNER_TRUST_REGION as _LEARNER_TRUST_REGION,
+    fold_buffer_cooling,
+    fold_house_heat_loss,
+    fold_internal_gains,
+    heat_loss_anchors,
+    house_loss_confidence,
+    house_loss_terms as _house_loss_terms,
+    learned_zone_temperature as _learned_zone_temperature,
+    reanchor_learned,
+    zone_capacity as _zone_capacity,
+)
 from . import circulation
 from . import driving_grade
 from . import battery as battery_view
@@ -345,11 +356,7 @@ from .thermal_model import (
     channel_heating_steps,
     dhw_mixed_litres,
     is_sunlit_interval,
-    heat_loss_anchor_pair,
-    heat_loss_basis,
-    heat_loss_basis_voids,
     heat_loss_entity_voids,
-    heat_loss_zone_entities,
     learner_newton_step,
     learner_room_unread,
     mold_safe_room_floor,
@@ -360,7 +367,6 @@ from .thermal_model import (
     plan_step_runs,
     planned_draw_runs,
     probe_install,
-    reanchor_heat_loss,
     partload_factor,
     power_for_heat_per_cop_kw,
 )
@@ -1328,35 +1334,6 @@ def _settle_interval_diag(
     }
 
 
-def _house_loss_terms(params: ThermalParameters) -> tuple[float, float]:
-    """``(base_u, capacity)`` the house heat-loss scale is fitted about.
-
-    Two-zone fits from the upper zone alone, matching the indoor sensor the
-    residual is read from. The scale still multiplies both zones -- it owns
-    the overall *level* -- while ``lower_floor_loss_ratio`` owns the split
-    and is fitted separately from the lower zone. Splitting the jobs this
-    way is what keeps the two identifiable: the ratio does not touch the
-    upper zone, so this fit is unaffected by it.
-    """
-    if params.two_zone_enabled:
-        return params.upper_floor_heat_loss, params.upper_floor_thermal_mass
-    return params.heat_loss_coefficient, params.room_thermal_mass
-
-
-def _learned_zone_temperature(
-    state: ThermalState, params: ThermalParameters
-) -> float:
-    """The zone a heat-loss fold's residual is read on: upper floor, else room."""
-    if params.two_zone_enabled:
-        return state.upper_floor_temperature
-    return state.room_temperature
-
-
-def _zone_capacity(params: ThermalParameters) -> float:
-    """The thermal mass the #36 and #53 folds scale a residual by (same zone)."""
-    return _house_loss_terms(params)[1]
-
-
 def _restored_stores(coord: Any) -> tuple[Any, ...]:
     """The stores ``_async_save_restored`` writes, each read before a restore applies."""
     return (coord._thermal_learning_store, coord._dhw_learner.profile_store, coord._dhw_learner.draws_store,
@@ -1635,42 +1612,14 @@ class ForecastArrays(NamedTuple):
         )
 
 
-# The buffer tank is learned with the same lower-envelope estimator as the DHW
-# tank, but it is a much smaller vessel that is charged frequently, so quiet
-# intervals are shorter and rarer. The window is therefore tighter and the
-# minimum useful ΔT lower.
-BUFFER_COOLING_ALPHA_DOWN = 0.25
-BUFFER_COOLING_ALPHA_UP = 0.02
-BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15
-BUFFER_COOLING_MAX_SAMPLE_HOURS = 3.0
-BUFFER_COOLING_MIN_DELTA = 4.0
-BUFFER_AMBIENT_TEMP = 20.0
-
-# House heat loss learning.
-#
-# The estimator is a one-step model correction: simulate the interval that just
-# elapsed with the power that was actually applied, compare the predicted
-# indoor temperature to the measured one, and attribute the residual to the
-# heat loss coefficient. The sensitivity of the predicted change to UA is
-#
-#     d(ΔT_room)/dUA = -(T_room - T_out) * Δt / C_room
-#
-# so a Newton step gives the correction directly. Unlike the tank, the bias
-# here is two-sided (unmodelled solar and occupancy gains push it down, an open
-# window or a draughty day pushes it up), so a symmetric EWMA is correct and
-# the lower-envelope trick from the DHW learner deliberately does *not* apply.
-HOUSE_LOSS_ALPHA = 0.02
+# House heat loss learning: the interval gates. The estimator, its step
+# constants and the folds are ``fabric_learning``'s.
 # Below this indoor/outdoor difference the residual says almost nothing about
 # UA and dividing by it amplifies sensor noise without limit.
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
 #: The interval learners' ``(min, max)`` sample length, which a heat counter's span lands inside.
 HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS)
-# The re-anchor threshold gate: a nameplate edit within this fraction keeps
-# the learned scale verbatim (``_reanchor_house_heat_loss_scale``). It is no
-# per-interval limit: one sample moves the estimate by at most
-# ``HOUSE_LOSS_ALPHA * _LEARNER_TRUST_REGION`` of it (``learner_newton_step``).
-HOUSE_LOSS_MAX_STEP = 0.05
 # What the re-anchor reads back; a store missing any is adopted on load.
 _HEAT_LOSS_ANCHOR_KEYS = ("house_heat_loss_anchor", "lower_floor_loss_anchor", "house_heat_loss_basis", "heat_loss_zone_entities")
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
@@ -1693,29 +1642,6 @@ def _loss_residual_rejected(residual: float, what: str) -> bool:
         residual,
     )
     return True
-# Symmetric bound on how far one sample's Newton target may sit from the
-# *current* estimate before it is clipped, as a fraction of that estimate.
-# Centred on the current value, zero-mean noise has zero-mean effect after
-# clipping; rejecting or clamping against fixed global bounds does not have
-# that property, because the midpoint of a fixed range is not the current
-# estimate. A fraction rather than a multiplier offset (#2252), so the bound
-# in UA is the same whether the learned value sits in the settings or in
-# the multiplier.
-_LEARNER_TRUST_REGION = 0.5
-
-
-def house_loss_confidence(samples: int) -> float:
-    """The fraction of an EWMA walk from 1.0 the learner has traversed.
-
-    The learner moves ``scale`` toward its target by ``HOUSE_LOSS_ALPHA``
-    per sample, so after ``n`` samples the distance still to travel is
-    ``(1 - alpha) ** n`` and the traversed fraction is one minus that.
-    This is the phi of the re-anchor law: how much of the stored scale
-    is measurement rather than starting prior. It is derived from the
-    learner's own constant and nothing else, and it lives at module
-    level so tests import it rather than re-implement it (issue #91).
-    """
-    return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))
 
 
 #: The confidence one EWMA time constant (``1 / HOUSE_LOSS_ALPHA`` samples)
@@ -5516,32 +5442,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._void_heat_loss_learners(learners, "reset on request")
         await self._async_save_thermal_learning()
 
-    def _house_heat_loss_anchor(self) -> float:
-        """The total base UA the learned scale currently multiplies.
-
-        In two-zone mode the scale owns the *level* of both zones -- the
-        ratio owns the split -- so the quantity it multiplies is the zone
-        total with the learned ratio applied, not the upper zone the fit
-        reads (taking the upper zone went sign-negative on single-zone edits).
-        """
-        p = getattr(self, "_ctx", self)._thermal_params
-        if p.two_zone_enabled:
-            return float(
-                p.upper_floor_heat_loss
-                + p.lower_floor_heat_loss * self._lower_floor_loss_ratio
-            )
-        return float(p.heat_loss_coefficient)
-
     def _heat_loss_anchors(self) -> dict[str, Any]:
         """The ``_HEAT_LOSS_ANCHOR_KEYS`` as the configuration in force writes them."""
         ctx = getattr(self, "_ctx", self)
-        return {
-            "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
-            "lower_floor_loss_anchor": ctx._thermal_params.lower_floor_heat_loss
-            if ctx._thermal_params.two_zone_enabled else None,
-            "house_heat_loss_basis": heat_loss_basis(ctx._config, heat_energy.meter_of(self).earned),
-            "heat_loss_zone_entities": heat_loss_zone_entities(ctx._config),
-        }
+        return heat_loss_anchors(
+            ctx._thermal_params, ctx._config, heat_energy.meter_of(self).earned, self._lower_floor_loss_ratio
+        )
 
     def _reanchor_house_heat_loss_scale(self, stored: Mapping[str, Any]) -> bool:
         """Re-express the learned scale and ratio against the UA now configured.
@@ -5551,7 +5457,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         mis-split the zones (#2239). The law is ``reanchor_heat_loss``'s, on
         the nameplates ``heat_loss_anchor_pair`` reads from the stored anchors:
 
-        * **Threshold gate.** Below a ``HOUSE_LOSS_MAX_STEP`` change of the
+        * **Threshold gate.** Below a ``fabric_learning.HOUSE_LOSS_MAX_STEP`` change of the
           total and of the nameplate split the store is kept verbatim: below
           convergence the law is a measured regression against today's
           behaviour on exactly that path (the 30-hop walk), and the learner's
@@ -5572,48 +5478,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ratio_was, lower_then = self._lower_floor_loss_ratio, finite_float(stored.get("lower_floor_loss_anchor"), 0.0)
         swapped = self._void_heat_loss_learners(heat_loss_entity_voids(stored, self._heat_loss_anchors()), "its zone sensor changed")
         anchor = finite_float(stored.get("house_heat_loss_anchor"), 0.0) - lower_then * (ratio_was - self._lower_floor_loss_ratio)
-        live, ratio = self._heat_loss_anchors(), self._lower_floor_loss_ratio
-        void = heat_loss_basis_voids(stored.get("house_heat_loss_basis"), live["house_heat_loss_basis"])
-        pair = heat_loss_anchor_pair(
-            (anchor, lower_then),
-            (live["house_heat_loss_anchor"], live["lower_floor_loss_anchor"]),
-            ratio, void=void, step=HOUSE_LOSS_MAX_STEP,
+        learned = reanchor_learned(
+            HeatLossLearned(self._house_heat_loss_scale, self._house_heat_loss_samples,
+                            self._lower_floor_loss_ratio, self._lower_floor_loss_samples),
+            (anchor, lower_then), stored.get("house_heat_loss_basis"), self._heat_loss_anchors(),
         )
-        if pair is None:
+        if learned is None:
             # Below the gate, or a pre-fix store with no anchor to re-express,
             # which the caller adopts on its next save.
             return swapped
-        if void:
-            self._house_heat_loss_samples = self._lower_floor_loss_samples = 0
-        phi = (house_loss_confidence(self._house_heat_loss_samples), house_loss_confidence(self._lower_floor_loss_samples))
-        new_scale, new_ratio, scale_reset, ratio_reset = reanchor_heat_loss(
-            *pair, self._house_heat_loss_scale, ratio, phi,
-            scale_bounds=(HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX),
-            ratio_bounds=(LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX),
-        )
-        if ratio_reset:
-            _LOGGER.warning(
-                "Learned lower floor loss ratio %.3f (%d samples) cannot be expressed against "
-                "the newly configured lower floor loss: resetting to the configuration",
-                ratio, self._lower_floor_loss_samples,
-            )
-            self._lower_floor_loss_samples, phi = 0, (phi[0], 0.0)
-        if scale_reset:
-            _LOGGER.warning(
-                "Learned house heat loss scale %.3f (fitted against %.4f kW/°C, %d samples) cannot be "
-                "expressed against the newly configured %.4f kW/°C: resetting to the configuration",
-                self._house_heat_loss_scale, anchor, self._house_heat_loss_samples, live["house_heat_loss_anchor"],
-            )
-            self._house_heat_loss_samples, phi = 0, (0.0, phi[1])
-        _LOGGER.info(
-            "Re-anchored learned house heat loss scale %.3f -> %.3f and ratio %.3f -> %.3f "
-            "against the configured UA %.4f -> %.4f kW/°C (confidence %.2f, %.2f; "
-            "evidence voided by a later basis: %s)",
-            self._house_heat_loss_scale, new_scale, ratio, new_ratio,
-            anchor, live["house_heat_loss_anchor"], *phi, void,
-        )
-        self._apply_house_heat_loss_scale(new_scale)
-        self._apply_lower_floor_loss_ratio(new_ratio)
+        self._house_heat_loss_samples, self._lower_floor_loss_samples = learned.scale_samples, learned.ratio_samples
+        self._apply_house_heat_loss_scale(learned.scale)
+        self._apply_lower_floor_loss_ratio(learned.ratio)
         return True
 
     async def _async_learn_buffer_cooling(self, buffer_temp: float) -> None:
@@ -5659,37 +5535,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
 
         dt_h = utc_elapsed_seconds(now, previous_time) / 3600.0
-        if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS:
-            return
-        if dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS:
-            return
-        if buffer_temp > previous_temp:
-            return
-
-        start_delta = previous_temp - BUFFER_AMBIENT_TEMP
-        end_delta = buffer_temp - BUFFER_AMBIENT_TEMP
-        if start_delta < BUFFER_COOLING_MIN_DELTA:
-            return
-        if end_delta < BUFFER_COOLING_MIN_DELTA:
-            return
-
-        observed = float(
-            -np.log(end_delta / start_delta) / dt_h * DHW_COOLING_REFERENCE_DELTA
+        fold = fold_buffer_cooling(
+            self._buffer_cooling_rate, previous_temp, buffer_temp, dt_h, self._buffer_cooling_bounds()
         )
-        if not np.isfinite(observed):
+        if fold is None:
             return
-        low, high = self._buffer_cooling_bounds()
-        if observed < low or observed > high:
-            return
-
-        alpha = (
-            BUFFER_COOLING_ALPHA_DOWN
-            if observed < self._buffer_cooling_rate
-            else BUFFER_COOLING_ALPHA_UP
-        )
-        self._apply_buffer_cooling_rate(
-            (1.0 - alpha) * self._buffer_cooling_rate + alpha * observed
-        )
+        observed, rate = fold
+        self._apply_buffer_cooling_rate(rate)
         self._buffer_cooling_samples += 1
 
         _LOGGER.debug(
@@ -5845,13 +5697,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # Current effective coefficient, i.e. what actually produced the
         # prediction, so the Newton step is taken about the right point.
-        base_u, capacity = _house_loss_terms(params)
-        step = learner_newton_step(
-            self._house_heat_loss_scale,
-            base_u, capacity, residual, delta_t, dt_h,
-            trust_region=_LEARNER_TRUST_REGION,
-            alpha=HOUSE_LOSS_ALPHA,
-        )
+        step = fold_house_heat_loss(self._house_heat_loss_scale, params, residual, delta_t, dt_h)
         if step is None:
             return clean
         target_scale, new_scale = step
@@ -9348,24 +9194,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         if is_sunlit_interval(previous_state.solar_radiation):
             return
-        if previous_time is None or dt_h <= 1e-6:
-            return
-        capacity = _zone_capacity(ctx._thermal_params)
-        if capacity <= 1e-6:
-            return
-        g0 = float(ctx._thermal_params.internal_gains)
-        if self._internal_gains_profile is None:
-            self._internal_gains_profile = [g0] * 24
-        hour = int(previous_time.hour) % 24
-        y = residual * capacity / dt_h
-        if not np.isfinite(y):
-            return
-        # D2-s3-11: no pull toward g0. A ridge's fixed point is
-        # alpha/(alpha+ridge) of the true gain; the step's expectation is zero
-        # only at a zero residual. The clip and the convergence gate tether it.
-        g = self._internal_gains_profile[hour] + INTERNAL_GAINS_ALPHA * y
-        self._internal_gains_profile[hour] = float(
-            np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))
+        self._internal_gains_profile = fold_internal_gains(
+            self._internal_gains_profile, ctx._thermal_params, previous_time, residual, dt_h
         )
     def _observe_cop_health(
         self, observed_cop: float, dhw_curve: bool = False
