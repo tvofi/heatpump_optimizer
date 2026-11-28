@@ -985,8 +985,12 @@ def arms_skip_offenders(skipped: set[str], committed: set[str]) -> list[str]:
 
 def replay_timeout_minutes(workflow: str) -> int | None:
     """The ``replay`` job's ``timeout-minutes`` in tests.yml's text, or None
-    when the job or its cap is not there (the caller reads None as red)."""
-    m = re.search(r"\n  replay:\n(?:    .*\n|[ \t]*\n)*?    timeout-minutes: (\d+)\n", workflow)
+    when the job or its cap is not there (the caller reads None as red).
+    A job line is indented four spaces, or blank (spaces and tabs only); the
+    blank arms take only lines the first cannot, so each line has one parse
+    and the search is linear (a blank four-space line once had two)."""
+    m = re.search(r"\n  replay:\n(?:    .*\n| {0,3}\n| {0,3}\t[ \t]*\n)*?"
+                  r"    timeout-minutes: (\d+)\n", workflow)
     return int(m.group(1)) if m else None
 
 
@@ -1312,8 +1316,17 @@ def controls() -> list[tuple[str, bool, str]]:
                 and replay_timeout_minutes(job.replace("  replay:", "  other:")) is None
                 and replay_timeout_minutes(job.replace("    timeout", "      timeout")) is None
                 and replay_timeout_minutes(job.replace("    timeout-minutes: 45\n  next:\n",
-                                                       "  next:\n    timeout-minutes: 45\n")) is None,
+                                                       "  next:\n    timeout-minutes: 45\n")) is None
+                and replay_timeout_minutes(job.replace("\n\n", "\n\t\n  \t \n    \n")) == 45,
                 f"read {replay_timeout_minutes(job)}"))
+    # Blank four-space lines before a missing cap: one parse per line keeps
+    # the search linear; two parses per line (an overlapping blank arm) take
+    # seconds at this length and double with each line added.
+    t0 = time.perf_counter()
+    unread = replay_timeout_minutes("\n  replay:\n" + "    \n" * 23 + "x")
+    took_s = time.perf_counter() - t0
+    res.append(("control:headroom:cap_read_is_linear", unread is None and took_s < 0.25,
+                f"read {unread} in {took_s:.3f} s"))
     pair("away:covered_names_are_committed",
          away_covered_offenders({"owner-2026-10-30-awya.json"},
                                 {"owner-2026-10-30-away.json"}),
