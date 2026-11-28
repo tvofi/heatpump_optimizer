@@ -14,9 +14,10 @@ never counted. `routes` drives tests/entities.py's own run.sh routing pin
 (`_csel_routes`, sourced from the script) against tests/run.sh, then against
 run.sh with the event test removed, and prints both verdicts: the mutant must
 fail. `stable` plans SCRIPT twice with SEED over the paths listed in FILES and
-compares the printed lines byte for byte. `count` counts a run log's `-- `
-section headings and compares them with the spans `case_select.split` cuts
-from SCRIPT and with the log's own `CASES:` line, the count a whole run is
+compares the printed lines byte for byte. `count` counts the span titles
+`case_select.split` cuts from SCRIPT that the run log prints as `-- `
+headings (a nested `section` call prints a heading too, so headings are not
+counted) and shows the log's own `CASES:` line: the count a whole run is
 proved by. `census` replays the last N first-parent merges of REF: each
 merge's first-parent diff, planned for both scripts against this tree's table
 with the seed `<k>-<merge sha>` and the closures committed at the merge's
@@ -149,11 +150,12 @@ def stable(script: str, seed: str, files: str) -> int:
 def count(log: str, script: str) -> int:
     import case_select as C
     text = Path(log).read_text(errors="replace")
-    heads = sum(1 for ln in text.splitlines() if ln.startswith("-- "))
-    n = len(C.split((ROOT / script).read_text())[2])
+    heads = {ln[3:] for ln in text.splitlines() if ln.startswith("-- ")}
+    titles = [s.title for s in C.split((ROOT / script).read_text())[2]]
+    ran = sum(1 for t in titles if t in heads)
     m = re.search(r"^CASES: (FULL|SCOPED) \S+ -- (\d+) of (\d+) spans", text, re.M)
-    print(f"COUNT {script}: {heads} section headings in {log}; split cuts {n}; CASES line "
-          f"{m.group(0) if m else 'absent'}")
+    print(f"COUNT {script}: {ran} of the {len(titles)} span titles split cuts are headings in the log; "
+          f"CASES line {m.group(0) if m else 'absent'}")
     return 0
 
 
