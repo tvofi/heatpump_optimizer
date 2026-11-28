@@ -1,0 +1,5 @@
+RESULT methods_over_200=6 count
+RESULT module_excess_loc=21647 count
+  ok   methods_over_200 6 <= 6
+  ok   module_excess_loc 21647 <= 21647
+STRUCTURE RATCHET PASSED

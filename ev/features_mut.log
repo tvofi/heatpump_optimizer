@@ -1,0 +1,4 @@
+SURVIVED NULL
+KILLED P1_planner_drops_running
+KILLED P1b_planner_running_true
+KILLED NC1_refusal_call
