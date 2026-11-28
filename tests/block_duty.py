@@ -55,6 +55,7 @@ class _Coord:
         self.hass = FakeHass()
         self._current_action = {}
         self.refreshed = 0
+        self.held_applies = 0
         self.entry = SimpleNamespace(entry_id="block-duty")
 
     def arbiter_inputs(self):
@@ -65,6 +66,9 @@ class _Coord:
 
     async def async_request_refresh(self):
         self.refreshed += 1
+
+    async def async_apply_held(self):
+        self.held_applies += 1
 
 
 def _snap(**kw):

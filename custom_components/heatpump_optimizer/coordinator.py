@@ -840,6 +840,12 @@ _REPLY_FRAME_TIMEOUT_S = 60.0
 _REPLY_FRAME_MAX_BYTES = 256 * 1024 * 1024
 
 
+async def _publish_uncycled(coord: Any, data: Payload | None = None) -> None:
+    """Publish ``data``, else the cycle's payload, outside a cycle: ``async_set_updated_data`` re-arms the interval."""
+    coord.data = data if data is not None else await _with_sensor_advisor(coord, coord._build_data_dict())
+    coord.async_update_listeners()
+
+
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
     """Overwrite frozen plan_age_minutes / plan_stale / next_optimization on a reload handover."""
     last = handover.get("last_optimization")
@@ -6083,12 +6089,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            self._overlay_boost()
-            await self._apply_action()
-
-            # After _apply_action, so a failed write never blocks the primary actuation.
-            async with pump_arbiter.state_for(self).tail_lock:
-                await self._async_step_tail()
+            await self._actuate_plan()
 
             # #3616 phase 3a, before the pairing replaces the settled interval's split.
             await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(_ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp,
@@ -6136,6 +6137,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 await _best_effort_cycle_step(functools.partial(self._legionella.follower.async_follow_missed, pump_arbiter.state_for(self).tail_lock), "Disinfection follower skipped: %s")
             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
                 self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
+
+    async def _actuate_plan(self) -> None:
+        """The cycle's and the duty toggle's writes: overlay on the plan base, action, then the step tail."""
+        self._overlay_boost()
+        await self._apply_action()
+        # After _apply_action, so a failed write never blocks the primary actuation.
+        async with pump_arbiter.state_for(self).tail_lock:
+            await self._async_step_tail()
+
+    async def async_apply_held(self) -> None:
+        """A timed duty switch's toggle: actuate and publish the plan in hand (N-solve-recompute)."""
+        if self._entry_released or not solve_gate.overlay_only(solve_gate.gate_for(self), self._refresh_task is not None, boost.plan_base(self)):
+            return await self.async_request_refresh()
+        await self._actuate_plan()
+        await _publish_uncycled(self)
 
     async def async_request_refresh(self) -> None:
         """Request a refresh; one landing on a running solve or refresh follows it (D1-s1-03)."""
@@ -10599,8 +10615,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "optimization interval must pass first"
             )
         if self.data is not None:  # D9-s1-01: publish the diagnosis, no cycle (``async_set_updated_data`` re-arms the interval)
-            self.data = {**self.data, "insight": self._insight_view()}
-            self.async_update_listeners()
+            await _publish_uncycled(self, {**self.data, "insight": self._insight_view()})
         return report
 
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
