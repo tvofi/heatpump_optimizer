@@ -7859,10 +7859,11 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("six buttons are added", len(buttons) == 6, str(len(buttons)))
+R.check("seven buttons are added", len(buttons) == 7, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
+    "Learning Measure Power Response",
     "Learning Reset Comfort Weight",
     "Learning Finalize Debug Collection",
     "Prediction Accuracy Diagnose Last Interval",
@@ -28232,6 +28233,8 @@ R.check(
 _ACTION_PRODUCERS = {
     "optimizer.py": {"get_current_action", "_idle_action"},
     "coordinator.py": {"_fixed_mode_action", "_run_system_identification"},
+    # The experiment's command over the plan (R10-DRAW-MAP-EVIDENCE part B).
+    "sysid.py": {"override_action"},
 }
 _emitted_modes = set()
 for _fname, _names in _ACTION_PRODUCERS.items():

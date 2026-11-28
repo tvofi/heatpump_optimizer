@@ -40,6 +40,9 @@
       "learning_finalize_debug": {
         "default": "mdi:bug-check"
       },
+      "learning_measure_power_response": {
+        "default": "mdi:stairs"
+      },
       "learning_reset_comfort_weight": {
         "default": "mdi:restore"
       },

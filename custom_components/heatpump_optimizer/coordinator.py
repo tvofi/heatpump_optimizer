@@ -82,7 +82,6 @@ from .payload import (
     Pv,
     REASON_BOOST,
     REASON_COMFORT_MODE,
-    REASON_SYSTEM_IDENTIFICATION,
     REASON_UNTAGGED,
     Scores,
     SolarForecastStep,
@@ -10950,12 +10949,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def system_identification_active(self) -> bool:
         return self._sysid.active
 
-    def arm_system_identification(self) -> str | None:
-        """Arm a step-response experiment for the next suitable moment; why not, else ``None``."""
+    def arm_system_identification(self, sweep: bool = False) -> str | None:
+        """Arm an experiment for the next suitable moment (``sweep``: the sweep button's); why not, else ``None``."""
         ctx = getattr(self, "_ctx", self)
         return sysid.arm_refusal(
             self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
-            self._house_heat_loss_samples, self._accuracy.draw,
+            self._house_heat_loss_samples, self._accuracy.draw, sweep,
         )
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
@@ -10975,7 +10974,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                                   evidence=_space_evidence(self, self._commanded_split())),
             getattr(ctx, "_config", None),
             dt_util.now(),
-        )
+        ) or sysid.sweep_hold_reason(self._sysid, lambda: pump_arbiter.sweep_band_k(self.arbiter_inputs()))
         if why is not None:
             self._sysid.stand_down(why)
             return
@@ -10998,22 +10997,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         # The override rides the plan base (#1752), so a later cycle that
         # keeps the plan still actuates the experiment's own command.
-        boost.adopt_plan(self, {
-            **self._current_action,
-            "power": float(override),
-            "power_normalized": float(
-                override / max(ctx._thermal_params.max_electrical_power, 0.1)
-            ),
-            "heat_pump_on": planned_draw_runs(float(override)),
-            "mode": "system_identification",
-            "kind": self._sysid.kind,
-            # T6: the experiment's draw is not the plan's -- booking it under
-            # the overridden plan's reason would say "cheapest hours" or
-            # whatever the plan claimed for this step; the experiment is the
-            # cause and names itself (#2256).
-            "space_reason": REASON_SYSTEM_IDENTIFICATION,
-            "dhw_reason": REASON_SYSTEM_IDENTIFICATION,
-        })
+        boost.adopt_plan(self, sysid.override_action(
+            self._current_action, override, self._sysid.kind, ctx._thermal_params.max_electrical_power))
     def _adopt_system_identification(self) -> None:
         """Seed the passive learners from a completed experiment.
 
