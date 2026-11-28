@@ -123,7 +123,7 @@ def asks(opt, extra=()):
 
 def figure(opt, params, asked, given):
     """The schedule figure of one ask, or None when the ask leaves the schedule branch."""
-    days = whatif.schedule_days((shadow(opt, params, {}), given), (shadow(opt, params, asked), given))
+    days = whatif.schedule_days(*whatif.reference_days((shadow(opt, params, {}), given), (shadow(opt, params, asked), given)))
     if days is None:
         return None
     return price_tiles.schedule_figure(*days, float(np.mean(given.forecast.prices)), 0.0, 24.0)[whatif.STEADY_KEY]
@@ -234,7 +234,7 @@ def arm_pair():
             figs = []
             for state in starts:
                 given = replace(inputs(hour, state), held_start=True)
-                assert whatif.schedule_days((shadow(opt, params, {}), given), (shadow(opt, params, asked), given)) is None
+                assert whatif.schedule_days(*whatif.reference_days((shadow(opt, params, {}), given), (shadow(opt, params, asked), given))) is None
                 live, sim = (shadow(opt, params, a).optimize(inputs=given) for a in ({}, asked))
                 figs.append(price_tiles.monthly_deltas(live, sim, 0.0, 24.0, steady=(live, sim))[whatif.STEADY_KEY])
             signs |= {f > 0 for f in figs}
@@ -253,7 +253,7 @@ def arm_pv():
         for label, pv in (("null, no surplus", None), ("surplus to 2.5 kW, 08..16", surplus)):
             for hour in (1, 9):
                 given = inputs(hour, start(), pv=None if pv is None else pv[int(hour / DT):int(hour / DT) + N])
-                days = whatif.schedule_days((shadow(opt, params, {}), given), (shadow(opt, params, asked), given))
+                days = whatif.schedule_days(*whatif.reference_days((shadow(opt, params, {}), given), (shadow(opt, params, asked), given)))
                 sim = shadow(opt, params, asked).optimize(inputs=given)
                 out = price_tiles.schedule_figure(
                     *days, float(np.mean(given.forecast.prices)), 0.0, 24.0, price_tiles.realised_price(sim, DT))

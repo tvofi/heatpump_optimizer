@@ -37,13 +37,17 @@ tests/profiles.py houses, never through ``async_simulate``.
          inside it resolves no sign.
   pvloop the same loop for the ``pv`` arm's two schedule asks, with and without the
          surplus, beside the estimate's two ends asked at 09:00 of each loop day.
+  alone  item f9a20486: the pair's figure by hour for the asks the card sends with no
+         comfort target moved -- a hot-water window, a quiet-hours row, a wood slot --
+         beside the comfort weight's row, whose hour scatter the card page names.
+         Each row asserts the pair branch. Null: the live window spec sent back.
 
 Run from the tree root:
 
   PYTHONPATH=tests/hastub:tests:custom_components \\
-      python3 dev/audit/harnesses/r11_advisor_measures.py [asks|valve|pv|loop|pvloop ...]
+      python3 dev/audit/harnesses/r11_advisor_measures.py [asks|valve|pv|loop|pvloop|alone ...]
 
-No argument runs all five; ``asks`` is slow (about 180 solves), the loops slower
+No argument runs all six; ``asks`` is slow (about 180 solves), the loops slower
 (30 solves an ask, one process each). Every figure is
 a month's money in the fixture's price unit; re-run rather than carry a number.
 """
@@ -89,7 +93,7 @@ def _split(live, sim):
 
 
 def _pair(opt, params, asked, given):
-    assert whatif.schedule_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given)) is None
+    assert whatif.schedule_days(*whatif.reference_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given))) is None
     live, sim = (seams.shadow(opt, params, a).optimize(inputs=given) for a in ({}, asked))
     return price_tiles.monthly_deltas(live, sim, 0.0, 24.0, steady=(live, sim))[whatif.STEADY_KEY], _split(live, sim)
 
@@ -174,7 +178,7 @@ def arm_pv():
             for hour in (1, 9):
                 j = int(hour / DT)
                 given = seams.inputs(hour, seams.start(), pv=None if pv is None else pv[j:j + seams.N])
-                days = whatif.schedule_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given))
+                days = whatif.schedule_days(*whatif.reference_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given)))
                 sim_opt = seams.shadow(opt, params, asked)
                 sim = sim_opt.optimize(inputs=given)
                 out = price_tiles.schedule_figure(
@@ -276,7 +280,7 @@ def _ends(opt, params, asked, j, pv):
         initial_state=seams.start(), prices=prices[cut], outdoor_temps=o[cut], wind_speeds=w[cut],
         precipitation=r[cut], solar_radiation=sr[cut], start_time=seams.MONDAY + timedelta(hours=j * DT),
         pv_surplus=_surplus(len(prices))[cut] if pv else None)
-    days = whatif.schedule_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given))
+    days = whatif.schedule_days(*whatif.reference_days((seams.shadow(opt, params, {}), given), (seams.shadow(opt, params, asked), given)))
     sim = seams.shadow(opt, params, asked).optimize(inputs=given)
     out = price_tiles.schedule_figure(*days, float(np.mean(given.forecast.prices)), 0.0, 24.0, price_tiles.realised_price(sim, DT))
     return out[whatif.STEADY_KEY], out[price_tiles.SHIFTED_KEY]
@@ -306,7 +310,66 @@ def arm_pvloop():
                   f"at 09:00 of each loop day, mean-price {ends[0]:+.1f} own-price {ends[1]:+.1f}")
 
 
-ARMS = {"asks": arm_asks, "valve": arm_valve, "pv": arm_pv, "loop": arm_loop, "pvloop": arm_pvloop}
+#: (label, ask, given at the ask's hour): the asks the card sends with no comfort target moved, which
+#: ``whatif.schedule_days`` sends to the pair too. A wood slot is stamped, so it starts three hours after
+#: the ask at every hour, as a card user asking ahead would set it; the quiet rows and windows are clock rows.
+WOOD_FUEL = {"wood_type": "birch", "wood_packing": "packed", "wood_price_sek_m3": 600.0, "wood_furnace_efficiency": 75.0}
+ALONE_ASKS = (
+    ("dhw_windows 06-08:30,17-22 to 17-22", {"dhw_windows": "17:00-22:00"}),
+    ("dhw_windows to none", {"dhw_windows": ""}),
+    ("quiet off 16-19", {"quiet_off_windows": "16:00-19:00"}),
+    ("quiet silent 16-20 at half power", {"quiet_silent_windows": "16:00-20:00", "silent_mode_power_fraction": 0.5}),
+    ("wood 40 l over 2 h, 3 h ahead", {"wood_slots": 40.0, **WOOD_FUEL}),
+    ("null: dhw_windows 06-08:30,17-22 resent", {"dhw_windows": "06:00-08:30, 17:00-22:00"}),
+)
+#: The capacity switch a silent row is held through; ``quiet_windows`` reads its domain, never its state.
+QUIET_CONFIG = {"heat_pump_capacity_limited_entity": "switch.pump_silent"}
+
+
+def _alone_inputs(params, asked, given):
+    """``given`` with the ask's quiet rows and wood heat folded in as ``_whatif_solve`` folds them, plus the
+    wood's spend outside the solve."""
+    from heatpump_optimizer import quiet_windows, wood_fuel
+
+    n, start = len(given.forecast.prices), given.start_time
+    quiet = quiet_windows.compose_with_silent(None, quiet_windows.overridden_config(QUIET_CONFIG, asked), None, start,
+                                              n, DT, params.max_electrical_power)
+    assert not quiet.silent_dropped
+    wood = dict(asked)
+    if "wood_slots" in wood:
+        wood["wood_slots"] = [{"start": start + timedelta(hours=3), "end": start + timedelta(hours=5),
+                               "liters": wood["wood_slots"]}]
+    err, kw, sek = wood_fuel.simulate_wood_slots(wood, {}, n, DT, start)
+    assert err is None, err
+    return replace(given, limits=replace(given.limits, power_caps_extra=quiet.caps, off_steps=quiet.off_steps,
+                                         quiet_actions=quiet.actions),
+                   forecast=given.forecast if kw is None else replace(given.forecast, external_heat_kw=np.asarray(kw))), sek
+
+
+def arm_alone():
+    """Item f9a20486: the pair's hour scatter for a hot-water window, quiet-hours or wood ask sent alone.
+
+    The precondition, asserted per row: the ask takes the pair branch (``schedule_days`` None). The
+    reference row is ``comfort_weight 5 to 2.5``, whose hour scatter the card page already names. Null:
+    the live window spec sent back, which must read 0.0 at every hour (the pair's own resolution)."""
+    opt, params = seams.build(dhw=True)
+    for name, asked in (("reference: comfort_weight 5 to 2.5", {"comfort_weight": 2.5}),) + ALONE_ASKS:
+        figs = []
+        for hour in HOURS:
+            given = replace(seams.inputs(hour, seams.start()), held_start=True)
+            sim_given, sek = _alone_inputs(params, asked, given)
+            assert whatif.schedule_days(*whatif.reference_days((seams.shadow(opt, params, {}), given),
+                                        (seams.shadow(opt, params, asked), sim_given))) is None
+            live = seams.shadow(opt, params, {}).optimize(inputs=given)
+            sim = seams.shadow(opt, params, asked).optimize(inputs=sim_given)
+            figs.append(price_tiles.monthly_deltas(live, sim, sek, 24.0, steady=(live, sim))[whatif.STEADY_KEY])
+        mid = float(np.median(np.abs(figs)))
+        print(f"  alone {name} by hour {', '.join(f'{h:02d}' for h in HOURS)}: " + " ".join(f"{f:+.1f}" for f in figs))
+        print(f"RESULT alone {name}: both signs {min(figs) < 0 < max(figs)}, range {min(figs):+.1f}..{max(figs):+.1f}, "
+              f"widest over median |figure| {(max(figs) - min(figs)) / mid if mid else float('inf'):.1f}")
+
+
+ARMS = {"asks": arm_asks, "valve": arm_valve, "pv": arm_pv, "loop": arm_loop, "pvloop": arm_pvloop, "alone": arm_alone}
 
 if __name__ == "__main__":
     for arm in sys.argv[1:] or list(ARMS):

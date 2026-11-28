@@ -112,7 +112,7 @@ def _steady(opt, model, overrides, at: tuple, cap, live, sim, live_s) -> float:
     pair solved from held starts. ``at`` is (step, room, slab, prices, weather)."""
     hours = opt.config.horizon_hours
     asked = _inputs(*at, cap)
-    days = whatif.schedule_days((_fresh(opt, model), _inputs(*at)), (deg._shadow(opt, model, overrides), asked))
+    days = whatif.schedule_days(*whatif.reference_days((_fresh(opt, model), _inputs(*at)), (deg._shadow(opt, model, overrides), asked)))
     if days is not None:
         return price_tiles.schedule_figure(*days, float(np.mean(asked.forecast.prices)), 0.0, hours)[whatif.STEADY_KEY]
     sim_s = _solve(deg._shadow(opt, model, overrides), *at, cap, held=True)
