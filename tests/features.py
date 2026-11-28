@@ -104999,6 +104999,48 @@ R.check(
     f"live {_ifr_out_live}, none {_ifr_out_none}",
 )
 
+
+# The hold's edges, on rows with no timestamps (the positional arm spreads
+# each hourly row over four steps whatever ``n_steps`` asks, so the series
+# can outrun its step starts): the step starting exactly at the next hour
+# stays forecast, steps past the last start stay forecast, no step starts
+# at all holds nothing, and no live reading holds nothing.
+def _ifr_outdoor_untimed(reading, n_steps):
+    c = _ifr_coord()
+    c._weather_forecast = [{"temperature": -5.0}, {"temperature": -6.0}]
+    if reading is not None:
+        rd = InputReader(FakeHass({"sensor.o": FakeState(
+            reading, last_updated=_ifr_now, last_reported=_ifr_now)}),
+            {"outdoor_temp_entity": "sensor.o"}, now=lambda: _ifr_now)
+        rd.read("outdoor_temp_entity")
+        c._input_health = rd.health
+    hour = _ifr_now.replace(minute=0, second=0, microsecond=0)
+    try:
+        return c._weather_series(n_steps, hour.replace(hour=0), hour.hour * 4)[0]
+    except IndexError as err:
+        return f"IndexError: {err}"
+
+
+_ifr_fc = [-5.0] * 4 + [-6.0] * 4
+_ifr_hold_edges = {
+    "start at the hour's end": _ifr_outdoor_untimed("-25.0", 8),
+    "series past the starts": _ifr_outdoor_untimed("-25.0", 4),
+    "no step starts": _ifr_outdoor_untimed("-25.0", 0),
+    "no live reading": _ifr_outdoor_untimed(None, 8),
+}
+R.check(
+    "the live outdoor hold stops at the step starting on the next hour and "
+    "at the last step start, and holds nothing with no step starts or no "
+    "live reading (D17-s2-02)",
+    _ifr_hold_edges == {
+        "start at the hour's end": [-25.0] * 4 + [-6.0] * 4,
+        "series past the starts": [-25.0] * 4 + [-6.0] * 4,
+        "no step starts": _ifr_fc,
+        "no live reading": _ifr_fc,
+    },
+    f"{_ifr_hold_edges}",
+)
+
 # The covering row's edges: no rows, untimestamped rows (positional), before
 # the first row (row 0), the covering row at zero wind, and the outdoor
 # lookup's own end rule.
