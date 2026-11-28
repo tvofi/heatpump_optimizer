@@ -1,0 +1,177 @@
+68c68
+<              suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
+---
+>                  mask[legionella_step] = False
+975a976,987
+> @@ def _r11pp_batch(extra, buf, wood_t, zone=True, n=24):
+>          buffer_tank_temperature=buf, wood_tank_temperature=wood_t)
+>      ws = _WS(ot, wi, ra, so, np.full(n, 78.0), np.zeros(n))
+>      powers = np.zeros((2, n))
+> -    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0),
+> -            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0))
+> +    hours = (7.0 + np.arange(n) * 0.25) % 24.0
+> +    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, step_hours=hours),
+> +            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, step_hours=hours))
+>  
+>  
+>  _r11pp_res, _r11pp_scal = _r11pp_batch(
+1099a1112,1182
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.1025915e.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/_offset_change.RETURN_DEL.91c8e608.json
+> similarity index 68%
+> rename from tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.1025915e.json
+> rename to tests/mutation_ledger/killed_by/dhw_schedule.py/_offset_change.RETURN_DEL.91c8e608.json
+> --- a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.1025915e.json
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/_offset_change.RETURN_DEL.91c8e608.json
+> @@
+>  {
+> -  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window RETURN_DEL 1025915e",
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_offset_change RETURN_DEL 91c8e608",
+>    "killed_by": "tests/features.py",
+> -  "old": "    return min(starts, default=None)",
+> -  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+> +  "old": "    return hi",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+>  }
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/_wall_inside.BOOLOP.6094b180.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/_wall_inside.BOOLOP.6094b180.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/_wall_inside.BOOLOP.6094b180.json
+> @@
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_wall_inside BOOLOP 6094b180",
+> +  "killed_by": "tests/features.py",
+> +  "old": "    return wall.date() == on and hour_in_windows(wall.hour + wall.minute / 60.0, windows)",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return wall.date() == on or hour_in_windows(wall.hour + wall.minute / 60.0, windows)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/_wall_inside.RETURN_DEL.6094b180.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/_wall_inside.RETURN_DEL.6094b180.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/_wall_inside.RETURN_DEL.6094b180.json
+> @@
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_wall_inside RETURN_DEL 6094b180",
+> +  "killed_by": "tests/features.py",
+> +  "old": "    return wall.date() == on and hour_in_windows(wall.hour + wall.minute / 60.0, windows)",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/_window_entries.GUARD_OFF.f7639a8f.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/_window_entries.GUARD_OFF.f7639a8f.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/_window_entries.GUARD_OFF.f7639a8f.json
+> @@
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_window_entries GUARD_OFF f7639a8f",
+> +  "killed_by": "tests/features.py",
+> +  "old": "            if instant.astimezone(zone).replace(tzinfo=None) == wall.replace(tzinfo=None):",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=12."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/_window_entries.RETURN_DEL.a8227ccf.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/_window_entries.RETURN_DEL.a8227ccf.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/_window_entries.RETURN_DEL.a8227ccf.json
+> @@
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_window_entries RETURN_DEL a8227ccf",
+> +  "killed_by": "tests/features.py",
+> +  "old": "    return out",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+> +}
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.BOOLOP.54910f71.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.BOOLOP.54910f71.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.BOOLOP.54910f71.json
+> @@
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window BOOLOP 54910f71",
+> +  "killed_by": "tests/features.py",
+> +  "old": "    if windows and hour_in_windows(now.hour + now.minute / 60.0, windows):",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if windows or hour_in_windows(now.hour + now.minute / 60.0, windows):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+> +}
+1111,1112c1194,1197
+< diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.e8eac339.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.e8eac339.json
+< deleted file mode 100644
+---
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.e8eac339.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.54910f71.json
+> similarity index 64%
+> rename from tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.e8eac339.json
+> rename to tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.54910f71.json
+1114c1199
+< +++ /dev/null
+---
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.GUARD_OFF.54910f71.json
+1116c1201
+< -{
+---
+>  {
+1118c1203,1204
+< -  "killed_by": "tests/features.py",
+---
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window GUARD_OFF 54910f71",
+>    "killed_by": "tests/features.py",
+1120,1125c1206,1212
+< -  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+< -}
+< diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.1025915e.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.1025915e.json
+< deleted file mode 100644
+< --- a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.1025915e.json
+< +++ /dev/null
+---
+> +  "old": "    if windows and hour_in_windows(now.hour + now.minute / 60.0, windows):",
+>    "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+>  }
+> diff --git a/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.75708574.json b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.75708574.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/killed_by/dhw_schedule.py/hours_until_next_window.RETURN_DEL.75708574.json
+1127,1132c1214,1219
+< -{
+< -  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window RETURN_DEL 1025915e",
+< -  "killed_by": "tests/features.py",
+< -  "old": "    return min(starts, default=None)",
+< -  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+< -}
+---
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window RETURN_DEL 75708574",
+> +  "killed_by": "tests/features.py",
+> +  "old": "    return utc_elapsed_seconds(min(opens), now) / 3600.0 if opens else None",
+> +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=12."
+> +}
+1165a1253,1263
+> diff --git a/tests/mutation_ledger/survivor_triage/dhw_schedule.py/_offset_change.CMP_BOUND.eaeb7f67.json b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/_offset_change.CMP_BOUND.eaeb7f67.json
+> new file mode 100644
+> --- /dev/null
+> +++ b/tests/mutation_ledger/survivor_triage/dhw_schedule.py/_offset_change.CMP_BOUND.eaeb7f67.json
+> @@
+> +{
+> +  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_offset_change CMP_BOUND eaeb7f67",
+> +  "old": "    while hi - lo > timedelta(seconds=1):",
+> +  "reason": "Not equivalent, and no driver scores it: CMP_BOUND `>` -> `>=` makes the bisection loop forever once `hi - lo` reaches one second (`mid` is `lo + 0 s`, so neither bound moves), so the mutant run of tests/features.py, the only driver in play, hit its timeout and the table reads a timeout as neither killed nor survived (`MUTATION TABLE REFUSED -- 1 mutant(s) timed out`). A hang is a real difference in behaviour that any test calling _offset_change on a day with an offset change would meet, but --pin-killed will not record a timeout as a kill. Measured by the R11-SEAM-wallclock-dst repair seat on Darwin: `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py` at 352a829c6a. Recorded as a gap, not an equivalent.",
+> +  "verdict": "gap"
+> +}
+1283,1284c1381,1382
+< - "class_excess_loc": 17220,
+< + "class_excess_loc": 17209,
+---
+> - "class_excess_loc": 17204,
+> + "class_excess_loc": 17193,
+1286,1287c1384,1385
+<   "coordinator_attrs": 134,
+<   "coordinator_multiassigned_attrs": 101,
+---
+>   "coordinator_attrs": 133,
+>   "coordinator_multiassigned_attrs": 100,
+1292,1293c1390,1391
+< - "module_excess_loc": 21646,
+< + "module_excess_loc": 21639,
+---
+> - "module_excess_loc": 21607,
+> + "module_excess_loc": 21600,
+1295,1296c1393
+< - "recorded_at": "dbdc520e86e4453755f553ab21a39de205a70b34",
+< + "recorded_at": "1d3077736d4a7ced6ec15d9aec29f6bcf40fbae8",
+---
+>   "recorded_at": "7194ff84c09dd9d54a99f8208c906136981fd9dc",
+1298,1299d1394
+<   "unloaded_package_imports": 5
+<  }

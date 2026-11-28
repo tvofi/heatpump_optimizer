@@ -1,0 +1,2 @@
+head: 2026-10-25 01:00:00+00:00
+mutant: TIMEOUT after 5 s (loop does not terminate)

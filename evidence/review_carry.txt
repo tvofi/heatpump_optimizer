@@ -1,0 +1,14 @@
+review_carry: 4863ec052 -> 3008f4499  main=origin/main
+  branch-only commits: 9
+  why: efda938a30a6dcafa32fd23bbc41bf2966b3e73a is a ci: commit that changes files outside main's merge-driver files
+  f4845ffd5  ci: pin killed mutants
+  b39d46e1c  Merge remote-tracking branch 'origin/main' into HEAD
+  352a829c6  Merge commit 'b39d46e1cc4d7c30e60343f0da74d4f766b3819e' into fix/r11-seam-wallclock-dst
+  b4a1059e3  ci: merge main
+  efda938a3  ci: pin dhw_schedule _offset_change loop bound as a triaged gap (a timed-out mutant is never a kill)
+  57b249813  Merge commit 'efda938a30a6dcafa32fd23bbc41bf2966b3e73a' into fix/r11-seam-wallclock-dst
+  8bf9676b8  tests: the plant-pins batch passes the wall-clock hours the trajectory now takes
+  286f6440a  Merge commit '8bf9676b8a0f93e658dd93b7d1bde811971619c7' into fix/r11-seam-wallclock-dst
+  3008f4499  Merge remote-tracking branch 'origin/main' into fix/r11-seam-wallclock-dst
+review_carry: FRESH-REVIEW
+rc=1

@@ -1,0 +1,7 @@
+                    float(humidity[i]) if humidity is not None else None
+                ),
+                hour_of_day=(
+                    (start_hour + i * dt_hours) % 24.0
+                    if start_hour is not None and hours_matter
+                    else None
+                ),
