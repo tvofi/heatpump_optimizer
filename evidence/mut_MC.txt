@@ -1,0 +1,2 @@
+MC coordinator approach=None (both solves, the resolved line):
+ALL 23 FEATURES BLOCK PASSED
