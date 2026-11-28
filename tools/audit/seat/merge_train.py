@@ -359,6 +359,7 @@ TOOLS = {
     "remerge_main": ("tools/audit/seat/remerge_main.sh",),
     "worktree_gc": ("tools/audit/worktree_gc.sh",),
     "postmerge": ("tools/audit/seat/postmerge.py",),
+    "review_carry": ("tools/audit/seat/review_carry.py",),
 }
 ROW_DIR = "dev/programme/delivery"
 
@@ -1239,6 +1240,8 @@ ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
 BOT_ROUTE = "bot-head"               # batch: a GITHUB_TOKEN tip goes serial, where its recarry cures it
 MAIN_MOVED = "MAIN-MOVED"            # origin/main moved under a settled head or a proof
 BRANCH_POLICY = "BRANCH-POLICY"      # every merge attempt refused by GitHub's base-branch policy
+CI_TIMEOUT = "TIMEOUT"               # the train's own wait on a head's required contexts ran out of polls
+HEAD_MOVED = "HEAD-MOVED"            # the branch moved off the head the train had read (a bot merge-main)
 BRANCH_POLICY_SAID = re.compile(r"base branch policy prohibits the merge", re.I)
 # A required context's statusCheckRollup reading (a CheckRun's conclusion or a
 # StatusContext's state) that holds a policy refusal for good: the car parks.
@@ -1268,7 +1271,12 @@ def record_pr(paths: "list[str]") -> bool:
     import stamp
     paths = [p for p in paths if p]
     return bool(paths) and all(stamp.record_class_paths([p]) or PROGRAMME_RECORD.match(p) for p in paths)
-READMIT_SAME_VERDICT = (HOLDER, BRANCH_POLICY, PREFLIGHT_PARK)
+#: R11-HOTFIX-TRAIN-SKIP-READMIT: a skip the train's own CI wait timed out, or a
+#: read at a head main or the branch moved off, is the environment's too -- but
+#: only once the live head classifies GREEN and the verdict carries to it, which
+#: `add` re-reads (`Train.readmit_refusal`); a real red carries no class.
+READMIT_ON_GREEN = (CI_TIMEOUT, MAIN_MOVED, HEAD_MOVED)
+READMIT_SAME_VERDICT = (HOLDER, BRANCH_POLICY, PREFLIGHT_PARK) + READMIT_ON_GREEN
 
 
 class MainMoved(Stop):
@@ -1287,7 +1295,7 @@ class HeadRed(Stop):
     Under --skip-bad a skip whose red holds GATE is the rejoin's candidate (`Train.rejoin`)."""
 
     def __init__(self, why: str, head: str, red: "list[str]") -> None:
-        super().__init__("ci", why)
+        super().__init__("ci", why, cls=CI_TIMEOUT if red == ["TIMEOUT"] else None)
         self.head, self.red = head, red
 
 
@@ -1782,7 +1790,8 @@ def post_approval_wait(t: "Train", pr: int, head: str, poll: float, budget_s: fl
 
 
 def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
-              settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None) -> int:
+              settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None,
+              only: bool = False) -> int:
     """`add`: load one verdicted pull request into the state dir's live train,
     or start that train. Under QUEUE_LOCK, in order: a pull request already in
     the live train's running or later batches, or already spooled, is a no-op
@@ -1800,7 +1809,10 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
     first -- and the spool order is printed read back.
     Carry 15: a record pull request outside a `--stamp` add is HELD-FOR-STAMP,
     rc 0, nothing added. Carry 14: a started train's first batch is every
-    ready pull request (`Train.ready_batch`; <ready>, the sweep's queue)."""
+    ready pull request (`Train.ready_batch`; <ready>, the sweep's queue), unless
+    <only> (`add --only`): then it is the entry and the spooled leftovers alone.
+    An entry the live train skipped at this verdict for the environment's cause
+    is re-read first (`Train.readmit_refusal`), refused while that cause holds."""
     if os.environ.get("HPO_SEAT_GEN"):  # a superseded seat's lingering job adds nothing
         import seat_gen
         gen_rc, gen_msg = seat_gen.check_env()
@@ -1825,12 +1837,7 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             return 0
         why = t.admit_add(item)
         if not why and live and str(pr).isdigit():
-            rec = queue_seen_read(t.state).get(str(pr)) or {}
-            if (rec.get("state") == "skipped" and rec.get("class") == PREFLIGHT_PARK
-                    and str(item.get("verdict") or "") == str(rec.get("verdict") or "")):
-                status, step, pf_why = t.preflight_entry(item)
-                if status != "PASS":
-                    why = f"{step}: {pf_why} (the pre-flight park at this verdict still holds)"
+            why = t.readmit_refusal(item, queue_seen_read(t.state).get(str(pr)) or {})
         if why:
             t.log(f"ADD REFUSED #{pr} {why}")
             return 1
@@ -1858,7 +1865,7 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             return 2
         # P312 here too: the first batch is the leftovers plus the entry in drain_order,
         # the order queue_take drains a live spool in; a fronted entry leads its tier.
-        others = t.ready_batch(ready, {int(e["pr"]) for e in spooled} | {entry["pr"]})
+        others = [] if only else t.ready_batch(ready, {int(e["pr"]) for e in spooled} | {entry["pr"]})
         queue = t.drain_order([entry] + spooled + others if front else spooled + [entry] + others)  # mut:start
         qf = t.state / f"add-queue-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{pr}.json"
         qf.write_text(json.dumps(queue, indent=2) + "\n")
@@ -2907,7 +2914,7 @@ class Train:
         bf = self.state / f"carry{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
-            raise Stop("approve", "head moved before the carried approval")
+            raise Stop("approve", "head moved before the carried approval", cls=HEAD_MOVED)
         code, o = self.run(["gh", "pr", "review", str(pr), "--repo", self.repo, "--approve",
                             "--body-file", str(bf)])
         if code:
@@ -3100,7 +3107,7 @@ class Train:
         bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
-            raise Stop("approve", "head moved before the mandate approval")
+            raise Stop("approve", "head moved before the mandate approval", cls=HEAD_MOVED)
         code, o = self.run(["gh", "pr", "review", str(pr), "--repo", self.repo, "--approve", "--body-file", str(bf)])
         if code:
             raise Stop("approve", "the mandate review was refused: " + o[-200:])
@@ -3442,7 +3449,7 @@ class Train:
         """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
         each attempt when the base is not where the merge expects it; the merge sha."""
         if self.head(pr) != h:
-            raise Stop("approve", "head moved")
+            raise Stop("approve", "head moved", cls=HEAD_MOVED)
         fork = self.fork_head(pr)
         if fork is not None and not self.real:
             # A rehearsal merges the head into a branch of ours too: a fork head is put to the
@@ -3918,6 +3925,43 @@ class Train:
     def preflight_entry(self, item: dict) -> "tuple[str, str, str]":
         """(status, step, why) of one entry under the same construction `preflight` uses."""
         return self.pre_flight_reader().entry(item)
+
+    def readmit_refusal(self, item: dict, rec: dict) -> "str | None":
+        """`add`'s re-read of an entry the live train skipped (<rec>, its QUEUE_SEEN
+        record) at this same verdict, which `already_held` admitted as the
+        environment's: None admits it, else `<rule>: <why>`. A pre-flight park
+        re-runs the pre-flight (carries 3/18); a READMIT_ON_GREEN skip needs the
+        live head GREEN (`classify`'s reading) and the verdict carrying to it
+        (review_carry.py: CARRY). Any other record reads nothing."""
+        if rec.get("state") != "skipped" or str(item.get("verdict") or "") != str(rec.get("verdict") or ""):
+            return None
+        cls = rec.get("class")
+        if cls == PREFLIGHT_PARK:
+            status, step, why = self.preflight_entry(item)
+            return None if status == "PASS" else f"{step}: {why} (the pre-flight park at this verdict still holds)"
+        if cls not in READMIT_ON_GREEN:
+            return None
+        pr, v = int(item["pr"]), str(item.get("verdict") or "")
+        h = self.head(pr)
+        if not is_sha(h):
+            return f"readmit: [{cls}] skip at this verdict; could not read #{pr}'s live head: {h[:120]}"
+        try:
+            code, line = self.live_classify(h, pr)
+        except Stop as s:
+            code, line = None, s.why
+        if code != 0:
+            return (f"readmit: [{cls}] skip at this verdict; the live head {h[:12]} is not GREEN: "
+                    f"{(line.splitlines() or [''])[0][:200]}")
+        self.run(["git", "fetch", "-q", "origin", self.base, v, h])
+        code, o = self.run(["python3", "-I", tool("review_carry"), v, h, "--main", f"origin/{self.base}",
+                            "--verdict-only"])
+        return None if code == 0 else (
+            f"readmit: [{cls}] skip at this verdict; the verdict {v[:12]} does not carry to the live head "
+            f"{h[:12]} ({(o.strip().splitlines() or ['no output'])[-1][:160]}): a new verdict re-admits it")
+
+    def live_classify(self, h: str, pr: int) -> "tuple[int, str]":
+        """`classify`'s reading of pull request <pr>'s head <h>: (0 GREEN, 1 RED, 3 WAIT, 4 APPROVAL-OWED; its line)."""
+        return classify_cmd(self, h, pr, False)
 
     def record_drafts(self, queue: list[dict]) -> None:
         """P609: `item["draft"]` is `undraft`'s only licence and `add` alone set
@@ -7038,6 +7082,7 @@ def _self_test() -> int:
     _ruleset_etag_self_test(check)
     _failed_marker_self_test(check)
     _add_self_test(check)
+    _skip_readmit_self_test(check)
     _queue_self_test(check)
     _stale_verdict_self_test(check)
     _introduced_self_test(check)
@@ -11318,6 +11363,114 @@ def _add_self_test(check) -> None:
     _post_approval_self_test(check)
 
 
+def _skip_readmit_self_test(check) -> None:
+    """R11-HOTFIX-TRAIN-SKIP-READMIT (train 2, 11-28: #3897 #3845 #3870 #3872 #3883
+    stayed ALREADY until the train exited): a skip the train's own CI wait timed
+    out, or a read at a head that moved (MAIN-MOVED, HEAD-MOVED), is the
+    environment's at the same verdict once the live head classifies GREEN and the
+    verdict carries to it (review_carry.py). And `add --only`."""
+    V7, H8 = "7" * 40, "8" * 40
+
+    def ra_add(cls, green=0, carry=0, head=H8, at=V7, drain=False):
+        """`add` of #9 at <at> against a live train whose record says #9 was skipped
+        [<cls>] at V7; the live head is <head>, `classify` there answers <green>
+        (0 GREEN, 1 RED, 3 WAIT), review_carry.py V7 -> head exits <carry>."""
+        with tempfile.TemporaryDirectory() as d:
+            st, rl, argvs = Path(d), [], []
+
+            def rrun(argv, **k):
+                argvs.append(list(argv))
+                if argv[:3] == ["gh", "pr", "view"]:
+                    return 0, head
+                if any(str(x).endswith("review_carry.py") for x in argv):
+                    return carry, "review_carry: " + ("CARRY" if carry == 0 else "FRESH-REVIEW")
+                return 0, ""
+            tr = Train("o/r", st, None, "", (), 1, run=rrun, log=rl.append)
+            tr.admit_add = lambda item: None
+            tr.live_classify = lambda h, pr: (green, f"{['GREEN', 'RED', '', 'WAIT'][green]} {h} pending: none red: x")
+            (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+            tr._seen = {"9": {"verdict": V7, "state": "skipped", **({"class": cls} if cls else {})}}
+            queue_seen_write(st, tr._seen)
+            rc = train_add(tr, {"pr": 9, "verdict": at}, ["true"], launch=lambda *a: (0, "no"))
+            spool = [e["pr"] for e in spool_read(st)[0]]
+            more = None
+            if drain:
+                bs = [[{"pr": 1, "verdict": V7}]]
+                tr._queue = {"batches": bs, "next": 1, "closed": False}
+                more = (tr.queue_take(bs, 1), [int(e["pr"]) for e in bs[-1]])
+            carried = [a for a in argvs if any(str(x).endswith("review_carry.py") for x in a)]
+            at = next((i for i, a in enumerate(argvs) if a in carried), len(argvs))
+            fetched = ["git", "fetch", "-q", "origin", "main", V7, head] in argvs[:at]
+            return rc, rl, spool, more, carried + ([] if fetched or not carried else [["unfetched"]])
+    readd = {c: ra_add(c, drain=True) for c in (CI_TIMEOUT, MAIN_MOVED, HEAD_MOVED)}
+    check("skip readmit: a same-verdict re-add of an entry skipped [TIMEOUT], [MAIN-MOVED] or [HEAD-MOVED] is "
+          "ADDED once its live head classifies GREEN and the verdict carries to it (review_carry.py <verdict> "
+          "<live head>), and the drain takes it into batch 2",
+          all(r[0] == 0 and r[1][0].startswith("ADDED #9") and r[2] == [9] and r[3] == (True, [9])
+              and [a[-5:] for a in r[4]] == [[V7, H8, "--main", "origin/main", "--verdict-only"]]
+              for r in readd.values()))
+    nulls = {"red": ra_add(CI_TIMEOUT, green=1), "wait": ra_add(MAIN_MOVED, green=3),
+             "fresh": ra_add(HEAD_MOVED, carry=1), "nocarry": ra_add(CI_TIMEOUT, carry=2)}
+    check("skip readmit null: the live head RED or WAIT, or a verdict that does not carry (FRESH-REVIEW, cannot "
+          "decide), is ADD REFUSED rc 1 `readmit:` naming the head, with no spool line",
+          all(r[0] == 1 and r[1][0].startswith("ADD REFUSED #9 readmit:") and H8[:12] in r[1][0] and r[2] == []
+              for r in nulls.values())
+          and "not GREEN" in nulls["red"][1][0] and "does not carry" in nulls["fresh"][1][0])
+    rc_red, say_red, sp_red, _m, car_red = ra_add(None)
+    rc_v9, say_v9, sp_v9, _m, car_v9 = ra_add(CI_TIMEOUT, green=1, carry=1, at="9" * 40)
+    rc_nh, say_nh, sp_nh, _m, car_nh = ra_add(MAIN_MOVED, head="")
+    check("skip readmit null: an unreadable live head is ADD REFUSED `readmit:` (could not read), nothing spooled "
+          "and review_carry.py never asked",
+          rc_nh == 1 and say_nh[0].startswith("ADD REFUSED #9 readmit:") and "could not read" in say_nh[0]
+          and sp_nh == [] and car_nh == [])
+    with tempfile.TemporaryDirectory() as d:
+        tl = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+        tl._check_runs = lambda sha: []
+        tl.required = lambda pr_head=False: []
+        tl.classify_at = lambda h, runs, req: ("green", [], [])
+        tl.introduced = lambda sha, runs: (["a step the PR made red"], "")
+        lc = tl.live_classify(H8, 9)
+    check("skip readmit: `live_classify` is `classify`'s pull-request reading (on_main False): a step red the "
+          "head introduced reads RED even where the required set reads green",
+          lc[0] == 1 and lc[1].startswith("RED ") and "INTRODUCED a step the PR made red" in lc[1])
+    check("skip readmit null: a skip for a real red (no class) at the same verdict stays ALREADY, nothing read; "
+          "a TIMEOUT skip re-added at a NEW verdict is admitted as today, with no live re-read",
+          rc_red == 0 and say_red[0].startswith("ALREADY #9:") and sp_red == [] and car_red == []
+          and rc_v9 == 0 and say_v9[0].startswith("ADDED #9") and sp_v9 == [9] and car_v9 == [])
+    check("skip classes: a head wait that never completes is HeadRed [TIMEOUT]; a real red, or a red beside "
+          "TIMEOUT, carries no class",
+          HeadRed("t", H8, ["TIMEOUT"]).cls == CI_TIMEOUT and HeadRed("t", H8, [GATE]).cls is None
+          and HeadRed("t", H8, [GATE, "TIMEOUT"]).cls is None)
+    with tempfile.TemporaryDirectory() as d:
+        th = Train("o/r", Path(d), None, "", (), 1,
+                   run=lambda argv, **k: (0, V7 if argv[:3] == ["gh", "pr", "view"] else ""), log=lambda m: None)
+        try:
+            th.land(9, H8, {"pr": 9}, [], lambda: None)
+            moved = None
+        except Stop as s:
+            moved = s
+    check("skip classes: `land` at a head the branch moved off stops [HEAD-MOVED]",
+          moved is not None and moved.step == "approve" and moved.cls == HEAD_MOVED)
+
+    # `add --only` (11-28: an add on an empty state dir started an 8-PR train when
+    # one was meant): the started train is the entry alone, ready_batch unread.
+    def only_add(only):
+        with tempfile.TemporaryDirectory() as d:
+            st, launched, reads = Path(d), [], []
+            to = Train("o/r", st, None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+            to.admit_add = lambda item: None
+            to.ready_batch = lambda ready, have: (reads.append(1), [{"pr": 4, "verdict": V7}])[1]
+
+            def launch(argv, state):
+                launched.append([int(e["pr"]) for e in json.loads(Path(argv[-1]).read_text())])
+                return 0, "stub"
+            train_add(to, {"pr": 9, "verdict": V7}, ["true"], launch=launch, settle=0, only=only)
+            return launched, reads
+    check("add --only: a started train's queue is the entry alone and the ready set is never read; "
+          "null control: without it the ready set joins the first batch (carry 14)",
+          only_add(True) == ([[9]], []) and only_add(False) == ([[9, 4]], [1]))
+
+
 def _spool_edit_self_test(check, stub, H: str) -> None:
     """P112: `add --front` and `add --remove`, through the CLI and train_add,
     on a real spool file under the real QUEUE_LOCK."""
@@ -11758,6 +11911,9 @@ def _parser() -> argparse.ArgumentParser:
     ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
     ad.add_argument("--priority", action="store_true",
                     help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
+    ad.add_argument("--only", action="store_true",
+                    help="a train this add starts runs the entry alone: no other ready pull request joins its "
+                         "first batch (carry 14's default); a live train spools only the entry anyway")
     ad.add_argument("--stamp", action="store_true",
                     help="a stamp's add: a record pull request is added, not HELD-FOR-STAMP (carry 15)")
     ad.add_argument("--wait-post-approval", action="store_true",
@@ -11853,7 +12009,7 @@ def main(argv: list[str]) -> int:
                 **({"priority": True} if a.priority else {})}
         return train_add(t, item, auto_train_argv(a.repo, a.state_dir, a.mandate) if a.auto else
                          ["bash", str(ROOT / "tools/audit/seat/train.sh"), "--repo", a.repo,
-                          "--state-dir", a.state_dir, *rest], front=a.front)
+                          "--state-dir", a.state_dir, *rest], front=a.front, only=a.only)
     if a.cmd == "wait-ci":
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
