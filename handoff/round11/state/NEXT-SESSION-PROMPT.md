@@ -35,7 +35,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-STEP-KICK (stage in-progress, branch `handoff/r11-owner-step-kick`): `git fetch origin handoff/r11-owner-step-kick && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-TEXT (stage in-progress, branch `handoff/r11-owner-fault-text`): `git fetch origin handoff/r11-owner-fault-text && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-COOLING-AUTORETURN (stage in-progress, branch `handoff/r11-owner-cooling-autoreturn`): `git fetch origin handoff/r11-owner-cooling-autoreturn && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-LATE-P2-ZONE-GATE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R11-LATE-P2-ZONE-GATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-START-APPROACH (stage in-progress, branch `handoff/r11-outside-start-approach`): `git fetch origin handoff/r11-outside-start-approach && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-D3-PINS-money (stage carries-open, branch `handoff/r11-d3-pins-money`): `git fetch origin handoff/r11-d3-pins-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FEATURES-SPLIT (stage in-progress, branch `handoff/r11-owner-features-split`): `git fetch origin handoff/r11-owner-features-split && git worktree add --detach $SEAT/wt FETCH_HEAD`

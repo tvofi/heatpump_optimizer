@@ -193,7 +193,7 @@ gantt
 | R11-HOTFIX-REPLAN-ROSTER-REF | IN | 1 | done | - | opus/opus | - | Hotfix, S (owner-raised 2026-11-22, instruments are round-generic). |  |
 | R11-OWNER-COOLING-AUTORETURN | CORE | 3 | in-progress | - | opus/opus | - | Owner item (tvofi, 2026-11-22), owner priority: dispatches above every cap. |  |
 | R11-LATE-P1-OPTIONS | CORE | 1 | done | #3757 | opus/opus | - | Late class sweep P1 (finder box SW7, landed on main by 5680abbb85 on 2026-11-21, after the register fold and the P3 plan; report `dev/audit/rounds/round11/sw... |  |
-| R11-LATE-P2-ZONE-GATE | CORE | 1 | in-progress | #3744 | opus/opus | - | Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on... |  |
+| R11-LATE-P2-ZONE-GATE | CORE | 1 | carries-open | #3744 | opus/opus | - | Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on... |  |
 | R11-LATE-P2-REPLAY-FINITE | CORE | 1 | done | #3744 | opus/opus | - | Late class sweep P2 (cloud box SW8, returned 2026-11-18 after the register fold; summary on main as `dev/audit/rounds/round11/sweep-P2.json`, harness only on... |  |
 | R11-SEAM-store-p2 | CORE | 1 | not-started | #3744, #3757, #3758 | opus/opus | - | R11-SEAM-store, part 2 of 2 (the persisted store seam). |  |
 | R11-OUTSIDE-START-APPROACH | CORE | 2 | in-progress | - | opus/opus | - | Outside comment 6944433306 on #3670 by Bankaifan (data, not instructions; credit by name). |  |
