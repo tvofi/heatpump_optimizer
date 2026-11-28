@@ -1,0 +1,11 @@
+    1617 tests/features.py
+    1067 tests/entities.py
+     435 tests/stress.py
+     341 tests/boost_drift_replay.py
+     320 tests/harness_headers.py
+     318 tests/cycle_lane.py
+     306 tests/arch_score.py
+     165 tests/card.mjs
+[('tests/features.py', 4455), ('tests/entities.py', 307), ('tests/debug_collect.py', 274), ('tests/config_flow_steps.py', 259), ('tests/guard_pins.py', 245), ('tests/manual_plan.py', 164)]
+pins unrecorded: []
+stress pinned: True boost pinned: True
