@@ -1,0 +1,8 @@
+control rc=0 ALL 24 FEATURES BLOCK PASSED 
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+case8a rc=1   FAIL the scheduled solve record and the what-if scratch solve hand the optimizer the approach solve_approach reads off the coordinator's window at the solve's instant, a profile with entry levels; null: the coordinator that learned no runs hands None on both roads  [record None want Approach(entry=array([2.35849057, 2.23962264, 2.12075472, 2.00188679, 1.88301887, 1 of 24 FEATURES BLOCK FAILED 
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+case8b rc=1   FAIL the scheduled solve record and the what-if scratch solve hand the optimizer the approach solve_approach reads off the coordinator's window at the solve's instant, a profile with entry levels; null: the coordinator that learned no runs hands None on both roads  [record Approach(entry=array([2.35849057, 2.23962264, 2.12075472, 2.00188679, 1.88301887, 1 of 24 FEATURES BLOCK FAILED 
+MUTDONE
