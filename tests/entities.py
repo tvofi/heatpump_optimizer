@@ -3897,6 +3897,9 @@ def _p2_proxies(sources):
     for n in ast.walk(ast.parse(sources["thermal_model.py"])):
         if isinstance(n, ast.FunctionDef) and n.name == "two_zone_from_config":
             out["two_zone_enabled"] |= names(n)
+        # The presence keys the rule reads by name (R11-LATE-P2-ZONE-GATE).
+        if (isinstance(n, ast.AnnAssign) and getattr(n.target, "id", None) == "TWO_ZONE_FIELDS"):
+            out["two_zone_enabled"] |= names(n)
         if isinstance(n, ast.FunctionDef) and n.name == "dhw_enabled_from_config":
             out["dhw_enabled"] |= names(n)
     for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
@@ -4282,6 +4285,12 @@ def _p2_registry(sources):
              match=_p2_match_node(
                  ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
                  lambda n: isinstance(n.op, ast.And)),
+             # A floor list's truthiness standing in for the model's flag: a
+             # one-zone solve fills both with the room's (R11-LATE-P2-ZONE-GATE).
+             also=lambda n, parents: (
+                 isinstance(n, ast.Attribute)
+                 and n.attr in ("upper_temp_trajectory", "lower_temp_trajectory")
+                 and _p2_decides(n, parents)),
              owners=["optimizer.py::OptimizationResult.zone_trajectories"],
              dispositions={}),
         dict(fact="billed_window_pad", finding="R10-CLONE-2238",
