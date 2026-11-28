@@ -1105,7 +1105,7 @@ def _plan_rows(check, spans: list[Span], hh: str) -> None:
     check("draw: the drawn share of 4000 ids is within 0.03 of FRACTION", abs(share - FRACTION) < 0.03, share)
     check("draw: another seed draws another set", draw(many, seed) != draw(many, "8-" + "a" * 40))
     check("draw: an inserted id moves no other id's draw (keyed on the id, never the ordinal)",
-          draw(many, seed) == draw(["inserted"] + many, seed) - {"inserted"})
+          draw(many, seed) == draw(["a inserted"] + many, seed) - {"a inserted"})
     check("draw: fraction 0 draws nothing and fraction 1 draws every id",
           draw(many, seed, 0.0) == set() and draw(many, seed, 1.0) == set(many))
     tmp = os.path.realpath(tempfile.mkdtemp(prefix="case-plan-"))
@@ -1116,12 +1116,12 @@ def _plan_rows(check, spans: list[Span], hh: str) -> None:
         files = {s.id: ["m.py"] if s.id == "beta reads a constant of M" else ["h.py"] for s in spans}
         table = {"version": VERSION, "files": [], "scripts": {}}
 
-        def make(spans_, header_hash=hh, header=("hdr.py",)):
+        def make(spans_, header_hash=hh, header=("hdr.py",), name="t.json"):
             e = {"blob": "b", "header_hash": header_hash, "header": list(header),
                  "spans": {s.id: {"hash": s.hash, "files": files.get(s.id, []), "needs": [], "seconds": 1.0}
                            for s in spans_}}
-            save({rel: e}, Path(tmp) / "t.json", keep_order=False)
-            return Path(tmp) / "t.json"
+            save({rel: e}, Path(tmp) / name, keep_order=False)
+            return Path(tmp) / name
 
         t = make(spans)
         ok = {"mode": "scoped"}
@@ -1150,30 +1150,39 @@ def _plan_rows(check, spans: list[Span], hh: str) -> None:
         only = {s.id: ["h.py"] if s.id == "alpha#2" else ["z.py"] for s in spans}
         files.clear()
         files.update(only)
-        t2 = make(spans)
+        t2 = make(spans, name="t2.json")
         p = plan(script, ["h.py"], seed, 0.0, t2, ok, cl)
         check("rule (v): alpha#2 alone in the diff pulls in alpha as needed",
               p["rules"] == {"alpha": "needed", "alpha#2": "diff"}, p["rules"])
-        full = lambda p_: p_["mode"] == "full"  # noqa: E731
+        why = lambda p_, text: p_["mode"] == "full" and text in p_["reason"]  # noqa: E731
+        check("fail-safe null: the same inputs with no trigger plan scoped", P(["m.py"])["mode"] == "scoped")
         check("fail-safe: no seed, or a seed of another shape, runs every span",
-              full(P(["m.py"], sd=None)) and full(P(["m.py"], sd="abc")) and full(P(["m.py"], sd="7-" + "a" * 39)))
-        check("fail-safe: a header edit runs every span", full(plan(script, ["m.py"], seed, FRACTION,
-                                                                     make(spans, header_hash="x"), ok, cl)))
+              all(why(P(["m.py"], sd=x), "no seed") for x in (None, "abc", "7-" + "a" * 39, "0-" + "a" * 40)))
+        check("fail-safe: a header edit runs every span",
+              why(plan(script, ["m.py"], seed, FRACTION, make(spans, header_hash="x", name="h.json"), ok, cl),
+                  "header's text"))
         check("fail-safe: a missing table runs every span",
-              full(plan(script, ["m.py"], seed, FRACTION, Path(tmp) / "none.json", ok, cl)))
+              why(plan(script, ["m.py"], seed, FRACTION, Path(tmp) / "none.json", ok, cl), "has no entry"))
         check("fail-safe: a changed gate or runner file runs every span",
-              all(full(P([f])) for f in ("tests/harness.py", "tests/hastub/x.py", "tests/case_select.py",
-                                         "tests/case_closures.json", "tests/run.sh")))
-        check("fail-safe: a script-level FULL scope runs every span", full(P(["m.py"], sc={"mode": "full"})))
-        check("fail-safe: a changed file the header reads runs every span", full(P(["hdr.py"])))
+              all(why(P([f]), "changes how every span runs") for f in (
+                  "tests/harness.py", "tests/hastub/x.py", "tests/case_select.py",
+                  "tests/case_closures.json", "tests/run.sh")))
+        check("fail-safe: a script-level FULL scope runs every span",
+              why(P(["m.py"], sc={"mode": "full", "reason": "r"}), "script-level scope"))
+        check("fail-safe: a changed file the header reads runs every span", why(P(["hdr.py"]), "header reads"))
         check("fail-safe: a changed file in the script's closure and in no span's recording runs every span",
-              full(P(["stray.py"])))
-        check("fail-safe: no changed file runs every span", full(P([])))
+              why(P(["stray.py"]), "in no span's recording"))
+        check("fail-safe: no changed file runs every span", why(P([]), "no changed files"))
         dup = _FIXTURE.replace('R.section("seed")', 'R.section("alpha")')
         open(script, "w").write(dup)
         dsp = split(dup)[2]
-        p = plan(script, ["m.py"], seed, FRACTION, make(dsp[:9]), ok, cl)
-        check("fail-safe: a repeated title with a moved instance runs every span", full(p), p)
+        e_dup = make(dsp, name="d.json")
+        open(script, "w").write(dup.replace("_random.seed(7)", "_random.seed(8)"))
+        p = plan(script, ["h.py"], seed, FRACTION, e_dup, ok, cl)
+        check("fail-safe: a repeated title with a moved instance runs every span", why(p, "repeated title"), p)
+        open(script, "w").write(dup)
+        check("fail-safe null: the repeated title unmoved plans scoped",
+              plan(script, ["h.py"], seed, FRACTION, e_dup, ok, cl)["mode"] == "scoped")
     finally:
         import shutil
         shutil.rmtree(tmp, ignore_errors=True)
