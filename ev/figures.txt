@@ -1,0 +1,9 @@
+104695 252 {}
+     15 actuation
+     28 cycle
+      8 dhw
+     37 inputs
+     93 model
+     48 plan
+     23 surface
+spans 252
