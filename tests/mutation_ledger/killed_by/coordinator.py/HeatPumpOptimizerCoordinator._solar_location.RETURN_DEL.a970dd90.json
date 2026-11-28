@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._solar_location RETURN_DEL a970dd90",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        return float(lat), float(lon)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

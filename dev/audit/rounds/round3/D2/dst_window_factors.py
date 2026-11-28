@@ -13,7 +13,7 @@ hour a window bills under -- which is the property `window_factors`'s docstring
 claims can never happen.
 
 METRIC: `mismatches` = the number of horizon windows i where
-`window_factors(mask, start, n, dt)[i]` differs from
+`window_factors(mask, start, n)[i]` differs from
 `mask.sample_factor(_utc_step_starts(start, n, dt)[i])`, i.e. the factor the
 same tariff object assigns to the instant the plan's own step clock puts that
 window at.  Zero is the only correct value.
@@ -88,7 +88,7 @@ def compare(t: CapacityTariff, start: datetime, hours: float):
     """(mismatches, n_windows, produced, truth) for one (mask, start) cell."""
     dt = t.window_minutes / 60.0
     n = int(round(hours / dt))
-    produced = window_factors(t, start, n, dt)
+    produced = window_factors(t, start, n)
     if produced is None:
         return None, n, None, None
     instants = _utc_step_starts(start, n, timedelta(hours=dt))
@@ -129,7 +129,7 @@ def main() -> int:
     # --- second control: no mask at all -> the term is inert --------------
     flat = CapacityTariff(enabled=True, window_minutes=60, price_per_kw=60.0)
     d2lib.result(
-        "no_mask_returns_none", window_factors(flat, AUTUMN, 25, 1.0) is None
+        "no_mask_returns_none", window_factors(flat, AUTUMN, 25) is None
     )
 
     # --- the production path actually builds these ------------------------

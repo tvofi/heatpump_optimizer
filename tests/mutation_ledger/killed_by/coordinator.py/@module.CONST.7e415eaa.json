@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:<module> CONST 7e415eaa",
+  "killed_by": "tests/features.py",
+  "old": "HOUSE_LOSS_MIN_DELTA = 6.0",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`HOUSE_LOSS_MIN_DELTA = 12.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

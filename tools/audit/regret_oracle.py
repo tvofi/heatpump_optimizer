@@ -161,7 +161,8 @@ class Loop:
             room, slab, up, low, tank, _, _ = self.plant.simulate_trajectory_with_dhw(
                 initial_state=state, space_power_schedule=np.asarray(space, dtype=float),
                 dhw_power_schedule=np.asarray(dhw, dtype=float), weather=self.weather(a, b),
-                start_hour=(START + timedelta(hours=a * self.DT)).hour + (START + timedelta(hours=a * self.DT)).minute / 60.0,
+                step_hours=np.array([t.hour + t.minute / 60.0
+                                     for t in (START + timedelta(hours=i * self.DT) for i in range(a, b))]),
                 dt_hours=self.DT)
         else:
             room, slab, up, low, _, _, _ = self.plant.simulate_trajectory(

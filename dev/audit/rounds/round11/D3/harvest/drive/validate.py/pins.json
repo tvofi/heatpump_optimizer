@@ -1,0 +1,32 @@
+{
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._comfort_terms_batch CLAMP_DROP 8e3e0d95": {
+    "killed_by": "tests/validate.py",
+    "old": "            undershoot_u = np.maximum(0, temp_min_bounds - upper_t)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`undershoot_u = (0)`) took tests/validate.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._zone_setpoints RETURN_DEL 27d6f8d7": {
+    "killed_by": "tests/validate.py",
+    "old": "        return upper, lower",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/validate.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_comfort_temp GUARD_OFF 5b24a953": {
+    "killed_by": "tests/validate.py",
+    "old": "        if start <= hour < end:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/validate.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone GUARD_OFF 18dbd0eb": {
+    "killed_by": "tests/validate.py",
+    "old": "        if throttled:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/validate.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.solar_gain_per_zone RETURN_DEL 27d6f8d7": {
+    "killed_by": "tests/validate.py",
+    "old": "        return upper, lower",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/validate.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.buffer_tank_heat_loss_coefficient RETURN_DEL b355ad4e": {
+    "killed_by": "tests/validate.py",
+    "old": "        return value",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/validate.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

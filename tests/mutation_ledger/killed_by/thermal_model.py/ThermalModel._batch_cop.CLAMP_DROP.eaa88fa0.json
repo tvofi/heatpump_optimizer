@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._batch_cop CLAMP_DROP eaa88fa0",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        cop: float | np.ndarray = p.cop_nominal * min(factor, 1.5) * p.cop_scale",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`cop: float | np.ndarray = p.cop_nominal * (factor) * p.cop_scale`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 43b54266f12bfb21)."
+}
