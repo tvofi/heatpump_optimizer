@@ -1,9 +1,9 @@
-wc: 104573 manifest: 104573 252 {}
-spans 252
+104695 252 {}
      15 actuation
      28 cycle
-      9 dhw
+      8 dhw
      37 inputs
-     92 model
+     93 model
      48 plan
      23 surface
+spans 252

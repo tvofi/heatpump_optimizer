@@ -1,2 +1,0 @@
-lines: tests/features.py has 104695 lines, above the 104573 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate
-FEATURES FREEZE: REFUSED (1 refusal(s))

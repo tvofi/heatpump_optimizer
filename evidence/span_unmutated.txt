@@ -1,3 +1,11 @@
+
+=== Entities and platforms ===
+
+-- The tests/features.py freeze (R11-OWNER-FEATURES-SPLIT)
+  ok   tests/features.py keeps the freeze: every span id is in tests/features_frozen_budgets.json, its line count is at or below the manifest's, and every seam script's spans are at home
+  ok   the freeze manifest is its recorder's shape: an integer `lines`, a `seam_pins` map of span-id lists, and unique span ids covering every span case_select.split yields from tests/features.py
+  ok   null control (span ids): a section appended, inserted mid-file, or repeating an existing title is refused by name; the live text under the same manifest is not
+  ok   null control (lines): one line added inside an existing span is refused on `lines` alone; one line removed passes, so the freeze never refuses a move down
   ok   null control (seam home): a dhw span in features_model.py is refused naming features_dhw.py; in features_dhw.py, or pinned in seam_pins, it passes; a seam header importing features.py and a script named for no seam are refused
   ok   null control (laundering): the manifest has its own budget-raise-gate SCHEMA entry, `lines` a cap and `spans` and every `seam_pins` list frozen, so a span appended and the manifest re-recorded in the same diff is a raise on both, a new pin and a dropped span id are raises, `lines` re-recorded down is routine, and an unchanged manifest is none
 CASES: SCOPED tests/entities.py -- 1 of 66 spans
