@@ -1,0 +1,7 @@
+  FAIL the wizard's pre-fill page renders no after-save choice and its schema refuses one  [keys=['dhw_setpoint', 'dhw_temp_entity', 'heat_pump_capacity_limited_entity', 'heat_pump_return_temp_entity', 'heat_pump_supply_temp_entity', 'outdoor_temp_entity'] refused=False]
+  FAIL every previewed field has a label where the frontend looks, in strings.json  [1 of 7 render the raw key: ['after_save']]
+  FAIL every previewed field has a label where the frontend looks, in en.json  [1 of 7 render the raw key: ['after_save']]
+  FAIL every previewed field has a label where the frontend looks, in de.json  [1 of 7 render the raw key: ['after_save']]
+  FAIL every previewed field has a label where the frontend looks, in sv.json  [1 of 7 render the raw key: ['after_save']]
+9 of 731 checks FAILED
+rc=1

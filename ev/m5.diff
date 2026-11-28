@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 41aa71b030..dc7028ac47 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6377,7 +6377,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             horizon = self._forecast_arrays(now)
+             prices = horizon.prices
+ 
+-            if len(prices) < 4:
++            if len(prices) < 3:
+                 # DEBUG: `_price_series` already said why, latched (#2226).
+                 _LOGGER.debug("Not enough price data for optimization (got %d steps)",
+                               len(prices))
