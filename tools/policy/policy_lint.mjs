@@ -6869,6 +6869,41 @@ function autofixChain(head, names) {
   }
 }
 
+// A HEAD THE BODY DOES NOT NAME IS STILL DESCRIBED WHEN THE REVIEW CARRIES TO IT
+// (R11-RECARRY-HEAD-RULE; PC-1113-10, PC-1113-19). A recarry (`remerge_main.sh`,
+// `app_push.sh --recarry`) or the merge-main bot moves the head under a body that
+// names the one measured, and pr-contract refused every such head until a seat
+// re-described it (#3556, #3561, #3569). The question is the one the ruling
+// already answers for a verdict -- "if there are no code changes, the previous
+// review can be carried" (tvofi, 2026-10-27) -- so it is asked of its one
+// predicate, `review_carry.py` (`app_approve.sh --carry` beneath it), never
+// copied: CARRY from a commit `## Head` names is a head the body describes.
+// Asked only of a named commit the head descends from and origin/main does not
+// hold; the predicate answers its own fork question (a head no branch of origin
+// holds carries only the automatic merge of main), and anything but its exit 0
+// -- FRESH-REVIEW, cannot decide, no such program -- leaves the refusal.
+// `{ base, why }` on a carry, `{ why }` otherwise. `root` is the tree whose
+// review_carry.py answers: in CI the base's, which pr-contract restores.
+function carriedHead(head, headSec, root = ROOT) {
+  const isAnc = (a, b) => spawnSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: ROOT, stdio: 'ignore' }).status === 0
+  const named = []
+  for (const tok of new Set(headSec.match(/\b[0-9a-f]{7,40}\b/g) ?? [])) {
+    const sha = git(['rev-parse', '--verify', '--quiet', `${tok}^{commit}`], { allowFail: true, quiet: true }).trim()
+    if (/^[0-9a-f]{40}$/.test(sha) && sha !== head && !named.includes(sha) && isAnc(sha, head) && !isAnc(sha, 'origin/main')) named.push(sha)
+  }
+  if (!named.length) return { why: 'the section names no commit this head descends from that origin/main does not hold' }
+  const whys = []
+  for (const sha of named) {
+    const r = spawnSync('python3', [path.join(root, 'tools', 'audit', 'seat', 'review_carry.py'), sha, head, '--main', 'origin/main'],
+      { cwd: ROOT, encoding: 'utf8', timeout: 300000 })
+    const lines = `${r.stdout ?? ''}`.split('\n').map((x) => x.trim()).filter(Boolean)
+    const why = (lines.find((x) => x.startsWith('why: ')) ?? '').slice(5) || (r.stderr || String(r.error ?? `rc ${r.status}`)).trim().split('\n').pop()
+    if (r.status === 0 && lines[lines.length - 1] === 'review_carry: CARRY') return { base: sha, why }
+    whys.push(`${sha.slice(0, 7)}: ${why}`)
+  }
+  return { why: `review_carry.py carries from none it names (${whys.join('; ')})` }
+}
+
 // ---------------------------------------------------------------------------
 // THE `## Red checks` OBLIGATION IS OVER EVERY HEAD, NOT ONLY THIS ONE (#1144).
 //
@@ -7270,12 +7305,15 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
   const names = (sha) => headSec.includes(sha) || headSec.includes(sha.slice(0, 7))
   if (head && headSec && !names(head)) {
     const chain = autofixChain(head, names)
+    const carried = chain.base ? null : carriedHead(head, headSec)
     if (chain.base) {
       notes.push(`HEAD: \`## Head\` names ${chain.base.slice(0, 7)}; accepted autofix commit(s) on top of it: ${
         chain.accepted.map((c) => `${c.sha.slice(0, 7)} (${c.message})`).join(', ')}`)
+    } else if (carried.base) {
+      notes.push(`HEAD: \`## Head\` names ${carried.base.slice(0, 7)}; review_carry.py carries it to ${head.slice(0, 7)}: ${carried.why}`)
     } else {
       out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
-        message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: ${chain.why}.` })
+        message: `\`## Head\` does not name ${head.slice(0, 7)}, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: ${chain.why}. Nor does the review carry to it: ${carried.why}.` })
     }
   }
 

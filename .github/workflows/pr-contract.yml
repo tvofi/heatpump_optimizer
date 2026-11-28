@@ -119,6 +119,7 @@ jobs:
             'tools/audit/seat/roster_lib.py' \
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/gh_read.py' \
+            'tools/audit/seat/review_carry.py' \
             'tools/policy/fixtures/required-contexts.json' \
             'tests/run.sh' \
             'tools/policy/*.mjs' \

@@ -32867,6 +32867,121 @@ R.check(
     "forgeable, so a forged author must still be held by the subject, the "
     "parent count and the path set, each by itself",
 )
+# R11-RECARRY-HEAD-RULE (PC-1113-10, PC-1113-19): A HEAD THE REVIEW CARRIES TO IS
+# A HEAD THE BODY DESCRIBES. A recarry pushes main merged into the reviewed head
+# under a body naming the reviewed one; `checkPrBody` asks `review_carry.py`
+# (app_approve.sh --carry beneath it) of each commit `## Head` names, so the
+# contract and the verdict carry answer one predicate. The control is an
+# AGREEMENT PAIR over built chains: on every arm the contract passes exactly when
+# `review_carry.py` prints CARRY, and the arms span both answers. Built over a
+# bare origin, because app_approve.sh asks `git ls-remote` whether the head is a
+# branch tip of origin. The mutant is the tree without review_carry.py: the clean
+# recarry is then refused, so the carry arm is what admits it.
+def _recarry_head_fixture():
+    import shutil
+    import tempfile
+
+    d = Path(tempfile.mkdtemp(prefix="hpo-recarry-head-"))
+    w, o = d / "w", d / "o.git"
+    seat, rec = ("seat", "seat@e"), ("tvofi", "70032254+tvofi@users.noreply.github.com")
+
+    def g(*a, who=seat):
+        return subprocess.run(
+            ["git", "-C", str(w), *a], capture_output=True, text=True,
+            env={**throwaway_git_env(), "GIT_AUTHOR_NAME": who[0], "GIT_AUTHOR_EMAIL": who[1],
+                 "GIT_COMMITTER_NAME": who[0], "GIT_COMMITTER_EMAIL": who[1]},
+        ).stdout.strip()
+
+    def commit(msg, edits, parent=None, who=seat):
+        if parent:
+            g("checkout", "-q", "--detach", parent)
+        for rel, text in edits.items():
+            (w / rel).write_text(text)
+        g("add", "-A")
+        g("commit", "-q", "-m", msg, who=who)
+        return g("rev-parse", "HEAD")
+
+    def recarry(onto, push=True, hand=None):
+        g("checkout", "-q", "--detach", onto)
+        g("merge", "-q", "--no-ff", "--no-edit", "origin/main", who=rec)
+        if hand:
+            (w / "other.txt").write_text(hand)
+            g("commit", "-q", "--amend", "-a", "--no-edit", who=rec)
+        h = g("rev-parse", "HEAD")
+        if push:
+            g("push", "-q", "-f", "origin", f"{h}:refs/heads/fix/x")
+        return h
+
+    def body(names):
+        return "".join(f"## {h}\n\n{names if h == 'Head' else 'none'}\n\n"
+                       for h in ("Head", "Mutation proof", "Null control", "Figures",
+                                 "Red checks", "Forward-carry", "Friction"))
+
+    def run(head, named):
+        (w / "body.md").write_text(body(f"`{named}`"))
+        p = subprocess.run(["node", str(w / "tools/policy/policy_lint.mjs"), "--pr-body", str(w / "body.md"),
+                            "--head", head], cwd=str(w), capture_output=True, text=True,
+                           env={**os.environ, **throwaway_git_env()})
+        q = subprocess.run(["python3", str(w / "tools/audit/seat/review_carry.py"), named, head],
+                           cwd=str(w), capture_output=True, text=True, env={**os.environ, **throwaway_git_env()}) \
+            if (w / "tools/audit/seat/review_carry.py").exists() else None
+        return p.returncode, p.stdout, None if q is None else q.returncode
+
+    try:
+        for sub in ("tools/policy", "tools/audit/seat", "tools/pr", "tests/golden"):
+            (w / sub).mkdir(parents=True)
+        _copy_policy_lint_tree(w / "tools/policy")
+        for f in ("tools/audit/seat/review_carry.py", "tools/audit/seat/gh_read.py", "tools/pr/app_approve.sh"):
+            shutil.copy(f, w / f)
+        (w / "tests/closures.json").write_text('{"closures": {}}\n')
+        (w / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\n")
+        (w / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
+        (w / "other.txt").write_text("v1\n")
+        (w / ".gitignore").write_text("body.md\n")
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(o)], capture_output=True,
+                       env={**os.environ, **throwaway_git_env()})
+        throwaway_git_init(w, "-q", "-b", "main")
+        g("remote", "add", "origin", str(o))
+        base = commit("base", {})
+        g("push", "-q", "origin", f"{base}:refs/heads/main")
+        fixhead = commit("fix: own", {"other.txt": "fix\n"}, parent=base)
+        g("push", "-q", "origin", f"{fixhead}:refs/heads/fix/x")
+        mainline = commit("main moved", {"main.txt": "m\n"}, parent=base)
+        g("push", "-q", "origin", f"{mainline}:refs/heads/main")
+        g("fetch", "-q", "origin")
+        out = {}
+        out["clean"] = run(recarry(fixhead), fixhead)
+        out["unpushed"] = run(recarry(fixhead, push=False), fixhead)
+        out["hand"] = run(recarry(fixhead, hand="hand\n"), fixhead)
+        own = commit("fix: more", {"other.txt": "more\n"}, parent=recarry(fixhead))
+        g("push", "-q", "-f", "origin", f"{own}:refs/heads/fix/x")
+        out["own_commit"] = run(own, fixhead)
+        out["names_main"] = run(recarry(fixhead), base)
+        clean = recarry(fixhead)
+        (w / "tools/audit/seat/review_carry.py").unlink()
+        out["mutant_no_predicate"] = run(clean, fixhead)
+        return out
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+_RH = _recarry_head_fixture()
+_RH_WANT = {"clean": 0, "unpushed": 0, "hand": 1, "own_commit": 1, "names_main": 1}
+_RH_WRONG = {k: (_RH[k][0], _RH[k][2], _RH[k][1].strip()[-240:]) for k, want in _RH_WANT.items()
+             if _RH[k][0] != want or _RH[k][2] != want}
+R.check(
+    "pr-contract's `## Head` and review_carry.py agree on every built recarry chain: a clean merge of main "
+    "into the named head passes, pushed or not; a hand-resolved merge, a branch commit on it, and a body "
+    "naming only main's commit refuse (R11-RECARRY-HEAD-RULE)",
+    not _RH_WRONG and "review_carry.py carries it to" in _RH["clean"][1]
+    and all("Nor does the review carry to it" in _RH[k][1] for k in ("hand", "own_commit", "names_main")),
+    f"arms whose contract rc or review_carry rc is not the wanted one: {_RH_WRONG}",
+)
+R.check(
+    "and with review_carry.py absent the clean recarry is refused: the carry arm is what admits it (mutant)",
+    _RH["mutant_no_predicate"][0] == 1 and "Nor does the review carry to it" in _RH["mutant_no_predicate"][1],
+    f"rc={_RH['mutant_no_predicate'][0]}; {_RH['mutant_no_predicate'][1].strip()[-240:]!r}",
+)
 # The identity and messages are the autofix jobs' own. `checkPrBody` holds
 # them as constants rather than reading tests.yml, because the checkout it
 # runs in is the pull request's: a branch that edited the workflow would widen
