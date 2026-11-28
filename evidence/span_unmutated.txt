@@ -1,0 +1,5 @@
+  ok   null control (seam home): a dhw span in features_model.py is refused naming features_dhw.py; in features_dhw.py, or pinned in seam_pins, it passes; a seam header importing features.py and a script named for no seam are refused
+  ok   null control (laundering): the manifest has its own budget-raise-gate SCHEMA entry, `lines` a cap and `spans` and every `seam_pins` list frozen, so a span appended and the manifest re-recorded in the same diff is a raise on both, a new pin and a dropped span id are raises, `lines` re-recorded down is routine, and an unchanged manifest is none
+CASES: SCOPED tests/entities.py -- 1 of 66 spans
+
+ALL 6 ENTITY CHECKS PASSED
