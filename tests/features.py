@@ -100590,6 +100590,7 @@ import heatpump_optimizer.dhw_charges as _hdr_dc  # noqa: E402
 import heatpump_optimizer.optimizer as _hdr_om  # noqa: E402
 from heatpump_optimizer import runs as _hdr_runs  # noqa: E402
 from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _HDR_RUNS_AT  # noqa: E402
+from dataclasses import replace as _hdr_with  # noqa: E402
 
 _HDR_N = 32
 
@@ -100803,6 +100804,39 @@ R.check(
     and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (True,))) + 1 :]) - {("run", ())}
     == {("refusal", (True,)), ("mask", (True,))},
     f"{_hdr_d0}, {sorted(set(_hdr_d0_seen))}",
+)
+
+# 2d, through the planner. The solve hands commit_charges the state's
+# dhw_charge_under_way: with the compressor running the store program
+# enters on a run and places step 0 as a continuation, so only that reading
+# refuses a charge the pump would not start. everything_on, engaged (a start
+# priced), compressor running, tank at 52 degC over a 3 K hysteresis: no
+# charge under way, step 0 is off; the null, the same solve under way,
+# keeps the step-0 charge.
+def _hdr_p0_capture(under_way):
+    kept, kept_runs, runs = _hdr_om.HeatPumpOptimizer.optimize, _hdr_om._charge_runs, []
+
+    def solve(self, *, inputs):
+        state = _hdr_with(
+            inputs.state, dhw_charge_under_way=under_way, dhw_start_hysteresis_k=3.0, dhw_temperature=52.0)
+        return kept(self, inputs=_hdr_with(inputs, state=state, compressor_running=True))
+
+    _hdr_om.HeatPumpOptimizer.optimize = solve
+    _hdr_om._charge_runs = lambda opt, running: (runs.append(kept_runs(opt, running)), runs[-1])[1]
+    try:
+        got = _hdr_golden.capture("everything_on", _hdr_golden.SCENARIOS["everything_on"])
+    finally:
+        _hdr_om.HeatPumpOptimizer.optimize, _hdr_om._charge_runs = kept, kept_runs
+    return float(np.asarray(got["dhw_power_schedule"], dtype=float)[0]), runs
+
+
+_hdr_p0 = {under_way: _hdr_p0_capture(under_way) for under_way in (False, True)}
+R.check(
+    "an engaged solve with the compressor running and the tank at its start temperature ships no "
+    "hot-water charge at step 0 unless a charge is under way; under way, the same solve keeps it",
+    _hdr_p0[False][0] == 0.0 and _hdr_p0[True][0] > _HDR_RUNS_AT
+    and all(runs and all(r is not None and r.running for r in runs) for _p, runs in _hdr_p0.values()),
+    f"{ {k: (round(p, 3), runs) for k, (p, runs) in _hdr_p0.items()} }",
 )
 
 # 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
