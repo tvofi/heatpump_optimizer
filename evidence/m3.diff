@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index f2892e79de..b1c8107f5e 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -3504,7 +3504,7 @@ class ThermalModel:
+         u_wind = base_u * wind_factor
+ 
+         # Rain effect: apply multiplier when raining
+-        if precipitation > 0.1:  # threshold for "raining"
++        if precipitation > 0.0:  # threshold for "raining"
+             # Scaled by intensity: the full multiplier from 2 mm/h.
+             rain_intensity = min(precipitation / 2.0, 1.0)
+             rain_factor = 1.0 + (p.rain_heat_loss_multiplier - 1.0) * rain_intensity
