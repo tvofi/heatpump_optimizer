@@ -1,0 +1,7 @@
+  ok   unloaded_package_imports 0 <= 0
+
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0000 NULL
+  MODE: SCOPED -- 3 script(s) run, 31 scoped out.
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes

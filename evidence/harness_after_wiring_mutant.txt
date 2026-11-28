@@ -1,0 +1,17 @@
+SITE custom_components/heatpump_optimizer/inputs.py:644 GUARD_OFF tests/features.py
+SITE custom_components/heatpump_optimizer/pump_arbiter.py:576 RETURN_DEL tests/features.py
+SITE custom_components/heatpump_optimizer/coordinator.py:672 RETURN_DEL tests/features.py
+SITE custom_components/heatpump_optimizer/legionella.py:163 GUARD_OFF tests/features.py
+SITE custom_components/heatpump_optimizer/inputs.py:627 BOOLOP tests/features.py
+SITE custom_components/heatpump_optimizer/pump_arbiter.py:1252 BOOLOP tests/features.py
+SITE custom_components/heatpump_optimizer/arbiter_record.py:186 GUARD_OFF tests/features.py
+SITE custom_components/heatpump_optimizer/pump_arbiter.py:989 GUARD_OFF tests/features.py
+SITE custom_components/heatpump_optimizer/arbiter_record.py:141 RETURN_DEL tests/solar_alignment.py
+SITE custom_components/heatpump_optimizer/inputs.py:643 CLAMP_DROP tests/features.py
+DRIVER tests/entities.py runs=2 seconds=2134
+DRIVER tests/env_drift.py runs=2 seconds=794
+DRIVER tests/features.py runs=11 seconds=17784
+DRIVER tests/solar_alignment.py runs=3 seconds=4
+MAIN rc=0
+ESTIMATE 9824 s at --scale 100 (164 min against the job's 160)
+rc=0
