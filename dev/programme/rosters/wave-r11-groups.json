@@ -9386,6 +9386,48 @@
     "next_step": "cloud box per the carries; re-measure first",
     "note": "overlap admitted (R11-SEAM-cycle-reporting-p2, R11-D3-PINS-actuation, R11-D3-PINS-fabric, R11-D3-PINS-inputs, R11-D3-PINS-solver, R11-D3-PINS-sysid): orphan-carry rewire 2026-11-28: one new group per seam for carries whose group's fix merged; no unstarted group owns this seam"
    }
+  },
+  {
+   "group": "R11-RCA-CLASS-I1",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/audit/config/bugclasses.json",
+    "dev/audit/rca/"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "audit",
+   "brief": "The root-cause analysis of class I1 (#3755, production mutants the full gate does not kill) under dev/governance/rules/defect-root-cause.md, run by a root-cause seat (dev/governance/roles/root-cause.md) beside the R11-D3-PINS groups, never inside them. Carried below verbatim.",
+   "carry": [
+    "Moved from R11-SEAM-tests carry 3 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Unbuilt at PRs 3825 and 3890. Text verbatim:\n\nClass I1 (#3755), D3 wave: the judge adds the wave's survivors as I1 instances, counted per group in dev/audit/rounds/round11/PLAN/D3-FOLD.json at e8aefbb452. The class's root-cause analysis under dev/governance/rules/defect-root-cause.md is owed by a root-cause seat beside these groups, never inside them; this group owns the class issue and records the analysis path on it. The sweep for each R11-D3-PINS group is the wave's own keys for its seam, re-run after its merge."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-rca-class-i1",
+    "commit": null,
+    "last_step": "created by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups)",
+    "next_step": "root-cause seat per the carry",
+    "note": null
+   }
   }
  ]
 }
