@@ -1,0 +1,2 @@
+surface	R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store
+plan	R11-OUTSIDE-START-APPROACH: a run's first steps draw what the pump draws (Bankaifan, comment 6944433306 on #3670)
