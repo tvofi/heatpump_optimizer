@@ -1207,7 +1207,7 @@ class DhwPlanner:
             max_temp=max_temp,
             forced_off=forced_off,
         ), running)
-        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand)
+        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand, running)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step

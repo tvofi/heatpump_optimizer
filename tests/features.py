@@ -100769,6 +100769,43 @@ R.check(
     f"{np.round(_hdr_c_null[_hdr_c_null > 0], 2)}",
 )
 
+# 2d. A charge at the first step (#3863's start rule, dhw_start): the commit
+# judges it as the floor repair does. On a tank at its start temperature it
+# starts only while a charge is under way (ThermalState.dhw_charge_under_way);
+# commit_charges hands that reading to the acceptance and to the program's
+# start mask. Null: under way, the same charge passes. Called without the
+# reading, both take a charge to be under way, as dhw_start's functions do.
+_hdr_d0_plan = np.zeros(8)
+_hdr_d0_plan[0] = 2.0
+_hdr_d0_walk = np.array([52.0, 54.0, 53.8, 53.6, 53.4, 53.2, 53.0, 52.8, 52.6])
+_hdr_d0 = [
+    _hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf), running)
+    for running in (False, True)
+] + [_hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf))]
+_hdr_d0_rig = _hdr_rig(t0=52.0)
+_hdr_d0_seen = []
+_hdr_d0_kept = (_hdr_dc.charge_refusal, _hdr_dc.startable_steps)
+_hdr_dc.charge_refusal = lambda *a: _hdr_d0_seen.append(("refusal", a[4:])) or _hdr_d0_kept[0](*a)
+_hdr_dc.startable_steps = lambda *a: _hdr_d0_seen.append(("mask", a[3:])) or _hdr_d0_kept[1](*a)
+try:
+    for _hdr_d0_running in ((False,), (True,), ()):
+        _hdr_d0_seen.append(("run", _hdr_d0_running))
+        _hdr_dc.commit_charges(
+            _hdr_d0_rig.planner, np.where(np.arange(_HDR_N) < 2, 0.6, 0.0), (_hdr_d0_rig.ctx, *_hdr_d0_rig.tank),
+            (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.full(_HDR_N, 51.0), None, *_hdr_d0_running)
+finally:
+    _hdr_dc.charge_refusal, _hdr_dc.startable_steps = _hdr_d0_kept
+R.check(
+    "a charge at the first step on a tank at its start temperature is refused for its start unless a "
+    "charge is under way, and the commit hands that reading to the acceptance and the program's start mask",
+    _hdr_d0 == [("start", 0), None, None]
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (False,))) + 1 : _hdr_d0_seen.index(("run", (True,)))])
+    == {("refusal", (False,)), ("mask", (False,))}
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (True,))) + 1 :]) - {("run", ())}
+    == {("refusal", (True,)), ("mask", (True,))},
+    f"{_hdr_d0}, {sorted(set(_hdr_d0_seen))}",
+)
+
 # 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
 # to its ceiling. Lifted, the first leaves the second no room, the rating
 # clamp cuts it under a runnable block and zeroes it, and the tank ends
@@ -101030,10 +101067,11 @@ R.check(
 # plans; one committed build follows on the settled flux and ships only
 # where the store, under the flux that plan itself leaves, falls no further
 # under the requirement than the last round's.
-def _hdr_combi(cost, slack=None):
+def _hdr_combi(cost, slack=None, plans=None):
     opt = _StoreOpt(ThermalModel(_ct_params()), _StoreCfg(
         horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0, cycling_cost=cost))
     real, saved, calls = _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K, []
+    dhw_build = _hdr_om._dhw_build
 
     def exchange(o, h, planner, *rest):
         build, charge = DhwPlanner._build_dhw_requirements, planner.charge_runs
@@ -101046,11 +101084,18 @@ def _hdr_combi(cost, slack=None):
                 builds.append((self.charge_runs is not None, np.array(got[0].schedule)))
                 return got
 
+            def handed(by, *a, **k):
+                got, req = dhw_build(by, *a, **k)
+                return SimpleNamespace(schedule=plans(len(builds), np.asarray(got.schedule))), req
+
             DhwPlanner._build_dhw_requirements, planner.charge_runs = counted, runs_planned
+            if plans is not None:
+                _hdr_om._dhw_build = handed
             try:
                 out = real(o, h, planner, *rest)
             finally:
                 DhwPlanner._build_dhw_requirements, planner.charge_runs = build, charge
+                _hdr_om._dhw_build = dhw_build
             return SimpleNamespace(rounds=[s for c, s in builds if not c], commits=[s for c, s in builds if c], out=out)
 
         # The same exchange with the planner handed no ChargeRuns, then as the solve runs it.
@@ -101174,11 +101219,19 @@ R.check(
     and bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark - 1.0)[1][0]),
     f"{np.flatnonzero(_hdr_h_out > 0).tolist()}",
 )
+# Whether a real solve's exchange settles before the cap is the solver's
+# arithmetic: the unengaged solve above stops short of it on one BLAS build
+# and oscillates to it on another (round-to-round moves of 4.0, 4.0 and
+# 0.6 kW). The exit is pinned on builds the check hands the rounds instead:
+# one plan built again and again repeats from the second round, and a plan
+# that alternates never repeats, so only the exit tells the two apart.
+_hdr_x_same = _hdr_combi(0.0, plans=lambda n, built: np.full(built.shape, 1.0))[0]
+_hdr_x_flip = _hdr_combi(0.0, plans=lambda n, built: np.full(built.shape, 1.0 + n % 2))[0]
 R.check(
-    "combi: the exchange leaves its rounds when a round's plan repeats the one before: the unengaged "
-    "solve stops short of the cap",
-    0 < len(_hdr_x_free.rounds) < _hdr_om._COMBI_EXCHANGE_ROUNDS,
-    f"{len(_hdr_x_free.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}; engaged {len(_hdr_x.rounds)}",
+    "combi: the exchange leaves its rounds when a round's plan repeats the one before: a build that "
+    "repeats stops short of the cap, one that alternates runs to it",
+    0 < len(_hdr_x_same.rounds) <= 2 < len(_hdr_x_flip.rounds) == _hdr_om._COMBI_EXCHANGE_ROUNDS,
+    f"repeating {len(_hdr_x_same.rounds)}, alternating {len(_hdr_x_flip.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}",
 )
 
 # The kernel hands an action whether the cells it leaves were running, and

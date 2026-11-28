@@ -1,10 +1,12 @@
-"""Hot-water charges committed as runs, for the planner's plan.
+"""Hot-water charges the pump would start and run, for the planner's plan.
 
 The stage ``DhwPlanner._build_dhw_requirements`` calls after the floor
-repair under the start condition (``dhw_start.place_startable``). The commit
-(:func:`commit_charges`), on a solve that plans runs (:class:`ChargeRuns`):
-the plan as charges that run at the pump's floor or above, chosen between the
-store program's plan (:class:`_StoreProgram`) and the lifted one.
+repair under the pump's start condition (``dhw_start.place_startable``).
+The commit (:func:`commit_charges`), on a solve that plans runs
+(:class:`ChargeRuns`): the plan as charges that run at the pump's floor or
+above, chosen between the store program's plan (:class:`_StoreProgram`)
+and the lifted one. Each is kept only where the pump would start its
+charges under the same start condition.
 
 Pure computation over arrays and the planner's own tank walk; the planner
 is passed in, never imported at run time.
@@ -46,6 +48,7 @@ def charge_refusal(
     start_below: np.ndarray | None,
     temps_of: Callable[[np.ndarray], np.ndarray],
     held: np.ndarray,
+    charge_running: bool = True,
 ) -> tuple[str, int] | None:
     """Why the commit may not ship ``candidate``, or ``None`` where it may.
 
@@ -53,10 +56,12 @@ def charge_refusal(
     the charge that opens there (:func:`drop_unstartable` removes it).
     ``("floor", step)``: the walk falls under ``held``, the floors the
     uncommitted plan held, by more than the planners' tolerance. With no
-    start condition known every charge is taken to start.
+    start condition known every charge is taken to start; a charge at the
+    first step starts only while ``charge_running`` says one is under way
+    or the tank is below its start temperature there.
     """
     if start_below is not None:
-        lost = np.flatnonzero(drop_unstartable(candidate, start_below, temps_of) != candidate)
+        lost = np.flatnonzero(drop_unstartable(candidate, start_below, temps_of, charge_running) != candidate)
         if lost.size:
             return "start", int(lost[0])
     short = np.flatnonzero(temps_of(candidate)[1 : candidate.size + 1] < held - SHORTFALL_K)
@@ -242,6 +247,7 @@ def commit_charges(
     forced_off: np.ndarray | None,
     start_below: np.ndarray | None,
     space_demand: np.ndarray | None,
+    charge_running: bool = True,
 ) -> np.ndarray:
     """The planner's finished, uncommitted ``plan`` as charges the pump can
     run, on a solve that plans runs (``planner.charge_runs``). ``plan``
@@ -255,7 +261,10 @@ def commit_charges(
     :func:`charge_refusal` passes it on its own walk. The cheapest ships:
     its energy at the planning prices plus the starts of the combined draw,
     so a charge beside a space run is no start. With no candidate, ``plan``,
-    which ``place_startable`` already left startable.
+    which ``place_startable`` already left startable. ``start_below`` and
+    ``charge_running`` are the floor repair's: the start condition
+    (``dhw_start.dhw_start_temps``) and whether a charge is under way at
+    solve time (``ThermalState.dhw_charge_under_way``).
     """
     charge, floor = planner.charge_runs, runs.floor_kw(planner.model.params.min_electrical_power)
     ctx, tank = store[0], store[1:]
@@ -275,7 +284,7 @@ def commit_charges(
         candidate = planner._ctx_clamp(ctx, tank[0], tank[1], limits[1], candidate)
         if not charges_run(candidate, floor, not charge.clamped):
             return "level", 0
-        return charge_refusal(candidate, start_below, temps_of, held) or candidate
+        return charge_refusal(candidate, start_below, temps_of, held, charge_running) or candidate
 
     def cost(candidate: np.ndarray) -> float:
         starts = runs.start_count(space + candidate, floor, charge.running)
@@ -283,7 +292,7 @@ def commit_charges(
 
     program = _StoreProgram(planner, ctx, plan, tank, (held, np.maximum(limits[1], walk[1:])), forced_off, space)
     proposed = (
-        program.accepted(startable_steps(plan, walk, start_below), fits),
+        program.accepted(startable_steps(plan, walk, start_below, charge_running), fits),
         fits(np.where((plan > 0.0) & (plan < floor), floor, plan)),
     )
     return min((c for c in proposed if isinstance(c, np.ndarray)), key=cost, default=plan)
