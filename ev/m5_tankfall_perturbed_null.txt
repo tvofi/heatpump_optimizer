@@ -1,0 +1,2 @@
+RESULT booked_kwh_draw_then_charge_max=2.6390 kWh
+RESULT unplanned_inputs_equal_draw_then_charge=False

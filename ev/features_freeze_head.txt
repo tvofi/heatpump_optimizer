@@ -1,0 +1,3 @@
+REFUSALS 2
+ - span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)
+ - lines: tests/features.py has 106163 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate

@@ -1,0 +1,33 @@
+carry8 fold elif not sweep -> else: rc=1 fails=5
+   : FAIL the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked swe
+   : FAIL a sweep's band-top interval is ceiling evidence only by the probe's own rule: not frozen, distorted or defrosting, running above standby, an experiment's interval, with no hot water asked
+   : FAIL the flag is the interval's: the fold reads and clears it, so the first plan interval after a sweep reaches the window again; a hot-water stand-down pass marks its interval a sweep's too
+   : FAIL where the night's draws went: the band-top level is the one ceiling row, marked sweep, and the probe's clock is unmoved; no sweep interval reached the window (4 plan intervals folded, against 9 o
+   : FAIL null: the window after the sweep night holds only its plan intervals -- samples, commands, the latch and the ask evidence are those of a window fed those four intervals and nothing else
+fold idle gate drop not sweep: rc=1 fails=1
+   : FAIL the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked swe
+fold source always probe: rc=1 fails=2
+   : FAIL the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked swe
+   : FAIL where the night's draws went: the band-top level is the one ceiling row, marked sweep, and the probe's clock is unmoved; no sweep interval reached the window (4 plan intervals folded, against 9 o
+commit_runs never sweep: rc=1 fails=5
+   : FAIL the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked swe
+   : FAIL a sweep's band-top interval is ceiling evidence only by the probe's own rule: not frozen, distorted or defrosting, running above standby, an experiment's interval, with no hot water asked
+   : FAIL the flag is the interval's: the fold reads and clears it, so the first plan interval after a sweep reaches the window again; a hot-water stand-down pass marks its interval a sweep's too
+   : FAIL where the night's draws went: the band-top level is the one ceiling row, marked sweep, and the probe's clock is unmoved; no sweep interval reached the window (4 plan intervals folded, against 9 o
+   : FAIL null: the window after the sweep night holds only its plan intervals -- samples, commands, the latch and the ask evidence are those of a window fed those four intervals and nothing else
+CE2 probe-first guard off: rc=1 fails=3
+   : FAIL [CE] 2: an unconverged house whose pump's top is unlearned arms the probe first, with the reason; only unlearned, capable and clock-allowed moves -- with no probe install (null), a learned top, o
+   : FAIL what the button says: the armed result names the kind and why (the probe first, the fit beside the probe's wait, the sweep with its cost bound); an install that cannot probe arms the fit and its 
+   : FAIL the coordinator's route: the sweep press arms the sweep on a flow-metered install, its levels the hub's band beside the rows held, and is refused with the reason on one that cannot run it; the sy
+CE2 ignore clock: rc=1 fails=3
+   : FAIL [CE] 2: an unconverged house whose pump's top is unlearned arms the probe first, with the reason; only unlearned, capable and clock-allowed moves -- with no probe install (null), a learned top, o
+   : FAIL r14: twelve sweep-only samples learn a top and leave the probe's clock unset, so a sweep sample never postpones a probe (four sweep samples a day old still arm it, four probe samples a day old do
+   : FAIL what the button says: the armed result names the kind and why (the probe first, the fit beside the probe's wait, the sweep with its cost bound); an install that cannot probe arms the fit and its 
+sweep min levels off: rc=1 fails=1
+   : FAIL a sweep is refused, with the reason, where the install has no metered flow set-point, and where the band holds fewer than two levels (one refuses, two arm)
+sweep cost bound drop levels: rc=1 fails=2
+   : FAIL no press but the sweep button's arms a sweep: over 16 arms without its levels the kind is the fit, the probe or none; with them it is the sweep, on a house converged or not, and its reason is the
+   : FAIL what the button says: the armed result names the kind and why (the probe first, the fit beside the probe's wait, the sweep with its cost bound); an install that cannot probe arms the fit and its 
+sweep no probe -> armable: rc=1 fails=2
+   : FAIL a sweep is refused, with the reason, where the install has no metered flow set-point, and where the band holds fewer than two levels (one refuses, two arm)
+   : FAIL the coordinator's route: the sweep press arms the sweep on a flow-metered install, its levels the hub's band beside the rows held, and is refused with the reason on one that cannot run it; the sy
