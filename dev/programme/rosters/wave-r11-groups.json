@@ -3019,7 +3019,8 @@
     "From #3848 (running-signal fallback), body item 9dd174d5: when the running signal is unsettled or missing, duty_switch.running_now falls back to the planned draw, so the old behaviour remains there (items 9dd174d5)",
     "From #3848 (what-if default), body item 28656f4b: the what-if path (_solve_hubs without a base) still uses the default True (items 28656f4b)",
     "From #3848 (deleted mutation pin), body item c18e8ef5: the mutation pin place_startable.RETURN_DEL.68208daf was removed because its line no longer exists (items c18e8ef5) [dismissed: pin's line deleted by #3848; no site to pin]",
-    "From r11-repair-3942, body item b2749276: Carry 0 and Carry 1 (merge-time undefined-name detector, `merge_train.py` merge step candidate site): a round-end proposal, not built here. Carry: R11-CLOSEOUT-CLEANUP (items b2749276)"
+    "From r11-repair-3942, body item b2749276: Carry 0 and Carry 1 (merge-time undefined-name detector, `merge_train.py` merge step candidate site): a round-end proposal, not built here. Carry: R11-CLOSEOUT-CLEANUP (items b2749276)",
+    "From r11-repair-3942, body item 94574098: Carry 4, re-measured at ac9045c223 by reading `tools/audit/seat/`: merge_pr.sh deferral read is answered (classify rc 3 is WAIT); TRAIN-ADD-START-TEXT (train.sh header and the started-train sentence) open; TRAIN-SKIP-RELEASES-WORKTREE (`Train.skip` never calls `release_worktrees`) open; TRAIN-WAIT-UNSTALE (`unstale` only on the land path, not `wait_ci`) open; skipped-entry re-admission in `already_held` open; rejoin-without-recarry answered for PREFLIGHT_PARK, open for other skip classes; stale gate red from an older run's check open. Builds are instrument work for a later part. Carry: R11-CLOSEOUT-CLEANUP (items 94574098)"
    ],
    "resume": {
     "stage": "not-started",
