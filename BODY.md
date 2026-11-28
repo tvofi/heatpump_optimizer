@@ -11,6 +11,8 @@ By carry:
 
 ## Head
 
+`433dc17553a00c58c9545faa6d26469b7bde2c23` is the handoff's code tip this body is applied against (body-only repair of #3933 at PR head `d70f2ef0fa`: the `## Raise justification` and `## Red checks` entries below; no code changed).
+
 ad02493c1b76bcec94b3eca6b2d7ca155ab16ae3, merge base 7194ff84c09dd9d54a99f8208c906136981fd9dc (origin/main at measurement, 2026-11-27T00:57Z).
 
 ## Mutation proof
@@ -54,8 +56,12 @@ Payments tried: three, one measured and reverted; each below.
 
 ## Red checks
 
-- `budget-raise-gate`: red by construction while the `module_excess_loc` raise in `tests/structure_budgets.json` awaits an approving review that cites mandate 6893738184 (`## Raise justification`). No cheaper detector: the gate is the deliberate refusal of an unreviewed raise, and `tests/structure.py` already printed it locally before the re-record.
-- `mutation` at ad02493c1b76: red by construction on the 114 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `budget-raise-gate / budget-raise-gate` (job 141061737998, head `d70f2ef0fa`): `REFUSED: tvofi's approval is on 2e97faf4c1d2, not this head d70f2ef0fa38: an approval covers only the commit it was given on`, for the `module_excess_loc` raise in `tests/structure_budgets.json`. Red by construction while the `module_excess_loc` raise in `tests/structure_budgets.json` awaits an approving review that cites mandate 6893738184 (`## Raise justification`). No cheaper detector: the gate is the deliberate refusal of an unreviewed raise, and `tests/structure.py` already printed it locally before the re-record.
+- `tests / mutation` (job 141061737926, head `d70f2ef0fa`): `MUTATION TABLE REFUSED -- 1504 unpinned site(s) against 1392 at the ratchet base a59a1b0d9a, 118 of them added by this diff`. Red by construction on the 114 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / fast (3.14, 1/4)` (job 141062354631, head `d70f2ef0fa`): `FAILED python3 tests/entities.py`, `5 of 2801 ENTITY CHECKS FAILED`: `tests/features.py` has the span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence' that `tests/features_frozen_budgets.json` does not list (252 listed, 253 live). It came in with main's features.py split merged into this head and is repaired by re-recording the freeze manifest at the merge result, as main's tip `4f6d53ba25` did. Cheaper detector: `python3 tests/entities.py` locally, which the scoped gate selects only when features.py is in the diff.
+- `gate` (job 141062182708) and `tests / nightly-status` (job 141061737898): consequences, not causes. `gate` printed `FAIL run(s) [46171699689] at this head are still being judged; their gate decides`, and `nightly-status` printed `NIGHTLY FAILED: mutation-ledger (1-4), mutation-nightly, nightly-ha (2025.2.0), nightly-ha (stable), slow failed last night`, which reads main's nightly runs and no code of this branch. No cheaper detector is owed; the nightly jobs' owner is the nightly lane.
+- `tests / closures` and `tests / closures-autofix`: red on an ancestor commit of the branches this head merges, none at `d70f2ef0fa` in `gh pr checks`; `closures-autofix` replaces the committed closures with CI's Linux recording, as `ci-autofix.md` names. Cheaper detector: `ci_predict.py` in `prepr.sh`, which predicts closures reds before the handoff.
+- `governance / instrument-self-tests`: red on `cfae1f3aa3`, an ancestor commit, none at `d70f2ef0fa`; the cause is outside this group (the tooling freeze), the same class `check_scopes.py` names for the unit cap.
 
 ## Unpinned sites
 
