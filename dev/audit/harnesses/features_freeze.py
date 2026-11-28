@@ -21,8 +21,9 @@ rather than a convention:
    refused too.
 
 The manifest is tests/features_frozen_budgets.json. Its `_budgets.json` name
-puts it under budget-raise-gate: it has no SCHEMA entry, so every leaf is
-FROZEN and any change to it, a raise of `lines`, a new span id or a new pin,
+puts it under budget-raise-gate, whose SCHEMA entry for it reads `lines` as a
+cap (re-recorded down is routine) and `spans` and every `seam_pins` list as
+FROZEN. A raise of `lines`, a new span id or a new pin
 merges only on the owner's approving review or under a mandate's
 `## Raise justification` (CLAUDE.md rule 2, decision 0013). A PR that appends
 a span and re-records the manifest in the same diff is therefore refused by
