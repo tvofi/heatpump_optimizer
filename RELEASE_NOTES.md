@@ -1,3 +1,19 @@
+## v10.1.7
+
+**Patch stamp: 2 merges since v10.1.6 (`git log --first-parent --merges --format=%h v10.1.6..HEAD | wc -l`): state that production stored and never read is deleted, with no behaviour change, and the round-11 mutant kills are recorded in the mutation ledger.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes.
+
+### #3931 Unread state deleted (R11-SEAM-dead-state)
+
+Imports, parameters, locals and stored fields that no production code reads are removed from the modules that held them and from their callers. The integration behaves as before.
+
+### Tooling, tests and CI
+
+- #3938: the mutant kills the round-11 test-gap finders measured are pinned in the mutation ledger, so later rounds do not screen them again.
+
 ## v10.1.6
 
 **Patch stamp: 13 merges since v10.1.5 (`git log --first-parent --merges --format=%h v10.1.5..HEAD | wc -l`): a stored option of the wrong type now reads as its default instead of raising, a stored boolean in the persisted store reads as absent where a number is declared, and the rest is test pins, review and CI tooling.**
