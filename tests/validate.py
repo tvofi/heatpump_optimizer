@@ -8,7 +8,7 @@ from profiles import prices, weather, house, DT, N
 from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
-from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
+from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig, _step_clock
 from heatpump_optimizer.runs import edge_count
 from heatpump_optimizer.dhw_schedule import parse_windows, hour_in_windows
 
@@ -220,7 +220,8 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
         st, np.zeros(N),
         WeatherSeries(outdoor_temps=ot, wind_speeds=wind,
                       precipitation=rain, solar_radiation=sol),
-        dt_hours=DT, start_hour=start.hour,
+        dt_hours=DT,
+        step_hours=_step_clock(start, N, DT)[1],
     )
     coast_zones = [coast_room] + ([coast_up, coast_lo] if two_zone else [])
     coast_min = min(float(np.min(z)) for z in coast_zones)
