@@ -609,6 +609,8 @@ COST_ARMS_SKIPPED: dict[str, str] = {
 #: The pull-request ``replay`` job in this file, whose ``timeout-minutes`` the
 #: lane checks its own wall time against (``headroom_offenders``).
 REPLAY_WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"
+#: The job's cap line, matched whole against one line of it.
+_REPLAY_CAP_LINE = re.compile(r"    timeout-minutes: (\d+)")
 #: The job's seconds before ``tests/replay.py`` starts: checkout, Python and
 #: the pinned install (about 20 s on the runs P-R11-REPLAY-TIMEOUT measured).
 REPLAY_JOB_SETUP_S = 20.0
@@ -985,9 +987,25 @@ def arms_skip_offenders(skipped: set[str], committed: set[str]) -> list[str]:
 
 def replay_timeout_minutes(workflow: str) -> int | None:
     """The ``replay`` job's ``timeout-minutes`` in tests.yml's text, or None
-    when the job or its cap is not there (the caller reads None as red)."""
-    m = re.search(r"\n  replay:\n(?:    .*\n|[ \t]*\n)*?    timeout-minutes: (\d+)\n", workflow)
-    return int(m.group(1)) if m else None
+    when the job or its cap is not there (the caller reads None as red).
+    Read line by line from each ``  replay:`` header in turn: the first
+    newline-terminated cap line wins, and a line neither indented four spaces
+    nor blank (spaces and tabs only) ends the job. No regex loops over the
+    lines, so the read is linear in each job's length; a repeated-line regex
+    here once backtracked exponentially over blank four-space lines."""
+    header = "\n  replay:\n"
+    start = workflow.find(header)
+    while start != -1:
+        pos = start + len(header)
+        while (end := workflow.find("\n", pos)) != -1:
+            line = workflow[pos:end]
+            if cap := _REPLAY_CAP_LINE.fullmatch(line):
+                return int(cap.group(1))
+            if not line.startswith("    ") and line.strip(" \t"):
+                break
+            pos = end + 1
+        start = workflow.find(header, start + 1)
+    return None
 
 
 def budget_wall_s(draw: dict[str, float] = REPLAY_SIZING_DRAW) -> float:
@@ -1312,8 +1330,18 @@ def controls() -> list[tuple[str, bool, str]]:
                 and replay_timeout_minutes(job.replace("  replay:", "  other:")) is None
                 and replay_timeout_minutes(job.replace("    timeout", "      timeout")) is None
                 and replay_timeout_minutes(job.replace("    timeout-minutes: 45\n  next:\n",
-                                                       "  next:\n    timeout-minutes: 45\n")) is None,
+                                                       "  next:\n    timeout-minutes: 45\n")) is None
+                and replay_timeout_minutes(job.replace("\n\n", "\n\t\n  \t \n    \n")) == 45
+                and replay_timeout_minutes("\n  replay:\n  other:\n" + job[1:]) == 45,
                 f"read {replay_timeout_minutes(job)}"))
+    # Blank four-space lines before a missing cap: one parse per line keeps
+    # the search linear; two parses per line (an overlapping blank arm) take
+    # seconds at this length and double with each line added.
+    t0 = time.perf_counter()
+    unread = replay_timeout_minutes("\n  replay:\n" + "    \n" * 23 + "x")
+    took_s = time.perf_counter() - t0
+    res.append(("control:headroom:cap_read_is_linear", unread is None and took_s < 0.25,
+                f"read {unread} in {took_s:.3f} s"))
     pair("away:covered_names_are_committed",
          away_covered_offenders({"owner-2026-10-30-awya.json"},
                                 {"owner-2026-10-30-away.json"}),
