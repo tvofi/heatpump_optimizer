@@ -137,6 +137,7 @@ custom_components/heatpump_optimizer/
 │                         #   and the current step's "why now" for the card
 ├── dhw_planner.py        # The hot-water planner one solve builds: floors, LP, repairs
 ├── dhw_start.py          # The pump's hot-water start condition: which planned charges it starts
+├── dhw_charges.py        # The plan committed as charges that run at the pump's floor or above
 ├── batchmath.py          # The batched row reduction every batch twin owes its scalar
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client

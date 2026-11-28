@@ -29,6 +29,7 @@ from scipy.optimize import linprog
 
 from . import pv
 from .const import DHW_QUANTILE_MIN_EVENTS
+from .dhw_charges import SHORTFALL_K, ChargeRuns, commit_charges, whole_charges
 from .dhw_draws import window_label as draw_window_label
 from .dhw_schedule import (
     FULL_DAY,
@@ -304,6 +305,13 @@ class _DhwPlanContext:
         """The store's per-step ``_tank_decay`` (share kept, standby gain), for a positive capacity."""
         return _tank_decay(self.store.ua_kw_per_c, self.dt, self.c_dhw)
 
+    def coast(self, draw_rates: np.ndarray, i: int, temp: Any) -> Any:
+        """The linear store one step on from ``temp`` with no charge: what it
+        keeps, less step ``i``'s draw, plus the combi flux and the standby
+        gain. The one copy the linear program and the store program read."""
+        decay, gain = self.tank_decay
+        return decay * temp - (float(draw_rates[i]) - _exo_at(self.tank_exo_kw, i)) * self.dt / self.c_dhw + gain
+
 
 class _Horizon(Protocol):
     """The planner's read-only view of the optimizer's per-solve horizon.
@@ -359,7 +367,7 @@ class DhwPlanner:
 
     Every input is explicit and fixed at construction. ``pv_surplus`` and
     ``price_known`` default to None, which is what a fresh optimizer held
-    before its first solve.
+    before its first solve. ``charge_runs``: :class:`ChargeRuns`, or None.
     """
 
     def __init__(
@@ -368,11 +376,13 @@ class DhwPlanner:
         config: _PlannerConfig,
         pv_surplus: np.ndarray | None = None,
         price_known: np.ndarray | None = None,
+        charge_runs: ChargeRuns | None = None,
     ) -> None:
         self.model = model
         self.config = config
         self._pv_surplus = pv_surplus
         self._price_known = price_known
+        self.charge_runs = charge_runs
 
     def _dhw_planning_prices(
         self,
@@ -1197,6 +1207,7 @@ class DhwPlanner:
             max_temp=max_temp,
             forced_off=forced_off,
         ), running)
+        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand, running)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
@@ -1234,6 +1245,7 @@ class DhwPlanner:
             mask[:horizon] = covered[:horizon]
             if legionella_step is not None:
                 mask[legionella_step] = False
+            mask = whole_charges(self.charge_runs, schedule, mask)
             schedule = np.where(mask, 0.0, schedule)
 
         next_window = _dhw_next_window_hours(h.start_time, hours_mod, step_weekdays, windows, params, holiday_flags)
@@ -1378,16 +1390,13 @@ class DhwPlanner:
 
         requirement, max_temp = _within_ceiling(requirement, max_temp)
         params = self.model.params
-        decay, gain = ctx.tank_decay
+        decay, _gain = ctx.tank_decay
 
         # Free trajectory: the tank with no heating (in combi, under the space side's flux).
         free = np.zeros(n_steps + 1)
         free[0] = initial_temp
         for i in range(n_steps):
-            free[i + 1] = (
-                decay * free[i]
-                - (float(draw_rates[i]) - _exo_at(ctx.tank_exo_kw, i)) * dt / c_dhw + gain
-            )
+            free[i + 1] = ctx.coast(draw_rates, i, free[i])
 
         # Influence matrix: A[m, j] = degrees at step m+1 per thermal kWh at j.
         idx = np.arange(n_steps)
@@ -1560,7 +1569,7 @@ class DhwPlanner:
                 plan, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw
             )
         gaps = requirement - temps[1 : plan.size + 1]
-        for i in np.where(gaps > 0.05)[0]:
+        for i in np.where(gaps > SHORTFALL_K)[0]:
             if int(i) not in unreachable:
                 return temps, gaps, int(i)
         return temps, gaps, None

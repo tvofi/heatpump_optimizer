@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/runs.py:advance CMP_BOUND 3909ec94",
+  "killed_by": "tests/features.py",
+  "old": "        j, extra = place(b, dest < min_on)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`j, extra = place(b, dest <= min_on)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
