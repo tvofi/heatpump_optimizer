@@ -1,0 +1,13 @@
+guard-off: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+ge-threshold: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+dear-del: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+cap-break-del: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+drivers-conj: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+none-return-del: rc=1 KILLED | AttributeError: 'NoneType' object has no attribute 'get'
+dear-gt: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+dear-ge-minus: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+ret-uncapped: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+seconds-default: rc=0 SURVIVED | OK K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fals
+draws-3: rc=0 SURVIVED | OK K=3; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fals
+cap-gt: rc=1 KILLED | FAIL K=2; uncapped=[(1515, 'GUARD_OFF', '    if False:'), (2041, 'RETURN_DEL', '    pass'), (1203, 'GUARD_OFF', '    if False:'), (2079, 'GUARD_OFF', '    if Fa
+restored: rc=0

@@ -1,0 +1,27 @@
+SITE custom_components/heatpump_optimizer/inputs.py:644 GUARD_OFF tests/features.py
+SITE custom_components/heatpump_optimizer/pump_arbiter.py:576 RETURN_DEL tests/features.py
+SITE custom_components/heatpump_optimizer/arbiter_record.py:141 RETURN_DEL tests/solar_alignment.py
+SITE custom_components/heatpump_optimizer/circulation.py:58 GUARD_OFF tests/structure.py
+PASSED custom_components/heatpump_optimizer/coordinator.py:672 RETURN_DEL: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/legionella.py:163 GUARD_OFF: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/inputs.py:627 BOOLOP: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/pump_arbiter.py:1252 BOOLOP: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/arbiter_record.py:186 GUARD_OFF: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/pump_arbiter.py:989 GUARD_OFF: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/inputs.py:643 CLAMP_DROP: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/coordinator.py:6135 GUARD_OFF: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/arbiter_record.py:194 BOOLOP: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+PASSED custom_components/heatpump_optimizer/coordinator.py:7626 GUARD_OFF: passed over, pinned to tests/features.py (over 900 s) and 2 such site(s) drawn
+DRIVER tests/arch_score_head.py runs=2 seconds=147
+DRIVER tests/boost_drift_replay.py runs=2 seconds=682
+DRIVER tests/cycle_lane.py runs=2 seconds=636
+DRIVER tests/entities.py runs=2 seconds=2134
+DRIVER tests/env_drift.py runs=4 seconds=1588
+DRIVER tests/features.py runs=4 seconds=6467
+DRIVER tests/finite_boundary.py runs=2 seconds=194
+DRIVER tests/optimality.py runs=1 seconds=142
+DRIVER tests/solar_alignment.py runs=3 seconds=4
+DRIVER tests/structure.py runs=3 seconds=151
+MAIN rc=0
+ESTIMATE 5396 s at --scale 100 (90 min against the job's 160)
+rc=0 wall=110s
