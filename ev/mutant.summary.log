@@ -1,0 +1,9 @@
+7798:  FAIL the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked sweep and still no window sample; held at the gate it is no idle reading
+7800:  FAIL a sweep's band-top interval is ceiling evidence only by the probe's own rule: not frozen, distorted or defrosting, running above standby, an experiment's interval, with no hot water asked
+7801:  FAIL the flag is the interval's: the fold reads and clears it, so the first plan interval after a sweep reaches the window again; a hot-water stand-down pass marks its interval a sweep's too
+7811:  FAIL where the night's draws went: the band-top level is the one ceiling row, marked sweep, and the probe's clock is unmoved; no sweep interval reached the window (4 plan intervals folded, against 9 on the same night with no sweep) or an idle reading  [[(3.2, 1768269600.0, 'sweep')] window 8]
+7815:  FAIL null: the window after the sweep night holds only its plan intervals -- samples, commands, the latch and the ask evidence are those of a window fed those four intervals and nothing else
+7939:5 of 6374 FEATURE CHECKS FAILED
+7940:rc=1
+ custom_components/heatpump_optimizer/draw_range.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
