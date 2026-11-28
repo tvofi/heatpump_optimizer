@@ -239,6 +239,9 @@ fi
 } > "$WORKDIR/scope.print"
 
 cat "$WORKDIR/scope.print"
+# The scripts tests/case_select.py runs span by span on a scoped run (run below).
+CASE_SCRIPTS=""
+[ -z "$SCOPE_RUN" ] || CASE_SCRIPTS=$("$PYTHON" tests/case_select.py scripts) || CASE_SCRIPTS=""
 # The arch part answers for the pair alone (RUN_PART above): the rest of the
 # plan's skips are `fast`'s to report, so its NOT RUN block names only these.
 if [ "$RUN_PART" = arch ] && [ -f "$WORKDIR/scope.skip" ]; then
@@ -297,7 +300,7 @@ shard_of() {
 scope_script() {
   local a
   for a in "$@"; do
-    case "$a" in tests/*.py|tests/*.mjs) printf '%s' "$a"; return ;; esac
+    case "$a" in tests/case_select.py) ;; tests/*.py|tests/*.mjs) printf '%s' "$a"; return ;; esac
   done
 }
 
@@ -352,6 +355,16 @@ run() {
     skip "$scoped_out" \
       "SKIP: $scoped_out (scoped out: $(scope_reason "$scoped_out"))"
     return 0
+  fi
+  # A case script on a scoped run goes through tests/case_select.py's gate
+  # (R11-CI-CASE-SELECT P2). It plans the script's spans against the same
+  # diff and prints one CASES: line, whose mode says whether it scoped.
+  # scope_script skips the gate's path, so leasing and the shard key on the
+  # case script. An unscoped run runs it whole, as before.
+  if [ -n "$SCOPE_RUN" ] && [ "$#" -eq 2 ] && [ -n "${CASE_SCRIPTS:-}" ] \
+     && printf '%s\n' "$CASE_SCRIPTS" | grep -Fxq "$2"; then
+    run_always "$1" tests/case_select.py gate "$2" --base "$GATE_SCOPE_BASE"
+    return
   fi
   run_always "$@"
 }
@@ -515,9 +528,9 @@ for f in tests/*.py tests/*.mjs; do
     # recording needs `gh`, verifying needs the floor's own Home Assistant,
     # which the nightly-ha job runs it in. tests/entities.py imports it.
     ha_floor.py) continue ;;
-    # The case runner and recorder (R11-CI-CASE-SELECT): a gate file;
-    # entities.py runs its self-test.
-    case_select.py) continue ;;
+    # The case runner and recorder (R11-CI-CASE-SELECT) and the sample its
+    # plan draws: gate files; entities.py runs case_select's self-test.
+    case_select.py|case_sample.py) continue ;;
     # Run by features.py in a subprocess: HASTUB_TZ must be set before the
     # dt stub is imported, which an in-process import cannot arrange.
     dst_checks.py) continue ;;
@@ -838,7 +851,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py|case_select.py) continue ;;
+    harness.py|profiles.py|worker_deadlines.py|throwaway_git.py|comment_ratchet.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py|case_select.py|case_sample.py) continue ;;
   esac
   # The arch part owes the pair and nothing else; `fast` owes the rest, the
   # pair as its two named skips.

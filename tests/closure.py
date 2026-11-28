@@ -128,6 +128,9 @@ NOT_A_TEST = {
     # The case runner and recorder (R11-CI-CASE-SELECT): a gate file below,
     # never a test of its own; tests/entities.py runs its self-test.
     "case_select.py",
+    # The seeded case sample case_select's plan draws (P2): a gate file below;
+    # case_select's self-test drives it.
+    "case_sample.py",
     # The comment ratchet (R11-SEAM-comments-tests): an arm of doc_claims.py,
     # which imports and runs it. Measured through doc_claims.py's closure.
     "comment_ratchet.py",
@@ -529,8 +532,10 @@ GATE_FILES = (
     # R11-CI-CASE-SELECT (design 25fa1f76): the case splitter, runner and
     # recorder, and the per-span table it writes. How a long script's cases
     # are cut, run and recorded is as load-bearing as how its closure is
-    # derived, so a change to either runs everything.
+    # derived, so a change to either runs everything. The sample its plan
+    # draws decides what a scoped run runs, the same argument (P2).
     "tests/case_select.py",
+    "tests/case_sample.py",
     "tests/case_closures.json",
 )
 

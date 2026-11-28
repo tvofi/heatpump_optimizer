@@ -359,12 +359,14 @@ def _code(stmts: list, path: str, flags: int):
     return compile(ast.Module(body=stmts, type_ignores=[]), path, "exec", flags=flags, dont_inherit=True)
 
 
-def run(script: str, plan: set[str] | None = None, recorder: "Recorder | None" = None) -> int:
+def run(script: str, plan: set[str] | None = None, recorder: "Recorder | None" = None,
+        key: str | None = None) -> int:
     """Run `script` span by span in one namespace, as `python3 <script>` would.
 
     The header runs, then each span in order (all of them without a plan,
     only those named in `plan` with one), then the closing statement. Returns
-    the script's exit status.
+    the script's exit status. `key` replaces the CASES: line printed before
+    the closing statement.
     """
     path = os.path.abspath(script)
     source = open(path, encoding="utf-8").read()
@@ -392,7 +394,9 @@ def run(script: str, plan: set[str] | None = None, recorder: "Recorder | None" =
                 exec(_code(s.stmts, path, flags), ns)
             if recorder:
                 recorder.end(ns)
-            if plan is None:
+            if key:
+                print(key)
+            elif plan is None:
                 print(f"CASES: FULL {rel} -- {'recording' if recorder else 'no plan'}, {len(spans)} spans")
             else:
                 print(f"CASES: SCOPED {rel} -- {len(ran)} of {len(spans)} spans")
@@ -814,6 +818,169 @@ def merge_tables(base: str, ours: str, theirs: str) -> str:
     return dumps(out, order, rec)
 
 
+# ---------------------------------------------------------------- the plan
+
+# A changed file here makes every case script run whole (design 25fa1f76, fail-safe):
+# the harness, the stub, the runner, the sampler, the table and the gate.
+FULL_FILES = ("tests/harness.py", "tests/case_select.py", "tests/case_sample.py",
+              "tests/case_closures.json", "tests/run.sh", "tests/closure.py")
+FULL_PREFIXES = ("tests/hastub/",)
+_STATE_ROOTS = tuple(RNG_MODULES) + tuple(r for rs in STATE_SETTERS.values() for r in rs)
+
+
+def opaque(span: Span, aliases: dict[str, str]) -> str | None:
+    """Why the AST cannot say what `span` binds, or None.
+
+    Opaque: an `exec`/`eval` running in the module's own namespace, a write
+    through `globals()`/`vars()`, a module-scope `global`, and a plain name
+    bound to a process-state setter or container (`env = os.environ`), whose
+    later calls the family rule cannot resolve.
+    """
+    for top in span.stmts:
+        for n in ast.walk(top):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name):
+                if n.func.id in ("exec", "eval") and len(n.args) < 2 and not n.keywords:
+                    return f"{n.func.id}() in the module namespace at line {n.lineno}"
+            writes = (isinstance(n, (ast.Subscript, ast.Attribute)) and isinstance(n.ctx, (ast.Store, ast.Del))
+                      or isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr in INPLACE)
+            if writes:
+                inner = n.func.value if isinstance(n, ast.Call) else n.value
+                if isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name) \
+                        and inner.func.id in ("globals", "vars") and not inner.args:
+                    return f"a write through {inner.func.id}() at line {n.lineno}"
+    for n in _module_scope(span.stmts):
+        if isinstance(n, ast.Global):
+            return f"a module-scope global at line {n.lineno}"
+        if isinstance(n, (ast.Assign, ast.AnnAssign)) and isinstance(getattr(n, "value", None),
+                                                                     (ast.Name, ast.Attribute)):
+            full = _resolve(n.value, aliases) or ""
+            if any(full == r or full.startswith(r + ".") for r in _STATE_ROOTS):
+                return f"{full} bound to a name at line {n.lineno}"
+    return None
+
+
+def _closure(start: set[str], edges: dict[str, set[str]]) -> set[str]:
+    out, todo = set(), list(start)
+    while todo:
+        for m in edges.get(todo.pop(), ()):
+            if m not in out:
+                out.add(m)
+                todo.append(m)
+    return out
+
+
+def plan(script: str, source: str, changed: list[str], table: dict | None, *,
+         base_blob: str | None, head_blob: str, event: str, seed: str,
+         fraction: float | None = None) -> tuple[set[str] | None, str, list[str]]:
+    """(span ids to run or None for the whole script, the CASES: line, the per-span log).
+
+    A span runs when (i) its recorded `files` meet the changed units, (ii) the
+    table lacks it or holds another text hash, (iii) it needs a span of (i)
+    or (ii), transitively, or (iv) the sample draws it. Then (v) every span a
+    running span needs runs too. `needs` is the head's static rule united with
+    the table's recorded edges. Any fail-safe gives None and the reason.
+    """
+    import case_sample
+    from closure import unit_of
+
+    def full(reason: str):
+        return None, f"CASES: FULL {script} -- {reason}", []
+
+    if event != "pull_request":
+        return full(f"event {event or 'none'} is not pull_request")
+    hit = sorted(f for f in changed if f in FULL_FILES or f.startswith(FULL_PREFIXES))
+    if hit:
+        return full(f"{hit[0]} changed (the runner, harness, stub, sampler, table or gate)")
+    if table is None:
+        return full("tests/case_closures.json is missing, unparseable or at another version")
+    e = entry(table, script)
+    if e is None:
+        return full("the table has no entry for it")
+    tree = ast.parse(source)
+    header, header_hash, spans, _ = split(source, tree)
+    if not spans:
+        return full("the splitter found no span")
+    if header_hash != e["header_hash"]:
+        return full("its header differs from the recorded one")
+    if e["blob"] not in (base_blob, head_blob):
+        return full("the table's blob is neither the merge base's text nor the head's")
+    titles = [s.title for s in spans if e["spans"].get(s.id, {}).get("hash") != s.hash]
+    twice = sorted({t for t in titles if titles.count(t) > 1})
+    if twice:
+        return full(f"span id {twice[0]!r} is ambiguous: two spans of that title moved")
+    aliases = _aliases(tree)
+    for s in spans:
+        why = opaque(s, aliases)
+        if why:
+            return full(f"span {s.id!r}: {why}")
+    ids = {s.id for s in spans}
+    needs = static_needs(spans, header, aliases)
+    for s in spans:
+        needs[s.id] |= set(e["spans"].get(s.id, {}).get("needs", ())) & ids
+    users: dict[str, set[str]] = {}
+    for sid, ns in needs.items():
+        for n in ns:
+            users.setdefault(n, set()).add(sid)
+    units = {unit_of(f) for f in changed}
+    rule: dict[str, str] = {}
+    for s in spans:
+        rec = e["spans"].get(s.id)
+        if rec is None:
+            rule[s.id] = "new"
+        elif rec["hash"] != s.hash:
+            rule[s.id] = "edited"
+        elif units & set(rec["files"]):
+            rule[s.id] = "diff"
+    direct = set(rule)
+    fanout = {d: len(_closure({d}, users)) for d in sorted(direct)}
+    for sid in _closure(direct, users) - direct:
+        rule[sid] = "forward"
+    rest = sorted(ids - set(rule))
+    for sid in case_sample.pick(rest, seed=seed,
+                                fraction=case_sample.FRACTION if fraction is None else fraction):
+        rule[sid] = "sample"
+    for sid in _closure(set(rule), needs) - set(rule):
+        rule[sid] = "needed"
+    count = lambda *rules: sum(1 for r in rule.values() if r in rules)  # noqa: E731
+    cc = {f for v in e["spans"].values() for f in v["files"] if f.startswith("custom_components/")}
+    log = [f"CASE {script} {rule[s.id]:<7} {s.id}" for s in spans if s.id in rule]
+    log += [f"CASE-WIDE {script} {sid}" for sid, v in e["spans"].items() if sid in ids
+            and sum(f.startswith("custom_components/") for f in v["files"]) > len(cc) / 2]
+    log += [f"CASE-FANOUT {script} {d} {n}" for d, n in fanout.items()]
+    line = (f"CASES: SCOPED {script} -- {len(rule)} of {len(spans)} spans ("
+            f"{count('diff', 'new', 'edited', 'forward')} diff, {count('sample')} sample, "
+            f"{count('needed')} needed)")
+    return set(rule), line, log
+
+
+def gate(script: str, base: str) -> int:
+    """Plan `script` against the diff from `base` and run the plan, or the whole script.
+
+    `tests/run.sh` calls this for a case script on a scoped run. The CASES:
+    line comes first. A FULL plan then runs `python3 <script>` itself, so the
+    unscoped path is today's.
+    """
+    from closure import changed_files
+    rel = os.path.relpath(os.path.realpath(script), ROOT)
+    source = open(script, encoding="utf-8").read()
+    mb = subprocess.run(["git", "merge-base", base, "HEAD"], cwd=ROOT, capture_output=True, text=True)
+    bb = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{mb.stdout.strip() or base}:{rel}"],
+                        cwd=ROOT, capture_output=True, text=True).stdout.strip() or None
+    try:
+        changed = changed_files(base)
+    except SystemExit as err:
+        ids, line, log = None, f"CASES: FULL {rel} -- the diff could not be read: {err}", []
+    else:
+        ids, line, log = plan(rel, source, changed, load(), base_blob=bb, head_blob=_git_blob(rel),
+                              event=os.environ.get("HPO_CI_EVENT", ""),
+                              seed=os.environ.get("CLAIM_HEAD") or _head())
+    if ids is None:
+        print(line, flush=True)
+        os.execv(sys.executable, [sys.executable, script])
+    print("\n".join(log), flush=True)
+    return run(script, ids, key=line)
+
+
 def stats(script: str, table: Path = TABLE) -> int:
     """Print one script's selectivity figures from the table (the enumerator P2 plans from)."""
     import statistics
@@ -1086,9 +1253,111 @@ def _self_test() -> int:
         shutil.rmtree(drv, ignore_errors=True)
     check("the ledgermerge driver routes tests/case_closures.json to merge_tables",
           rc == 0 and got == merge_tables(base_t, ours_t, theirs_t), (rc, got[:300]))
+    _plan_checks(check)
     failed = results.count(False)
     print(f"CASE-SELECT SELF-TEST: {'PASSED' if not failed else f'{failed} FAILED'} ({len(results)} checks)")
     return 1 if failed else 0
+
+
+def _plan_checks(check) -> None:
+    """The selection rule and each fail-safe over a table recorded from the fixture's text."""
+    import case_sample
+    fx = "tests/fx.py"
+    files = {"beta reads a constant of M": ["tests/cs_mod.py"], "zeta reads L": ["z.py"],
+             "draw two": ["d2.py"]}
+
+    def table_of(source: str, drop: tuple = ()) -> dict:
+        _, hh, spans, _ = split(source)
+        e = {"blob": "b0", "header_hash": hh, "header": [], "spans": {
+            s.id: {"hash": s.hash, "files": files.get(s.id, []), "needs": [], "seconds": 1.0}
+            for s in spans if s.id not in drop}}
+        return json.loads(dumps({fx: e}))
+
+    tab = table_of(_FIXTURE)
+
+    def go(changed, source=_FIXTURE, table=tab, event="pull_request", seed="s", fraction=0.0, base="b0"):
+        try:
+            return plan(fx, source, changed, table, base_blob=base, head_blob="bh", event=event,
+                        seed=seed, fraction=fraction)
+        except Exception as err:  # noqa: BLE001 - a raising plan is a failed check, not a crash
+            return "raised", repr(err), []
+
+    ids, line, why = go(["tests/cs_mod.py"])
+    check("plan (i): a span whose recorded files meet the diff runs, and nothing else at fraction 0",
+          ids == {"beta reads a constant of M"} and line.startswith("CASES: SCOPED tests/fx.py -- 1 of 13"),
+          (ids, line))
+    ids, line, _ = go(["other.py"])
+    check("plan: a diff no span reads runs no span (the null for rule i)", ids == set(), (ids, line))
+    ids, _, _ = go([], table=table_of(_FIXTURE, drop=("no rng",)))
+    check("plan (ii): a span the table lacks runs", ids == {"no rng"}, ids)
+    ids, _, _ = go([], source=_FIXTURE.replace("L.append(1)\n", "L.append(1)  # edited\n"))
+    check("plan (ii)+(iii): an edited span runs, and the later span that reads what it binds (L.append)",
+          ids == {"eps appends", "zeta reads L"}, ids)
+    ids, _, _ = go([], source=_FIXTURE.replace("x = 1\n", "x = 1  # edited\n"))
+    check("plan (iii): an edited span binding x selects alpha#2, which reads x and whose files miss the diff",
+          ids == {"alpha", "alpha#2"}, ids)
+    ids, _, _ = go(["z.py"])
+    check("plan (v): a diff-selected span pulls in the span it needs (zeta needs eps)",
+          ids == {"zeta reads L", "eps appends"}, ids)
+    ids, line, _ = go(["d2.py"])
+    check("plan (v): an RNG consumer pulls in every earlier consumer back to the seeder, not the span between",
+          ids == {"draw two", "draw one", "seed"} and "(1 diff, 0 sample, 2 needed)" in line, (ids, line))
+    files["count reads M"] = ["c.py"]
+    rec = table_of(_FIXTURE)
+    rec["scripts"][fx]["spans"]["count reads M"]["needs"] = ["bump calls into M"]
+    ids, _, _ = go(["c.py"], table=rec)
+    check("plan (v): a recorded need the static rule cannot see is followed (count needs bump)",
+          ids == {"count reads M", "bump calls into M", "gamma rebinds M.f"}, ids)
+    del files["count reads M"]
+    every = {s.id for s in split(_FIXTURE)[2]}
+    ids, _, _ = go([], fraction=1.0)
+    check("plan (iv): fraction 1 draws every span; a draw only adds to the plan", ids == every, ids)
+    many = [f"s{i}" for i in range(400)]
+    a, b = case_sample.pick(many, seed="h1"), case_sample.pick(many, seed="h2")
+    check("sample: one seed draws one set, another seed another, near the fraction",
+          a == case_sample.pick(many, seed="h1") and a != b and 80 <= len(a) <= 160
+          and case_sample.pick(many, seed="") == set(), (len(a), len(b)))
+    fulls = {
+        "an event that is not pull_request": go([], event="push"),
+        "tests/harness.py changed": go(["tests/harness.py"]),
+        "the stub changed": go(["tests/hastub/homeassistant/core.py"]),
+        "the table changed": go(["tests/case_closures.json"]),
+        "no table": go([], table=None),
+        "no entry for the script": go([], table={"version": 1, "files": [], "scripts": {}}),
+        "a header edit with the table's blob at the merge base":
+            go([], source=_FIXTURE.replace("L = []", "L = [0]")),
+        "a blob that is neither the merge base's nor the head's": go([], base="other"),
+        "no span": go([], source="import sys\nx = 1\n", table=table_of("import sys\nx = 1\n")),
+        "an ambiguous id (alpha and alpha#2 both moved)":
+            go([], source=_FIXTURE.replace("x = 1\n", "x = 3\n").replace('R.check("alpha two", x == 1)',
+                                                                         'R.check("alpha two", x == 3)')),
+        "an exec in the module namespace": go([], source=_FIXTURE.replace("b = 2\n", "exec('b = 2')\n")),
+        "a write through globals()": go([], source=_FIXTURE.replace("b = 2\n", "globals()['b'] = 2\n")),
+        "an RNG setter bound to a plain name": go([], source=_FIXTURE.replace("b = 2\n", "b = _random.seed\n")),
+    }
+    for name, (ids, line, _) in fulls.items():
+        check(f"fail-safe: {name} runs the script whole", ids is None and line.startswith("CASES: FULL"),
+              (ids, line))
+    ids, _, _ = go([], source=_FIXTURE.replace("b = 2\n", "exec('b = 2', {})\n"))
+    check("fail-safe null: an exec into its own fresh namespace is not opaque", ids is not None, ids)
+    # tests/run.sh's own run and scope_script, with run_always and skip stubbed.
+    import re
+    import tempfile
+    text = (ROOT / "tests" / "run.sh").read_text()
+    fns = "".join(re.findall(r"(?ms)^(?:scope_script|in_scope|run)\(\) \{.*?^\}\n", text))
+    drive = ("set -u\n" + fns + 'run_always() { echo "RAN $*"; echo "KEY $(scope_script "$@")"; }\n'
+             'skip() { echo "SKIP $1"; }\nGATE_SCOPE_BASE=B\n'
+             'printf "tests/features.py\\ntests/other.py\\n" > "$W/scope.run"\n'
+             'SCOPE_RUN="$W/scope.run" CASE_SCRIPTS="tests/features.py"; run py tests/features.py\n'
+             'run py tests/other.py\nSCOPE_RUN=""; run py tests/features.py\n')
+    with tempfile.TemporaryDirectory() as w:
+        out = subprocess.run(["bash", "-c", drive], capture_output=True, text=True,
+                             env=dict(os.environ, W=w)).stdout.splitlines()
+    check("run.sh: a scoped run sends a case script through the gate, keyed on the case script; "
+          "another script and an unscoped run go straight",
+          out == ["RAN py tests/case_select.py gate tests/features.py --base B", "KEY tests/features.py",
+                  "RAN py tests/other.py", "KEY tests/other.py",
+                  "RAN py tests/features.py", "KEY tests/features.py"], out)
 
 
 def _main(argv: list[str]) -> int:
@@ -1111,6 +1380,8 @@ def _main(argv: list[str]) -> int:
         if "--plan" in argv:
             plan = {ln.rstrip("\n") for ln in open(argv[argv.index("--plan") + 1], encoding="utf-8") if ln.strip()}
         return run(argv[1], plan)
+    if len(argv) >= 4 and argv[0] == "gate" and argv[2] == "--base":
+        return gate(argv[1], argv[3])
     if len(argv) >= 2 and argv[0] == "record":
         table = Path(argv[argv.index("--table") + 1]) if "--table" in argv else TABLE
         return record(argv[1], "--union" in argv, table)
