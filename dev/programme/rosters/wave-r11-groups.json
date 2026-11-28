@@ -9167,6 +9167,51 @@
    "carry": [
     "From r11-owner-features-split, body item 3d3d23cb: open-branch-port and seam-raise-path for the other groups that append to `tests/features.py`: R11-PRE-SHARED-FILES and R11-OWNER-CARD-EXTERNAL-HEAT (both carries-open, so neither is a carry destination), and R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-ARCH-fabric-learner and R11-SEAM-wallclock-dst (`carry_audit.py`'s group-token pattern reads upper case only, so it cannot name them). Each needs the same text in its brief: once this PR merges, `tests/features.py` refuses new spans and line growth. Move each new span unchanged to the seam script `python3 dev/audit/harnesses/features_freeze.py --seam <file>` names, and re-pin its own rows with `mutation_table.py --pin-killed` (design revision 5, section 3). A new seam script raises `script_runs_per_push` and `script_runs_full_case_pr` in `tests/ci_budgets.json`. That raise merges only on the owner's approving review at its head, or under a mandate in force with `## Raise justification` and an `Architecture score: dS` line. Mandate 6893738184 ends 2026-12-15T12:00Z. This group keeps the item. The design note asks for these briefs to be written at this group's merge, and the orchestrator writes them on the roster's records branch. Carry: R11-OWNER-FEATURES-SPLIT (items 3d3d23cb)"
    ]
+  },
+  {
+   "group": "R11-NO-READ-BUILDERS-C",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/token_ledger.py",
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/loop_ledger.py",
+    "tools/audit/seat/round_metrics.py",
+    "dev/audit/yardstick/round11/EVALUATION.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "programme",
+   "brief": "Part C of the approved R11-PRE-NO-READ-BUILDERS design (the load count per rule, an instrument's refusal with its outcome, a run line per workflow script), with the design note's fixer notes [paths], [P1] and [c-deferred]. Its precondition, R11-PRE-TOKEN-LEDGER's per-session iterator `token_ledger.sessions()`, is on main (PR 3906). Carried below verbatim.",
+   "carry": [
+    "Moved from R11-PRE-TOKEN-LEDGER carry 6 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Its precondition is met: PR 3906 (merged 8f22a3b284) built `token_ledger.sessions()`, which yields each session's subagent transcript files; part C itself is unbuilt. Text verbatim:\n\nFrom r11-pre-no-read-builders, body item 221c4254: Carry 0 (part D built in this handoff, with the verdict's notes runs-json-width, d-hotfile-enumerator and branch-reuse and the design note's [d-p2-head]; part C not built): part C of the approved design is unbuilt (the load count per rule, an instrument's refusal with its outcome, a run line per workflow script), with the design note's fixer notes [paths], [P1] and [c-deferred]: the orchestrator dispatches it once R11-PRE-TOKEN-LEDGER is on main with an importable per-session iterator that also yields each session's subagent transcript files. [paths] is owed with it: E11-N-GATE-CAUSE's `paths` in `dev/audit/yardstick/round11/EVALUATION.json` become `tools/audit/seat/roster_lib.py`, `tools/audit/seat/loop_ledger.py` and `tools/audit/seat/round_metrics.py` in place of `tools/ci/gate.py`, plus C's file, written before the card is recorded merged; this pull request does not write them, because the card is whole only with C's run line. Lands in R11-PRE-TOKEN-LEDGER's row of the round-11 roster on handoff/audit-r10-roster, the group whose merge opens part C; this group's own row is at stage carries-open and takes no carry. Carry: R11-PRE-TOKEN-LEDGER (items 221c4254)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-no-read-builders-c",
+    "commit": null,
+    "last_step": "created by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups)",
+    "next_step": "fixer per the carries; re-measure first",
+    "note": null
+   }
   }
  ]
 }
