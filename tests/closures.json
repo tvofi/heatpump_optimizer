@@ -4723,6 +4723,7 @@
    "dev/audit/harnesses/ceiling_probe.py",
    "dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py",
    "dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py",
+   "dev/audit/harnesses/ci3885_drift_fork.py",
    "dev/audit/harnesses/ci3885_light.py",
    "dev/audit/harnesses/ci3885_queue.py",
    "dev/audit/harnesses/ci_script_seconds.py",
