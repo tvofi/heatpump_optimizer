@@ -40,13 +40,19 @@ import logging
 import math
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from collections.abc import Callable, Collection, Mapping
 from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
 
 from .const import (
     ENERGY_UNIT_TO_KWH,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY,
     FLOW_UNIT_TO_KG_S,
     INPUT_MAX_AGE_MINUTES,
     INPUT_ON_CHANGE_MAX_AGE_MINUTES,
@@ -118,6 +124,9 @@ class InputReading:
     max_age_minutes: float | None = None
     #: ``None`` when the read succeeded, otherwise why it did not.
     problem: str | None = None
+    #: Stale for control, but no Input Problem: a pushed pump flag past its
+    #: limit (:data:`PUSHED_FLAG_KEYS`).
+    quiet: bool = False
 
     @property
     def ok(self) -> bool:
@@ -159,7 +168,12 @@ class InputHealth:
 
     @property
     def stale_keys(self) -> list[str]:
-        return sorted(k for k, r in self.readings.items() if r.stale)
+        return sorted(k for k, r in self.readings.items() if r.stale and not r.quiet)
+
+    def live(self, key: str) -> float | None:
+        """The value ``key`` read this cycle, or ``None`` unless that read is ok."""
+        reading = self.readings.get(key)
+        return reading.value if reading is not None and reading.ok else None
 
     @property
     def missing_keys(self) -> list[str]:
@@ -182,7 +196,7 @@ class InputHealth:
         out: list[InputProblem] = []
         for key in sorted(self.readings):
             reading = self.readings[key]
-            if reading.entity_id is None or reading.ok:
+            if reading.entity_id is None or reading.ok or reading.quiet:
                 continue
             out.append(
                 {
@@ -292,6 +306,18 @@ def _scaled(base_minutes: float, scale: float) -> float:
 #: precedent, so an entity whose value changed on its last write keeps the
 #: polling limit it earned on an earlier one.
 _POLLING_SOURCES: WeakKeyDictionary[Any, set[str]] = WeakKeyDictionary()
+
+
+#: Pump flags a source pushes on change, which legitimately hold for days
+#: (defrost off through a mild day, online on). Past their limit such a flag
+#: stays stale, the safe direction for control (a flag latched on yesterday
+#: excludes no COP sample today), but is no Input Problem: publishing it
+#: turned the sensor on for a healthy pump (D14-s2-01).
+PUSHED_FLAG_KEYS: frozenset[str] = frozenset({
+    CONF_HEAT_PUMP_FAULT_ENTITY, CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_ONLINE_ENTITY, CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY, CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+})
 
 
 def source_polls(owner: Any, entity_id: str, state: Any) -> bool:
@@ -983,6 +1009,23 @@ def parse_bool(raw: Any, *, strict: bool = False) -> bool | None:
     return None if number is None else number != 0.0
 
 
+def entry_reader(
+    hass: Any, config: Any, *, now: Callable[[], datetime] | None = None
+) -> InputReader:
+    """The entity reader under the install's staleness rules: its watchdog switch and age scale.
+
+    The one place those two options reach a reader, so a new caller cannot read
+    entities with the watchdog's defaults by leaving them out (D1-s2-52).
+    """
+    return InputReader(
+        hass,
+        config,
+        enabled=config.staleness_watchdog_enabled,
+        scale=config.staleness_max_age_scale,
+        now=now,
+    )
+
+
 class InputReader:
     """Reads configured entities, applying the freshness and unit guards."""
 
@@ -1003,12 +1046,12 @@ class InputReader:
         self.health = InputHealth(read_at=self._utcnow())
 
     def _utcnow(self) -> datetime:
+        # The caller's clock (ADR-002 part 2): the coordinator hands in Home
+        # Assistant's through ``entry_reader``, so this module imports nothing
+        # above the pure layer; the fallback is the standard library's.
         if callable(self._now):
             return self._now()
-        from homeassistant.util import dt as dt_util
-
-        utc_now: datetime = dt_util.utcnow()
-        return utc_now
+        return datetime.now(UTC)
 
     def _age_minutes(self, state: Any) -> float | None:
         """Minutes since the sensor last reported, or ``None`` if not knowable.
@@ -1111,6 +1154,9 @@ class InputReader:
             # last known value can still degrade gracefully, but mark it so the
             # default path treats it as absent.
             reading.problem = "stale"
+            reading.quiet = reading.key in PUSHED_FLAG_KEYS and not source_polls(
+                self.hass, reading.entity_id or "", state
+            )
             _LOGGER.debug(
                 "Input %s (%s) is %.0f min old, over its %.0f min limit; "
                 "treating as missing",
@@ -1256,6 +1302,14 @@ class InputReader:
             return reading
         reading.value = converted
         return reading
+
+    def read_state_power_kw(
+        self, key: str, *, entity_id: str, sign: Literal["signed", "clamp", "positive"]
+    ) -> float | None:
+        """:func:`state_power_kw` of ``entity_id``, or ``None`` where this reader's age gate refuses it."""
+        if not self.read(key, entity_id=entity_id).ok:
+            return None
+        return state_power_kw(self.hass.states.get(entity_id), sign=sign)
 
     def read_flow_kg_s(self, key: str) -> InputReading:
         """Read a water-flow entity and normalise it to kg/s (#2016).

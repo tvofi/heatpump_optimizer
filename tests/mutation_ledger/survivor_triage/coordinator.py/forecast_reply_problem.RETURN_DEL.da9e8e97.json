@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:forecast_reply_problem RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is forecast_reply_problem's last, reached only when the reply has rows and one covers now, so deleting it lets the function fall off its own end and return None -- the same value, on every input. Its one caller, _fetch_weather_forecast, tests the result for truth (`if problem:`), so it cannot tell the two apart. Measured in R11-SEAM-inputs-freshness: `tools/audit/seat/mutant_run.py --diff 2a2ca2c9...HEAD` under the block `# --- R11-SEAM-inputs-freshness: age and expiry of live inputs ---` reports this mutant SURVIVED, while the block's reason check (`a fetched forecast's failure reason tells an empty reply from one that ended before now, and a reply reaching now has none`) reads None for the reply reaching now in both trees -- the arm is reached, not skipped.",
+  "verdict": "equivalent"
+}

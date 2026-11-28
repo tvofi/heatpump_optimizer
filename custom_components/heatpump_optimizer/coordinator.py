@@ -98,6 +98,7 @@ from .const import (
     HOUSE_LOSS_MAX_SAMPLE_HOURS,
     DOMAIN,
     CONF_INDOOR_HUMIDITY_ENTITY,
+    CONF_PV_PRODUCTION_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
     CONF_SOLAR_RADIATION_ENTITY,
@@ -200,6 +201,7 @@ from .inputs import (
     InputReading,
     InputReturnWatch,
     age_of,
+    entry_reader,
     normalize_price_per_kwh,
     parse_bool,
     read_rooms,
@@ -285,7 +287,7 @@ from .price_model import (
 from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
-from .plan_step import PLAN_STEP_MINUTES, covering_index, plan_step_start
+from .plan_step import PLAN_STEP_MINUTES, covering_index, hold_current_hour, plan_step_start
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -543,9 +545,10 @@ def _parse_ecl110_state(
         if displace_raw is None and isinstance(data.get("command"), dict):
             displace_raw = data["command"].get("displace")
         effective_raw = data.get("effective_displace")
-    elif isinstance(data, (int, float)):
+    elif type(data) in (int, float):  # a JSON bool is a flag (D1-s3-02)
         displace_raw = data
-    parsed = [None if raw is None else float(raw) for raw in (displace_raw, effective_raw)]
+    parsed = [None if isinstance(raw, (bool, type(None))) else float(raw)
+              for raw in (displace_raw, effective_raw)]
     if not all(v is None or math.isfinite(v) for v in parsed):
         raise ValueError(f"non-finite value in {parsed!r}")
     if displace_window is not None:
@@ -734,28 +737,14 @@ async def _valve_write_problem(hass: Any, entity_id: str, target: float) -> str 
             "number, input_number and climate entities")
 
 
-def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
-    """The outdoor temperature the solve horizon starts on, °C.
+def covering_forecast_row(
+    forecast: list[dict[str, Any]], now: datetime
+) -> dict[str, Any] | None:
+    """The forecast row covering ``now``, or ``None`` past the last row's hour.
 
-    The plan is solved on the forecast, not on the outdoor thermometer, and
-    without a thermometer `ThermalState.outdoor_temperature` is never
-    overwritten at all -- `_update_current_state` writes it only under
-    ``if outdoor.ok``. So the published "outdoor" 5.0 °C was a dataclass
-    default standing beside a plan made at −5 °C, and the modelled COP that
-    reads it followed (#282). This is the number the plan is actually
-    acting on.
-
-    Matched to ``now`` by the entry's own timestamp, on ``_weather_series``'
-    rule -- each entry holds until the next one begins, and before the first
-    entry the first is the best information there is. Assuming entry 0 is
-    the current hour is what that method's docstring warns about: a stale
-    forecast, or one starting at the next hour, then reads hours out of
-    phase.
-
-    ``None`` with no forecast -- the one branch where the constructor
-    default really is what the horizon gets, and `_weather_series` falls
-    back to the same state -- and ``None`` past the last entry's own hour
-    (#2229): a forecast that stopped updating is not "now" two days later.
+    Matched by the rows' own timestamps: row 0 is the current hour only while
+    the forecast is fresh, and a held one reads hours out of phase (#2229,
+    D14-s2-02). Before the first row, the first is the best information.
     """
     if not forecast:
         return None
@@ -767,18 +756,60 @@ def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float
         ),
         key=lambda item: item[0],
     )
-    if timed:
-        starts = [ts for ts, _ in timed]
-        index = 0 if now < starts[0] else covering_index(starts, now, timedelta(hours=1))
-        if index is None:
-            return None
-        entry = timed[index][1]
-    else:
+    if not timed:
         # No timestamps anywhere: the same positional assumption
         # `_weather_series` falls back to, which starts the series at now.
-        entry = forecast[0]
+        return forecast[0]
+    starts = [ts for ts, _ in timed]
+    index = 0 if now < starts[0] else covering_index(starts, now, timedelta(hours=1))
+    return None if index is None else timed[index][1]
+
+
+def forecast_outdoor_now(forecast: list[dict[str, Any]], now: datetime) -> float | None:
+    """The outdoor temperature the solve horizon starts on, °C.
+
+    The plan is solved on the forecast, not on the outdoor thermometer, and
+    without a thermometer `ThermalState.outdoor_temperature` is never
+    overwritten at all -- `_update_current_state` writes it only under
+    ``if outdoor.ok``. So the published "outdoor" 5.0 °C was a dataclass
+    default standing beside a plan made at −5 °C, and the modelled COP that
+    reads it followed (#282). This is the number the plan is actually
+    acting on. The row is :func:`covering_forecast_row`'s; ``None`` where it
+    has none -- with no forecast the constructor default really is what the
+    horizon gets, and `_weather_series` falls back to the same state.
+    """
+    entry = covering_forecast_row(forecast, now)
+    if entry is None:
+        return None
     temperature = entry.get("temperature")
     return None if temperature is None else finite_float(temperature, 5.0)
+
+
+def forecast_reply_problem(
+    rows: list[dict[str, Any]], now: datetime, entity_id: str
+) -> str | None:
+    """Why a fetched forecast may not replace the held one, or ``None`` when it may.
+
+    The held forecast stays the best data either way, but stale from here on:
+    an empty reply used to keep it forever with no signal (D8-02), and a reply
+    whose rows have all ended is a provider's last answer, not a recovery (D1-s2-03).
+    """
+    if not rows:
+        return f"Empty forecast returned for {entity_id}"
+    if covering_forecast_row(rows, now) is None:
+        return f"Forecast for {entity_id} ends before now"
+    return None
+
+
+def current_weather(forecast: list[dict[str, Any]], now: datetime) -> tuple[float, float]:
+    """Wind (m/s) and precipitation (mm/h) of the row covering ``now``; calm and dry past the last row."""
+    row = covering_forecast_row(forecast, now)
+    if row is None:
+        return 0.0, 0.0
+    return (
+        max(0.0, finite_float(row.get("wind_speed"), 0.0)),
+        max(0.0, finite_float(row.get("precipitation"), 0.0)),
+    )
 
 
 # A failed solve keeps the last good plan published — deliberately, a solver
@@ -5208,12 +5239,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The wood-furnace sensors go through the stale-aware reader: a
         # stalled hot probe would look like an indefinite free fire, which is
         # the expensive failure direction, so staleness maps to absence.
-        reader = InputReader(
-            self.hass,
-            ctx._config,
-            enabled=ctx._config.staleness_watchdog_enabled,
-            scale=ctx._config.staleness_max_age_scale,
-        )
+        reader = entry_reader(self.hass, ctx._config, now=dt_util.utcnow)
         outlet = reader.read(CONF_VALVE_OUTLET_TEMP_ENTITY)
         wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
         wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
@@ -5458,13 +5484,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _current_weather(self) -> tuple[float, float]:
         """Current wind speed (m/s) and precipitation (mm/h) for simulation."""
-        if self._weather_forecast:
-            first = self._weather_forecast[0]
-            return (
-                max(0.0, finite_float(first.get("wind_speed"), 0.0)),
-                max(0.0, finite_float(first.get("precipitation"), 0.0)),
-            )
-        return 0.0, 0.0
+        now = dt_util.utcnow()
+        return current_weather(self._weather_forecast, now)
 
     def _buffer_cooling_bounds(self) -> tuple[float, float]:
         """Plausible cooling-rate range for *this* tank, C/h.
@@ -6632,12 +6653,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         that are then persisted.
         """
         ctx = getattr(self, "_ctx", self)
-        reader = InputReader(
-            self.hass,
-            ctx._config,
-            enabled=ctx._config.staleness_watchdog_enabled,
-            scale=ctx._config.staleness_max_age_scale,
-        )
+        reader = entry_reader(self.hass, ctx._config, now=dt_util.utcnow)
         self.currency = figure_currency(self.hass, price_feed(ctx._config), self.currency)
         # Read onto a copy, published whole before the first reader below;
         # ``prior`` is the state the interval started from (the slab seed).
@@ -7001,7 +7017,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 forecast_data = _plausible_forecast_rows(_forecast_in_model_units(
                     self.hass.states.get(weather_entity),
                     result[weather_entity].get("forecast", [])))
-                if forecast_data:
+                now = dt_util.utcnow()
+                problem = forecast_reply_problem(forecast_data, now, weather_entity)
+                if problem:
+                    self._weather_fetch_failed(problem)
+                else:
                     self._weather_forecast = forecast_data
 
                     # The solar forecast, if present; a non-numeric irradiance is
@@ -7015,14 +7035,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         "Fetched %d weather forecast entries (full 24h+ "
                         "trajectory: temp, wind, rain, solar)",
                         len(forecast_data),
-                    )
-                else:
-                    # D8-02's half: an empty result used to keep the
-                    # previous forecast forever with no signal. The
-                    # previous forecast is still the best data -- but it
-                    # is stale data now, and the plan built on it says so.
-                    self._weather_fetch_failed(
-                        f"Empty forecast returned for {weather_entity}"
                     )
             else:
                 self._weather_fetch_failed(
@@ -7316,6 +7328,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     solar.append(irradiance)
                     humidity.append(rh)
 
+        health = getattr(self, "_input_health", None)
+        outdoor = hold_current_hour(
+            outdoor, step_starts, health.live(CONF_OUTDOOR_TEMP_ENTITY) if health else None
+        )
         return outdoor, wind, precipitation, solar, humidity
 
     def _apply_open_meteo(
@@ -9083,9 +9099,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # A frozen sensor holds a raised mold floor forever; with no live
         # reading the floor vanishes instead — the fail-safe direction the
         # inputs module prescribes for every optional sensor.
-        reading = InputReader(self.hass, {}).read(
-            CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id
-        )
+        reading = entry_reader(
+            self.hass, getattr(self, "_ctx", self)._config, now=dt_util.utcnow
+        ).read(CONF_INDOOR_HUMIDITY_ENTITY, entity_id=entity_id)
         value = reading.value if reading.ok else None
         return value if value is not None and 0.0 < value <= 100.0 else None
 
@@ -9724,7 +9740,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         entity_id = config.production_entity
         if not entity_id:
             return None
-        return state_power_kw(self.hass.states.get(entity_id), sign="clamp")
+        # Under the age gate (D1-s2-02): a silent or future-stamped meter is
+        # no measurement of step 0, whatever value it last held.
+        return entry_reader(
+            self.hass, getattr(self, "_ctx", self)._config, now=dt_util.utcnow
+        ).read_state_power_kw(CONF_PV_PRODUCTION_ENTITY, entity_id=entity_id, sign="clamp")
 
     def _pv_forecast(
         self, solar_rad: np.ndarray, n_steps: int

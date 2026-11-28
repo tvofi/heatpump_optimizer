@@ -89,3 +89,19 @@ def plan_step_index(result: Any, now: datetime) -> int | None:
     """
     stamps = list(getattr(result, "timestamps", None) or [])
     return covering_index(stamps, now, PLAN_STEP, PLAN_STEP)
+
+
+def hold_current_hour(
+    series: list[float], starts: Sequence[datetime], value: float | None
+) -> list[float]:
+    """``series`` with each step of the first step's hour set to ``value``.
+
+    A live outdoor sensor beats the forecast for the hour it is read in, and
+    later hours stay forecast (D17-s2-02). ``None`` leaves the series as is.
+    """
+    if value is None or not starts:
+        return series
+    first = starts[0].timestamp()
+    end = first - first % 3600 + 3600  # absolute seconds: no wall-clock hour
+    return [value if i < len(starts) and starts[i].timestamp() < end else v
+            for i, v in enumerate(series)]

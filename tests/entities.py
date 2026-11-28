@@ -1214,9 +1214,8 @@ R.check(
     f"named but not on disk: {sorted(set(_arch_listed) - set(_arch_disk))}",
 )
 
-# The named list ends at its own full stop -- the `inputs` sentence that
-# follows is about a different claim (the one function-level toucher, pinned
-# below), and sweeping it in would make 22 names out of 21 importers.
+# The named list ends at its own full stop -- the sentence that follows is
+# about a different claim (the function-level touchers, pinned below).
 _arch_bound = _re.search(
     r"These modules\s+import `homeassistant` at module level:\s+(.*?)\.",
     _arch, _re.S,
@@ -1235,14 +1234,21 @@ R.check(
     f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
 )
 
+# The documented function-level touchers: one named module, or none (since
+# ADR-002 part 2 took `inputs` off Home Assistant's clock).
 _arch_touch = _re.search(
     r"One module outside that set touches it at all:\s+`([a-z_]+)`", _arch
 )
+_arch_documented = (
+    [_arch_touch.group(1)] if _arch_touch
+    else [] if _re.search(r"No module outside that set touches it", _arch)
+    else None
+)
 _arch_touchers = sorted(set(_arch_anywhere) - set(_arch_modlevel))
 R.check(
-    "architecture.md's one function-level toucher is the only one",
-    _arch_touch is not None and _arch_touchers == [_arch_touch.group(1)],
-    f"documented {_arch_touch.group(1) if _arch_touch else '?'}; modules "
+    "architecture.md's function-level touchers are the tree's",
+    _arch_documented == _arch_touchers,
+    f"documented {_arch_documented}; modules "
     f"outside the module-level set that touch homeassistant anywhere: "
     f"{_arch_touchers}",
 )
@@ -1250,15 +1256,16 @@ R.check(
 _arch_free = _re.search(r"Every other module is deliberately free", _arch)
 R.check(
     "architecture.md's HA-free remainder is the tree's: every module but the "
-    "named importers and the one toucher",
+    "named importers and the documented touchers",
     _arch_free is not None
+    and _arch_documented is not None
     and len(_arch_disk) - len(_arch_anywhere)
-    == len(_arch_disk) - len(_arch_modlevel) - 1 > 0,
+    == len(_arch_disk) - len(_arch_modlevel) - len(_arch_documented) > 0,
     f"sentence found={_arch_free is not None}; {len(_arch_disk)} modules less "
     f"{len(_arch_anywhere)} that touch homeassistant anywhere leaves "
     f"{len(_arch_disk) - len(_arch_anywhere)}, against "
-    f"{len(_arch_disk) - len(_arch_modlevel) - 1} outside the named set and "
-    "the toucher",
+    f"{len(_arch_disk) - len(_arch_modlevel) - len(_arch_documented or [])} "
+    f"outside the named set and the documented touchers {_arch_documented}",
 )
 
 _arch_pages = _re.search(
@@ -7727,8 +7734,8 @@ R.check(
 )
 
 # The floor is taken at the forecast the SOLVE used, not at the thermometer:
-# a real solve under a -10 °C forecast with the outdoor thermometer reading
-# +8 °C, a 17 °C room at 65 % RH and a 21 °C target. The expected floor is
+# a real solve under a -10 °C forecast with a stale outdoor thermometer last
+# reading +8 °C, a 17 °C room at 65 % RH and a 21 °C target. The expected floor is
 # the one _mold_floor_series returned to the solve itself, recorded as the
 # solve called it; the floor at the thermometer's +8 °C is lower and would
 # leave the sensor quiet.
@@ -7746,7 +7753,13 @@ try:
     _solve_hass = FakeHass()
     for _eid, _state in {
         "sensor.indoor": FakeState("17.0"),
-        "sensor.outdoor": FakeState("8.0"),
+        # Stale (4 h, past its 180 min limit): a live thermometer now plans
+        # the current hour (D17-s2-02) and would equal the solve's floor, so
+        # the separation this check draws needs the solve on the forecast.
+        "sensor.outdoor": FakeState(
+            "8.0", last_updated=_solve_now - timedelta(hours=4),
+            last_reported=_solve_now - timedelta(hours=4),
+        ),
         "sensor.humidity": FakeState("65.0", last_updated=_solve_now),
     }.items():
         _solve_hass.states.set(_eid, _state)
