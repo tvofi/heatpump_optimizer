@@ -7496,6 +7496,22 @@ async def config_flow_device_prefill_offer():
         set(shown) == set(suggestions),
         f"{sorted(shown)}",
     )
+    # bb5336e8: the wizard's page posts no after-save choice, its navigation
+    # being always finish_setup, so the second submit's ``self._data.update``
+    # cannot store one. The schema is the null control on the rendered set:
+    # it refuses the key outright, so a stale form posting it is refused
+    # before the step runs.
+    try:
+        preview["data_schema"]({const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE})
+        refused_after_save = False
+    except vol.Invalid:
+        refused_after_save = True
+    check(
+        "device_prefill", "happy",
+        "the wizard's pre-fill page renders no after-save choice and its schema refuses one",
+        const.CONF_AFTER_SAVE not in rendered_keys(preview) and refused_after_save,
+        f"keys={sorted(rendered_keys(preview))} refused={refused_after_save}",
+    )
 
     # What the user keeps lands in the entry's own setup data, and the wizard
     # continues to the menu it would have reached without the offer.
