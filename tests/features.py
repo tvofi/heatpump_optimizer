@@ -155,8 +155,15 @@ def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
 
 def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
                  step_weekdays=None, holiday_flags=None, humidity=None,
-                 dhw_pins=None):
-    """A minimal solve horizon for the DHW planner's direct calls (#1776)."""
+                 dhw_pins=None, start_time=None):
+    """A minimal solve horizon for the DHW planner's direct calls (#1776).
+
+    ``start_time`` defaults to a naive instant on step 0's hour, the clock
+    the planner's next-window countdown is measured from (issue 3786)."""
+    hours = np.arange(n) * dt if step_hours is None else step_hours
+    if start_time is None:
+        start_time = datetime(2026, 1, 5) + timedelta(
+            hours=float(hours[0]) if len(hours) else 0.0)
     return _Horizon(
         initial_state=state or ThermalState(
             room_temperature=21.0, slab_temperature=22.0,
@@ -165,10 +172,10 @@ def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
             buffer_tank_temperature=40.0),
         prices=prices, outdoor_temps=outdoor,
         wind_speeds=np.zeros(n), precipitation=np.zeros(n),
-        solar_radiation=np.zeros(n), start_time=None, n_steps=n, dt=dt,
+        solar_radiation=np.zeros(n), start_time=start_time, n_steps=n, dt=dt,
         comfort_targets=np.full(n, 21.0), temp_min_bounds=np.full(n, 17.0),
         temp_max_bounds=np.full(n, 23.0),
-        step_hours=np.arange(n) * dt if step_hours is None else step_hours,
+        step_hours=hours,
         solar_gains=np.zeros(n), heat_loss_factors=np.ones(n), forecast={},
         t_start=0.0, step_weekdays=step_weekdays, holiday_flags=holiday_flags,
         humidity=humidity, dhw_pins=dhw_pins,
@@ -5882,28 +5889,140 @@ R.check(
 # outside every window, so the inside-a-window answer is never computed there:
 # without a direct check, "0.0 while inside" lives only in the docstring.
 from heatpump_optimizer.dhw_schedule import hours_until_next_window as _hunw
+_hunw_at = lambda h: datetime(2026, 6, 10) + timedelta(hours=h)  # noqa: E731
 
 _hunw_windows = _parse_w("06:00-08:30, 17:00-22:00")
 R.check(
     "inside a demand window the next window is now, not the following one",
-    _hunw(7.0, _hunw_windows) == 0.0 and _hunw(18.0, _hunw_windows) == 0.0,
-    f"07:00 -> {_hunw(7.0, _hunw_windows)}, 18:00 -> {_hunw(18.0, _hunw_windows)} "
+    _hunw(_hunw_at(7.0), _hunw_windows) == 0.0 and _hunw(_hunw_at(18.0), _hunw_windows) == 0.0,
+    f"07:00 -> {_hunw(_hunw_at(7.0), _hunw_windows)}, 18:00 -> {_hunw(_hunw_at(18.0), _hunw_windows)} "
     "-- reading the FOLLOWING window while inside one pre-heats for a tank "
     "that is already being drawn",
 )
 R.check(
     "outside one it counts the hours to the next opening, wrapping past midnight",
-    _hunw(5.0, _hunw_windows) == 1.0
-    and _hunw(9.0, _hunw_windows) == 8.0
-    and _hunw(23.0, _hunw_windows) == 7.0,
-    f"05:00 -> {_hunw(5.0, _hunw_windows)}, 09:00 -> {_hunw(9.0, _hunw_windows)}, "
-    f"23:00 -> {_hunw(23.0, _hunw_windows)}",
+    _hunw(_hunw_at(5.0), _hunw_windows) == 1.0
+    and _hunw(_hunw_at(9.0), _hunw_windows) == 8.0
+    and _hunw(_hunw_at(23.0), _hunw_windows) == 7.0,
+    f"05:00 -> {_hunw(_hunw_at(5.0), _hunw_windows)}, 09:00 -> {_hunw(_hunw_at(9.0), _hunw_windows)}, "
+    f"23:00 -> {_hunw(_hunw_at(23.0), _hunw_windows)}",
 )
 R.check(
     "with no windows configured there is no answer, which is not 'now'",
-    _hunw(7.0, []) is None,
-    f"got {_hunw(7.0, [])}",
+    _hunw(_hunw_at(7.0), []) is None,
+    f"got {_hunw(_hunw_at(7.0), [])}",
 )
+
+# P7, issue 3786: a wall-clock hour carried across a DST change. The window
+# countdown is real hours in the zone, and each trajectory step reads its gains
+# (and its draw pattern) at the step clock's hour, not one extrapolated from
+# step 0. The plain day is the null control: there both clocks agree.
+from zoneinfo import ZoneInfo as _p7_zone  # noqa: E402
+from heatpump_optimizer.optimizer import _step_clock as _p7_clock  # noqa: E402
+
+_p7_tz = _p7_zone("Europe/Stockholm")
+_p7_days = {
+    "spring": datetime(2026, 3, 29, tzinfo=_p7_tz),
+    "autumn": datetime(2026, 10, 25, tzinfo=_p7_tz),
+    "plain": datetime(2026, 6, 10, tzinfo=_p7_tz),
+}
+_p7_until = {
+    k: _hunw(d.replace(minute=30), [(4.0, 6.0)]) for k, d in _p7_days.items()
+}
+R.check(
+    "the next-window countdown is the zone's real hours across a DST change "
+    "(00:30 to a 04:00 window: 2.5 h spring, 4.5 h autumn, 3.5 h plain)",
+    _p7_until == {"spring": 2.5, "autumn": 4.5, "plain": 3.5},
+    f"{_p7_until}",
+)
+
+# The countdown runs to the first instant after ``now`` at which the wall
+# clock enters a window. That is its start, read each time that wall time
+# occurs: once, twice in the autumn repeated hour, never in the spring skipped
+# hour. Or it is a DST jump landing inside a window. Europe/Stockholm; the
+# plain day is the null.
+_p7_fold = {
+    k: (_hunw(d.replace(hour=2, minute=30), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30), [(1.5, 2.25)]))
+    for k, d in _p7_days.items() if k != "spring"
+}
+_p7_gap = (_hunw(_p7_days["spring"].replace(minute=30), [(2.5, 4.0)]),
+           _hunw(_p7_days["spring"].replace(minute=30), [(2.25, 2.4)]),
+           _hunw(_p7_days["plain"].replace(minute=30), [(2.25, 2.4)]))
+R.check(
+    "the next-window countdown runs to the first instant the wall clock enters "
+    "a window: from 02:30 in either pass of the autumn repeated hour 0.25 h to "
+    "02:45, 0.75 h or 23.75 h to 02:15, 0.5 h to the jump back into 01:30-02:15; "
+    "from 00:30 on the spring day 1.5 h to the jump into 02:30-04:00 and 24.75 h "
+    "past a 02:15-02:24 window it skips (plain day 23.75, 23.0 and 1.75 h)",
+    _p7_fold == {"autumn": (0.25, 0.25, 0.75, 23.75, 0.5),
+                 "plain": (0.25, 0.25, 23.75, 23.75, 23.0)}
+    and _p7_gap == (1.5, 24.75, 1.75),
+    f"{_p7_fold}, spring/plain gap {_p7_gap}",
+)
+from heatpump_optimizer.pump_schedule import vvc_should_run as _p7_vvc  # noqa: E402
+
+_p7_lead = {
+    (k, f): _p7_vvc(d.replace(hour=2, minute=30, fold=f), [(2.75, 3.5)], 30.0)[0]
+    for k, d in _p7_days.items() if k != "spring" for f in (0, 1)
+}
+R.check(
+    "the circulation pump pre-heats 15 min before a 02:45 window from 02:30 in "
+    "either pass of the autumn repeated hour, as on a plain day",
+    all(_p7_lead.values()) and len(_p7_lead) == 4,
+    f"{_p7_lead}",
+)
+
+
+def _p7_slips(name, day):
+    """Steps of 96 whose gains (and DHW draw) hour is off ``day``'s step clock."""
+    _, hours = _p7_clock(day, 96, 0.25)
+    m = ThermalModel(ThermalParameters(
+        internal_gains_profile=[0.05 * h for h in range(24)]))
+    seen, draws = [], []
+    real_gains, real_draws = m.internal_gains_at, m.dhw_draw_rates
+
+    def gains(h):
+        if h is not None:
+            seen.append(float(h))
+        return real_gains(h)
+
+    def draw(hs):
+        draws.append(np.asarray(hs, dtype=float).copy())
+        return real_draws(hs)
+
+    m.internal_gains_at, m.dhw_draw_rates = gains, draw
+    st = ThermalState(room_temperature=20.0, outdoor_temperature=0.0)
+    ws, pw = _WS(np.zeros(96)), np.full(96, 2.0)
+    if name == "batch":
+        m.simulate_trajectory_batch(st, pw[None, :], ws, dt_hours=0.25, step_hours=hours)
+    elif name == "dhw":
+        m.simulate_trajectory_with_dhw(st, pw, np.zeros(96), ws, dt_hours=0.25, step_hours=hours)
+    else:
+        m.simulate_trajectory(st, pw, ws, dt_hours=0.25, step_hours=hours)
+    want = np.floor(hours % 24.0)
+    if not seen or len(seen) % 96:
+        return f"{len(seen)} gains reads for 96 steps"  # the probe's own precondition
+    read = np.floor(np.array(seen).reshape(96, -1) % 24.0)
+    off = int(np.sum(np.any(read != want[:, None], axis=1)))
+    if name == "dhw":
+        off += int(np.sum(np.floor(draws[0] % 24.0) != want)) if len(draws) == 1 else 96
+    return off
+
+
+_p7_traj = {
+    (n, k): _p7_slips(n, d) for n in ("scalar", "batch", "dhw") for k, d in _p7_days.items()
+}
+R.check(
+    "every trajectory step reads its gains and draw hour off the step clock on "
+    "both DST days and a plain one (scalar, batched, with hot water)",
+    all(v == 0 for v in _p7_traj.values()),
+    f"{_p7_traj}",
+)
+
 
 
 # --- #329/#321: one grammar, exhaustively ----------------------------------
@@ -6305,6 +6424,7 @@ def _nw_cell(params, t0, holidays=frozenset()):
         _dhw_horizon(
             prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0), n=_n, dt=0.25,
             step_hours=np.array([t.hour + t.minute / 60.0 for t in _ts]),
+            start_time=t0,
             step_weekdays=np.array(
                 [(t0 + _nw_dt.timedelta(hours=(i - 1) * 0.25)).weekday()
                  for i in range(_n + 1)]),
@@ -6314,10 +6434,9 @@ def _nw_cell(params, t0, holidays=frozenset()):
         ),
         p_max=4.0,
     )
-    _h = t0.hour + t0.minute / 60.0
-    _owner = _nw_hunw(_h, _nw_wif(params, None, t0, holidays),
+    _owner = _nw_hunw(t0, _nw_wif(params, None, t0, holidays),
                       _nw_wif(params, None, t0, holidays, days=1))
-    _flat = _nw_hunw(_h, list(params.dhw_demand_windows))
+    _flat = _nw_hunw(t0, list(params.dhw_demand_windows))
     return _plan.next_window_in_hours, _owner, _flat
 
 
@@ -6818,12 +6937,12 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     )
     batch = m.simulate_trajectory_batch(
         st, powers, _WS(ot, wi, ra, so, hum, ext), dt_hours=0.25,
-        start_hour=7.0)
+        step_hours=7.0 + 0.25 * np.arange(powers.shape[1]))
     mism = []
     for b in range(powers.shape[0]):
         r, s, u, l, buf, _, wood = m.simulate_trajectory(
             st, powers[b], _WS(ot, wi, ra, so, hum, ext), dt_hours=0.25,
-            start_hour=7.0)
+            step_hours=7.0 + 0.25 * np.arange(len(powers[b])))
         refs = (("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
                 ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
                 ("buffer", batch["buffer"][b], buf))
@@ -6852,14 +6971,15 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     def space_obj(x):
         rr, _, _, _, _, _, _ = m.simulate_trajectory(
             st, np.clip(x, 0.0, None), _WS(ot, wi, ra, so, hum, ext),
-            dt_hours=0.25, start_hour=7.0)
+            dt_hours=0.25, step_hours=7.0 + 0.25 * np.arange(len(x)))
         room = rr[1:]
         return float(np.sum((room - targets) ** 2) + 0.01 * np.sum(x))
 
     def space_obj_batch(mat, *a):
         tr = m.simulate_trajectory_batch(
             st, np.clip(mat, 0.0, None), _WS(ot, wi, ra, so, hum, ext),
-            dt_hours=0.25, start_hour=7.0)
+            dt_hours=0.25,
+            step_hours=7.0 + 0.25 * np.arange(mat.shape[1]))
         out = np.empty(mat.shape[0])
         for bi in range(mat.shape[0]):
             room = tr["room"][bi][1:]
@@ -6977,8 +7097,9 @@ def _r11pp_batch(extra, buf, wood_t, zone=True, n=24):
         buffer_tank_temperature=buf, wood_tank_temperature=wood_t)
     ws = _WS(ot, wi, ra, so, np.full(n, 78.0), np.zeros(n))
     powers = np.zeros((2, n))
-    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0),
-            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0))
+    hours = (7.0 + np.arange(n) * 0.25) % 24.0
+    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, step_hours=hours),
+            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, step_hours=hours))
 
 
 _r11pp_res, _r11pp_scal = _r11pp_batch(
@@ -17069,7 +17190,7 @@ def _r7cap_coil_implied_q(wood_l, dt=_R7CAP_DT):
     out = model.simulate_trajectory_with_dhw(
         _w2t_state(20.0, buf=45.0),
         np.full(1, 2.0), np.zeros(1), _WS(np.full(1, -5.0)),
-        start_hour=7.0, dt_hours=dt,
+        step_hours=7.0 + dt * np.arange(1), dt_hours=dt,
     )
     return (20.0 - out[6][1]) * params.wood_tank_thermal_mass / dt
 
@@ -17460,7 +17581,7 @@ def _coil_run(params, wood):
     n = 24
     out = m.simulate_trajectory_with_dhw(
         s, np.full(n, 0.5), np.zeros(n), _WS(np.full(n, -5.0)),
-        start_hour=6.0, dt_hours=0.25,
+        step_hours=6.0 + 0.25 * np.arange(n), dt_hours=0.25,
     )
     return m, out
 
@@ -20782,34 +20903,35 @@ R.check(
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
+_ps_at = lambda h: datetime(2026, 6, 10) + timedelta(hours=h)  # noqa: E731
 R.check(
     "the VVC pump runs inside a demand window and rests outside",
-    _ps.vvc_should_run(7.0, _WINDOWS, 20)[0]
-    and not _ps.vvc_should_run(12.0, _WINDOWS, 20)[0],
+    _ps.vvc_should_run(_ps_at(7.0), _WINDOWS, 20)[0]
+    and not _ps.vvc_should_run(_ps_at(12.0), _WINDOWS, 20)[0],
 )
 R.check(
     "the lead time pre-heats the loop just before a window opens",
-    _ps.vvc_should_run(16.8, _WINDOWS, 20)[0]
-    and not _ps.vvc_should_run(16.3, _WINDOWS, 20)[0],
+    _ps.vvc_should_run(_ps_at(16.8), _WINDOWS, 20)[0]
+    and not _ps.vvc_should_run(_ps_at(16.3), _WINDOWS, 20)[0],
 )
 R.check(
     "a window shorter than the lead has no hole in its final approach",
     all(
-        _ps.vvc_should_run(h, [(17.0, 17.5)], 60)[0]
+        _ps.vvc_should_run(_ps_at(h), [(17.0, 17.5)], 60)[0]
         for h in (16.0, 16.4, 16.7, 16.9, 17.2)
     )
-    and not _ps.vvc_should_run(15.9, [(17.0, 17.5)], 60)[0],
+    and not _ps.vvc_should_run(_ps_at(15.9), [(17.0, 17.5)], 60)[0],
     "probing the single instant now+lead went dark 16:30-17:00 — the "
     "exact minutes the pre-heat exists for",
 )
 R.check(
     "with no schedule the loop is simply left on",
-    _ps.vvc_should_run(3.0, None, 20)[0],
+    _ps.vvc_should_run(_ps_at(3.0), None, 20)[0],
 )
 R.check(
     "a schedule with no window today keeps the loop off (D17-s3-51)",
-    not _ps.vvc_should_run(3.0, [], 20)[0] and not _ps.vvc_should_run(7.0, [], 20)[0],
-    f"{_ps.vvc_should_run(3.0, [], 20)!r} -- an empty day of a day-aware spec "
+    not _ps.vvc_should_run(_ps_at(3.0), [], 20)[0] and not _ps.vvc_should_run(_ps_at(7.0), [], 20)[0],
+    f"{_ps.vvc_should_run(_ps_at(3.0), [], 20)!r} -- an empty day of a day-aware spec "
     "read as 'no schedule' ran the loop all day",
 )
 
@@ -64709,7 +64831,7 @@ def _r7d203_coil_mismatches(wood_l):
                 precipitation=h.precipitation[:1],
                 solar_radiation=h.solar_radiation[:1],
             ),
-            start_hour=float(h.step_hours[0]), dt_hours=h.dt,
+            step_hours=h.step_hours, dt_hours=h.dt,
             dhw_draw_rates=np.array([rate]),
         )
         return float(wood[1])
@@ -71414,14 +71536,14 @@ R.check(
 from heatpump_optimizer.dhw_planner import _dhw_next_window_hours as _sw_next_window  # noqa: E402
 
 _sw_next_empty = _sw_try(lambda: _sw_next_window(
-    np.array([]), None, _sw_normal, _sw_wparams, None,
+    datetime(2026, 6, 10), np.array([]), None, _sw_normal, _sw_wparams, None,
 ))
 _sw_next_repeat = _sw_try(lambda: _sw_next_window(
-    np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
+    datetime(2026, 6, 10, 10, 30), np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
     np.array([False, False, True]),
 ))
 _sw_next_wrap = _sw_try(lambda: _sw_next_window(
-    np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
+    datetime(2026, 6, 10, 23, 30), np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
     np.array([False, False, False, True]),
 ))
 R.check(
@@ -72884,7 +73006,7 @@ def _f23_coil_residual(dhw0, wood0):
             wood_tank_temperature=wood0,
         )
         r = m.simulate_trajectory_with_dhw(
-            s, np.zeros(1), np.zeros(1), _WS(np.zeros(1)), start_hour=7.0,
+            s, np.zeros(1), np.zeros(1), _WS(np.zeros(1)), step_hours=7.0 + 0.25 * np.arange(1),
             dt_hours=0.25, dhw_draw_rates=np.full(1, 2.0))
         out.append((r[4][-1], r[6][-1], m._step_dhw_floor_injected * 0.25))
     (d_on, w_on, f_on), (d_off, w_off, f_off) = out
@@ -87260,7 +87382,7 @@ def _pl_dhw_traj(derate, kw=5.0):
                      outdoor_temperature=5.0, buffer_tank_temperature=24.0,
                      dhw_temperature=45.0),
         np.zeros(1), np.full(1, kw), _WS(np.full(1, 5.0)),
-        start_hour=20.0, dt_hours=0.25)
+        step_hours=20.0 + 0.25 * np.arange(1), dt_hours=0.25)
     return float(out[4][-1])
 
 

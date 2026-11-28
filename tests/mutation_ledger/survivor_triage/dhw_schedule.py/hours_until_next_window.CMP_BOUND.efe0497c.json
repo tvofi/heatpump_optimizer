@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window CMP_BOUND efe0497c",
-  "old": "    starts = [start - h for start, _ in windows if start > h] + [",
-  "reason": "Equivalent on every reachable input (CMP_BOUND, `start > h` -> `start >= h`): the two differ only when a window starts exactly at `h`. A window of nonzero length that starts at `h` contains `h`, so `hour_in_windows` has already returned 0.0 two lines above; the comparison is reached with `start == h` only for a zero-length window, and no such window reaches hours_until_next_window: dhw_schedule._parse_one_range, the one parser of every window spec (demand, weekly, holiday and per-day), raises DHWWindowError on `start == end` except `00:00-00:00`, which it returns as FULL_DAY. Measured by the #3841 fixer's `mutation_table.py --pin-killed --scripts tests/features.py` drive at the merge of 534bde9fe4: the mutant lived (features.py baseline rc=0 failed=0), against the three other added sites of the same drive killed by a failing check, and the NULL_COMMENT control survived.",
-  "verdict": "equivalent"
-}
