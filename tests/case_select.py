@@ -907,7 +907,8 @@ def _closure_star(start: set[str], edges: dict[str, set[str]]) -> set[str]:
 
 
 def plan(script: str, changed: list[str], seed: str | None, fraction: float = FRACTION,
-         table: Path = TABLE, scope: dict | None = None, closures: dict | None = None) -> dict:
+         table: Path = TABLE, scope: dict | None = None, closures: dict | None = None,
+         base: str | None = None) -> dict:
     """Which spans of `script` a pull request runs, each with the rule that chose it.
 
     `{"mode": "full", "reason": ...}` when any fail-safe holds; else
@@ -918,7 +919,10 @@ def plan(script: str, changed: list[str], seed: str | None, fraction: float = FR
     those, `sample` the seeded draw over every other span, and `needed` the
     producers of anything selected. A span the diff reaches is never drawn.
     `scope` and `closures` default to `tests/closure.py`'s plan for `changed`
-    and `tests/closures.json`'s read sets.
+    (against the closures committed at the merge base with `base`) and
+    `tests/closures.json`'s read sets. `tests/closures.json` is the one gate
+    file that is no fail-safe here: it decides which scripts run, never how a
+    span runs, and `select` scopes it against the merge base.
     """
     import closure  # noqa: PLC0415 - a sibling module, imported where the plan needs it
 
@@ -940,14 +944,15 @@ def plan(script: str, changed: list[str], seed: str | None, fraction: float = FR
     if not changed:
         return full("no changed files could be determined")
     units = {closure.unit_of(f) for f in changed}
-    gate = sorted(f for f in changed if closure.is_gate_file(f)
+    gate = sorted(f for f in changed if (closure.is_gate_file(f) and f != closure.CLOSURES_REL)
                   or any(f == r or (r.endswith("/") and f.startswith(r)) for r in RUNNER_FILES))
     if gate:
         return full(f"{gate[0]} changes how every span runs")
-    scope = closure.select(sorted(changed)) if scope is None else scope
+    if scope is None:
+        scope = closure.select(sorted(changed), closure.base_closures(base) if base else None)
     if scope.get("mode") != "scoped":
         return full(f"the script-level scope is FULL: {scope.get('reason')}")
-    hit = sorted(units & set(e["header"]))
+    hit = sorted(units & set(e["header"]) - {rel})  # the script's own text is the span hashes' arm
     if hit:
         return full(f"the header reads {hit[0]}, and a span may read what the header built from it")
     recorded = set(e["header"]) | {f for v in e["spans"].values() for f in v["files"]}
@@ -1011,7 +1016,7 @@ def sampled(script: str, seed: str | None, base: str, files: list[str] | None = 
     import closure  # noqa: PLC0415 - a sibling module, imported where the plan needs it
 
     mb = _merge_base(base)
-    p = plan(script, files if files is not None else closure.changed_files(base), seed)
+    p = plan(script, files if files is not None else closure.changed_files(base), seed, base=base)
     print("\n".join(plan_lines(p, mb)))
     sys.stdout.flush()
     if p["mode"] != "scoped":
@@ -1167,6 +1172,11 @@ def _plan_rows(check, spans: list[Span], hh: str) -> None:
               all(why(P([f]), "changes how every span runs") for f in (
                   "tests/harness.py", "tests/hastub/x.py", "tests/case_select.py",
                   "tests/case_closures.json", "tests/run.sh")))
+        check("fail-safe null: tests/closures.json, which select scopes against the merge base, is no trigger",
+              P(["h.py", "tests/closures.json"])["mode"] == "scoped")
+        check("fail-safe null: the script's own file in the header's reads is no trigger (its spans' hashes are)",
+              plan(script, ["h.py", rel], seed, FRACTION, make(spans, header=("hdr.py", rel), name="s.json"),
+                   ok, cl)["mode"] == "scoped")
         check("fail-safe: a script-level FULL scope runs every span",
               why(P(["m.py"], sc={"mode": "full", "reason": "r"}), "script-level scope"))
         check("fail-safe: a changed file the header reads runs every span", why(P(["hdr.py"]), "header reads"))
@@ -1365,7 +1375,7 @@ def _main(argv: list[str]) -> int:
     files = [ln.strip() for ln in open(files, encoding="utf-8") if ln.strip()] if files else None
     if len(argv) >= 2 and argv[0] == "plan":
         import closure  # noqa: PLC0415 - a sibling module, imported where the plan needs it
-        p = plan(argv[1], files if files is not None else closure.changed_files(base), seed)
+        p = plan(argv[1], files if files is not None else closure.changed_files(base), seed, base=base)
         print("\n".join(plan_lines(p, _merge_base(base))))
         return 0
     if len(argv) >= 2 and argv[0] == "run" and "--sample" in argv:

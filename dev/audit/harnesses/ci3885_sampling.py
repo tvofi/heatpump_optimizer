@@ -19,12 +19,14 @@ section headings and compares them with the spans `case_select.split` cuts
 from SCRIPT and with the log's own `CASES:` line, the count a whole run is
 proved by. `census` replays the last N first-parent merges of REF: each
 merge's first-parent diff, planned for both scripts against this tree's table
-with the seed `<k>-<merge sha>`, printed as the mode, its reason, and the
+with the seed `<k>-<merge sha>` and the closures committed at the merge's
+first parent as select's base, printed as the mode, its reason, and the
 recorded seconds share of the spans the plan runs.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -54,7 +56,11 @@ MUTANTS = (
     ("rule (v) needed removed", "for i in _closure_star(set(rules), needs) - set(rules):", "for i in set():"),
     ("draw over the diff's spans too", "for i in draw([i for i in ids if i not in rules], seed, fraction):",
      "for i in draw(ids, seed, fraction):"),
-    ("header-files arm removed", 'hit = sorted(units & set(e["header"]))', "hit = []"),
+    ("header-files arm removed", 'hit = sorted(units & set(e["header"]) - {rel})', "hit = []"),
+    ("closures.json exclusion removed", "(closure.is_gate_file(f) and f != closure.CLOSURES_REL)",
+     "closure.is_gate_file(f)"),
+    ("script's own file kept in the header arm", 'hit = sorted(units & set(e["header"]) - {rel})',
+     'hit = sorted(units & set(e["header"]))'),
     ("closure-not-recorded arm removed", "stray = sorted(units & set(closures.get(rel, ())) - recorded)",
      "stray = []"),
     ("gate/runner arm removed", "if gate:\n        return full", "if False:\n        return full"),
@@ -163,8 +169,11 @@ def census(n: int, ref: str) -> int:
         subj = subprocess.run(["git", "log", "-1", "--format=%s", m], capture_output=True, text=True,
                               cwd=ROOT).stdout.strip()[:60]
         cells = []
+        shown = subprocess.run(["git", "show", f"{m}^1:{closure.CLOSURES_REL}"], capture_output=True,
+                               text=True, cwd=ROOT)
+        base = json.loads(shown.stdout)["closures"] if shown.returncode == 0 else None
+        scope = closure.select(files, base)
         for s in C.SCRIPTS:
-            scope = closure.select(files)
             if s not in scope.get("run", []):
                 cells.append(f"{Path(s).name}: not selected")
                 tally[(s, "not selected")] = tally.get((s, "not selected"), 0) + 1
