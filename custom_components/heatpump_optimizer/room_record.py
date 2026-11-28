@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .room_history import History, House, Period, identifiability_report, loaded, note, stored
 from .rooms import RoomReading
-from .store import QuarantiningStore
+from .store import QuarantiningStore, save_held
 
 __all__ = ["House", "async_flush", "async_note_cycle", "record_of", "report_of"]
 
@@ -69,12 +69,10 @@ async def _load(rec: _Record) -> None:
 
 
 async def _persist(rec: _Record) -> None:
-    try:
-        await rec.store.async_save(stored(rec.history))
-    except Exception as err:  # noqa: BLE001 - still unsaved: saved on the next pass
-        _LOGGER.debug("Could not persist the room history: %s", err)
-        return
-    rec.unsaved = 0
+    if await save_held(
+        rec.store, "the room history", lambda: rec.store.async_save(stored(rec.history)),
+    ):
+        rec.unsaved = 0  # a failed save stays unsaved: saved on the next pass
 
 
 async def async_note_cycle(coord: Any, now: datetime, readings: Sequence[RoomReading], house: House) -> None:

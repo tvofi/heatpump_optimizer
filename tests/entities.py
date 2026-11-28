@@ -11230,7 +11230,7 @@ def _ss_instant(leaf) -> bool:
         _ss_manual._parse_dt(leaf, _SS_NOW)
         return True
     except _ss_manual.ManualPlanError:
-        return _away_mod._parse_return_time(leaf) is not None
+        return _away_mod.parse_return_time(leaf) is not None
 
 
 def _ss_absolute(value) -> bool:
@@ -44069,7 +44069,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
-        ("coordinator.py", "_peak_tariff_months"): 1, ("coordinator.py", "_peak_tariff_hours"): 1,
+        ("tariff.py", "peak_tariff_months"): 1, ("tariff.py", "peak_tariff_hours"): 1,
         ("open_meteo.py", "async_refresh"): 1, ("legionella.py", "check_mode_block"): 1,
         ("legionella.py", "async_track_cycle"): 5, ("pump_arbiter.py", "_not_held"): 1,
         ("curve_learning.py", "record_miss"): 1,
@@ -44119,11 +44119,11 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("off_restore.py", "async_forget"): 2,
     },
     "one record per failed call, an event and not a held condition (the "
-    "sweep's actuation handlers, and an unexpected exception per failed update)": {
+    "sweep's actuation handlers; an unexpected exception in the update cycle is "
+    "held per entry since R11-SEAM-cycle-reporting, D1-s3-06)": {
         ("climate.py", "_async_publish_displace_from_current_action"): 1,
         ("heat_curve.py", "publish_ecl110_topics"): 2, ("circulation.py", "command"): 1,
-        ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
-        ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
+        ("coordinator.py", "_command_frequency"): 1, ("disinfection.py", "_write"): 2,
         ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
         ("pump_arbiter.py", "switch_supply"): 1,
     },

@@ -7,7 +7,7 @@ from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .away import _parse_return_time
+from .away import parse_return_time
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, publish_then_refresh
 
@@ -41,7 +41,7 @@ class AwayReturnDateTime(HeatPumpOptimizerEntity, DateTimeEntity):
     def native_value(self) -> datetime | None:
         # The live override, not the payload's copy, which changes only after
         # the refresh the set call asks for has run its solve (v6.6.12).
-        return _parse_return_time(self.coordinator.away_state.override_return_iso)
+        return parse_return_time(self.coordinator.away_state.override_return_iso)
 
     async def async_set_value(self, value: datetime) -> None:
         await self.coordinator.async_set_away(return_time=value, refresh=False)

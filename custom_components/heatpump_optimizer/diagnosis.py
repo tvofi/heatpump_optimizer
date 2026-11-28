@@ -91,6 +91,7 @@ def attribute(
     try:
         baseline = _room_after(model, state, planned)
     except Exception:  # noqa: BLE001 - diagnosis must never break operations
+        _LOGGER.debug("Diagnosis baseline not simulated", exc_info=True)
         return None
 
     contributions: dict[str, float] = {}
@@ -112,6 +113,7 @@ def attribute(
         try:
             shifted = _room_after(model, state, swapped)
         except Exception:  # noqa: BLE001 - skip the swap, keep the rest
+            _LOGGER.debug("Diagnosis swap %s not simulated", key, exc_info=True)
             continue
         delta = shifted - baseline
         if abs(delta) >= 0.005:

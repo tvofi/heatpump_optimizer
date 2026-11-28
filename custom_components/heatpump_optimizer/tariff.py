@@ -27,6 +27,7 @@ savings for nothing.
 """
 from __future__ import annotations
 
+import functools
 import logging
 import math
 from dataclasses import dataclass, field
@@ -37,10 +38,44 @@ import numpy as np
 
 from .batchmath import row_sums
 from .const import HISTORY_LENGTH
-from .dhw_schedule import Window, hour_in_windows
+from .dhw_schedule import DHWWindowError, Window, hour_in_windows, parse_windows
+from .grid_fee import GridFeeError, parse_month_range
 from .payload import PeakTariff
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@functools.lru_cache(maxsize=8)
+def peak_tariff_months(spec: str) -> frozenset[int]:
+    """The #13 month mask parsed from the option text; empty when unset or broken.
+
+    Cached per text, so a malformed option warns once (#2226: it warned on
+    each of the four ``_capacity_tariff`` reads of every cycle) and the
+    text is parsed once rather than four times a cycle.
+    """
+    months: set[int] = set()
+    try:
+        for chunk in spec.replace(";", ",").split(","):
+            if chunk.strip():
+                months |= parse_month_range(chunk.strip())
+    except GridFeeError as err:
+        _LOGGER.warning("Invalid peak tariff months %r (%s); applying the "
+                        "tariff in every month", spec.strip(), err)
+        return frozenset()
+    return frozenset(months)
+
+
+@functools.lru_cache(maxsize=8)
+def peak_tariff_hours(spec: str) -> tuple[Any, ...]:
+    """The #13 peak-hour windows parsed from the option text, cached as above."""
+    if not spec.strip():
+        return ()
+    try:
+        return tuple(parse_windows(spec.strip()))
+    except DHWWindowError as err:
+        _LOGGER.warning("Invalid peak tariff hours %r (%s); treating every "
+                        "hour as peak", spec.strip(), err)
+        return ()
 
 
 def _window_slot(when: datetime, window_minutes: int) -> datetime:

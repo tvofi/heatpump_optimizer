@@ -2729,9 +2729,9 @@ if _r9f10b_clock_default:
     R.check(
         "a stored instant typed without an offset loads aware through the stub's zone "
         "(the away picker string, D1-s3-01)",
-        away_mode._parse_return_time("2026-03-04 12:30:00")
+        away_mode.parse_return_time("2026-03-04 12:30:00")
         == datetime(2026, 3, 4, 12, 30, tzinfo=timezone.utc),
-        repr(away_mode._parse_return_time("2026-03-04 12:30:00")),
+        repr(away_mode.parse_return_time("2026-03-04 12:30:00")),
     )
     R.check(
         "as_local is still the identity under the UTC default (every golden fixture "
@@ -42747,6 +42747,7 @@ _ET_KEYS = {
     "apply_schedule_comfort_band_violation": {"violations"},
     "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "manual_plan_invalid_expires_at": {"expires_at"},
+    "away_invalid_return_time": {"return_time"},
     "manual_plan_invalid_slots": {"error"},
     "run_optimization_no_prices": {"entry_ids"},
     # D10-s1-02: the system-identification press's two refusals.
@@ -43131,6 +43132,11 @@ _et_check(
     "apply_manual_plan with an unparseable expires_at raises a translatable error",
     _et_call(_et_hass, "apply_manual_plan", {"expires_at": "not-a-datetime"}),
     "manual_plan_invalid_expires_at",
+)
+_et_check(
+    "set_away with an unparseable return_time raises a translatable error (D10-s1-01)",
+    _et_call(_et_hass, "set_away", {"active": True, "return_time": "18:00"}),
+    "away_invalid_return_time",
 )
 _et_check(
     "apply_manual_plan with an invalid slot raises a translatable error",
@@ -51984,7 +51990,7 @@ R.check(
 
 # A SPACE-SEPARATED local time is what the frontend's picker posts, and it is
 # not an ISO instant: storing it verbatim would leave the store holding a
-# string `_parse_return_time` has to re-interpret on every read, and the
+# string `parse_return_time` has to re-interpret on every read, and the
 # expiry sweep three lines below would compare against None.
 _t1_away_str = _t1_coord()
 _t1_away_target = (dt_util.now() + timedelta(hours=3)).replace(microsecond=0)
@@ -51996,9 +52002,9 @@ R.check(
     _t1_away_str._away_state.override_active is True
     and _t1_away_stored is not None
     and _t1_away_stored != _t1_away_posted
-    and away_mode._parse_return_time(_t1_away_stored) is not None,
+    and away_mode.parse_return_time(_t1_away_stored) is not None,
     f"posted={_t1_away_posted!r} stored={_t1_away_stored!r} -- the stored form "
-    "must round-trip through _parse_return_time, which the posted one only does "
+    "must round-trip through parse_return_time, which the posted one only does "
     "by accident of the parser's tolerance",
 )
 
@@ -59594,7 +59600,7 @@ R.check(
 )
 
 
-# -- away's numbers (const.finite_float) and _parse_return_time ------------------
+# -- away's numbers (const.finite_float) and parse_return_time ------------------
 _g8_nums = {
     "None": _t6_as_float(None, 7.0),
     "int": _t6_as_float(3, 7.0),
@@ -59614,12 +59620,12 @@ R.check(
     "set the away target to 1 °C",
 )
 _g8_rt = {
-    "iso": _g8_away._parse_return_time("2026-07-12T18:00:00+00:00"),
-    "unknown": _g8_away._parse_return_time("unknown"),
-    "unavailable": _g8_away._parse_return_time("unavailable"),
-    "empty": _g8_away._parse_return_time(""),
-    "None": _g8_away._parse_return_time(None),
-    "rubbish": _g8_away._parse_return_time("next tuesday"),
+    "iso": _g8_away.parse_return_time("2026-07-12T18:00:00+00:00"),
+    "unknown": _g8_away.parse_return_time("unknown"),
+    "unavailable": _g8_away.parse_return_time("unavailable"),
+    "empty": _g8_away.parse_return_time(""),
+    "None": _g8_away.parse_return_time(None),
+    "rubbish": _g8_away.parse_return_time("next tuesday"),
 }
 R.check(
     "a return time parses, or reads as absent -- never as a raise",
@@ -65808,6 +65814,7 @@ class _PaCoord:
                 getattr(getattr(self, "_legionella", None), "disinfect", None),
                 "memo", None,
             ) is True,
+            opt_config=getattr(self, "opt", None),
         )
 
     async def async_set_mode(self, mode):
@@ -69691,7 +69698,7 @@ _SI_STHLM = _SiZone("Europe/Stockholm")
 _si_zone0 = dt_util.DEFAULT_TIME_ZONE
 dt_util.DEFAULT_TIME_ZONE = _SI_STHLM
 try:
-    _si_ret = away_mode._parse_return_time("2026-10-05T08:00")
+    _si_ret = away_mode.parse_return_time("2026-10-05T08:00")
     _si_until = boost_mod._parse_until(_SI_NAIVE)
     _si_c = _t2_coord()
     _si_key = f"heatpump_optimizer_{_si_c.entry.entry_id}_pump_duty"
@@ -83798,7 +83805,7 @@ class _EcCoord(_PaCoord):
 
     def arm(self, at=None):
         _pa_aio.run(_ec.arm(_ec.state_for(self), self.arbiter_inputs,
-                            _ec_boost_mod.held_for(self), self.opt, self.entry.async_on_unload, at))
+                            _ec_boost_mod.held_for(self), self.entry.async_on_unload, at))
 
     def room(self, value):
         ev = _PaNS(data={"new_state": FakeState(str(value), unit="°C")})
@@ -85151,8 +85158,8 @@ def _fd_flood_run():
     for _ in range(4):
         _fd_flood._price_series(96, _FD_T0, 0)
         _fd_flood._weather_series(96, _FD_T0, 0)
-        _fd_cm._peak_tariff_months("Smarch-fd")
-        _fd_cm._peak_tariff_hours("25:99-fd")
+        tariff_mod.peak_tariff_months("Smarch-fd")
+        tariff_mod.peak_tariff_hours("25:99-fd")
 
 
 _fd_flood_log = _fd_logged(_fd_flood_run)
@@ -103837,6 +103844,450 @@ R.check(
     f"before={_rh_ul_before} after={_rh_ul_doc}",
 )
 
+# ---------------------------------------------------------------------------
+# R11-SEAM-cycle-reporting: how a failure is reported (D1-s3-05, D1-s3-06,
+# D1-s3-07, D10-s1-01, D7-s2-03 with ADR-003's stale holder, D10-s3-02 in
+# tests/doc_claims.py). Each arm drives the production symbol; its null
+# control is the healthy input.
+# ---------------------------------------------------------------------------
+import ast as _cr_ast  # noqa: E402
+import asyncio as _cr_aio  # noqa: E402
+import logging as _cr_logging  # noqa: E402
+import pathlib as _cr_path  # noqa: E402
+from dataclasses import replace as _cr_replace  # noqa: E402
+from types import SimpleNamespace as _CrNS  # noqa: E402
+
+from harness import FakeEntry as _CrEntry  # noqa: E402
+from homeassistant.exceptions import ServiceValidationError as _CrSVE  # noqa: E402
+from homeassistant.helpers.update_coordinator import UpdateFailed as _CrUF  # noqa: E402
+from heatpump_optimizer import coordinator as _cr_cm  # noqa: E402
+from heatpump_optimizer import diagnostics as _cr_diag  # noqa: E402
+from heatpump_optimizer import early_cutoff as _cr_ec  # noqa: E402
+from heatpump_optimizer import optimizer as _cr_opt  # noqa: E402
+from heatpump_optimizer import services as _cr_svc  # noqa: E402
+from heatpump_optimizer import store as _cr_store  # noqa: E402
+
+_CR_PKG = _cr_path.Path(_cr_cm.__file__).parent
+_CR_CFG = {"tibber_token": "x", "price_source": "tibber", "weather_entity": "weather.home",
+           "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor"}
+
+
+class _CrLog(_cr_logging.Handler):
+    """Every record the package logs, as (level, message, carries a traceback)."""
+
+    def __init__(self):
+        super().__init__(_cr_logging.DEBUG)
+        self.rows = []
+
+    def emit(self, record):
+        self.rows.append((record.levelname, record.getMessage(), record.exc_info is not None))
+
+    def count(self, level, needle, *, traced=None):
+        return sum(1 for lv, msg, tb in self.rows
+                   if lv == level and needle in msg and (traced is None or tb == traced))
+
+    def above_debug(self):
+        return [r for r in self.rows if r[0] != "DEBUG"]
+
+
+def _cr_logged(fn):
+    log, logger = _CrLog(), _cr_logging.getLogger(_cr_cm.__name__.rsplit(".", 1)[0])
+    old = logger.level
+    logger.addHandler(log)
+    logger.setLevel(_cr_logging.DEBUG)
+    try:
+        fn()
+    finally:
+        logger.removeHandler(log)
+        logger.setLevel(old)
+    return log
+
+
+def _cr_coord():
+    return Coord(FakeHass(), _CrEntry(data=dict(_CR_CFG)))
+
+
+class _CrStore:
+    """A store whose save fails while ``fail`` is set; ``saved`` holds what landed."""
+
+    def __init__(self):
+        self.fail, self.saved = True, []
+
+    async def async_wait_for_read(self):
+        return None
+
+    async def async_save(self, data):
+        if self.fail:
+            raise OSError("disk full")
+        self.saved.append(data)
+
+
+# -- D1-s3-05: a persistently failing save is reported once per outage ------
+_cr_st, _cr_landed = _CrStore(), []
+
+
+def _cr_held_run():
+    for fail in (True, True, True, False, True):
+        _cr_st.fail = fail
+        _cr_landed.append(_cr_aio.run(_cr_store.save_held(
+            _cr_st, "probe store", lambda: _cr_st.async_save({"k": 1}))))
+
+
+_cr_held = _cr_logged(_cr_held_run)
+_cr_ok_st, _cr_ok_st.fail = _CrStore(), False
+_cr_ok = _cr_logged(lambda: _cr_aio.run(_cr_store.save_held(
+    _cr_ok_st, "probe store", lambda: _cr_ok_st.async_save({"k": 1}))))
+R.check(
+    "D1-s3-05: a save failing on three passes logs one ERROR with its traceback, DEBUG while it "
+    "holds, Resolved on the save that lands, and ERROR again when it recurs; it never raises; "
+    "null control, a save that lands logs nothing above DEBUG",
+    _cr_landed == [False, False, False, True, False]
+    and _cr_held.count("ERROR", "Could not persist probe store: disk full", traced=True) == 2
+    and _cr_held.count("DEBUG", "Still: Could not persist probe store") == 2
+    and _cr_held.count("INFO", "Resolved: persist probe store") == 1
+    and len(_cr_held.above_debug()) == 3 and _cr_ok.above_debug() == [] and _cr_ok_st.saved == [{"k": 1}],
+    f"landed={_cr_landed} rows={_cr_held.rows} ok={_cr_ok.rows}",
+)
+
+# A payload builder that raises is held like a failing save, not raised into the cycle.
+_cr_bug_st = _CrStore()
+_cr_bug_st.fail = False
+_cr_bug = _cr_logged(lambda: _cr_landed.append(_cr_aio.run(_cr_store.save_held(
+    _cr_bug_st, "probe payload", lambda: _cr_bug_st.async_save({"k": 1 / 0})))))
+R.check(
+    "D1-s3-05: a payload builder that raises is held as the store's failure (ERROR with its "
+    "traceback), not raised into the caller, and nothing is saved",
+    _cr_landed[-1] is False and _cr_bug_st.saved == []
+    and _cr_bug.count("ERROR", "Could not persist probe payload: division by zero", traced=True) == 1,
+    f"{_cr_bug.rows}",
+)
+
+# A production persist handler, driven with its store failing on every pass.
+_cr_led = _cr_coord()
+_cr_led._ledger_store = _CrStore()
+_cr_led_log = _cr_logged(lambda: [_cr_aio.run(_cr_led._async_save_ledger()) for _ in range(3)])
+_cr_led._ledger_store.fail = False
+_cr_led_ok = _cr_logged(lambda: _cr_aio.run(_cr_led._async_save_ledger()))
+R.check(
+    "D1-s3-05: the coordinator's ledger save failing on three cycles logs one ERROR (it was DEBUG "
+    "on every cycle), and the save that lands logs Resolved and stores the ledger",
+    _cr_led_log.count("ERROR", "Could not persist ledger", traced=True) == 1
+    and len(_cr_led_log.above_debug()) == 1
+    and _cr_led_ok.count("INFO", "Resolved: persist ledger") == 1
+    and len(_cr_led._ledger_store.saved) == 1 and "ledger" in _cr_led._ledger_store.saved[0],
+    f"fail={_cr_led_log.rows} ok={_cr_led_ok.rows}",
+)
+
+
+def _cr_save_sites():
+    """Each store save call in the package: (file, line, how a failure is reported).
+
+    ``held``: inside a callable handed to ``store.save_held``. ``propagates``: under no
+    broad handler, so a failure reaches the caller. ``swallowed``: under a broad handler
+    with neither, the shape D1-s3-05 found at every persist handler.
+    """
+    out = []
+    for path in sorted(_CR_PKG.glob("*.py")):
+        if path.name == "store.py":  # the store's own wrappers of the base class's save
+            continue
+        tree = _cr_ast.parse(path.read_text())
+        parents = {c: p for p in _cr_ast.walk(tree) for c in _cr_ast.iter_child_nodes(p)}
+        handed = set()  # the callables handed to save_held: lambdas, and local defs by name
+        for call in _cr_ast.walk(tree):
+            if isinstance(call, _cr_ast.Call) and getattr(call.func, "id", None) == "save_held":
+                arg = call.args[2]
+                handed.add(arg if isinstance(arg, _cr_ast.Lambda) else ("def", arg.id, parents[call]))
+        for call in _cr_ast.walk(tree):
+            fn = call.func if isinstance(call, _cr_ast.Call) else None
+            if not (isinstance(fn, _cr_ast.Attribute) and fn.attr in ("async_save", "async_save_if_changed")):
+                continue
+            if isinstance(fn.value, _cr_ast.Name) and fn.value.id == "self":  # a method's own wrapper
+                continue
+            how, node = "propagates", call
+            while node in parents:
+                node = parents[node]
+                if node in handed or (isinstance(node, _cr_ast.AsyncFunctionDef) and any(
+                        h[0] == "def" and h[1] == node.name for h in handed if isinstance(h, tuple))):
+                    how = "held"
+                    break
+                if isinstance(node, _cr_ast.Try) and any(
+                        h.type is None or _cr_ast.unparse(h.type) in ("Exception", "BaseException")
+                        for h in node.handlers):
+                    how = "swallowed"
+                    break
+            out.append((path.name, call.lineno, how))
+    return out
+
+
+_cr_sites = _cr_save_sites()
+_cr_by = {how: [s for s in _cr_sites if s[2] == how] for how in ("held", "propagates", "swallowed")}
+R.check(
+    "D1-s3-05 census: every store save in the package is held through save_held or propagates to "
+    "its caller, none swallowed under a broad handler; precondition, the census finds the 18 "
+    "persist handlers persist_seams.py enumerated at the merge base, each now held",
+    _cr_by["swallowed"] == [] and len(_cr_by["held"]) >= 18
+    and {f for f, _, _ in _cr_by["held"]} >= {
+        "away.py", "boost.py", "coordinator.py", "debugger.py", "dhw_learning.py", "duty_switch.py",
+        "legionella.py", "notifier.py", "off_restore.py", "pump_arbiter.py", "room_record.py"},
+    f"{_cr_by}",
+)
+
+# -- D1-s3-06: the update cycle's generic arm logs a persisting failure once ---
+_cr_up = _cr_coord()
+_cr_up_outcomes = []
+
+
+async def _cr_noop(*_a, **_k):
+    return None
+
+
+async def _cr_broken(*_a, **_k):
+    raise RuntimeError("sensor bus down")
+
+
+def _cr_update_run():
+    for first in (False, False, True):  # two cycles, then a setup-time refresh
+        _cr_up._skip_solve_once = first
+        try:
+            _cr_aio.run(_cr_up._async_update_data())
+            _cr_up_outcomes.append("ok")
+        except _CrUF as err:
+            _cr_up_outcomes.append(err.translation_key)
+
+
+for _cr_name in ("_fetch_tibber_prices", "_fetch_weather_forecast", "_fetch_solar_forecast",
+                 "_async_learn_price_shape"):
+    setattr(_cr_up, _cr_name, _cr_noop)
+_cr_up._update_current_state = _cr_broken
+
+
+def _cr_retry_run():
+    """Two cycles and a setup-time refresh, then a setup retry: a new coordinator, same entry."""
+    global _cr_up
+    _cr_update_run()
+    first = _cr_up
+    _cr_aio.run(first.async_shutdown())  # a failed setup shuts its coordinator down, forgetting hass's latches
+    _cr_up = Coord(first.hass, first.entry)
+    for _name in ("_fetch_tibber_prices", "_fetch_weather_forecast", "_fetch_solar_forecast",
+                  "_async_learn_price_shape"):
+        setattr(_cr_up, _name, _cr_noop)
+    _cr_up._update_current_state = _cr_broken
+    _cr_up._skip_solve_once = True
+    try:
+        _cr_aio.run(_cr_up._async_update_data())
+    except _CrUF as err:
+        _cr_up_outcomes.append(err.translation_key)
+
+
+_cr_up_log = _cr_logged(_cr_retry_run)
+_cr_up._update_current_state = _cr_noop
+_cr_up._build_data_dict = lambda: {"recovered": True}
+
+
+def _cr_recover_run():
+    _cr_up._skip_solve_once = True
+    _cr_up_outcomes.append(_cr_aio.run(_cr_up._async_update_data()))
+    _cr_up._update_current_state = _cr_broken
+    _cr_update_run()
+
+
+_cr_rec_log = _cr_logged(_cr_recover_run)
+R.check(
+    "D1-s3-06: an unexpected failure persisting over two cycles, a setup-time refresh and a setup "
+    "retry's new coordinator logs one ERROR with its traceback (it was ERROR on every cycle and "
+    "every retry), each a translated UpdateFailed; the "
+    "refresh that succeeds logs Resolved, and the recurrence is an ERROR again (null control: "
+    "the transition is still reported)",
+    _cr_up_outcomes[:4] == ["update_failed"] * 4
+    and _cr_up_log.count("ERROR", "Error updating Heat Pump Optimizer: sensor bus down", traced=True) == 1
+    and len(_cr_up_log.above_debug()) == 1
+    and _cr_up_outcomes[4] == {"recovered": True}
+    and _cr_rec_log.count("INFO", "Resolved: update failed") == 1
+    and _cr_rec_log.count("ERROR", "Error updating Heat Pump Optimizer: sensor bus down") == 1,
+    f"outcomes={_cr_up_outcomes} first={_cr_up_log.rows} recover={_cr_rec_log.rows}",
+)
+
+# -- D1-s3-07: a broad handler that swallows leaves a record ------------------
+_cr_best = _CrNS(x=[0.5])
+_cr_restart_log = _cr_logged(lambda: _cr_landed.append(_cr_opt._lbfgsb_restart(
+    _cr_best, lambda x, *a: (_ for _ in ()).throw(RuntimeError("objective blew up")),
+    [(0.0, 1.0)], (), 5, None)))
+_cr_sum_coord = _CrNS(_accuracy=_CrNS(summary=lambda: 1 / 0))
+_cr_sum_log = _cr_logged(lambda: _cr_landed.append(
+    _cr_cm.CoordinatorDiagnostics.of(_cr_sum_coord).learner_summaries))
+_cr_view_log = _cr_logged(lambda: _cr_landed.append(
+    _cr_diag._never_breaks(lambda c: 1 / 0, None)))
+R.check(
+    "D1-s3-07: the L-BFGS-B restart, a learner summary and a diagnostics view that raise keep "
+    "their fallbacks (the start's point, 'summary unavailable', 'unavailable') and now each "
+    "leave a DEBUG record carrying the traceback; nothing above DEBUG",
+    _cr_landed[-3] is _cr_best and _cr_landed[-2] == {"accuracy": "summary unavailable"}
+    and _cr_landed[-1] == "unavailable"
+    and all(log.count("DEBUG", "", traced=True) >= 1 and log.above_debug() == []
+            for log in (_cr_restart_log, _cr_sum_log, _cr_view_log)),
+    f"restart={_cr_restart_log.rows} summary={_cr_sum_log.rows} view={_cr_view_log.rows}",
+)
+
+# _capture_diagnosis_inputs: a state that cannot be copied is no evidence (None), a weather
+# read that raises records wind 0.0; each now leaves a DEBUG record.
+_cr_dx = _cr_coord()
+_cr_dx_state = _cr_dx._ctx._current_state
+_cr_dx._ctx = _cr_replace(_cr_dx._ctx, _current_state=object())
+_cr_dx_none_log = _cr_logged(lambda: _cr_landed.append(_cr_dx._capture_diagnosis_inputs()))
+_cr_dx._ctx = _cr_replace(_cr_dx._ctx, _current_state=_cr_dx_state)
+_cr_dx._current_weather = lambda: (_ for _ in ()).throw(RuntimeError("no weather"))
+_cr_dx_wind_log = _cr_logged(lambda: _cr_landed.append(_cr_dx._capture_diagnosis_inputs()))
+R.check(
+    "D1-s3-07: diagnosis inputs whose state cannot be copied are None, and a weather read that "
+    "raises records the plan's wind as 0.0; each leaves a DEBUG record with its traceback",
+    _cr_landed[-2] is None and isinstance(_cr_landed[-1], dict)
+    and _cr_landed[-1]["planned"]["wind_speed"] == 0.0
+    and _cr_dx_none_log.count("DEBUG", "Diagnosis inputs not captured", traced=True) == 1
+    and _cr_dx_wind_log.count("DEBUG", "Diagnosis wind not captured", traced=True) == 1,
+    f"none={_cr_landed[-2]!r} wind={_cr_landed[-1] if isinstance(_cr_landed[-1], str) else 'dict'} "
+    f"logs={_cr_dx_none_log.rows} {_cr_dx_wind_log.rows}",
+)
+
+# diagnosis.attribute: a baseline the model cannot simulate is no report (None), recorded.
+from heatpump_optimizer import diagnosis as _cr_dg  # noqa: E402
+
+
+def _cr_attribute():
+    try:
+        return _cr_dg.attribute(_CrNS(simulate_step=lambda *a, **k: 1 / 0), _cr_dx_state, {}, {}, 21.0)
+    except Exception as err:  # a mutant that runs on without its baseline fails the check
+        return repr(err)
+
+
+_cr_dg_log = _cr_logged(lambda: _cr_landed.append(_cr_attribute()))
+R.check(
+    "D1-s3-07 seam rule: a diagnosis whose baseline cannot be simulated is no report (None), and "
+    "leaves a DEBUG record with its traceback",
+    _cr_landed[-1] is None and _cr_dg_log.count("DEBUG", "Diagnosis baseline not simulated", traced=True) == 1,
+    f"{_cr_landed[-1]!r} {_cr_dg_log.rows}",
+)
+
+
+def _cr_silent(path, func):
+    """The broad handlers of ``func`` in ``path`` that neither raise nor call anything logging."""
+    tree = _cr_ast.parse((_CR_PKG / path).read_text())
+    fns = [n for n in _cr_ast.walk(tree) if isinstance(n, (_cr_ast.FunctionDef, _cr_ast.AsyncFunctionDef))
+           and n.name == func]
+    assert len(fns) == 1, (path, func, len(fns))
+    broad = [h for n in _cr_ast.walk(fns[0]) if isinstance(n, _cr_ast.Try) for h in n.handlers
+             if h.type is None or _cr_ast.unparse(h.type) in ("Exception", "BaseException")]
+    silent = [h.lineno for h in broad if not any(
+        isinstance(c, (_cr_ast.Raise,)) or (isinstance(c, _cr_ast.Call) and "_LOGGER" in _cr_ast.unparse(c.func))
+        for c in _cr_ast.walk(_cr_ast.Module(body=h.body, type_ignores=[])))]
+    return len(broad), silent
+
+
+_CR_SILENT_SEAMS = [  # D1-s3-07's seven, and the evidence fallbacks D1-s3-07's seam rule returns
+    ("coordinator.py", "_record_accuracy"), ("coordinator.py", "_capture_diagnosis_inputs"),
+    ("coordinator.py", "of"), ("diagnostics.py", "_coordinator_snapshot"),
+    ("diagnostics.py", "_never_breaks"), ("optimizer.py", "_lbfgsb_restart"),
+    ("coordinator.py", "_stored_fuse_advisor"), ("coordinator.py", "_track_curve_comfort"),
+    ("coordinator.py", "_raise_cop_issue"), ("optimizer.py", "_solver_status"),
+    ("config_flow.py", "_omit_unstored_computed"),
+    ("config_flow.py", "_prefilled_values"), ("diagnosis.py", "attribute"),
+]
+_cr_silent_found = {s: _cr_silent(*s) for s in _CR_SILENT_SEAMS}
+R.check(
+    "D1-s3-07 census: each named handler's function holds a broad handler (precondition: the seam "
+    "is where the census reads it) and none of them is silent",
+    all(n >= 1 and silent == [] for n, silent in _cr_silent_found.values()),
+    f"{_cr_silent_found}",
+)
+
+# -- D10-s1-01: set_away refuses a return time that neither clears nor parses --
+_CR_BAD_RETURNS = ["18:00", "tomorrow", "2026-13-01T10:00:00", "not a date", "25:99", " x "]
+_CR_GOOD_RETURNS = [None, "", "unknown", "unavailable", "2026-07-12T18:00:00+00:00", "2026-07-12 18:00"]
+
+
+class _CrAwayCoord:
+    def __init__(self):
+        self.calls = []
+
+    async def async_set_away(self, **kwargs):
+        self.calls.append(kwargs)
+
+
+_cr_away_coord = _CrAwayCoord()
+_cr_loaded = _cr_svc._loaded_coordinators
+_cr_svc._loaded_coordinators = lambda hass, target_entry=None: [("e1", _cr_away_coord)]
+_cr_refused = []
+try:
+    for _cr_raw in _CR_BAD_RETURNS + _CR_GOOD_RETURNS:
+        try:
+            _cr_aio.run(_cr_svc.handle_set_away(FakeHass(), _CrNS(data={"active": True, "return_time": _cr_raw})))
+        except _CrSVE as _cr_err:
+            _cr_refused.append((_cr_raw, _cr_err.translation_key, _cr_err.translation_placeholders))
+finally:
+    _cr_svc._loaded_coordinators = _cr_loaded
+R.check(
+    "D10-s1-01: set_away refuses each of six return times that neither clear nor parse with the "
+    "translated away_invalid_return_time, before any write; null control, the clearing values and "
+    "two parseable times reach the coordinator unchanged",
+    [r[0] for r in _cr_refused] == _CR_BAD_RETURNS
+    and all(k == "away_invalid_return_time" and p == {"return_time": str(raw)} for raw, k, p in _cr_refused)
+    and [c["return_time"] for c in _cr_away_coord.calls] == _CR_GOOD_RETURNS,
+    f"refused={_cr_refused} calls={_cr_away_coord.calls}",
+)
+
+# -- D7-s2-03 / ADR-003: a change publishes a new context; the held cutoff reads it --
+_cr_ctx = _cr_coord()
+_cr_old = _cr_ctx._ctx
+_cr_old_cfg = (_cr_old._opt_config.target_temp, _cr_old._opt_config.comfort_weight)
+_cr_aio.run(_cr_ctx.async_set_target_temperature(_cr_old_cfg[0] + 1.0))
+_cr_mid = _cr_ctx._ctx
+_cr_ctx._comfort_weight = lambda: _cr_old_cfg[1] + 2.0
+_cr_ctx._apply_comfort_weight()
+R.check(
+    "D7-s2-03: a target change and a comfort-weight change each publish a new context; a holder of "
+    "the old context keeps the values it was handed (it saw both edits through the shared config)",
+    (_cr_old._opt_config.target_temp, _cr_old._opt_config.comfort_weight) == _cr_old_cfg
+    and _cr_mid is not _cr_old and _cr_mid._opt_config.target_temp == _cr_old_cfg[0] + 1.0
+    and _cr_mid._opt_config.comfort_weight == _cr_old_cfg[1]
+    and _cr_ctx._ctx is not _cr_mid and _cr_ctx._ctx._opt_config.comfort_weight == _cr_old_cfg[1] + 2.0
+    and _cr_ctx._ctx._opt_config.target_temp == _cr_old_cfg[0] + 1.0,
+    f"old={_cr_old._opt_config.target_temp, _cr_old._opt_config.comfort_weight} "
+    f"mid={_cr_mid._opt_config.target_temp, _cr_mid._opt_config.comfort_weight} "
+    f"live={_cr_ctx._ctx._opt_config.target_temp, _cr_ctx._ctx._opt_config.comfort_weight}",
+)
+
+# ADR-003's stale-holder acceptance: the cutoff armed with the coordinator's own inputs,
+# then a published change, judges the next reading on the replaced configuration.
+_cr_held_ec = _cr_ec.CutoffState()
+_cr_now = datetime.now(timezone.utc)
+# A plan colder than any comfort target, so the target is what sets the threshold.
+_cr_ctx._optimization_result = _CrNS(timestamps=[_cr_now - timedelta(minutes=15), _cr_now + timedelta(minutes=15)],
+                                     room_temp_trajectory=[5.0, 5.0, 5.0])
+_cr_aio.run(_cr_ec.arm(_cr_held_ec, _cr_ctx.arbiter_inputs, None, lambda _f: None))
+
+
+def _cr_threshold():
+    """The held cutoff's threshold now; a mutant that drops the config fails the check below."""
+    try:
+        return _cr_ec.threshold(_cr_held_ec.wiring.inputs(), _cr_now)
+    except AttributeError as err:
+        return repr(err)
+
+
+_cr_before = _cr_threshold()
+_cr_cfg_now = _cr_ctx._ctx._opt_config
+_cr_ctx._ctx.publish_config(_cr_ctx, comfort_temp_day=_cr_cfg_now.comfort_temp_day + 3.0,
+                            comfort_temp_night=_cr_cfg_now.comfort_temp_night + 3.0)
+_cr_seen = _cr_held_ec.wiring.inputs().opt_config
+_cr_after = _cr_threshold()
+R.check(
+    "ADR-003 stale holder: after the cutoff is armed, a published configuration change is what the "
+    "held cutoff reads at the next reading (its threshold rises by the 3.0 K the comfort target "
+    "rose); null control, the threshold read before the change is the old target's",
+    _cr_seen is _cr_ctx._ctx._opt_config and _cr_seen is not _cr_cfg_now
+    and isinstance(_cr_before, float) and isinstance(_cr_after, float)
+    and abs((_cr_after - _cr_before) - 3.0) < 1e-9,
+    f"before={_cr_before} after={_cr_after} seen_is_live={_cr_seen is _cr_ctx._ctx._opt_config}",
+)
 
 # --- R11-SEAM-learners: one freeze predicate (ADR-008, design/R11-SEAM-learners
 # at bee723ac). ``learning_freeze.reason`` owns which interval a learner may

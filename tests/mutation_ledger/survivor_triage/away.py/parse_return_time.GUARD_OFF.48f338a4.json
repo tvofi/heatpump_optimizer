@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:parse_return_time GUARD_OFF 48f338a4",
+  "old": "    if clears_return_time(raw):",
+  "reason": "Equivalent. With the guard off, a clearing value falls through to stored_instant(str(raw).strip(), zone), which returns None for every clearing spelling clears_return_time admits (None, '', 'unknown', 'unavailable', any case or padding), measured at the R11-SEAM-cycle-reporting head through heatpump_optimizer.drift.stored_instant; parse_return_time returns None either way. The set_away refusal calls clears_return_time itself, so the guard decides no refusal.",
+  "verdict": "equivalent"
+}

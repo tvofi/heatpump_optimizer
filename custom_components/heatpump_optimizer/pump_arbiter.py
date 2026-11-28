@@ -202,7 +202,7 @@ from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_MINUTES, plan_step_index, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
-from .store import QuarantiningStore, load_mapping
+from .store import QuarantiningStore, load_mapping, save_held
 from .sysid import KIND_PROBE
 from .thermal_model import (
     configured_flow_heat_c,
@@ -430,6 +430,10 @@ class ArbiterInputs:
     #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
     #: or no evidence.
     defrosting: bool | None = None
+    #: The live optimization config, read at each decision: a target or
+    #: comfort-weight change publishes a new one (ADR-003), so one held across
+    #: passes would judge on the old values. ``None`` only in a harness.
+    opt_config: Any = None
     #: The config entry, the key every off restore is armed on (:mod:`off_restore`).
     entry: Any = None
     #: The running-draw window each pass record is handed to
@@ -2248,10 +2252,7 @@ async def _persist(coord: Any) -> None:
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
         "dropped": dict(held.dropped),
     }
-    try:
-        await _store(coord).async_save(payload)
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not persist the pump duty record: %s", err)
+    await save_held(coord, "the pump duty record", lambda: _store(coord).async_save(payload))
 
 
 async def _load(coord: Any) -> None:

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:clears_return_time RETURN_DEL 05ea228a",
+  "killed_by": "tests/features.py",
+  "old": "    return not raw or str(raw).strip().lower() in (\"unknown\", \"unavailable\", \"\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

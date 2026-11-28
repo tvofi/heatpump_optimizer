@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_stored_fuse_advisor RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent. The return is the last statement of the except arm, and nothing follows the try in _stored_fuse_advisor, so deleting it falls off the end of the coroutine, which returns None: the value the deleted line returned.",
+  "verdict": "equivalent"
+}

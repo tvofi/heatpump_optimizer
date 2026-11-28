@@ -90,7 +90,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import LedgerStore, QuarantiningStore, admitted, load_mapping
+from .store import LedgerStore, QuarantiningStore, admitted, load_mapping, save_held
 from .entry_config import EntryConfig, factory_settings, undo_point, undone_settings
 from homeassistant.util import dt as dt_util
 
@@ -286,14 +286,12 @@ from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
 from .plan_step import PLAN_STEP_MINUTES, covering_index, plan_step_start
-from .tariff import CapacityTariff, PeakTracker
+from .tariff import CapacityTariff, PeakTracker, peak_tariff_hours, peak_tariff_months
 from .grid_fee import (
-    GridFeeError,
     GridFeeSchedule,
     fee_bound,
     min_component as grid_fee_min_component,
     max_abs_component as grid_fee_max_abs_component,
-    parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import labels_for
 from .dhw_learning import DhwProfileLearner
@@ -596,39 +594,6 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
 #: leaf module, so the pump arbiter and the input reader can route a persisting
 #: condition through it without importing this module (which imports them all).
 from .log_latch import forget_held, log_held  # noqa: E402
-
-
-@functools.lru_cache(maxsize=8)
-def _peak_tariff_months(spec: str) -> frozenset[int]:
-    """The #13 month mask parsed from the option text; empty when unset or broken.
-
-    Cached per text, so a malformed option warns once (#2226: it warned on
-    each of the four ``_capacity_tariff`` reads of every cycle) and the
-    text is parsed once rather than four times a cycle.
-    """
-    months: set[int] = set()
-    try:
-        for chunk in spec.replace(";", ",").split(","):
-            if chunk.strip():
-                months |= grid_fee_parse_month_range(chunk.strip())
-    except GridFeeError as err:
-        _LOGGER.warning("Invalid peak tariff months %r (%s); applying the "
-                        "tariff in every month", spec.strip(), err)
-        return frozenset()
-    return frozenset(months)
-
-
-@functools.lru_cache(maxsize=8)
-def _peak_tariff_hours(spec: str) -> tuple[Any, ...]:
-    """The #13 peak-hour windows parsed from the option text, cached as above."""
-    if not spec.strip():
-        return ()
-    try:
-        return tuple(parse_windows(spec.strip()))
-    except DHWWindowError as err:
-        _LOGGER.warning("Invalid peak tariff hours %r (%s); treating every "
-                        "hour as peak", spec.strip(), err)
-        return ()
 
 
 #: Each (fence message, cause) pair already surfaced once at WARNING.
@@ -2685,6 +2650,14 @@ class CoordinatorContext:
         new = replace(self._current_state if state is None else state, **fields)
         coord._ctx = replace(self, _current_state=new)
 
+    def publish_config(self, coord: Any, /, **fields: Any) -> None:
+        """Publish ``fields`` on ``coord`` in a new optimization config, whole (ADR-003).
+
+        D7-s2-03: the target and comfort-weight writers edited the shared
+        config in place, so every context published since setup saw the edit.
+        """
+        coord._ctx = replace(self, _opt_config=replace(self._opt_config, **fields))
+
 
 @dataclass(frozen=True)
 class CoordinatorDiagnostics:
@@ -2725,6 +2698,7 @@ class CoordinatorDiagnostics:
             try:
                 summaries[name.lstrip("_")] = summary()
             except Exception:  # noqa: BLE001 -- diagnostics never breaks
+                _LOGGER.debug("%s summary unavailable", name, exc_info=True)
                 summaries[name.lstrip("_")] = "summary unavailable"
         return cls(
             tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
@@ -3083,6 +3057,7 @@ async def _stored_fuse_advisor(
             stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
         )
     except Exception:  # noqa: BLE001
+        _LOGGER.debug("Stored fuse advice unreadable; not restored", exc_info=True)
         return None
 
 
@@ -3534,6 +3509,8 @@ def _freeze_facts(coord: Any) -> learning_freeze.Facts:
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     """Coordinator for Heat Pump Cost Optimizer."""
+
+    config_entry: HeatPumpOptimizerConfigEntry  # the typed entry (D10-s3-02)
 
     _config = _hub("_config")
     _thermal_params = _hub("_thermal_params")
@@ -4173,6 +4150,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
             defrosting=self._pump_signals.defrosting,
+            opt_config=ctx._opt_config,
             draw=self._accuracy.draw,
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
@@ -4288,7 +4266,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "violations": comfort_band.describe(found)
                 },
             )
-        ctx._opt_config.target_temp = temperature
+        CoordinatorContext.publish_config(_ctx_of(self), self, target_temp=temperature)
         self.hass.config_entries.async_update_entry(
             self.entry,
             options={**self.entry.options, CONF_TARGET_TEMP: temperature},
@@ -4780,14 +4758,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_save_thermal_learning(self) -> None:
         """Persist the learned buffer and building parameters."""
-        try:
+        async def save() -> None:
             # D1-s2-52: wait before the payload; one built in flight is stale.
             await self._thermal_learning_store.async_wait_for_read()
             await self._thermal_learning_store.async_save(
                 self._thermal_learning_payload()
             )
-        except Exception as err:
-            _LOGGER.debug("Could not persist learned thermal parameters: %s", err)
+        await save_held(self._thermal_learning_store, "learned thermal parameters", save)
 
     def _dhw_confidence_band(
         self, dhw_temp: list[float | None], dt_hours: float
@@ -6116,7 +6093,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 minutes=_ctx_of(self)._config.optimization_interval
             ))
 
-            return await _with_sensor_advisor(self, self._build_data_dict())
+            payload = await _with_sensor_advisor(self, self._build_data_dict())
+            log_held(self.entry, _UPDATE_FAILED, False)
+            return payload
         except (UpdateFailed, ConfigEntryAuthFailed):
             # #216 (D10-09): the raiser — the Tibber outage latch — already
             # logged this failure once, at the severity its state machine
@@ -6125,10 +6104,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # day-long outage printed the same ERROR on every cycle.
             raise
         except Exception as err:
-            _LOGGER.error(
-                "Error updating Heat Pump Optimizer: %s", err, exc_info=True
-            )
-            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
+            _fail_update_held(self, err)
         finally:
             self._refresh_task = None
             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
@@ -6187,7 +6163,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "First refresh completed without a solve; the real solve "
                 "follows in the background"
             )
-            return self._build_data_dict()
+            payload = self._build_data_dict()
+            log_held(self.entry, _UPDATE_FAILED, False)
+            return payload
         except (UpdateFailed, ConfigEntryAuthFailed):
             # #216, same as _async_update_data's wrapper: this path also
             # runs _fetch_tibber_prices, whose latch has already logged the
@@ -6195,10 +6173,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # one ERROR, not two.
             raise
         except Exception as err:
-            _LOGGER.error(
-                "Error updating Heat Pump Optimizer: %s", err, exc_info=True
-            )
-            _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
+            _fail_update_held(self, err)
 
     def _solve_hubs(
         self, n_steps: int, *, banded: bool, band: draw_range.SolveBand | None = None
@@ -7715,7 +7690,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
-        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), self.arbiter_inputs, boost.held_for(self), self.entry.async_on_unload), "Early cut-off arm skipped: %s")
         # Off and a stale plan write nothing but the restore of what is still
         # armed: the retry of one that failed, and the hand-back on staleness.
         stale = _plan_let_go(self)
@@ -8206,11 +8181,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def _async_save_price_model(self) -> None:
         store = self._price_model_store  # bound once: read twice below (D1-s2-52)
-        try:
+        async def save() -> None:
             await store.async_wait_for_read()
             await store.async_save(self._price_learner.store_payload())
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist price model: %s", err)
+        await save_held(store, "price model", save)
 
     async def _async_load_ledger(self) -> None:
         """Restore the monthly ledger (T1), then the start counter on every exit.
@@ -8261,7 +8235,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._spawn(self._async_save_ledger())
 
     async def _async_save_ledger(self) -> None:
-        try:
+        async def save() -> None:
             await self._ledger_store.async_wait_for_read()  # D1-s2-52
             await self._ledger_store.async_save(
                 {
@@ -8281,8 +8255,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     ),
                 }
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist ledger: %s", err)
+        await save_held(self._ledger_store, "ledger", save)
 
     async def _async_load_accuracy(self) -> None:
         stored = await load_mapping(self._accuracy_store, "accuracy history")
@@ -8304,7 +8277,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         self._apply_comfort_weight()
     async def _async_save_accuracy(self) -> None:
-        try:
+        async def save() -> None:
             await self._accuracy_store.async_wait_for_read()  # D1-s2-52
             await self._accuracy_store.async_save_if_changed(
                 {
@@ -8319,8 +8292,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "mode": self._mode,
                 },
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist accuracy history: %s", err)
+        await save_held(self._accuracy_store, "accuracy history", save)
 
     async def _async_load_energy_totals(self) -> None:
         stored = await load_mapping(self._energy_store, "energy totals")
@@ -8343,7 +8315,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
 
     async def _async_save_energy_totals(self) -> None:
-        try:
+        async def save() -> None:
             await self._energy_store.async_wait_for_read()  # D1-s2-52
             await self._energy_store.async_save_if_changed(
                 {
@@ -8361,8 +8333,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "last_tick": dt_util.now().isoformat(),
                 },
             )
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist energy totals: %s", err)
+        await save_held(self._energy_store, "energy totals", save)
 
     def month_channel_totals(self, line: str) -> tuple[float, float] | None:
         """This month's (kWh, cost) for one accumulator channel.
@@ -8411,15 +8382,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._manual_override = override
 
     async def _async_save_manual_plan(self) -> None:
-        try:
-            payload = (
-                self._manual_override.to_dict()
-                if self._manual_override is not None
-                else {}
-            )
-            await self._manual_plan_store.async_save(payload)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist manual plan: %s", err)
+        override = self._manual_override
+        await save_held(self._manual_plan_store, "manual plan", lambda: self._manual_plan_store.async_save(
+            {} if override is None else override.to_dict()))
 
     def _horizon_step_starts(self, solve_now: datetime, n_steps: int) -> list[datetime]:
         """The instant each solved step begins, matching the optimizer's own."""
@@ -8572,11 +8537,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
     def _tariff_months(self) -> frozenset[int]:
         """The #13 month mask, empty (= every month) when unset or broken."""
-        return _peak_tariff_months(getattr(self, "_ctx", self)._config.peak_tariff_months)
+        return peak_tariff_months(getattr(self, "_ctx", self)._config.peak_tariff_months)
 
     def _tariff_hours(self) -> tuple[Any, ...]:
         """The #13 peak-hour windows, empty (= every hour) when unset."""
-        return _peak_tariff_hours(getattr(self, "_ctx", self)._config.peak_tariff_hours)
+        return peak_tariff_hours(getattr(self, "_ctx", self)._config.peak_tariff_hours)
 
     def _track_realised_peak(self) -> None:
         """Fold the current whole-house draw into this month's peaks.
@@ -9161,6 +9126,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # dipping under the floor the user actually configured is.
             floor_c = float(ctx._opt_config.get_temp_bounds(hour)[0])
         except Exception:  # noqa: BLE001 - evidence, never operations
+            _LOGGER.debug("Curve comfort not tracked this cycle", exc_info=True)
             return
         margin = worst_zone_margin_k((
             ctx._current_state.room_temperature,
@@ -9438,6 +9404,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # a full month — a rough estimate, honestly labelled "~".
             monthly_kwh = monthly_kwh / max(1, now.day) * 30.0
         except Exception:  # noqa: BLE001 - the estimate is best-effort
+            _LOGGER.debug("Monthly COP-issue estimate unavailable; 0 kWh used", exc_info=True)
             monthly_kwh = 0.0
         mean_price = (
             float(np.mean([p.get("total", 0.0) for p in self._prices]))
@@ -9684,10 +9651,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._snapshot_ring = SnapshotRing.from_dict(stored)
 
     async def _async_save_snapshots(self) -> None:
-        try:
-            await self._snapshot_store.async_save(self._snapshot_ring.as_dict())
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Could not persist learner snapshots: %s", err)
+        await save_held(self._snapshot_store, "learner snapshots", lambda: self._snapshot_store.async_save(self._snapshot_ring.as_dict()))
 
     def _baseline_house_load(self, n_steps: int) -> np.ndarray:
         """Whole-house load excluding the heat pump, per step, in kW."""
@@ -9772,7 +9736,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _expire_away_override(self, now: datetime) -> tuple[bool, datetime | None]:
         """The override as of ``now``, written back when it lapsed; no await splits it."""
-        parsed = away_mode._parse_return_time(self._away_state.override_return_iso)
+        parsed = away_mode.parse_return_time(self._away_state.override_return_iso)
         active, ret = away_mode.expire_override(self._away_state.override_active, parsed, now)
         if active != self._away_state.override_active or ret != parsed:
             self._away_state = replace(self._away_state, override_active=active,
@@ -9823,9 +9787,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         on = active if active is not None else self._away_state.override_active
         iso = None if active is False else self._away_state.override_return_iso
         if active is not False and return_time is not away_mode.OMIT:
-            parsed = away_mode._parse_return_time(return_time)
+            parsed = away_mode.parse_return_time(return_time)
             iso = parsed.isoformat() if parsed else None
-        on, ret = away_mode.expire_override(on, away_mode._parse_return_time(iso), dt_util.now())
+        on, ret = away_mode.expire_override(on, away_mode.parse_return_time(iso), dt_util.now())
         self._away_state = replace(self._away_state, override_active=on,
                                    override_return_iso=ret.isoformat() if ret else None)
         await away_mode.persist_override(self, self._away_state)
@@ -10001,6 +9965,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         pending["when"], sample.outdoor_temp, self._thermal_model
                     )
                 except Exception:  # noqa: BLE001 - tag is best-effort
+                    _LOGGER.debug("COP residual tag skipped", exc_info=True)
                     sample.cop_residual = None
                 # D7-03/D7-05: skip the accuracy sample when ``indoor_frozen``
                 # above is set — open window, external heat, pump fault, or
@@ -10560,11 +10525,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         try:
             state = replace(ctx._current_state)
         except Exception:  # noqa: BLE001 - diagnosis is best-effort evidence
+            _LOGGER.debug("Diagnosis inputs not captured", exc_info=True)
             return None
         now = dt_util.now()
         try:
             planned_wind, _ = self._current_weather()
         except Exception:  # noqa: BLE001 - wind is optional evidence
+            _LOGGER.debug("Diagnosis wind not captured; recorded as 0", exc_info=True)
             planned_wind = 0.0
         return {
             "state": state,
@@ -10851,8 +10818,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return self._comfort_learner.effective_weight
 
     def _apply_comfort_weight(self) -> None:
-        """Push the comfort weight into the configuration when the learner moves."""
-        getattr(self, "_ctx", self)._opt_config.comfort_weight = self._comfort_weight()
+        """Publish the comfort weight in a new configuration when the learner moves."""
+        CoordinatorContext.publish_config(_ctx_of(self), self, comfort_weight=self._comfort_weight())
     def record_setpoint_override(self, requested: float) -> None:
         """Note that the user overrode the plan's setpoint.
 
@@ -11306,6 +11273,23 @@ def _raise_auth_failed(key: str, message: str, **placeholders: str) -> NoReturn:
         translation_key=key,
         translation_placeholders=placeholders,
     )
+
+
+#: The latch key of an unexpected exception in the update cycle, held on the
+#: config entry (D1-s3-06): each setup retry builds a new coordinator whose
+#: shutdown forgets ``hass``'s latches, and the entry outlives both.
+_UPDATE_FAILED = "update_failed"
+
+
+def _fail_update_held(coord: Any, err: Exception) -> NoReturn:
+    """Fail the update on an unexpected ``err``, logged once per outage (D1-s3-06).
+
+    Both update paths logged ERROR with a traceback on every refresh of a
+    persisting failure, beside #216's latched UpdateFailed arm; now only when
+    it starts or its text changes (``log_held``), each path's success clears it.
+    """
+    log_held(coord.entry, _UPDATE_FAILED, True, "Error updating Heat Pump Optimizer: %s", err, exc_info=err)
+    _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
 
 
 def _raise_update_failed(
