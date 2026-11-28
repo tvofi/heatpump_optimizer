@@ -22,13 +22,18 @@ THE USER'S SLOT. One user what-if solving and the newest one waiting: an ask
 overtaken by a newer one while it waits is answered from the held answer,
 unsolved (D9-s1-03), so a burst of K asks solves at most two.
 
+THE DUTY TOGGLE. A timed boost or block is no solve input: the overlay is laid
+on the plan the last cycle adopted. A toggle with a plan base and nothing in
+flight actuates and publishes that plan, unsolved and unfetched; else it is an
+ordinary request, which trails what runs (N-solve-recompute).
+
 THE RUN-NOW PATH. The Optimize Now button and the ``run_optimization``
 action are one refresh, fetch to publish (D17-s3-01): ``async_optimize_now``.
 """
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from typing import Any
@@ -162,6 +167,15 @@ async def user_slot(gate: SolveGate, user: bool = True) -> AsyncIterator[bool]:
     finally:
         gate.user_running = False
         freed.set()
+
+
+def overlay_only(gate: SolveGate, refreshing: bool, base: Mapping[str, Any] | None) -> bool:
+    """Whether a duty toggle is laid on the plan in hand rather than requesting a refresh.
+
+    Only on a non-empty plan base, and with no refresh or solve in flight: one running
+    may have laid its overlay before the toggle, and its trailing refresh lays it after.
+    """
+    return bool(base) and not refreshing and not gate.solving
 
 
 async def async_optimize_now(coord: Any) -> str | None:
