@@ -9428,6 +9428,46 @@
     "next_step": "root-cause seat per the carry",
     "note": null
    }
+  },
+  {
+   "group": "R12-D0-CONTINUATION-GUARD",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "audit",
+   "brief": "Issue #3881, the next round's D0 (price optimality) stage: whether the half-price continuation may ship a candidate worse than the multi-start's plain result. The brief, control and re-measurement are dev/programme/carries/carry-3881.json; the pull request that lands this roster on main moves that file's carry into this group's carry list, deletes the file and wires #3881 here in the same commit (brief_lint refuses a carry file at an issue a live group lists).",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r12-d0-continuation-guard",
+    "commit": null,
+    "last_step": "created by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups)",
+    "next_step": "next round's D0 stage per carry-3881.json; landing step: move the carry file into this group and wire #3881",
+    "note": null
+   }
   }
  ]
 }
