@@ -9343,6 +9343,49 @@
     "next_step": "fixer per the carries; re-measure first",
     "note": null
    }
+  },
+  {
+   "group": "R11-D3-JUDGE-RETAKE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/audit/rounds/round11/D3/",
+    "tests/mutation_ledger/"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "audit",
+   "brief": "Re-take the D3 wave's survivor claim on a quiet Linux cloud box with a green null gate, and re-run the three sysid.py exact-float boundary probes on Linux x86 in the same box. Run as a cloud box, never on the shared host. Carried below verbatim.",
+   "carry": [
+    "Moved from R11-SEAM-tests carry 1 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Unbuilt at PRs 3825 and 3890. Text verbatim:\n\nR11-D3-JUDGE-GATE (judge record dev/audit/rounds/round11/D3/wave-judge/JUDGE.md at a826f55f8c): the D3 wave's survivor claim compares each mutant's gate log with a null that was red on its box, so a mutant killed only by an already-red check reads as a survivor. Re-take on a quiet Linux box, on a tree whose null gate is green: one key per production file and gap kind present in the record (the first key of each in the record's order), the full gate per key. A key the green-null gate kills is a non-finding returned to the judge, and its stratum's other keys are then re-taken too. Run as a cloud box, never on the shared host. The R11-D3-PINS groups do not wait for it: each claims its kills from its own pin under the patch.",
+    "Moved from R11-SEAM-tests carry 2 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Unbuilt at PRs 3825 and 3890. Text verbatim:\n\nR11-D3-JUDGE-LINUX (same record at a826f55f8c): three sysid.py exact-float boundary findings are unreproduced on arm64, where no input lands on the boundary. Re-run their probes on Linux x86 in the same box as the gate re-take; one that moves goes to R11-D3-PINS-sysid as a carry, one that does not is closed as void."
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-d3-judge-retake",
+    "commit": null,
+    "last_step": "created by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups)",
+    "next_step": "cloud box per the carries; re-measure first",
+    "note": "overlap admitted (R11-SEAM-cycle-reporting-p2, R11-D3-PINS-actuation, R11-D3-PINS-fabric, R11-D3-PINS-inputs, R11-D3-PINS-solver, R11-D3-PINS-sysid): orphan-carry rewire 2026-11-28: one new group per seam for carries whose group's fix merged; no unstarted group owns this seam"
+   }
   }
  ]
 }
