@@ -1,7 +1,8 @@
 import subprocess, sys, pathlib, shutil
-wt = pathlib.Path("/root/wt")
+wt = pathlib.Path("/tmp/tmp.Z5mgP63Tyj/wt")
 H = "dev/audit/harnesses/features_freeze.py"; G = "tools/policy/budget_raise_gate.py"
 muts = [
+ ("D1", "tests/features.py", "\n", None),
  ("M1", H, "        if sid not in known:", "        if False:"),
  ("M2", H, 'if got["lines"] > manifest["lines"]:', 'if False:'),
  ("M2b", H, 'if got["lines"] > manifest["lines"]:', 'if got["lines"] >= manifest["lines"]:'),
@@ -18,11 +19,11 @@ muts = [
 ]
 for name, f, a, b in muts:
     p = wt / f; orig = p.read_text()
-    if orig.count(a) != 1:
+    if b is not None and orig.count(a) != 1:
         print(name, "NOT-APPLIED count", orig.count(a)); continue
-    p.write_text(orig.replace(a, b))
+    p.write_text(orig + "# drift\n" if b is None else orig.replace(a, b))
     try:
-        r = subprocess.run("PYTHONPATH=tests/hastub python3 tests/case_select.py run tests/entities.py --plan /root/plan.txt", shell=True, cwd=wt, capture_output=True, text=True, timeout=600)
+        r = subprocess.run("PYTHONPATH=tests/hastub python3 tests/case_select.py run tests/entities.py --plan /tmp/tmp.Z5mgP63Tyj/plan.txt", shell=True, cwd=wt, capture_output=True, text=True, timeout=600)
         out = r.stdout + r.stderr
         fails = [l.strip()[:90] for l in out.splitlines() if l.strip().startswith("FAIL")]
         tail = [l for l in out.splitlines() if "ENTITY CHECKS" in l or "Error" in l][-1:]

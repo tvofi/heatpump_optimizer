@@ -1,3 +1,4 @@
+D1 KILLED ['2 of 6 ENTITY CHECKS FAILED'] ['FAIL tests/features.py keeps the freeze: every span id is in tests/features_frozen_budgets', 'FAIL null control (seam home): a dhw span in features_model.py is refused naming features_']
 M1 KILLED ['1 of 6 ENTITY CHECKS FAILED'] ['FAIL null control (span ids): a section appended, inserted mid-file, or repeating an exist']
 M2 KILLED ['1 of 6 ENTITY CHECKS FAILED'] ['FAIL null control (lines): one line added inside an existing span is refused on `lines` al']
 M2b KILLED ['3 of 6 ENTITY CHECKS FAILED'] ['FAIL tests/features.py keeps the freeze: every span id is in tests/features_frozen_budgets', 'FAIL null control (lines): one line added inside an existing span is refused on `lines` al', 'FAIL null control (seam home): a dhw span in features_model.py is refused naming features_']
