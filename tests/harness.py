@@ -415,6 +415,7 @@ class FakeCoordinator:
         # One entry per refresh requested: what ``on_refresh`` returned when
         # it was asked for (a test sets it to read what had been published).
         self.refreshes: list = []
+        self.held_applies: list = []
         self.on_refresh = None
         self.away_calls: list[dict] = []
         self.boost_calls: list[dict] = []
@@ -433,6 +434,10 @@ class FakeCoordinator:
         """The real one runs the solve inline on a first call (the debouncer
         awaits it outside its cooldown): 30 to 70 s on a Pi."""
         self.refreshes.append(self.on_refresh() if self.on_refresh else None)
+
+    async def async_apply_held(self):
+        """A timed duty switch's toggle; the real one actuates the plan in hand, unsolved."""
+        self.held_applies.append(self.on_refresh() if self.on_refresh else None)
 
     async def async_set_mode(self, mode, *, refresh=True):
         self.mode_calls.append(mode)

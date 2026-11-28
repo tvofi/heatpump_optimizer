@@ -1081,6 +1081,10 @@ INERT_EXCEPT = (
     # R10-DEPENDABOT-3414-COMPAT: tests/entities.py imports this harness and
     # runs its `--tree` reader over every hash lock, so an edit selects it.
     "dev/audit/harnesses/dependabot_stale_hash.py",
+    # R11-OWNER-FEATURES-SPLIT: tests/entities.py imports the freeze harness
+    # and runs its `tree_refusals` over tests/features.py, so an edit to the
+    # seam rule or the refusals selects it.
+    "dev/audit/harnesses/features_freeze.py",
 )
 
 

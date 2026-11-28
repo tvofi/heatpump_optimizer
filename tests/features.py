@@ -21358,22 +21358,32 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
             if name in module_funcs
         )
 
+    def self_refs(node) -> list[str]:
+        names = []
+        for ref in _d102_ast.walk(node):
+            if isinstance(ref, _d102_ast.Call) and isinstance(
+                ref.func, _d102_ast.Attribute
+            ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+                names.append(ref.func.attr)
+            elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+                ref.value, _d102_ast.Name
+            ) and ref.value.id == "self":
+                names.append(ref.attr)  # a bound method handed to the fence, not called
+        return [n for n in names if n in methods]
+
+    # The cycle and the duty toggle (N-solve-recompute) share their write tail
+    # (``_actuate_plan``): a seam either root reaches directly, or through one
+    # method that writes nothing itself, is a seam the cycle reaches.
+    reached = []
+    for root in ("_async_update_data", "async_apply_held"):
+        for name in self_refs(methods[root]):
+            hop = [name] if writes(methods[name]) else self_refs(methods[name])
+            reached += [n for n in hop if writes(methods[n])]
     out = []
-    for ref in _d102_ast.walk(methods["_async_update_data"]):
-        if isinstance(ref, _d102_ast.Call) and isinstance(
-            ref.func, _d102_ast.Attribute
-        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
-            name = ref.func.attr
-        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
-            ref.value, _d102_ast.Name
-        ) and ref.value.id == "self":
-            name = ref.attr  # a bound method handed to the fence, not called
-        else:
-            continue
-        if name in methods and writes(methods[name]):
-            pair = (name, gated(methods[name]))
-            if pair not in out:
-                out.append(pair)
+    for name in reached:
+        pair = (name, gated(methods[name]))
+        if pair not in out:
+            out.append(pair)
     return out
 
 
@@ -21387,6 +21397,7 @@ R.check(
             ("_apply_action", True),
             ("_async_drive_pumps", True),
             ("_command_frequency", True),
+            ("_command_valve_target", True),  # through async_run_optimization, one hop
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -52211,6 +52222,8 @@ _RC2_EXEMPT = {
 # The coordinator's own setters, which the services call with a refresh: each
 # is reached through a row above or says where its state lives.
 _RC2_SETTERS = {
+    "async_apply_held": "rows: the four duty switches; it writes no state, the boost store "
+        "holds what the press set",
     "async_set_mode": "rows: the switch and thermostat mode actions",
     "async_set_away": "rows: the away switch and the return time",
     "async_set_target_temperature": "row: the thermostat target, via entry options",
@@ -101949,6 +101962,158 @@ R.check(
     "ends, run directly rather than through the debouncer, and the trailing mark is spent",
     _sg_trail == (0, 2, False),
     f"debouncer calls, refreshes, trailing: {_sg_trail}",
+)
+
+
+# N-solve-recompute (carry, R11-SEAM-cycle-solve): a timed duty switch's toggle is laid on the plan in
+# hand. Boost and block state is no solve input: the overlay is applied after the solve. So the toggle
+# actuates and publishes the adopted plan without a fetch or a solve. It requests a refresh only with no
+# plan base, or with a refresh or solve in flight, whose trailing refresh or re-run lays the overlay after.
+async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
+    """One toggle through ``async_apply_held``: (solves, debouncer calls, actuations, published, action, gate)."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make(f"sg_duty_{based}_{refreshing}_{solving}")
+    n = {"solve": 0, "call": 0, "act": 0, "pub": 0}
+
+    async def _solve():
+        n["solve"] += 1
+
+    async def _call():
+        n["call"] += 1
+
+    async def _act():
+        n["act"] += 1
+
+    async def _none():
+        return None
+
+    coord.async_run_optimization, coord._debounced_refresh.async_call = _solve, _call
+    coord._apply_action, coord._command_frequency, coord._async_drive_pumps = _act, _none, _none
+    coord.async_update_listeners = lambda: n.__setitem__("pub", n["pub"] + 1)
+    if based:
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.25, "dhw_power": 1.0, "heat_pump_on": True})
+    boost_mod.held_for(coord).set(boost_mod.CHANNEL_SPACE, True, _R9F13_NOW, block=True)
+    gate = solve_gate.gate_for(coord)
+    coord._refresh_task = object() if refreshing else None
+    gate.solving, coord._entry_released = solving, released
+    before = coord.data
+    await coord.async_apply_held()
+    _r9f13_dt.freeze(None)
+    return (n["solve"], n["call"], n["act"], n["pub"] if coord.data is not before else -n["pub"],
+            dict(coord._current_action or {}), (gate.trailing, gate.rerun))
+
+
+_sg_held = _sg_aio.run(_sg_duty())
+R.check(
+    "N-solve-recompute: a duty toggle on a held plan actuates and publishes it with the overlay laid "
+    "on (a space block zeroes the space power, hot water untouched), and never solves or requests a refresh",
+    _sg_held[:4] == (0, 0, 1, 1)
+    and _sg_held[4].get("power_normalized") == 0.0 and _sg_held[4].get("dhw_power") == 1.0,
+    f"solves, calls, actuations, publishes, action: {_sg_held[:5]}",
+)
+_sg_unbased = _sg_aio.run(_sg_duty(based=False))
+_sg_inflight = (_sg_aio.run(_sg_duty(refreshing=True)), _sg_aio.run(_sg_duty(solving=True)))
+_sg_released = _sg_aio.run(_sg_duty(released=True))
+R.check(
+    "N-solve-recompute: with no plan base the toggle is an ordinary request; with a refresh in flight it "
+    "trails it, with a solve in flight it re-runs it; a released entry writes nothing (#237) -- and none "
+    "of the four actuates beside them",
+    _sg_unbased[:4] == (0, 1, 0, 0) and _sg_released[2:4] == (0, 0)
+    and _sg_inflight[0][:4] == (0, 0, 0, 0) and _sg_inflight[0][5] == (True, False)
+    and _sg_inflight[1][:4] == (0, 0, 0, 0) and _sg_inflight[1][5] == (False, True),
+    f"unbased {_sg_unbased[:4]}, refreshing {_sg_inflight[0][:4]} {_sg_inflight[0][5]}, "
+    f"solving {_sg_inflight[1][:4]} {_sg_inflight[1][5]}",
+)
+
+
+async def _sg_cycle_tail():
+    """One refresh on a stubbed solve: the order the cycle runs its writes and its bookkeeping."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make("sg_cycle_tail")
+    ran = []
+
+    def _rec(name):
+        async def _step(*_a, **_k):
+            ran.append(name)
+        return _step
+
+    async def _solve():
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.5})
+
+    coord.async_run_optimization = _solve
+    steps = ("_apply_action", "_command_frequency", "_async_drive_pumps", "_record_accuracy",
+             "_track_realised_peak", "_async_save_accuracy", "_async_save_energy_totals")
+    for name in steps:
+        setattr(coord, name, _rec(name))
+    coord._next_optimization = None
+    await coord._async_update_data()
+    _r9f13_dt.freeze(None)
+    due = _R9F13_NOW + timedelta(minutes=_r9f13_cmod._ctx_of(coord)._config.optimization_interval)
+    return ran == list(steps) and coord._next_optimization == due, ran, coord._next_optimization
+
+
+_sg_tail = _sg_aio.run(_sg_cycle_tail())
+R.check(
+    "N-solve-recompute: the cycle's write tail the toggle shares runs inside every refresh -- action, "
+    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order, and "
+    "the next solve is stamped one configured interval on",
+    _sg_tail[0],
+    f"ran {_sg_tail[1]}, next {_sg_tail[2]}",
+)
+
+
+async def _sg_diagnose_publish():
+    """A diagnose press publishes the insight view without a cycle (D9-s1-01), through the shared publish."""
+    _hass, _entry, coord = _r9f13_make("sg_diagnose")
+    real, pubs = _r9f13_cmod._await_process, []
+
+    async def _no_report(*_a, **_k):
+        return None
+
+    _r9f13_cmod._await_process = _no_report
+    coord.data = {"plan": "held"}
+    coord.async_update_listeners = lambda: pubs.append(1)
+    try:
+        await coord.async_diagnose_interval()
+    finally:
+        _r9f13_cmod._await_process = real
+    return coord.data.get("plan"), "insight" in coord.data, len(pubs)
+
+
+_sg_diag = _sg_aio.run(_sg_diagnose_publish())
+R.check(
+    "N-solve-recompute: a diagnose press publishes the insight view on the held payload, once, without a cycle",
+    _sg_diag == ("held", True, 1),
+    f"{_sg_diag}",
+)
+
+
+def _sg_press(cls):
+    """Toggle a duty switch; the name of the coroutine its press hands the entry's background task."""
+    _hass, _entry, coord = _r9f13_make(f"sg_press_{cls.__name__}")
+    handed = []
+
+    class _Entry:
+        entry_id = "sg_press"
+
+        def async_create_background_task(self, _hass, coro, name=None):
+            handed.append(coro.cr_code.co_name)
+            coro.close()
+
+    ent = cls(coord, _Entry())
+    ent.async_write_ha_state = lambda: handed.append("published")
+    _sg_aio.run(ent.async_turn_on())
+    return handed
+
+
+from heatpump_optimizer import switch as _sg_switch  # noqa: E402
+
+_sg_presses = {c.__name__: _sg_press(c) for c in (_sg_switch.BoostSpaceSwitch, _sg_switch.BlockSpaceSwitch)}
+R.check(
+    "N-solve-recompute: a boost or block switch publishes its state, then hands the entry's background "
+    "task the held-plan toggle, not the publish-then-refresh helper's refresh",
+    all(v == ["published", "async_apply_held"] for v in _sg_presses.values()),
+    f"{_sg_presses}",
 )
 
 
