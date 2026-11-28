@@ -44781,10 +44781,12 @@ R.check(
 _bl_repo = _tempfile.mkdtemp(prefix="bl_walk_")
 
 
+_bl_env = throwaway_git_init(_bl_repo, "-q")
+
+
 def _bl_git(*args):
-    return _subprocess.run(
-        ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=_bl_repo,
-        check=True, capture_output=True, text=True).stdout.strip()
+    return _subprocess.run(["git", *args], cwd=_bl_repo, env=_bl_env,
+                           check=True, capture_output=True, text=True).stdout.strip()
 
 
 def _bl_commit(path, text):
@@ -44794,7 +44796,6 @@ def _bl_commit(path, text):
     return _bl_git("rev-parse", "HEAD")
 
 
-_bl_git("init", "-q")
 _bl_root = _bl_commit("core.py", "a = 1\n")
 _bl_heavy = _bl_commit("core.py", "a = 2\n")
 _bl_light1 = _bl_commit("notes.md", "one\n")
