@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index a3977d30f7..9e5239e532 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -11235,7 +11235,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             start_time=solve_at,
+             held_start=held_start,
+             compressor_running=duty_switch.record_for(self).solved_running,
+-            approach=draw_range.solve_approach(self._accuracy.draw, scratch_params, solve_at.timestamp()),
++            approach=None,
+             forecast=ForecastSeries(
+                 prices=horizon.prices,
+                 outdoor_temps=horizon.outdoor_temps,

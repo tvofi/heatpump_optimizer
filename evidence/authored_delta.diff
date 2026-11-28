@@ -1,0 +1,50 @@
+diff --git a/tests/features.py b/tests/features.py
+index f85418b8ce..09106bf2b2 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -106021,6 +106021,45 @@ R.check(
+     f"expected {_sa_exp} null {_sa_exp0} pairs {_sa_pairs}->{len(_sa_e.samples)}",
+ )
+ 
++# 8. The solve's wiring: both coordinator roads into the optimizer, the
++# scheduled record and the what-if scratch solve, hand SolveInputs the profile
++# draw_range.solve_approach reads off the coordinator's own window, for that
++# road's params, at the solve's instant; the optimizer prices that field
++# (inputs.approach) and nothing else. Null: a coordinator that learned no runs
++# hands None on both roads.
++from heatpump_optimizer import whatif as _sa_whatif  # noqa: E402
++from heatpump_optimizer.plan_step import plan_step_start as _sa_pss  # noqa: E402
++
++
++def _sa_roads(c):
++    """The approach each solve road hands the optimizer, each beside
++    solve_approach's own answer for that road's params at that instant."""
++    now = _sa_pss(dt_util.now())
++    horizon = c._forecast_arrays(now)
++    rec = c._solve_record(now, horizon)
++    config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
++    w_inputs = c._whatif_solve({}, config, params, state, horizon, now, False)[1]
++    w_params = _sa_whatif.scratch_copies(config, params, {})[1]
++    return (rec.inputs.approach, _sa_dr.solve_approach(c._accuracy.draw, rec.params, now.timestamp()),
++            w_inputs.approach, _sa_dr.solve_approach(c._accuracy.draw, w_params, now.timestamp()))
++
++
++def _sa_same(a, b):
++    """Two profiles agree field by field, neither absent."""
++    return (a is not None and b is not None and np.array_equal(a.entry, b.entry)
++            and np.array_equal(a.ramp, b.ramp) and a.age_h == b.age_h and a.bin_h == b.bin_h)
++
++
++_sa_w1, _sa_w0 = _sa_roads(_sa_c1), _sa_roads(_sa_c0)
++R.check(
++    "the scheduled solve record and the what-if scratch solve hand the optimizer the approach solve_approach "
++    "reads off the coordinator's window at the solve's instant, a profile with entry levels; null: the "
++    "coordinator that learned no runs hands None on both roads",
++    _sa_same(_sa_w1[0], _sa_w1[1]) and _sa_same(_sa_w1[2], _sa_w1[3]) and _sa_w1[0].entry.size > 0
++    and _sa_w0 == (None, None, None, None),
++    f"record {_sa_w1[0]} want {_sa_w1[1]}; what-if {_sa_w1[2]} want {_sa_w1[3]}; null {_sa_w0}",
++)
++
+ # R11-SEAM-store-p2 (round-11 sweep P1, store loaders): a stored flag where a number is declared.
+ # Python counts ``True`` as an int, so six loaders admitted a stored ``true`` as
+ # 1.0. The store's load boundary reads it as absent, by the store's DOMAINS

@@ -1,0 +1,6 @@
+merge-tree e50d72615a 98541868ad:
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  module_excess_loc: 21600 + both deltas = 21647
+  re-run the gate that owns this file before pushing
+9880d2821cd7ebb4266c143afb7a450a1f4a666a
+head tree: 9880d2821cd7ebb4266c143afb7a450a1f4a666a
