@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:<module> CONST bc3142ce",
+  "killed_by": "tests/features.py",
+  "old": "DERATE_ALPHA = 0.05",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'Defrost derate (item 14)'): CONST (`DERATE_ALPHA = 0.1`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 3b9eddc7ba9a7488)."
+}

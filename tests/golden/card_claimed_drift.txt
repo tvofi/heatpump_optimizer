@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 10.1.5
+# claims-for: 10.1.7
 #
-# v10.1.5: set-point clamp and high limit, external-heat override, honest DHW start. The stamp empties the list; the
+# v10.1.7: Unread state deleted; round-11 mutant kills pinned. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

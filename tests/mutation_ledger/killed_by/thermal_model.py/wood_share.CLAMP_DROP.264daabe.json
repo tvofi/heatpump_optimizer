@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:wood_share CLAMP_DROP 264daabe",
+  "killed_by": "tests/features.py",
+  "old": "    hp_deficiency = max(0.0, flow_set - hp_temp)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`hp_deficiency = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

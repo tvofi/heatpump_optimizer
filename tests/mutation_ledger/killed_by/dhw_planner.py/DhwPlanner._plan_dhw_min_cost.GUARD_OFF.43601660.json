@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost GUARD_OFF 43601660",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "            if solution is None:  # pragma: no cover - success implies a vector",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # pragma: no cover - success implies a vector`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

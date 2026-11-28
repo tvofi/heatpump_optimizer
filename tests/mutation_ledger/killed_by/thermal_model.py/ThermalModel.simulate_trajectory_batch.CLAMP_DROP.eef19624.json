@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP eef19624",
+  "killed_by": "tests/features.py",
+  "old": "                                drawn - wood_draw, np.maximum(avail_hp, 0.0)",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'The batched trajectory'): CLAMP_DROP (`drawn - wood_draw, (avail_hp)`) took it from rc=0 failed=0 to rc=1 failed=2 (D3-wave 6462c28df2f973e0)."
+}

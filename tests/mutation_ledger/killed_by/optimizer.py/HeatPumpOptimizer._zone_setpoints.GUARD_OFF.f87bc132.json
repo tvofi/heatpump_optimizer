@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._zone_setpoints GUARD_OFF f87bc132",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if not self.model.params.two_zone_enabled:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=28."
+}

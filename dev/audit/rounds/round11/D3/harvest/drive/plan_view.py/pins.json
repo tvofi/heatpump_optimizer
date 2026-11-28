@@ -1,0 +1,97 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_plan_views.series RETURN_DEL 8ebd4079": {
+    "killed_by": "tests/plan_view.py",
+    "old": "            return out",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._baseline_dhw_economics RETURN_DEL f41ffaea": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return baseline_dhw, baseline_cost, predicted_cost, dhw_cost",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_due RETURN_DEL 3014a588": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return legionella_due, legionella_hour, legionella_step",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors BOOLOP 94758c59": {
+    "killed_by": "tests/plan_view.py",
+    "old": "            while end_idx < n_steps and in_window[end_idx]:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`while end_idx < n_steps or in_window[end_idx]:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_cheapest_first.usable BOOLOP 8282f1b5": {
+    "killed_by": "tests/plan_view.py",
+    "old": "                if forced_off is not None and forced_off[j]:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if forced_off is not None or forced_off[j]:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost BOOLOP 0af353e9": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        if space_demand is not None and p_total_max is not None:",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if space_demand is not None or p_total_max is not None:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost BOOLOP 96d5e028": {
+    "killed_by": "tests/plan_view.py",
+    "old": "                        if forced_off is not None and forced_off[j]",
+    "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if forced_off is not None or forced_off[j]`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._comfort_terms_batch RETURN_DEL fa721fd5": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return penalty, comfort_cost",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._normalise_pins GUARD_OFF e592418d": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        if pins is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_with_dhw RETURN_DEL c701ef27": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return result",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize GUARD_OFF ed70d0f6": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        if pv_surplus is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.optimize._solve GUARD_OFF 9388b45b": {
+    "killed_by": "tests/plan_view.py",
+    "old": "            if dhw_enabled:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_comfort_temp RETURN_DEL f0c939bb": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return night",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_mark_manual_reasons GUARD_OFF d115390a": {
+    "killed_by": "tests/plan_view.py",
+    "old": "    if pins is None:",
+    "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize.memoized RETURN_DEL 40b75c58": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return _memo_val",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:metering_windows RETURN_DEL f12661d1": {
+    "killed_by": "tests/plan_view.py",
+    "old": "    return np.concatenate(pieces)",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/tariff.py:realised_peak RETURN_DEL 084d31ca": {
+    "killed_by": "tests/plan_view.py",
+    "old": "    return float(np.max(metering_windows(house, window_minutes, dt_hours, offset_steps)))",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_usage_intensity RETURN_DEL 867d355a": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return self.params.effective_dhw_draw_pattern()[int(hour_of_day) % 24]",
+    "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_max_temp CLAMP_DROP 4b89a6e4": {
+    "killed_by": "tests/plan_view.py",
+    "old": "        return min(70.0, self.dhw_setpoint)",
+    "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return (70.0)`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

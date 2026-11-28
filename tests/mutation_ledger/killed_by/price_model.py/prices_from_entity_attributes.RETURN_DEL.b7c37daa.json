@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:prices_from_entity_attributes RETURN_DEL b7c37daa",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    return apply_price_adjustments(rows, vat, surcharge)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}

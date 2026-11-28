@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_profile_index CMP_BOUND 7c9e7277",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return PROFILE_WEEKEND if when.weekday() >= 5 else PROFILE_WEEKDAY",
+  "reason": "Recorded by `mutation_table.py --anchor`: CMP_BOUND (`return PROFILE_WEEKEND if when.weekday() > 5 else PROFILE_WEEKDAY`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=2."
+}
