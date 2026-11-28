@@ -417,6 +417,9 @@
     "set_thermal_params_house_field_two_zone": {
       "message": "{field} gilt nur für ein Ein-Zonen-Modell; diese Installation rechnet mit zwei Zonen. Setze upper_floor_thermal_mass und lower_floor_thermal_mass in dieser Aktion und den Wärmeverlust jeder Zone auf der Optionsseite Zwei-Zonen-Modell."
     },
+    "set_thermal_params_zone_field_one_zone": {
+      "message": "{field} gilt nur für ein Zwei-Zonen-Modell; diese Installation rechnet mit einer Zone. Setze house_thermal_mass und house_heat_loss_coefficient in dieser Aktion oder schalte auf der Optionsseite Zwei-Zonen-Modell zwei Zonen ein."
+    },
     "assign_entity_missing": {
       "message": "Die Entität {entity_id} existiert nicht"
     },
