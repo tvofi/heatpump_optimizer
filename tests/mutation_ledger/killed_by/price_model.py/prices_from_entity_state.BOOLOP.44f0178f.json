@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:prices_from_entity_state BOOLOP 44f0178f",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        isinstance(attrs, dict) and attrs",
+  "reason": "Recorded by `mutation_table.py --anchor`: BOOLOP (`isinstance(attrs, dict) or attrs`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

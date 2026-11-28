@@ -296,7 +296,7 @@ from .grid_fee import (
     parse_month_range as grid_fee_parse_month_range,
 )
 from .dhw_draws import labels_for
-from .dhw_learning import DHW_PROFILE_STORE_VERSION, DhwProfileLearner
+from .dhw_learning import DhwProfileLearner
 from .legionella import LegionellaGuard
 from .disinfection import DisinfectionSwitch
 from .curve_learning import CurveLearner, worst_zone_margin_k
@@ -836,6 +836,12 @@ _REPLY_FRAME_TIMEOUT_S = 60.0
 # before they are allocated. Module global, read at call time, so a test can
 # shorten it.
 _REPLY_FRAME_MAX_BYTES = 256 * 1024 * 1024
+
+
+async def _publish_uncycled(coord: Any, data: Payload | None = None) -> None:
+    """Publish ``data``, else the cycle's payload, outside a cycle: ``async_set_updated_data`` re-arms the interval."""
+    coord.data = data if data is not None else await _with_sensor_advisor(coord, coord._build_data_dict())
+    coord.async_update_listeners()
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
@@ -3138,16 +3144,22 @@ def _apply_result_payload(
 
     Split out of ``_build_data_dict`` so the assembler stays a facade over
     the subsystem views; every key here is read off ``result`` or off one
-    of the two coordinator values passed in.
+    of the coordinator values passed in. A row carries floor temperatures
+    only when the plan has floors: ``zone_trajectories`` on the model's
+    ``two_zone_enabled`` the thermal view put in ``data`` (R11-LATE-P2-ZONE-GATE).
     """
+    n_steps = len(result.timestamps)
+    zones = result.zone_trajectories(bool(data.get("two_zone_enabled")))
+    upper_temps = zones[0][1:] if zones is not None else [None] * n_steps
+    lower_temps = zones[1][1:] if zones is not None else [None] * n_steps
     # DHW schedule data
     dhw_schedule: list[DhwScheduleStep] = []
     if result.dhw_power_schedule:
-        for i, (ts, dp, dt_val) in enumerate(zip(
+        for ts, dp, dt_val in zip(
             result.timestamps,
             result.dhw_power_schedule,
             result.dhw_temp_trajectory[1:] if result.dhw_temp_trajectory else [0.0] * len(result.timestamps),
-        )):
+        ):
             dhw_schedule.append({
                 "time": ts.isoformat(),
                 "dhw_power": round(dp, 2),
@@ -3201,16 +3213,8 @@ def _apply_result_payload(
                     result.optimal_setpoints,
                     result.prices,
                     result.room_temp_trajectory[1:],
-                    (
-                        result.upper_temp_trajectory[1:]
-                        if result.upper_temp_trajectory
-                        else result.room_temp_trajectory[1:]
-                    ),
-                    (
-                        result.lower_temp_trajectory[1:]
-                        if result.lower_temp_trajectory
-                        else result.room_temp_trajectory[1:]
-                    ),
+                    upper_temps,
+                    lower_temps,
                     (
                         result.solar_gain_trajectory
                         if result.solar_gain_trajectory
@@ -4087,7 +4091,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             configured_weight=configured_weight,
             learned_weight=configured_weight,
         )
-        self._last_manual_setpoint: float | None = None
 
         # --- What-if simulator (item 21) -----------------------------------
     def _init_ecl110(self) -> None:
@@ -6042,13 +6045,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _dhw_next_window_in_hours(self) -> float | None:
         """Hours until the next DHW demand window opens (0 if inside one)."""
         hours = hours_until_next_window(
-            _dhw_current_hour(), self._dhw_effective_windows(), self._dhw_effective_windows(1)
+            dt_util.now(), self._dhw_effective_windows(), self._dhw_effective_windows(1)
         )
         return round(hours, 2) if hours is not None else None
 
     async def _async_update_data(self) -> Payload:
         """Fetch data and run optimization."""
-        ctx = getattr(self, "_ctx", self)
         if self._skip_solve_once:
             # Consume the flag FIRST: no exception below may leave it
             # latched, or every later cycle would skip its solve too.
@@ -6085,26 +6087,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            boost.apply(
-                self,
-                boost.BoostOverlay(
-                    max_power=float(
-                        self._thermal_model.params.max_electrical_power),
-                    max_temp=float(ctx._opt_config.max_temp),
-                    ecl_max=float(self._ecl110_displace_max),
-                ),
-            )
-            await self._apply_action()
-
-            # T7 #61 (control stage only): translate the commanded kW into
-            # the frequency that delivers it. After _apply_action so a
-            # failed write can never block the primary actuation, and
-            # never allowed to break the cycle.
-            await _best_effort_cycle_step(
-                self._command_frequency, "Frequency command skipped: %s")
-
-            await _best_effort_cycle_step(
-                self._async_drive_pumps, "Pump scheduling skipped: %s")
+            await self._actuate_plan()
 
             # #3616 phase 3a, before the pairing replaces the settled interval's split.
             await _best_effort_cycle_step(lambda: room_record.async_note_cycle(self, dt_util.now(), rooms.readings_of(self), room_record.House(_ctx_of(self)._current_state.outdoor_temperature, self._floor_return_temp,
@@ -6130,7 +6113,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._async_watch_learning_drift, "Snapshot heartbeat skipped: %s")
 
             self._next_optimization = utc_shift(dt_util.now(), timedelta(
-                minutes=ctx._config.optimization_interval
+                minutes=_ctx_of(self)._config.optimization_interval
             ))
 
             return await _with_sensor_advisor(self, self._build_data_dict())
@@ -6150,6 +6133,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._refresh_task = None
             if solve_gate.take_trailing(solve_gate.gate_for(self)) and not self._entry_released:
                 self._spawn(self.async_refresh(), eager_start=False)  # direct, once this returns: a debouncer running it holds its lock till then
+
+    async def _actuate_plan(self) -> None:
+        """The cycle's writes: overlay on the plan base, action, then frequency (T7 #61) and pumps."""
+        boost.apply(self, boost.BoostOverlay(max_power=float(self._thermal_model.params.max_electrical_power),
+                                             max_temp=float(_ctx_of(self)._opt_config.max_temp), ecl_max=float(self._ecl110_displace_max)))
+        await self._apply_action()
+        await _best_effort_cycle_step(self._command_frequency, "Frequency command skipped: %s")
+        await _best_effort_cycle_step(self._async_drive_pumps, "Pump scheduling skipped: %s")
+
+    async def async_apply_held(self) -> None:
+        """A timed duty switch's toggle: actuate and publish the plan in hand (N-solve-recompute)."""
+        if self._entry_released or not solve_gate.overlay_only(solve_gate.gate_for(self), self._refresh_task is not None, boost.plan_base(self)):
+            return await self.async_request_refresh()
+        await self._actuate_plan()
+        await _publish_uncycled(self)
 
     async def async_request_refresh(self) -> None:
         """Request a refresh; one landing on a running solve or refresh follows it (D1-s1-03)."""
@@ -6615,7 +6613,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug(
                 "Shutdown awaiting %d background task(s)", len(pending)
             )
-            done, still_pending = await asyncio.wait(pending, timeout=5.0)
+            _, still_pending = await asyncio.wait(pending, timeout=5.0)
             if still_pending:
                 _LOGGER.warning(
                     "%d background task(s) did not finish within 5 s of "
@@ -9184,7 +9182,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             else min(self._curve_day_worst, margin)
         )
         if margin <= 0.0 and self._curve_learner.bias < 0.0:
-            self._curve_learner.record_miss(now, margin)
+            self._curve_learner.record_miss(margin)
     def _immersion_dhw_margin(self, now: datetime) -> float:
         """#11's gated feedback: extra readiness when rescues recur.
 
@@ -9711,7 +9709,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             peak_kw=ctx._config.pv_peak_kw,
             system_efficiency=ctx._config.pv_system_efficiency,
             export_price=self._pv_export_price(),
-            export_price_entity=ctx._config.pv_export_price_entity,
             production_entity=ctx._config.pv_production_entity,
         )
     def _pv_export_price(self) -> float:
@@ -9927,7 +9924,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # T7 #61: one frequency sample for the kW-per-Hz map (plus the
         # control watchdog, when that stage is armed).
-        self._observe_frequency(now)
+        self._observe_frequency()
         # #1067: and one supply-vs-curve residual, on the same cycle and from
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
@@ -10604,8 +10601,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "optimization interval must pass first"
             )
         if self.data is not None:  # D9-s1-01: publish the diagnosis, no cycle (``async_set_updated_data`` re-arms the interval)
-            self.data = {**self.data, "insight": self._insight_view()}
-            self.async_update_listeners()
+            await _publish_uncycled(self, {**self.data, "insight": self._insight_view()})
         return report
 
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
@@ -10690,7 +10686,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if number and configured == FREQ_MODE_CONTROL and not self._freq_fallback:
             return FREQ_MODE_CONTROL
         return FREQ_MODE_OBSERVE
-    def _observe_frequency(self, now: datetime) -> None:
+    def _observe_frequency(self) -> None:
         """One cycle of #61: watchdog first, then the kW-per-Hz fold.
 
         The learning fold skips every interval :func:`_freq_fold_blocked`
@@ -10891,7 +10887,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         )
         self._apply_comfort_weight()
-        self._last_manual_setpoint = float(requested)
     def _record_quiet_comfort_period(self) -> None:
         """Feed the learner the "nobody complained" half of the signal."""
         ctx = getattr(self, "_ctx", self)
@@ -11029,7 +11024,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not result.completed:
             return
         params = getattr(self, "_ctx", self)._thermal_params
-        decision = adoption_decision(result, params, self._sysid.config)
+        decision = adoption_decision(result, params)
         self._sysid.result = replace(result, completed=False, reason=decision.reason)
         if not decision.admit:
             _LOGGER.info("System identification not adopted: %s", decision.reason)

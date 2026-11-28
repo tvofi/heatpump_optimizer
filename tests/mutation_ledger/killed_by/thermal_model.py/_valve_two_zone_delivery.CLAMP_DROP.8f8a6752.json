@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_valve_two_zone_delivery CLAMP_DROP 8f8a6752",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    floor_temp = min(T_upper, T_slab)",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`floor_temp = (T_upper)`) took it from rc=0 failed=0 to rc=1 failed=2 (D3-wave 19404e3632806509)."
+}

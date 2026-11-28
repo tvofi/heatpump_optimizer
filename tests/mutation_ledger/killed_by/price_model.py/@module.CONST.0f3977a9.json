@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:<module> CONST 0f3977a9",
+  "killed_by": "tests/guard_pins.py",
+  "old": "QUARTER_FACTOR_MIN = 0.25",
+  "reason": "Recorded by `mutation_table.py --anchor`: CONST (`QUARTER_FACTOR_MIN = 0.5`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=2."
+}

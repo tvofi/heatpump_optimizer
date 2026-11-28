@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._freq_mode RETURN_DEL 007e643c",
+  "killed_by": "tests/typing_ruler.py",
+  "old": "        return FREQ_MODE_OBSERVE",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
+}

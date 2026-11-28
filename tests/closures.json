@@ -2350,6 +2350,7 @@
    "tools/coverage/coverage_tree.sh",
    "tools/devices/gen_device_fixtures.py",
    "tools/devices/measure_prefill_corpus.py",
+   "tools/merge/d6_register.py",
    "tools/merge/ledger_merge.py",
    "tools/plan/durations.json",
    "tools/plan/replan.py",
@@ -4754,6 +4755,7 @@
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
    "dev/audit/harnesses/host_zone_features.py",
+   "dev/audit/harnesses/hotfile_conflicts.py",
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
@@ -5013,6 +5015,7 @@
    "dev/audit/harnesses/r11_comments_production_reconcile.py",
    "dev/audit/harnesses/r11_comments_ratchet_mutants.py",
    "dev/audit/harnesses/r11_comments_ratchet_reconcile.py",
+   "dev/audit/harnesses/r11_dead_state_mutants.sh",
    "dev/audit/harnesses/r11_denominator_planted.py",
    "dev/audit/harnesses/r11_fast_shards_balance.py",
    "dev/audit/harnesses/r11_fast_shards_mutants.py",
@@ -5031,6 +5034,7 @@
    "dev/audit/harnesses/r11_shared_files_p2_mutants.sh",
    "dev/audit/harnesses/r11_toolchain_mutants.py",
    "dev/audit/harnesses/r11_two_zone_slab.py",
+   "dev/audit/harnesses/r11_wallclock_dst.py",
    "dev/audit/harnesses/r11_why_hover_fit.mjs",
    "dev/audit/harnesses/r9_ci2b_closures_merge.py",
    "dev/audit/harnesses/r9_dbg2_selftest_price.py",
@@ -5048,6 +5052,7 @@
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/start_counter_edges.py",
    "dev/audit/harnesses/start_counter_edges_mutants.py",
+   "dev/audit/harnesses/stored_option_coercions.py",
    "dev/audit/harnesses/superseded_runs.py",
    "dev/audit/harnesses/thermal_parity.py",
    "dev/audit/harnesses/throwaway_git_sites.sh",
@@ -5523,6 +5528,11 @@
    "dev/audit/rounds/round11/D2/s3/m5_powerest.py",
    "dev/audit/rounds/round11/D2/s3/m5_sysid.py",
    "dev/audit/rounds/round11/D2/s3/m5_tankfall.py",
+   "dev/audit/rounds/round11/D3/harvest/collide.py",
+   "dev/audit/rounds/round11/D3/harvest/enumerate.py",
+   "dev/audit/rounds/round11/D3/harvest/pin_harvest.py",
+   "dev/audit/rounds/round11/D3/harvest/summarise.py",
+   "dev/audit/rounds/round11/D3/pins-plant/run.sh",
    "dev/audit/rounds/round11/D3/s1/box_report.py",
    "dev/audit/rounds/round11/D3/s1/build_report.py",
    "dev/audit/rounds/round11/D3/s1/build_report_rem.py",
@@ -6371,8 +6381,8 @@
    "seconds": 3.3
   },
   "tests/doc_claims.py": {
-   "rc": 1,
-   "seconds": 31.0
+   "rc": 0,
+   "seconds": 62.4
   },
   "tests/dst_checks.py": {
    "rc": 0,
@@ -6384,7 +6394,7 @@
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 2691.9
+   "seconds": 1067.1
   },
   "tests/env_drift.py": {
    "rc": 0,

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.seasonal_inlet_temp GUARD_OFF 855229b8",
+  "killed_by": "tests/features.py",
+  "old": "        if swing <= 0.0:",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (features_block.py, block 'T3 \u2014 hot water'): GUARD_OFF (`if False:`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave b098598faf0d87dc)."
+}

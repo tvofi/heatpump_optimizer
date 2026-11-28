@@ -27,7 +27,6 @@ itself carries far more error than the model would remove.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 
@@ -50,8 +49,6 @@ class PVConfig:
     system_efficiency: float = 0.80
     #: What an exported kWh earns, in the same currency as the import price.
     export_price: float = 0.0
-    #: Optional entity supplying a live export compensation instead.
-    export_price_entity: str | None = None
     #: Optional entity measuring actual production, which supersedes the model
     #: for the current step.
     production_entity: str | None = None

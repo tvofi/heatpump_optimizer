@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate._trusted CMP_BOUND fbf39108",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if n <= 0:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if n < 0:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=5."
+}

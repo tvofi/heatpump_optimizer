@@ -98,7 +98,7 @@ def fit(samples):
     si.config.gains_prior_kw = 0.3
     si.samples = samples
     res = si.identify_slab()
-    dec = sysid.adoption_decision(res, declared, si.config)
+    dec = sysid.adoption_decision(res, declared)
     hw = sysid.slab_ua_adoption_halfwidth(res.ua_profile_halfwidth, res.ua_prior_halfwidth,
                                           res.ua_told_halfwidth) if res.completed else None
     return res, dec, hw

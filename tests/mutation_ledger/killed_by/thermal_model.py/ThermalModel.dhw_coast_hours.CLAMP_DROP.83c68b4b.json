@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_coast_hours CLAMP_DROP 83c68b4b",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0))",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`return float(((c_dhw / ua) * np.log(hot / cold)))`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 011b9e2e975b5e98)."
+}

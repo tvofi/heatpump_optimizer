@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._cop_law CLAMP_DROP 2723239c",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`cop = self.params.cop_nominal * (factor) * self.params.cop_scale`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave a6cebb125b72f083)."
+}

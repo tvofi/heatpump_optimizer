@@ -74,7 +74,7 @@ model = SimpleNamespace(flow_target_for_indoor=lambda target, outdoor: 35.0 + (t
 reach = 0
 for bad in (math.nan, math.inf, -math.inf):
     b = fl.FlowCurveBias()
-    b.observe_temps(bad, 30.0)
+    b.observe_temps(bad)
     curve_outdoor = fl.curve_supply_temp(model, bad, 21.0)
     curve_target = fl.curve_supply_temp(model, 0.0, bad)
     nan_model = SimpleNamespace(flow_target_for_indoor=lambda target, outdoor, v=bad: v)

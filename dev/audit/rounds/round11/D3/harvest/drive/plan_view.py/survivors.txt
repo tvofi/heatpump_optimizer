@@ -1,0 +1,2 @@
+custom_components/heatpump_optimizer/dhw_planner.py:1026 CLAMP_DROP
+custom_components/heatpump_optimizer/dhw_planner.py:1026 CLAMP_DROP
