@@ -8,7 +8,7 @@ Alternatives considered. Carrying the range base's entry forward on each light p
 
 ## Head
 
-b45422507f, measured on origin/main ac9045c22372 (2026-11-28 UTC).
+984536019d, origin/main a59a1b0d9ac7 merged in (one conflict: both sides appended to the end of tests/entities.py, both kept). Measured at merge base ac9045c22372 on 2026-11-28T17:40Z; the walk below is over origin/main ac9045c22372.
 
 ## Mutation proof
 
