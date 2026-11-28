@@ -551,6 +551,17 @@ jobs:
           python3 -I tools/audit/seat/token_ledger.py --self-test | tee "$RUNNER_TEMP/token-ledger-self-test.txt"
           grep -Eq '^token_ledger self-test: [1-9][0-9]* passed, 0 failed$' "$RUNNER_TEMP/token-ledger-self-test.txt"
 
+      # Decision 0018 section 3's session reads (R11-NO-READ-BUILDERS-C): loads per
+      # rule, each instrument refusal by exit status with its outcome, a run line per
+      # Workflow call, and a class given no transcripts NO-READ, offline.
+      - name: Show the session reads counting rule loads, refusals with their outcome and workflow runs
+        id: session-yield
+        if: steps.scope.outputs.session-yield == 'true'
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/session_yield.py --self-test | tee "$RUNNER_TEMP/session-yield-self-test.txt"
+          grep -Eq '^session_yield self-test: [1-9][0-9]* passed, 0 failed$' "$RUNNER_TEMP/session-yield-self-test.txt"
+
       # Decision 0018 section 5's two held-out checks (R11-PRE-ROUND-METRICS):
       # planted-defect recall's refusals and its count after the judge, and the
       # two-finder overlap estimate; each holds an empty input to unread, never

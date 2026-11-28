@@ -1505,8 +1505,10 @@
    "gates_finders": false
   },
   "E11-N-INSTRUMENT-YIELD": {
-   "paths": [],
-   "paths_note": "no exact file can be named: the queued builder group R11-PRE-NO-READ-BUILDERS lists no file for a refusal log, and `check_scopes.py` compares exact file names, so a directory can never match; the card needs the file its build adds written here before it is recorded merged",
+   "paths": [
+    "tools/audit/seat/session_yield.py"
+   ],
+   "paths_note": "the refusal log's file, added by R11-NO-READ-BUILDERS-C (part C of the R11-PRE-NO-READ-BUILDERS design, note [paths]): each instrument refusal by exit status with its outcome",
    "proposal": "0018 section 3: an instrument's yield is NO-READ `until a refusal is logged with its outcome`. No roster group builds that log. Rule one: name the group that makes an instrument's refusal a logged line with what followed (a fix, an override, nothing), or accept that all 124 instrument objects stay unscored on yield while their cost is read.",
    "term": "The unscored share of instrument objects (123 of 124 keep on a NO-READ); cost beside it from `python3 dev/audit/rounds/round11/evaluation/instrument_cost.py --repo . --ref a39627da59 --start v7.0.0 --end v10.0.0 --roster cbd6d9185166:dev/programme/rosters/wave-r10-groups.json`: `tools/audit/seat/merge_train.py` 2416 to 11585 lines over the window, the machinery over product ratio 1.91 (`scorecard.py` line `S`), 477 non-production merges in the newest 580.",
    "null_control": "An instrument whose `--self-test` passes and that refused nothing logs nothing: its yield reads 0 refusals, not unread.",
@@ -1519,9 +1521,12 @@
   },
   "E11-N-GATE-CAUSE": {
    "paths": [
-    "tools/ci/gate.py"
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/loop_ledger.py",
+    "tools/audit/seat/round_metrics.py",
+    "tools/audit/seat/session_yield.py"
    ],
-   "paths_note": "the file the queued builder group R11-PRE-NO-READ-BUILDERS lists for a cause per red gate run; no file is named there for a workflow script's run line",
+   "paths_note": "the files the R11-PRE-NO-READ-BUILDERS design names (note [paths]): a cause per red gate run in roster_lib.py, loop_ledger.py and round_metrics.py (part D, #3696), in place of tools/ci/gate.py, which part D leaves unchanged; a workflow script's run line in session_yield.py (part C, R11-NO-READ-BUILDERS-C)",
    "proposal": "0018 section 3: a gate's yield is NO-READ `until a red carries its cause`, and a `.claude/workflows/` script's runs are logged nowhere tracked. Rule one: name the group that records a cause per red run on a pull-request head and a run line per workflow script, or accept that the gate objects kept here stay unscored. For main, card E11-GATE-REDS asks the same record.",
    "term": "The unscored share of gate objects (22 of 27 keep on a NO-READ).",
    "null_control": "A successful run carries no cause field and reads as before.",

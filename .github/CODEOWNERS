@@ -76,6 +76,9 @@
 # round lines), restore, runner seconds and tokens.
 /tools/audit/seat/round_metrics.py        @tvofi
 /tools/audit/seat/scorecard.py            @tvofi
+# and decision 0018 section 3's session reads (R11-NO-READ-BUILDERS-C): rule loads,
+# instrument refusals with their outcome, workflow run lines.
+/tools/audit/seat/session_yield.py        @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
 # The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended
