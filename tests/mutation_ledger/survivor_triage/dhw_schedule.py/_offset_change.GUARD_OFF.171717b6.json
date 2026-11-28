@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_offset_change GUARD_OFF 171717b6",
+  "old": "    if hi.astimezone(zone).utcoffset() == first:",
+  "reason": "Equivalent in output, a cost guard (GUARD_OFF, `if False:`): on a day with no offset change the bisection keeps moving `lo`, so it returns `hi`, the next local midnight, as a phantom jump. `_window_entries` then reads that instant's wall time as the next date, and `_wall_inside` requires the entry's own date, so the phantom adds no entry; the guard only skips about 17 `astimezone` calls per plain day. Measured by the R11-SEAM-wallclock-dst repair fixer: with the mutant applied, the features.py P7 block read ALL 3 PASSED and next_window_census read 0 cells off on spring, autumn and plain.",
+  "verdict": "equivalent"
+}

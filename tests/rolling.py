@@ -191,7 +191,7 @@ def run_rolling(
                     precipitation=rain[step : step + 1],
                     solar_radiation=solar[step : step + 1],
                 ),
-                start_hour=now.hour + now.minute / 60.0,
+                step_hours=np.array([now.hour + now.minute / 60.0]),
                 dt_hours=DT,
             )
         else:

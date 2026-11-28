@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from functools import partial
 from typing import Any, Callable, NamedTuple, Protocol
 
@@ -84,13 +85,14 @@ def _dhw_windows_at(
 
 
 def _dhw_next_window_hours(
-    hours_mod: np.ndarray, weekdays: np.ndarray | None, windows: list[Window],
+    start: datetime, hours_mod: np.ndarray, weekdays: np.ndarray | None, windows: list[Window],
     params: ThermalParameters, holiday_flags: np.ndarray | None,
 ) -> float | None:
     """Hours to the next demand window in the day's windows (D17-s3-51), never the flat union.
 
     Today's are the ones ``in_window[0]`` tests (entry 1); tomorrow's the first step past
     midnight's, else, on a horizon ending first, the next weekday's with no holiday tier.
+    ``start`` is step 0's instant, which the countdown is measured from in its zone.
     """
     if not len(hours_mod):
         return None  # no step to read a day from
@@ -101,7 +103,7 @@ def _dhw_next_window_hours(
     else:
         nxt = None if weekdays is None else [cyclic_span(int(d), int(d) + 1, 7)[-1] for d in weekdays[1:2]]
         tomorrow = _dhw_windows_at(params, nxt, 0, windows, None)
-    return hours_until_next_window(float(hours_mod[0]), today, tomorrow)
+    return hours_until_next_window(start, today, tomorrow)
 
 
 # How far either side of a contended step space heating may look for spare
@@ -321,6 +323,8 @@ class _Horizon(Protocol):
     def dt(self) -> float: ...
     @property
     def step_hours(self) -> np.ndarray: ...
+    @property
+    def start_time(self) -> datetime: ...
     @property
     def outdoor_temps(self) -> np.ndarray: ...
     @property
@@ -815,7 +819,7 @@ class DhwPlanner:
                 else np.asarray(dhw_power, dtype=float)[:n]
             ),
             WeatherSeries.from_horizon(h),
-            start_hour=float(h.step_hours[0]),
+            step_hours=h.step_hours,
             dt_hours=h.dt,
             dhw_draw_rates=raw,
             valve_targets=h.valve_targets,
@@ -1232,7 +1236,7 @@ class DhwPlanner:
                 mask[legionella_step] = False
             schedule = np.where(mask, 0.0, schedule)
 
-        next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)
+        next_window = _dhw_next_window_hours(h.start_time, hours_mod, step_weekdays, windows, params, holiday_flags)
 
         # A manual plan overrides *timing* last, after the economics and the
         # external-heat suppression, because it expresses the user's explicit
