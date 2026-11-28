@@ -13,16 +13,13 @@ git show origin/handoff/audit-r11-roster:dev/programme/rosters/wave-r11-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
-- R11-PRE-TOKEN-LEDGER (stage carries-open, branch `handoff/r11-pre-token-ledger`): `git fetch origin handoff/r11-pre-token-ledger && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-SHARED-FILES (stage carries-open, branch `handoff/r11-pre-shared-files`): `git fetch origin handoff/r11-pre-shared-files && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-PRE-HANDOFF-BOOKKEEPING (stage carries-open, branch `fix/r11-pre-handoff-bookkeeping-p2`): `git fetch origin fix/r11-pre-handoff-bookkeeping-p2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-freshness (stage in-progress, branch `handoff/r11-seam-inputs-freshness`): `git fetch origin handoff/r11-seam-inputs-freshness && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-writes (stage in-progress, branch `handoff/r11-seam-actuation-writes`): `git fetch origin handoff/r11-seam-actuation-writes && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-solve (stage carries-open, branch `handoff/r11-seam-cycle-solve`): `git fetch origin handoff/r11-seam-cycle-solve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-cycle-reporting (stage in-progress, branch `handoff/r11-seam-cycle-reporting`): `git fetch origin handoff/r11-seam-cycle-reporting && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-tests (stage carries-open, branch `handoff/r11-seam-tests`): `git fetch origin handoff/r11-seam-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-fabric-learner (stage in-progress, branch `handoff/r11-arch-fabric-learner`): `git fetch origin handoff/r11-arch-fabric-learner && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FROST-HOLD (stage in-progress, branch `handoff/r11-owner-frost-hold`): `git fetch origin handoff/r11-owner-frost-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -35,7 +32,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-D3-PINS-money (stage carries-open, branch `handoff/r11-d3-pins-money`): `git fetch origin handoff/r11-d3-pins-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FEATURES-SPLIT (stage in-progress, branch `handoff/r11-owner-features-split`): `git fetch origin handoff/r11-owner-features-split && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R11-CLOSEOUT-CLEANUP, R11-D3-JUDGE-RETAKE, R11-D3-PINS-money, R11-DX0-OWNER-ACTS, R11-NO-READ-BUILDERS-C, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OWNER-FEATURES-SPLIT, R11-OWNER-FROST-HOLD, R11-PRE-HANDOFF-BOOKKEEPING, R11-PRE-SHARED-FILES, R11-PRE-TOKEN-LEDGER, R11-PRODUCT-TEXT-PINS, R11-RCA-CLASS-I1, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-tests, R11-SELFTEST-SCOPE-P3, R11-WHATIF-PAIR-SCATTER, R12-D0-CONTINUATION-GUARD
+Ready next (after-edges satisfied; nothing open constrains them): R11-CLOSEOUT-CLEANUP, R11-D3-JUDGE-RETAKE, R11-D3-PINS-money, R11-DX0-OWNER-ACTS, R11-NO-READ-BUILDERS-C, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OWNER-FEATURES-SPLIT, R11-OWNER-FROST-HOLD, R11-PRE-SHARED-FILES, R11-PRODUCT-TEXT-PINS, R11-RCA-CLASS-I1, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SELFTEST-SCOPE-P3, R11-WHATIF-PAIR-SCATTER, R12-D0-CONTINUATION-GUARD
 
 ## Resume steps
 
