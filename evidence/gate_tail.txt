@@ -1,13 +1,1 @@
-2026-11-27T03:49:51.8350200Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
-2026-11-27T03:49:51.8350676Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
-2026-11-27T03:49:51.8381040Z shell: /usr/bin/bash -e {0}
-2026-11-27T03:49:51.8381255Z env:
-2026-11-27T03:49:51.8383609Z   GH_TOKEN: ***
-2026-11-27T03:49:51.8383794Z   PR: 3914
-2026-11-27T03:49:51.8383953Z   BASE: main
-2026-11-27T03:49:51.8384117Z   KIND: edit
-2026-11-27T03:49:51.8384295Z   WORKSET: arch-score budget-raise-gate
-2026-11-27T03:49:51.8384538Z   FAST_SHARDS: ["1/4","2/4","3/4","4/4"]
-2026-11-27T03:49:51.8384745Z ##[endgroup]
-2026-11-27T03:49:53.5957000Z FAIL run(s) [45933914492] at this head are still being judged; their gate decides
-2026-11-27T03:49:53.6100726Z ##[error]Process completed with exit code 1.
+FAIL run(s) [46113984256] at this head are still being judged; their gate decides
