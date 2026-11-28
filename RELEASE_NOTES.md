@@ -1,3 +1,30 @@
+## v10.1.8
+
+**Patch stamp: 6 merges since v10.1.7 (`git log --first-parent --merges --format=%h v10.1.7..HEAD | wc -l`): timed boost and block switches no longer start a full solve, the DHW next-window countdown is right across daylight-saving changes, a one-zone install refuses two-zone fields in `set_thermal_params` and no longer shows floor temperatures, and the rest is tooling and test pins.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes.
+
+### #3934 Timed duty switches no longer buy a solve (R11-SEAM-cycle-solve part 2)
+
+Turning a timed boost or block switch on or off lays its overlay on the plan the last cycle adopted, actuates and publishes it, with no new solve and no weather fetch, when a plan exists and no refresh is in flight. Otherwise the toggle is an ordinary refresh request as before.
+
+### #3914 Wall-clock time across daylight-saving changes (R11-SEAM-wallclock-DST)
+
+The hours until the next DHW window are measured in real time from the cycle's start instant, not as the difference of two wall-clock times. On a spring-forward day the countdown from 00:30 to a 04:00 window is 2.5 h, not 3.5 h.
+
+### #3925 Two-zone fields follow the model's zone count (R11-LATE-P2-ZONE-GATE)
+
+- Plan rows carry floor temperatures only when the model runs two zones; a one-zone install no longer gets the room temperature copied into the upper and lower fields.
+- `set_thermal_params` refuses a floor's mass, the inter-zone transfer or the radiator share on a one-zone install, with a message in English, German and Swedish. Under "auto" these keys turn the model two-zone, so there the call is taken.
+
+### Tooling, tests and CI
+
+- #3943: the mutation driver is capped so mutation runs stop timing out.
+- #3940: `tests/features.py` is frozen against growth (R11-OWNER-FEATURES-SPLIT); its manifest is a budget file.
+- #3939: a stale `flow_lift` mutant pin that #3931 made obsolete is dropped from the mutation ledger.
+
 ## v10.1.7
 
 **Patch stamp: 2 merges since v10.1.6 (`git log --first-parent --merges --format=%h v10.1.6..HEAD | wc -l`): state that production stored and never read is deleted, with no behaviour change, and the round-11 mutant kills are recorded in the mutation ledger.**

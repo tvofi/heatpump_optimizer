@@ -3089,15 +3089,50 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
             for m, v, t in zip(pool, verdict, timed)]
 
 
+# The PR lane's costly-pin cap (R11-HOTFIX-MUTATION-DRIVER-CAP, #3897). A
+# pinned site's own killer runs first (`order_pool_drivers`), so drawing it
+# costs that driver's run. Under --scope changed the first red run of a driver
+# also pays its lazy baseline and null control. On #3897 the draw held 9
+# features.py pins of 10 sites: 11 runs of 1617 s recorded on 3 workers. The
+# `tests / mutation` job overran its 160 minutes on five pull requests that
+# day. So the PR lane draws at most COSTLY_PIN_DRAWS sites whose pinned killer
+# records over COSTLY_PIN_SECONDS. It fills its --max with the next sites of
+# the same shuffled draw. Only a PINNED site is passed over: its kill is a
+# measured ledger row, which the nightly's --scope full draw re-drives
+# (`pin_reverification`). An unpinned site's killer is what the lane exists
+# to find, so it is never passed over. 900 s sits between the two drivers
+# over it (features.py, entities.py) and the next shared one by
+# `recorded_seconds` (boost_drift_replay.py). 2 keeps one dear lazy settle as
+# the drive's critical path: its first red run, baseline and null control,
+# back to back on one worker. `mutation_draw_cost.py` simulates it.
+COSTLY_PIN_SECONDS = 900.0
+COSTLY_PIN_DRAWS = 2
+
+
+def costly_pin(mut: dict, killed_by: dict,
+               seconds: dict[str, float]) -> str | None:
+    """The driver `mut` is pinned to, when it is one of its drivers and
+    records over COSTLY_PIN_SECONDS; else None."""
+    pin = pinned_script(killed_by, mut)
+    if pin in mut["drivers"] and seconds.get(pin, 0.0) > COSTLY_PIN_SECONDS:
+        return pin
+    return None
+
+
 def sampled_pool(files: list[Path], closures: dict, allow: list[str],
                  touched: dict[str, set[int]] | None, triage: dict,
-                 rng: random.Random, per_file: int,
-                 cap: int) -> tuple[list[dict], int]:
+                 rng: random.Random, per_file: int, cap: int,
+                 killed_by: dict | None = None,
+                 seconds: dict[str, float] | None = None,
+                 ) -> tuple[list[dict], int]:
     """The sampled pool, and how many drawn sites a triage mark constrains.
 
     A triaged site is still driven -- by every driver but `TRIAGE_JUDGE` -- so
     a driver that kills an "equivalent" mutant refutes its mark. A site whose
-    only driver is that one is left out (R9-F10.13).
+    only driver is that one is left out (R9-F10.13). Given `killed_by` and the
+    drivers' `seconds`, the draw's first `cap` sites are taken, but a site
+    `costly_pin` names past the COSTLY_PIN_DRAWS-th is replaced by the next
+    one. With no such pin it is the draw's first `cap`, as before.
     """
     pool: list[dict] = []
     held = 0
@@ -3117,7 +3152,22 @@ def sampled_pool(files: list[Path], closures: dict, allow: list[str],
             if mut["drivers"]:
                 pool.append(mut)
     rng.shuffle(pool)
-    return pool[:cap], held
+    if killed_by is None:
+        return pool[:cap], held
+    drawn: list[dict] = []
+    dear = 0
+    for mut in pool:
+        if len(drawn) == cap:
+            break
+        pin = costly_pin(mut, killed_by, seconds or {})
+        if pin is not None and dear == COSTLY_PIN_DRAWS:
+            print(f"  {triage_key(mut)}: passed over, pinned to {pin} "
+                  f"(over {COSTLY_PIN_SECONDS:.0f} s) and {dear} such "
+                  f"site(s) drawn")
+            continue
+        dear += pin is not None
+        drawn.append(mut)
+    return drawn, held
 
 
 def order_pool_drivers(pool: list[dict], seconds: dict[str, float],
@@ -3961,8 +4011,13 @@ def main(argv: list[str] | None = None) -> int:
     if not (args.pin_killed or args.drain or args.anchor):
         # A pull request draws only from the lines it wrote (`changed_lines`).
         touched = changed_lines(args.base) if args.scope == "changed" else None
-        pool, held_n = sampled_pool(files, closures, allow, touched, triage,
-                                    rng, args.per_file, args.max)
+        # The costly-pin cap binds the PR lane, whose lazy settles it bounds;
+        # --scope full is the nightly's re-drive of those pins.
+        pool, held_n = sampled_pool(
+            files, closures, allow, touched, triage, rng, args.per_file,
+            args.max, **({"killed_by": budgets.get("killed_by", {}),
+                          "seconds": recorded_seconds()}
+                         if args.scope == "changed" else {}))
         whole = pool
         if held_n:
             print(f"  {held_n} drawn site(s) hold a survivor_triage mark: "
