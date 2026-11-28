@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:two_zone_from_config RETURN_DEL d3b5adbb",
+  "killed_by": "tests/stress.py",
+  "old": "    return any(key in config for key in TWO_ZONE_FIELDS)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/stress.py from rc=0 failed=0 to rc=1 failed=4."
+}
