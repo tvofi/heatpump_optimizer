@@ -1,0 +1,3794 @@
+{
+ "judge": "a826f55f8c",
+ "baseline": "92d38ecb640bd462f2e19c0814d0f0b7df1ee692",
+ "groups": {
+  "R11-D3-PINS-actuation": {
+   "seam": "actuation",
+   "new": true,
+   "size": "M",
+   "after_added": [
+    "R11-SEAM-actuation-writes",
+    "R11-OWNER-FAULT-HOLD"
+   ],
+   "count": 23,
+   "severity": {
+    "medium": 6,
+    "high": 3,
+    "low": 14
+   },
+   "findings": [
+    {
+     "id": "D3-wave-20f57d1eea0a5a1d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g01",
+     "patch": "if params.dhw_enabled and params.dhw_windows_active -> if params.dhw_enabled or params.dhw_windows_active"
+    },
+    {
+     "id": "D3-wave-cd1d099ef87f3ab9",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+     "severity": "high",
+     "gap_kind": "guard",
+     "box": "D3-g02",
+     "patch": "if result.timestamps: -> if False:"
+    },
+    {
+     "id": "D3-wave-473508040d23cc21",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+     "severity": "high",
+     "gap_kind": "clamp",
+     "box": "D3-g02",
+     "patch": "idx = int(max(0.0, since0 / 3600.0 / dt_hours)) -> idx = int((0.0))"
+    },
+    {
+     "id": "D3-wave-ad8a02e5c07428ab",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_drive_pumps",
+     "severity": "high",
+     "gap_kind": "guard",
+     "box": "D3-g02",
+     "patch": "if params.two_zone_enabled: -> if False:"
+    },
+    {
+     "id": "D3-wave-e880fd3537006726",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._check_pump_mode_expired",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if expired == self._pump_mode_expired_notice: -> if False:"
+    },
+    {
+     "id": "D3-wave-420bcb8597761025",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._command_frequency",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g03",
+     "patch": "target = float(np.clip(target, hz_min, hz_max)) -> target = float((target))"
+    },
+    {
+     "id": "D3-wave-466c95cb8978ea1d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._command_valve_target",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g04",
+     "patch": "if not entity_id: -> if False:"
+    },
+    {
+     "id": "D3-wave-218ac218da41d87d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._external_heat_override",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g05",
+     "patch": "return probe.value > 30.0 -> return probe.value >= 30.0"
+    },
+    {
+     "id": "D3-wave-bcf290164a0edeeb",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._external_heat_override",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g05",
+     "patch": "if probe.stale: -> if False:"
+    },
+    {
+     "id": "D3-wave-375376c4733a1a51",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._external_heat_override",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g05",
+     "patch": "return None -> pass"
+    },
+    {
+     "id": "D3-wave-2699efc070f5d4e3",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._external_heat_override",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g05",
+     "patch": "if probe.problem != \"not_numeric\": -> if False:"
+    },
+    {
+     "id": "D3-wave-4410da4e8eb84cb8",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if params.dhw_enabled or state.dhw_temperature < params.dhw_min_temp:"
+    },
+    {
+     "id": "D3-wave-f11665aaedbf2550",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if params.dhw_enabled and state.dhw_temperature < params.dhw_min_temp: -> if False:"
+    },
+    {
+     "id": "D3-wave-9b72b944ac12fa25",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if params.two_zone_enabled: -> if False:"
+    },
+    {
+     "id": "D3-wave-fd1cc23d380739ba",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._guard_floor_hold",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g07",
+     "patch": "return any(t is not None and float(t) < floor for t in temps) -> return any(t is not None and float(t) <= floor for t in temps)"
+    },
+    {
+     "id": "D3-wave-c20f346300d7efc1",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if when.tzinfo is None and now.tzinfo is not None: -> if when.tzinfo is None or now.tzinfo is not None:"
+    },
+    {
+     "id": "D3-wave-60f673da42f9d671",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._immersion_dhw_margin",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g07",
+     "patch": "if when >= cutoff: -> if when > cutoff:"
+    },
+    {
+     "id": "D3-wave-1ee0ec8960fb9a66",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._max_pump_rise",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if tank == \"dhw\": -> if False:"
+    },
+    {
+     "id": "D3-wave-15456e64946920b5",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._max_pump_rise",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g08",
+     "patch": "if capacity <= 1e-6: -> if False:"
+    },
+    {
+     "id": "D3-wave-9cdf54d2309cfcc8",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._outage_recovery_active",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "and utc_elapsed_seconds(self._outage_recovery_until, now) > 0 -> and utc_elapsed_seconds(self._outage_recovery_until, now) >= 0"
+    },
+    {
+     "id": "D3-wave-94285425a1bc856a",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator.async_shutdown",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g11",
+     "patch": "if pending: -> if False:"
+    },
+    {
+     "id": "D3-wave-69b933a6a720006b",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator.async_shutdown",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g11",
+     "patch": "if still_pending: -> if False:"
+    },
+    {
+     "id": "D3-wave-7ffebcb567a4242e",
+     "file": "coordinator.py",
+     "fn": "_open_loop_plan_value",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "return float(trajectory[0]) if starts[0] - now_s <= 900.0 else None -> return float(trajectory[0]) if starts[0] - now_s < 900.0 else None"
+    }
+   ]
+  },
+  "R11-SEAM-cycle-reporting-p2": {
+   "seam": "cycle",
+   "new": false,
+   "size": "L",
+   "after_added": [
+    "R11-SEAM-actuation-writes",
+    "R11-SEAM-learners"
+   ],
+   "count": 26,
+   "severity": {
+    "medium": 12,
+    "low": 14
+   },
+   "findings": [
+    {
+     "id": "D3-wave-fafb0d2c15e72efb",
+     "file": "coordinator.py",
+     "fn": "<module>",
+     "severity": "medium",
+     "gap_kind": "constant",
+     "box": "D3-g01",
+     "patch": "SOLVE_FAILURE_ISSUE_COUNT = 3 -> SOLVE_FAILURE_ISSUE_COUNT = 6"
+    },
+    {
+     "id": "D3-wave-676e8bfb416ff635",
+     "file": "coordinator.py",
+     "fn": "<module>",
+     "severity": "medium",
+     "gap_kind": "constant",
+     "box": "D3-g01",
+     "patch": "WORKER_FALLBACK_CAP = 3 -> WORKER_FALLBACK_CAP = 6"
+    },
+    {
+     "id": "D3-wave-ab918806fc8b4af6",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._accumulate_energy",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g01",
+     "patch": "if energy <= 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-ac6bedc70bb82ff7",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._build_data_dict",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if manual_state is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-3304e65ba361587f",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._build_plan_views",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if not n: -> if False:"
+    },
+    {
+     "id": "D3-wave-a28fd1af46c39331",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._build_plan_views",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "result.upper_temp_trajectory and result.lower_temp_trajectory -> result.upper_temp_trajectory or result.lower_temp_trajectory"
+    },
+    {
+     "id": "D3-wave-4498461fcf451835",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._build_plan_views",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if result.valve_target_schedule: -> if False:"
+    },
+    {
+     "id": "D3-wave-79db73ec81b29f23",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._capacity_caps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g03",
+     "patch": "if p_max <= 0.1: -> if p_max < 0.1:"
+    },
+    {
+     "id": "D3-wave-9c82d861621b8087",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._capacity_caps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g03",
+     "patch": "if cap_i < p_max - 1e-9: -> if cap_i <= p_max - 1e-9:"
+    },
+    {
+     "id": "D3-wave-134126ee4914191f",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._close_score_day",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g03",
+     "patch": "if kwh < 0.2 or hours < 1.0: -> if kwh <= 0.2 or hours < 1.0:"
+    },
+    {
+     "id": "D3-wave-b7623a645f34e628",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._close_score_day",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g03",
+     "patch": "if mean_spot <= 0.01: -> if mean_spot < 0.01:"
+    },
+    {
+     "id": "D3-wave-6aeb83e5435c9cac",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._contract_comparison",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g04",
+     "patch": "if fee_line[\"sek\"]: -> if False:"
+    },
+    {
+     "id": "D3-wave-d06a2d8e53342785",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._contract_comparison",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g04",
+     "patch": "if kwh > 0 and mean_spot is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-faf822994582adfc",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g04",
+     "patch": "usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0) -> usable_kwh = c_dhw * (t - params.dhw_min_temp)"
+    },
+    {
+     "id": "D3-wave-feed2751f4116bd1",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g04",
+     "patch": "meets = usable_kwh >= heaviest -> meets = usable_kwh > heaviest"
+    },
+    {
+     "id": "D3-wave-29bad645ca2c2438",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._dhw_setpoint_sweep",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g04",
+     "patch": "if meets and (best is None or cost_day < best[\"cost_per_day\"]): -> if meets and (best is None or cost_day <= best[\"cost_per_day\"]):"
+    },
+    {
+     "id": "D3-wave-ceee24404849933e",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g08",
+     "patch": "if \"candidate_kw\" not in self._fuse_advisor: -> if False:"
+    },
+    {
+     "id": "D3-wave-341d807c3a3d361d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "\"feasible\": breach <= 0.05, -> \"feasible\": breach < 0.05,"
+    },
+    {
+     "id": "D3-wave-d5ce59f9731dfc83",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._mixing_valve_view",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "positives = [t for t in totals if t > 0.0] -> positives = [t for t in totals if t >= 0.0]"
+    },
+    {
+     "id": "D3-wave-7398de952c9d1510",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._narrative_view",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g08",
+     "patch": "dt_hours = max(getattr(self, \"_ctx\", self)._opt_config.time_step_minutes, 1.0) / 60.0 -> dt_hours = (getattr(self, \"_ctx\", self)._opt_config.time_step_minutes) / 60.0"
+    },
+    {
+     "id": "D3-wave-d8101520588009d9",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._power_headroom",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0: -> elif tariff.enabled and tariff.sample_factor(dt_util.now()) >= 0.0:"
+    },
+    {
+     "id": "D3-wave-205660ee362d1a07",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._thermal_view",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if ctx._thermal_params.two_tank_modelled: -> if False:"
+    },
+    {
+     "id": "D3-wave-65175bb211f70f26",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator.async_diagnose_interval",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if report is None: -> if False:"
+    },
+    {
+     "id": "D3-wave-61e748f094f2daa8",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator.async_run_optimization",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g11",
+     "patch": "if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT: -> if self._solve_failures > SOLVE_FAILURE_ISSUE_COUNT:"
+    },
+    {
+     "id": "D3-wave-9dcd374ac007dfc9",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator.async_simulate",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g11",
+     "patch": "if \"power_cap_kw\" in overrides and simulated.predictive_info -> if \"power_cap_kw\" in overrides or simulated.predictive_info"
+    },
+    {
+     "id": "D3-wave-b028ad9d6c702965",
+     "file": "coordinator.py",
+     "fn": "_warm_seeded",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g12",
+     "patch": "if result is not None: -> if False:"
+    }
+   ]
+  },
+  "R11-D3-PINS-fabric": {
+   "seam": "fabric",
+   "new": true,
+   "size": "L",
+   "after_added": [
+    "R11-ARCH-fabric-learner",
+    "R11-SEAM-cycle-reporting",
+    "R11-OUTSIDE-START-APPROACH"
+   ],
+   "count": 47,
+   "severity": {
+    "low": 37,
+    "medium": 10
+   },
+   "findings": [
+    {
+     "id": "D3-wave-622996d751dca0c4",
+     "file": "coordinator.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g01",
+     "patch": "BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.15 -> BUFFER_COOLING_MIN_SAMPLE_HOURS = 0.3"
+    },
+    {
+     "id": "D3-wave-0e6080e5385399cb",
+     "file": "coordinator.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g01",
+     "patch": "BUFFER_COOLING_MIN_DELTA = 4.0 -> BUFFER_COOLING_MIN_DELTA = 8.0"
+    },
+    {
+     "id": "D3-wave-021dc21415f3229e",
+     "file": "coordinator.py",
+     "fn": "<module>",
+     "severity": "medium",
+     "gap_kind": "constant",
+     "box": "D3-g01",
+     "patch": "HOUSE_LOSS_MAX_STEP = 0.05 -> HOUSE_LOSS_MAX_STEP = 0.1"
+    },
+    {
+     "id": "D3-wave-1165914e57f5bd08",
+     "file": "coordinator.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g01",
+     "patch": "COP_LEARNING_MAX_STEP = 0.05 -> COP_LEARNING_MAX_STEP = 0.1"
+    },
+    {
+     "id": "D3-wave-cf7be12db1a662c4",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._apply_learner_payloads",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g01",
+     "patch": "if isinstance(prices, dict): -> if False:"
+    },
+    {
+     "id": "D3-wave-031dba68286ccfbf",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._apply_learner_payloads",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g01",
+     "patch": "if isinstance(comfort, dict): -> if False:"
+    },
+    {
+     "id": "D3-wave-22205dc8a4a6e79b",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._apply_learner_payloads",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g01",
+     "patch": "if isinstance(defrost, dict): -> if False:"
+    },
+    {
+     "id": "D3-wave-b3a8cff2e5c0a8cc",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if dt_h < BUFFER_COOLING_MIN_SAMPLE_HOURS: -> if dt_h <= BUFFER_COOLING_MIN_SAMPLE_HOURS:"
+    },
+    {
+     "id": "D3-wave-59027d3bdf2e7a0c",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if dt_h > BUFFER_COOLING_MAX_SAMPLE_HOURS: -> if dt_h >= BUFFER_COOLING_MAX_SAMPLE_HOURS:"
+    },
+    {
+     "id": "D3-wave-2700e28d79c64bd8",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if end_delta < BUFFER_COOLING_MIN_DELTA: -> if end_delta <= BUFFER_COOLING_MIN_DELTA:"
+    },
+    {
+     "id": "D3-wave-9d324a1dc7a6aa82",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if observed < low or observed > high: -> if observed < low or observed >= high:"
+    },
+    {
+     "id": "D3-wave-bb1abbfc58114a17",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if observed < low or observed > high: -> if observed <= low or observed > high:"
+    },
+    {
+     "id": "D3-wave-74dbcc2eae2c24f5",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_buffer_cooling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if observed < self._buffer_cooling_rate -> if observed <= self._buffer_cooling_rate"
+    },
+    {
+     "id": "D3-wave-355c3d7dd36a1b90",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_house_heat_loss",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g02",
+     "patch": "if delta_t < HOUSE_LOSS_MIN_DELTA: -> if delta_t <= HOUSE_LOSS_MIN_DELTA:"
+    },
+    {
+     "id": "D3-wave-ec4b6ee2ab420129",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_learn_house_heat_loss",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if vent_changed: -> if False:"
+    },
+    {
+     "id": "D3-wave-2ec5fda238265712",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_watch_learning_drift",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if day_counted: -> if False:"
+    },
+    {
+     "id": "D3-wave-c0ecc8e0b6b66ded",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_watch_learning_drift",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if not self._snapshot_ring.alarmed: -> if False:"
+    },
+    {
+     "id": "D3-wave-a7dd3153718e531b",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._confidence_margins",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g04",
+     "patch": "if damp <= 1e-9: -> if False:"
+    },
+    {
+     "id": "D3-wave-7457d714cd44306c",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._confidence_margins",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g04",
+     "patch": "return margins if bool(np.any(margins > 1e-9)) else None -> return margins if bool(np.any(margins >= 1e-9)) else None"
+    },
+    {
+     "id": "D3-wave-c087dc286eeff014",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._external_heat_config",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g05",
+     "patch": "max_sample_hours=max(1.0, 1.5 * interval_hours), -> max_sample_hours=(1.0),"
+    },
+    {
+     "id": "D3-wave-d915157ffe509e58",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._file_lead_predictions",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g06",
+     "patch": "if 0 < idx < len(trajectory): -> if 0 < idx <= len(trajectory):"
+    },
+    {
+     "id": "D3-wave-dff127b334682936",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_capacity_envelope",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g06",
+     "patch": "if not np.isfinite(thermal_kw) or thermal_kw <= 0.0: -> if not np.isfinite(thermal_kw) or thermal_kw < 0.0:"
+    },
+    {
+     "id": "D3-wave-59337f7f63497f21",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g06",
+     "patch": "if previous_time is None or dt_h <= 1e-6: -> if previous_time is None or dt_h < 1e-6:"
+    },
+    {
+     "id": "D3-wave-4542deee22df985f",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g06",
+     "patch": "if capacity <= 1e-6: -> if False:"
+    },
+    {
+     "id": "D3-wave-e347b6890486dd0d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g06",
+     "patch": "if not np.isfinite(y): -> if False:"
+    },
+    {
+     "id": "D3-wave-72fbe692d30d275e",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_internal_gains",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g06",
+     "patch": "np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05)) -> np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * (g0))"
+    },
+    {
+     "id": "D3-wave-2e4d4a89570a1b24",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g06",
+     "patch": "if irradiance < SOLAR_APERTURE_MIN_IRRADIANCE: -> if irradiance <= SOLAR_APERTURE_MIN_IRRADIANCE:"
+    },
+    {
+     "id": "D3-wave-89a3d25e2425b8e0",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g06",
+     "patch": "if capacity <= 1e-6 or dt_h <= 1e-6: -> if False:"
+    },
+    {
+     "id": "D3-wave-96fe4cecaa16f997",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g06",
+     "patch": "if x <= 1e-6 or not np.isfinite(y): -> if False:"
+    },
+    {
+     "id": "D3-wave-1a24365a55bfb2c7",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g06",
+     "patch": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES or m[\"var\"] > 1e-6:"
+    },
+    {
+     "id": "D3-wave-d3cad40ffce9b765",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fold_solar_aperture",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g07",
+     "patch": "if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6: -> if m[\"n\"] > SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:"
+    },
+    {
+     "id": "D3-wave-b6ac2d53028d45a3",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._interval_space_power",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if self._pump_signals.mode_observed and not self._pump_signals.space_heat: -> if False:"
+    },
+    {
+     "id": "D3-wave-21a2563e1beb213f",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._observe_cop_health",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5: -> if count > COP_BASELINE_MIN_SAMPLES and baseline > 0.5:"
+    },
+    {
+     "id": "D3-wave-509893a173fa6a29",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._observe_cop_health",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "if count >= COP_BASELINE_MIN_SAMPLES and baseline > 0.5: -> if count >= COP_BASELINE_MIN_SAMPLES and baseline >= 0.5:"
+    },
+    {
+     "id": "D3-wave-cd6eee1c9c175e5f",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._observe_cop_health",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "if count < COP_BASELINE_MIN_SAMPLES: -> if count <= COP_BASELINE_MIN_SAMPLES:"
+    },
+    {
+     "id": "D3-wave-b283779946540c3d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._on_power_event",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "if 0.0 < spacing <= 0.25: -> if 0.0 < spacing < 0.25:"
+    },
+    {
+     "id": "D3-wave-25fb4eaf35cfdda5",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._on_power_event",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g08",
+     "patch": "if tariff.enabled and factor > 0.0: -> if tariff.enabled and factor >= 0.0:"
+    },
+    {
+     "id": "D3-wave-104db258fed59c2d",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "if mean_price <= 1e-6: -> if mean_price < 1e-6:"
+    },
+    {
+     "id": "D3-wave-8daaf4fcaf8cd897",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "if float(np.max(prices) - np.min(prices)) / mean_price < 0.15: -> if float(np.max(prices) - np.min(prices)) / mean_price <= 0.15:"
+    },
+    {
+     "id": "D3-wave-3cfe39778305daba",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._record_quiet_comfort_period",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "if heating_kwh < 1.0: -> if heating_kwh <= 1.0:"
+    },
+    {
+     "id": "D3-wave-425a9196b86265d0",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._run_system_identification",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g09",
+     "patch": "if not self._sysid.active: -> if False:"
+    },
+    {
+     "id": "D3-wave-0c99189b7639f1bd",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._settle_defrost",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "if 0.25 * interval_s <= window.seconds <= 3.0 * interval_s: -> if 0.25 * interval_s <= window.seconds < 3.0 * interval_s:"
+    },
+    {
+     "id": "D3-wave-df697cc04154fbdd",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._settle_defrost",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "if 0.25 * interval_s <= window.seconds <= 3.0 * interval_s: -> if 0.25 * interval_s < window.seconds <= 3.0 * interval_s:"
+    },
+    {
+     "id": "D3-wave-c7054b2e59c82141",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._track_curve_comfort",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g10",
+     "patch": "if margin <= 0.0 and self._curve_learner.bias < 0.0: -> if margin < 0.0 and self._curve_learner.bias < 0.0:"
+    },
+    {
+     "id": "D3-wave-ff56936f15fd4675",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._track_curve_comfort",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if margin <= 0.0 and self._curve_learner.bias < 0.0: -> if margin <= 0.0 or self._curve_learner.bias < 0.0:"
+    },
+    {
+     "id": "D3-wave-f2a191b48718e088",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._update_external_heat_detection",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if state.active: -> if False:"
+    },
+    {
+     "id": "D3-wave-738102c9ed0f89af",
+     "file": "coordinator.py",
+     "fn": "_fold_flow_lift",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g11",
+     "patch": "if curve is None: -> if False:"
+    }
+   ]
+  },
+  "R11-D3-PINS-inputs": {
+   "seam": "inputs",
+   "new": true,
+   "size": "M",
+   "after_added": [
+    "R11-SEAM-inputs-freshness"
+   ],
+   "count": 23,
+   "severity": {
+    "medium": 9,
+    "low": 13,
+    "high": 1
+   },
+   "findings": [
+    {
+     "id": "D3-wave-37e0face2a901e71",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._apply_open_meteo",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g01",
+     "patch": "value = solar[i] if i < len(solar) else 0.0 -> value = solar[i] if i <= len(solar) else 0.0"
+    },
+    {
+     "id": "D3-wave-68c8ce175dcfa839",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._apply_open_meteo",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g01",
+     "patch": "if missing: -> if False:"
+    },
+    {
+     "id": "D3-wave-640a1a68b6c1eb23",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._entity_state",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g04",
+     "patch": "if not entity_id: -> if False:"
+    },
+    {
+     "id": "D3-wave-d05457b7adf4d691",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g05",
+     "patch": "if not weather_entity: -> if False:"
+    },
+    {
+     "id": "D3-wave-d943cc9f7670a834",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._fetch_weather_forecast",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g05",
+     "patch": "if result and weather_entity in result: -> if result or weather_entity in result:"
+    },
+    {
+     "id": "D3-wave-f0146f6f4901ec82",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._forecast_arrays",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g07",
+     "patch": "if rh is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-3d83c32f185cf411",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._pv_forecast",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g09",
+     "patch": "if not config.enabled or config.peak_kw <= 0: -> if not config.enabled or config.peak_kw < 0:"
+    },
+    {
+     "id": "D3-wave-002980a15ae8b9a9",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._pv_forecast",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g09",
+     "patch": "if self._pv_production is not None and len(production): -> if False:"
+    },
+    {
+     "id": "D3-wave-1785780ac9dd1b18",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._pv_forecast",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g09",
+     "patch": "if self._pv_production is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-326b26f53972df61",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._pv_measured_production",
+     "severity": "high",
+     "gap_kind": "guard",
+     "box": "D3-g09",
+     "patch": "if not entity_id: -> if False:"
+    },
+    {
+     "id": "D3-wave-349b2e117d076731",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._update_current_state",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if wood_mean is None and had: -> if False:"
+    },
+    {
+     "id": "D3-wave-8ab42c4ab9755537",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._update_current_state",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "elif wood_mean is not None and not had: -> elif wood_mean is not None or not had:"
+    },
+    {
+     "id": "D3-wave-b871ff0486182e3e",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._update_snow_memory",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g10",
+     "patch": "self._snow_accum_cm += rate_now * min(dt_true, 6.0) -> self._snow_accum_cm += rate_now * (dt_true)"
+    },
+    {
+     "id": "D3-wave-813cb7aecbd78f98",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._update_snow_memory",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g10",
+     "patch": "if self._snow_accum_cm >= SNOW_HEAVY_CM: -> if self._snow_accum_cm > SNOW_HEAVY_CM:"
+    },
+    {
+     "id": "D3-wave-aa6b718c979bf831",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._weather_fetch_failed",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if not self._weather_outage_cycles: -> if False:"
+    },
+    {
+     "id": "D3-wave-18fe89552892dc4b",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._weather_fetch_recovered",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g10",
+     "patch": "if self._weather_outage_cycles: -> if False:"
+    },
+    {
+     "id": "D3-wave-4fd094e9727818b3",
+     "file": "coordinator.py",
+     "fn": "_dhw_inlet_c",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g11",
+     "patch": "if state is None or age is None or age > timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES): -> if state is None or age is None or age >= timedelta(minutes=DHW_INLET_MAX_AGE_MINUTES):"
+    },
+    {
+     "id": "D3-wave-e2b030e0716d126c",
+     "file": "coordinator.py",
+     "fn": "_dhw_inlet_c",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g11",
+     "patch": "return value if value is not None and -5.0 <= value <= 35.0 else None -> return value if value is not None and -5.0 <= value < 35.0 else None"
+    },
+    {
+     "id": "D3-wave-6f5898d327366799",
+     "file": "coordinator.py",
+     "fn": "_liquid_fraction",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g11",
+     "patch": "precip > 1e-9, -> precip >= 1e-9,"
+    },
+    {
+     "id": "D3-wave-845155d368e8b524",
+     "file": "coordinator.py",
+     "fn": "_outage_reading",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if gap_minutes <= OUTAGE_GAP_MINUTES: -> if gap_minutes < OUTAGE_GAP_MINUTES:"
+    },
+    {
+     "id": "D3-wave-3e68dcd55f9567e5",
+     "file": "coordinator.py",
+     "fn": "_plausible_forecast_rows",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if not math.isfinite(value) or not lo <= value <= hi: -> if not math.isfinite(value) or not lo < value <= hi:"
+    },
+    {
+     "id": "D3-wave-88ecd932bc81efec",
+     "file": "coordinator.py",
+     "fn": "_plausible_forecast_rows",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if not math.isfinite(value) or not lo <= value <= hi: -> if not math.isfinite(value) or not lo <= value < hi:"
+    },
+    {
+     "id": "D3-wave-4403a4c7bec83d8f",
+     "file": "coordinator.py",
+     "fn": "_price_entity_state",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g12",
+     "patch": "if not entity_id: -> if False:"
+    }
+   ]
+  },
+  "R11-D3-PINS-money": {
+   "seam": "money",
+   "new": true,
+   "size": "L",
+   "after_added": [],
+   "count": 40,
+   "severity": {
+    "low": 30,
+    "medium": 10
+   },
+   "findings": [
+    {
+     "id": "D3-wave-9297f123a6265555",
+     "file": "grid_fee.py",
+     "fn": "apply_catalog",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g18",
+     "patch": "if not product_id or product_id == DSO_PRODUCT_NONE: -> if False:"
+    },
+    {
+     "id": "D3-wave-911f3cf5172ffc44",
+     "file": "grid_fee.py",
+     "fn": "apply_catalog",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g19",
+     "patch": "return None -> pass"
+    },
+    {
+     "id": "D3-wave-b5f0a73275608684",
+     "file": "grid_fee.py",
+     "fn": "max_abs_component",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g19",
+     "patch": "and abs(float(entity_value)) > worst -> and abs(float(entity_value)) >= worst"
+    },
+    {
+     "id": "D3-wave-68cc141bf2c3493a",
+     "file": "grid_fee.py",
+     "fn": "min_component",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g19",
+     "patch": "and float(entity_value) < lowest -> and float(entity_value) <= lowest"
+    },
+    {
+     "id": "D3-wave-2043855ef5cf151d",
+     "file": "grid_fee.py",
+     "fn": "parse_rules",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g19",
+     "patch": "if not spec: -> if False:"
+    },
+    {
+     "id": "D3-wave-0ea7620ce058c489",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g29",
+     "patch": "SHAPE_ALPHA = 0.12 -> SHAPE_ALPHA = 0.24"
+    },
+    {
+     "id": "D3-wave-213a122afd9ff3e1",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g29",
+     "patch": "SHAPE_CONFIDENCE_DAYS = 5 -> SHAPE_CONFIDENCE_DAYS = 10"
+    },
+    {
+     "id": "D3-wave-b10967dd4ea185fd",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g30",
+     "patch": "SHAPE_MIN = 0.2 -> SHAPE_MIN = 0.4"
+    },
+    {
+     "id": "D3-wave-7e5493bcbddd6c18",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g30",
+     "patch": "QUARTER_ALPHA = 0.12 -> QUARTER_ALPHA = 0.24"
+    },
+    {
+     "id": "D3-wave-66686e3bc3bac9b9",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g30",
+     "patch": "QUARTER_CONFIDENCE_DAYS = 5 -> QUARTER_CONFIDENCE_DAYS = 10"
+    },
+    {
+     "id": "D3-wave-5bf50f5d986f927d",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g30",
+     "patch": "QUARTER_FACTOR_MIN = 0.25 -> QUARTER_FACTOR_MIN = 0.5"
+    },
+    {
+     "id": "D3-wave-cc96ce9e391ca6f2",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g30",
+     "patch": "QUARTER_FACTOR_MAX = 4.0 -> QUARTER_FACTOR_MAX = 8.0"
+    },
+    {
+     "id": "D3-wave-b5aef00760fd5ea8",
+     "file": "price_model.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g30",
+     "patch": "VAR_ALPHA = 0.15 -> VAR_ALPHA = 0.3"
+    },
+    {
+     "id": "D3-wave-b9b6cf1d15a84248",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.expected_daily_min",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g30",
+     "patch": "if not day_types or not np.isfinite(level) or level <= 0.0: -> if False:"
+    },
+    {
+     "id": "D3-wave-a5c9796d35117839",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.expected_daily_min",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g30",
+     "patch": "if self.days[idx] < SHAPE_CONFIDENCE_DAYS: -> if self.days[idx] <= SHAPE_CONFIDENCE_DAYS:"
+    },
+    {
+     "id": "D3-wave-13cadf1ab9a2de61",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.from_dict",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g30",
+     "patch": "if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX: -> if var is not None and max(max(s) for s in var) < RESIDUAL_VAR_MAX:"
+    },
+    {
+     "id": "D3-wave-b5a482468c783209",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.observe_day",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g30",
+     "patch": "if mean <= 1e-6: -> if mean < 1e-6:"
+    },
+    {
+     "id": "D3-wave-0b10a7c76e2514d2",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.observe_day",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g30",
+     "patch": "if self.days[idx] == 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-c4697335da324182",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.observe_day",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g30",
+     "patch": "if self.days[idx] == 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-4e79ba6ea642d086",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.observe_day_quarters",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g30",
+     "patch": "usable = hour_means > 1e-6 -> usable = hour_means >= 1e-6"
+    },
+    {
+     "id": "D3-wave-12cd6ddd79fb36fc",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.observe_day_quarters",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g30",
+     "patch": "if self.quarter_days[idx] == 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-3a064c11321daba7",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.summary",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g31",
+     "patch": "round(float(np.sqrt(max(0.0, v))), 4) -> round(float(np.sqrt((0.0))), 4)"
+    },
+    {
+     "id": "D3-wave-efa02472a5a773bc",
+     "file": "price_model.py",
+     "fn": "PriceShapeModel.summary",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g31",
+     "patch": "round(float(np.sqrt(max(0.0, v))), 4) -> round(float(np.sqrt((0.0))), 4)"
+    },
+    {
+     "id": "D3-wave-a38612ad3ad9cd34",
+     "file": "price_model.py",
+     "fn": "_in_domain",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g31",
+     "patch": "if low > 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9): -> if low >= 0.0 and high <= low * (hi / lo) * (1.0 + 1e-9):"
+    },
+    {
+     "id": "D3-wave-28de20de50a9540b",
+     "file": "price_model.py",
+     "fn": "_profile_index",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g31",
+     "patch": "return PROFILE_WEEKEND if when.weekday() >= 5 else PROFILE_WEEKDAY -> return PROFILE_WEEKEND if when.weekday() > 5 else PROFILE_WEEKDAY"
+    },
+    {
+     "id": "D3-wave-e5eea05f4463602e",
+     "file": "price_model.py",
+     "fn": "_tibber_post",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g31",
+     "patch": "if resp.status != 200: -> if False:"
+    },
+    {
+     "id": "D3-wave-0d159d7ddd1702d9",
+     "file": "price_model.py",
+     "fn": "extend_price_series",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g32",
+     "patch": "if model is None or model.confidence(when) <= 0.0: -> if model is None or model.confidence(when) < 0.0:"
+    },
+    {
+     "id": "D3-wave-b539d4504385a139",
+     "file": "price_model.py",
+     "fn": "prices_from_entity_state",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g32",
+     "patch": "isinstance(attrs, dict) and attrs -> isinstance(attrs, dict) or attrs"
+    },
+    {
+     "id": "D3-wave-246043395831f540",
+     "file": "tariff.py",
+     "fn": "CapacityTariff.marginal_price_per_kw",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g39",
+     "patch": "if not self.enabled or self.peaks_averaged <= 0: -> if not self.enabled or self.peaks_averaged < 0:"
+    },
+    {
+     "id": "D3-wave-de935c38786265e7",
+     "file": "tariff.py",
+     "fn": "PeakTracker.from_dict",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g39",
+     "patch": "if not math.isfinite(tracker._window_factor): -> if False:"
+    },
+    {
+     "id": "D3-wave-4ad3dc13bfdb70a8",
+     "file": "tariff.py",
+     "fn": "PeakTracker.from_dict",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g39",
+     "patch": "or not 0.0 <= tracker._window_factor <= 1.0 -> or not 0.0 < tracker._window_factor <= 1.0"
+    },
+    {
+     "id": "D3-wave-7fcaf91cced5ce41",
+     "file": "tariff.py",
+     "fn": "PeakTracker.observe",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g39",
+     "patch": "if not np.isfinite(house_power_kw) or house_power_kw < 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-37b3c9a03326d207",
+     "file": "tariff.py",
+     "fn": "_one_per_day",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g39",
+     "patch": "if not day: -> if False:"
+    },
+    {
+     "id": "D3-wave-6536ff6b094f971d",
+     "file": "tariff.py",
+     "fn": "_smooth_topk_sum",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g39",
+     "patch": "if x.size == 0 or k <= 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-5371ee2b5e897750",
+     "file": "tariff.py",
+     "fn": "_smooth_topk_sum",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g39",
+     "patch": "if not np.any(x > 0): -> if False:"
+    },
+    {
+     "id": "D3-wave-2d037a10caa62e28",
+     "file": "tariff.py",
+     "fn": "realised_peak",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g41",
+     "patch": "if house.size == 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-5f094dbca9a593e9",
+     "file": "tariff.py",
+     "fn": "_smooth_topk_sum",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g40",
+     "patch": "scale = max(tau * peak, 1e-9) -> scale = (tau * peak)"
+    },
+    {
+     "id": "D3-wave-996dce5148e02763",
+     "file": "tariff.py",
+     "fn": "_smooth_topk_sum_batch",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g40",
+     "patch": "scale = np.maximum(tau * peak, 1e-9) -> scale = (tau * peak)"
+    },
+    {
+     "id": "D3-wave-3e9a439baa86a074",
+     "file": "tariff.py",
+     "fn": "_stored_peaks",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g40",
+     "patch": "if not math.isfinite(value) or value < 0.0: -> if not math.isfinite(value) or value <= 0.0:"
+    },
+    {
+     "id": "D3-wave-1894e6dcd2251a30",
+     "file": "tariff.py",
+     "fn": "metering_windows",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g40",
+     "patch": "if house.size == 0: -> if False:"
+    }
+   ]
+  },
+  "R11-D3-PINS-plant": {
+   "seam": "plant",
+   "new": true,
+   "size": "L",
+   "after_added": [],
+   "count": 46,
+   "severity": {
+    "medium": 16,
+    "low": 30
+   },
+   "findings": [
+    {
+     "id": "D3-wave-3b9eddc7ba9a7488",
+     "file": "defrost.py",
+     "fn": "<module>",
+     "severity": "medium",
+     "gap_kind": "constant",
+     "box": "D3-g12",
+     "patch": "DERATE_ALPHA = 0.05 -> DERATE_ALPHA = 0.1"
+    },
+    {
+     "id": "D3-wave-d1197dfed14a6927",
+     "file": "defrost.py",
+     "fn": "DefrostDerate._decide",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if inferred < measured: -> if inferred <= measured:"
+    },
+    {
+     "id": "D3-wave-3e3fbb5fcbbe9bcc",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.from_dict",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g12",
+     "patch": "if instance.migrated: -> if False:"
+    },
+    {
+     "id": "D3-wave-1ba9abbe8e702464",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.from_dict._unit",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it -> return 0.0 <= v < 1.0  # observe_duty's gate; NaN fails it"
+    },
+    {
+     "id": "D3-wave-4aac8e694ddc5dfe",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.from_dict._unit",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "return 0.0 <= v <= 1.0  # observe_duty's gate; NaN fails it -> return 0.0 < v <= 1.0  # observe_duty's gate; NaN fails it"
+    },
+    {
+     "id": "D3-wave-5366f1e6254f603c",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.observe",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if delivered_ratio <= 0 or delivered_ratio > 3.0: -> if delivered_ratio < 0 or delivered_ratio > 3.0:"
+    },
+    {
+     "id": "D3-wave-efb33eb6212be24e",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.observe",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if delivered_ratio <= 0 or delivered_ratio > 3.0: -> if delivered_ratio <= 0 or delivered_ratio >= 3.0:"
+    },
+    {
+     "id": "D3-wave-0e3569fef6b39497",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.observe_duty",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "and self.counts[t][h] > 0 -> and self.counts[t][h] >= 0"
+    },
+    {
+     "id": "D3-wave-24d9995ccee4252e",
+     "file": "defrost.py",
+     "fn": "DefrostDerate.summary",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g13",
+     "patch": "if self.duty_counts[t][h] > 0: -> if self.duty_counts[t][h] >= 0:"
+    },
+    {
+     "id": "D3-wave-8297234e122897ff",
+     "file": "defrost.py",
+     "fn": "DefrostWindow.peek",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g13",
+     "patch": "if self._state and self._since is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-681130c48add1573",
+     "file": "defrost.py",
+     "fn": "DefrostWindow.peek",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g13",
+     "patch": "seconds_on += max(0.0, open_for) if open_for is not None else 0.0 -> seconds_on += (0.0) if open_for is not None else 0.0"
+    },
+    {
+     "id": "D3-wave-c61a89f42607c92b",
+     "file": "defrost.py",
+     "fn": "_bucket_index",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g13",
+     "patch": "return len(edges) - 2 if value >= edges[-1] else 0 -> return len(edges) - 2 if value > edges[-1] else 0"
+    },
+    {
+     "id": "D3-wave-2aa0f17a216035ee",
+     "file": "flow_lift.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g18",
+     "patch": "FLOW_BIAS_MIN_SAMPLES = 5 -> FLOW_BIAS_MIN_SAMPLES = 10"
+    },
+    {
+     "id": "D3-wave-43b54266f12bfb21",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._batch_cop",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g41",
+     "patch": "cop: float | np.ndarray = p.cop_nominal * min(factor, 1.5) * p.cop_scale -> cop: float | np.ndarray = p.cop_nominal * (factor) * p.cop_scale"
+    },
+    {
+     "id": "D3-wave-dfe094233a9164e0",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._batch_cop",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g41",
+     "patch": "if derate is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-e3a350a3272762f1",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._batch_cop",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g41",
+     "patch": "if hum_i is not None and not np.isfinite(hum_i): -> if False:"
+    },
+    {
+     "id": "D3-wave-94ce174acf85b6f2",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._batch_cop",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g41",
+     "patch": "if hum_i is None: -> if False:"
+    },
+    {
+     "id": "D3-wave-898d741cf6142efb",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._batch_cop",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g41",
+     "patch": "if flow_carnot_eligible and p.cop_flow_carnot: -> if flow_carnot_eligible or p.cop_flow_carnot:"
+    },
+    {
+     "id": "D3-wave-a6cebb125b72f083",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._cop_law",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g41",
+     "patch": "cop = self.params.cop_nominal * min(factor, 1.5) * self.params.cop_scale -> cop = self.params.cop_nominal * (factor) * self.params.cop_scale"
+    },
+    {
+     "id": "D3-wave-c5e678a5d1812e40",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel._simulate_step_two_zone",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g41",
+     "patch": "dT_cap = max(0.0, p.buffer_max_temp - T_buf) / max(dt_hours, 1e-6) -> dT_cap = max(0.0, p.buffer_max_temp - T_buf) / (dt_hours)"
+    },
+    {
+     "id": "D3-wave-7068e39e4608027f",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.simulate_trajectory_batch",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g43",
+     "patch": "w * drawn, np.maximum(avail_wood, 0.0) -> w * drawn, (avail_wood)"
+    },
+    {
+     "id": "D3-wave-6462c28df2f973e0",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.simulate_trajectory_batch",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g43",
+     "patch": "drawn - wood_draw, np.maximum(avail_hp, 0.0) -> drawn - wood_draw, (avail_hp)"
+    },
+    {
+     "id": "D3-wave-b2faf84904db389e",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters.buffer_tank_heat_loss_coefficient",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": "rate = min(max(float(rate), low), high) -> rate = min((float(rate)), high)"
+    },
+    {
+     "id": "D3-wave-1b476993921016f9",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters.dhw_draw_power",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": "recovery = float(np.clip(self.greywater_recovery, 0.0, 0.9)) -> recovery = float((self.greywater_recovery))"
+    },
+    {
+     "id": "D3-wave-ea888783bb621669",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters.dhw_draw_power",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": "liters_per_hour * WATER_SPECIFIC_HEAT * max(delta_t, 0.0) -> liters_per_hour * WATER_SPECIFIC_HEAT * (delta_t)"
+    },
+    {
+     "id": "D3-wave-b098598faf0d87dc",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters.seasonal_inlet_temp",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g45",
+     "patch": "if swing <= 0.0: -> if False:"
+    },
+    {
+     "id": "D3-wave-dd40fdb4edae4d79",
+     "file": "thermal_model.py",
+     "fn": "_valve_flow_set",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g45",
+     "patch": "if valve_target is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-19404e3632806509",
+     "file": "thermal_model.py",
+     "fn": "_valve_two_zone_delivery",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": "floor_temp = min(T_upper, T_slab) -> floor_temp = (T_upper)"
+    },
+    {
+     "id": "D3-wave-beeb068352333132",
+     "file": "thermal_model.py",
+     "fn": "_valve_two_zone_delivery",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": ") / max(dt_hours, 1e-6) -> ) / (dt_hours)"
+    },
+    {
+     "id": "D3-wave-ea9c4705de428b28",
+     "file": "thermal_model.py",
+     "fn": "_valve_two_zone_delivery",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": ") / max(dt_hours, 1e-6) -> ) / (dt_hours)"
+    },
+    {
+     "id": "D3-wave-98853a541b6b5d6a",
+     "file": "thermal_model.py",
+     "fn": "_valve_two_zone_delivery",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g45",
+     "patch": "hp_draw = min(drawn - wood_draw, max(avail_hp, 0.0)) -> hp_draw = min(drawn - wood_draw, (avail_hp))"
+    },
+    {
+     "id": "D3-wave-39041ccf21eedba6",
+     "file": "thermal_model.py",
+     "fn": "_valve_two_zone_delivery",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g45",
+     "patch": "if drawn > delivered > 0.0: -> if False:"
+    },
+    {
+     "id": "D3-wave-05b5a15efaaf70de",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters.buffer_tank_heat_loss_coefficient",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g44",
+     "patch": "rate = min(max(float(rate), low), high) -> rate = (max(float(rate), low))"
+    },
+    {
+     "id": "D3-wave-36117bb3a189672b",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.update_ecl110_displace_state",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g44",
+     "patch": "np.clip(effective, p.ecl110_displace_min, p.ecl110_displace_max) -> (effective)"
+    },
+    {
+     "id": "D3-wave-3d4899a05eb126c3",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters._windowed_draw_pattern",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g44",
+     "patch": "if total <= 1e-6: -> if total < 1e-6:"
+    },
+    {
+     "id": "D3-wave-78b7f2ebcf85c8a1",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.simulate_trajectory_batch",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g44",
+     "patch": "if wood is not None and T_wood is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-9362d5efbe6808c2",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.update_ecl110_displace_state",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g44",
+     "patch": "alpha = float(np.clip(dt_hours / tau, 0.0, 1.0)) -> alpha = float((dt_hours / tau))"
+    },
+    {
+     "id": "D3-wave-cde383447b865539",
+     "file": "thermal_model.py",
+     "fn": "ThermalParameters.buffer_is_store",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g44",
+     "patch": "and self.buffer_tank_volume >= BUFFER_STORE_MIN_VOLUME -> and self.buffer_tank_volume > BUFFER_STORE_MIN_VOLUME"
+    },
+    {
+     "id": "D3-wave-f66c6e9cf9d1f84a",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.update_ecl110_displace_state",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g44",
+     "patch": "cmd = float(np.clip(displace_command, p.ecl110_displace_min, p.ecl110_displace_max)) -> cmd = float((displace_command))"
+    },
+    {
+     "id": "D3-wave-5b8e7044ee7974f8",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.apply_dhw_coil",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g42",
+     "patch": "if q_coil > 0.0: -> if q_coil >= 0.0:"
+    },
+    {
+     "id": "D3-wave-f7e051cc469b465f",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.compute_solar_gain",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g42",
+     "patch": "if solar_radiation <= 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-402ffd06ddbd856a",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.dhw_coast_hours",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g42",
+     "patch": "if hot <= 0.0: -> if hot < 0.0:"
+    },
+    {
+     "id": "D3-wave-d90533f4d17cfa14",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.dhw_coast_hours",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g42",
+     "patch": "if hot <= 0.0: -> if False:"
+    },
+    {
+     "id": "D3-wave-011b9e2e975b5e98",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.dhw_coast_hours",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g42",
+     "patch": "return float(np.clip((c_dhw / ua) * np.log(hot / cold), 0.0, 168.0)) -> return float(((c_dhw / ua) * np.log(hot / cold)))"
+    },
+    {
+     "id": "D3-wave-9df41596c4fa89c6",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.effective_heat_loss_coefficient",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g42",
+     "patch": "if precipitation > 0.1:  # threshold for \"raining\" -> if precipitation >= 0.1:  # threshold for \"raining\""
+    },
+    {
+     "id": "D3-wave-029c040224dc4e38",
+     "file": "thermal_model.py",
+     "fn": "ThermalModel.effective_heat_loss_coefficient",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g42",
+     "patch": "rain_intensity = min(precipitation / 2.0, 1.0) -> rain_intensity = (precipitation / 2.0)"
+    }
+   ]
+  },
+  "R11-D3-PINS-solver": {
+   "seam": "solver",
+   "new": true,
+   "size": "XL",
+   "after_added": [
+    "R11-OUTSIDE-START-APPROACH",
+    "R11-SEAM-cycle-reporting"
+   ],
+   "count": 131,
+   "severity": {
+    "low": 107,
+    "medium": 23,
+    "nit": 1
+   },
+   "findings": [
+    {
+     "id": "D3-wave-df4de55e12588fdf",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._apply_dhw_min_run",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g13",
+     "patch": "weak = np.where((plan > 1e-6) & (plan < min_run_power))[0] -> weak = np.where((plan >= 1e-6) & (plan < min_run_power))[0]"
+    },
+    {
+     "id": "D3-wave-3685cdbd27c1680f",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._apply_dhw_min_run",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g14",
+     "patch": "jointly_raised: np.ndarray = np.clip(joint, 0.0, p_dhw_max) -> jointly_raised: np.ndarray = (joint)"
+    },
+    {
+     "id": "D3-wave-1c0e818b4bb24fcd",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._apply_dhw_min_run",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g14",
+     "patch": "repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max) -> repaired: np.ndarray = (plan)"
+    },
+    {
+     "id": "D3-wave-0b51e1d1975513aa",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._apply_dhw_pins",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g14",
+     "patch": "for i in range(min(len(out), len(dhw_pins))): -> for i in range((len(out))):"
+    },
+    {
+     "id": "D3-wave-0e3fc2bc64c2bf63",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._apply_dhw_pins",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g14",
+     "patch": "if pin >= 0.5: -> if pin > 0.5:"
+    },
+    {
+     "id": "D3-wave-b25e80c59b31c20d",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g14",
+     "patch": "if dhw_pins is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-6999e2dab9790b53",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g14",
+     "patch": "mask[: pins_arr.size] = ~np.isnan(pins_arr) & (pins_arr < 0.5) -> mask[: pins_arr.size] = ~np.isnan(pins_arr) & (pins_arr <= 0.5)"
+    },
+    {
+     "id": "D3-wave-cd7bc939ea82fecd",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g14",
+     "patch": "if mask.any(): -> if False:"
+    },
+    {
+     "id": "D3-wave-de02e0a048abc451",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g14",
+     "patch": "if blocked: -> if False:"
+    },
+    {
+     "id": "D3-wave-7f026b4dd7d44269",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g14",
+     "patch": "max_lead_steps = max(1, min(n_steps, int(np.ceil(max_lead_hours / dt)))) -> max_lead_steps = max(1, (n_steps))"
+    },
+    {
+     "id": "D3-wave-a1576c7241b67401",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g14",
+     "patch": "covered = free_temps[1:] >= requirement - 0.5 -> covered = free_temps[1:] > requirement - 0.5"
+    },
+    {
+     "id": "D3-wave-8fa714bbb756e11e",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._build_dhw_requirements",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g14",
+     "patch": "horizon = min(n_steps, max(1, int(round(2.0 / max(dt, 1e-6))))) -> horizon = min(n_steps, (1))"
+    },
+    {
+     "id": "D3-wave-a1ebeff0870dfa76",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_legionella_ceilings",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g15",
+     "patch": "if need > boost_top: -> if need >= boost_top:"
+    },
+    {
+     "id": "D3-wave-f1549576a94b99be",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_legionella_ceilings",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g15",
+     "patch": "if need > boost_top: -> if False:"
+    },
+    {
+     "id": "D3-wave-7cd9b966a3bd0008",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_legionella_ceilings",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g15",
+     "patch": "if need <= floor_temps[m]: -> if need < floor_temps[m]:"
+    },
+    {
+     "id": "D3-wave-31c1881164f2dcdf",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_legionella_due",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g15",
+     "patch": "hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0] -> hot = np.where(ramp[1:] > params.dhw_legionella_temp - 1e-6)[0]"
+    },
+    {
+     "id": "D3-wave-7640e80a994db479",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_legionella_due",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g15",
+     "patch": "if deadline_step < n_steps: -> if deadline_step <= n_steps:"
+    },
+    {
+     "id": "D3-wave-35d61c87783ebe66",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_legionella_due",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g16",
+     "patch": "if known is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-8fc6a207d6600867",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_planning_prices",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g16",
+     "patch": "if surplus is None or not np.any(surplus[: len(prices)] > 1e-6): -> if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):"
+    },
+    {
+     "id": "D3-wave-72882f2ac25c19b1",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_planning_prices",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g16",
+     "patch": "surplus = np.clip(surplus - space_demand[: len(prices)], 0.0, None) -> surplus = (surplus - space_demand[: len(prices)])"
+    },
+    {
+     "id": "D3-wave-a21e5757eab163a7",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._dhw_raise_fits",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g16",
+     "patch": "if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)): -> if not bool(np.all(candidate[pos + 1: end + 1] < limit + 1e-9)):"
+    },
+    {
+     "id": "D3-wave-41000bf52dbaa1ad",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._effective_dhw_windows",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g16",
+     "patch": "threshold = max(1.0, float(np.percentile(pattern, 60))) -> threshold = (1.0)"
+    },
+    {
+     "id": "D3-wave-88d911d796fdd71d",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._effective_dhw_windows",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g16",
+     "patch": "busy_hours = [h for h in range(24) if pattern[h] >= threshold] -> busy_hours = [h for h in range(24) if pattern[h] > threshold]"
+    },
+    {
+     "id": "D3-wave-3ec31b99309ca722",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._effective_dhw_windows",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g16",
+     "patch": "if not busy_hours: -> if False:"
+    },
+    {
+     "id": "D3-wave-84eb14f49ff66736",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_cheapest_first",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g16",
+     "patch": "j for j in range(max(0, k - max_lead_steps), k + 1) if usable(j) -> j for j in range((0), k + 1) if usable(j)"
+    },
+    {
+     "id": "D3-wave-7da9151a6a79c43e",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_cheapest_first",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g16",
+     "patch": "if not candidates: -> if False:"
+    },
+    {
+     "id": "D3-wave-50ae25437a296deb",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_cheapest_first",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g16",
+     "patch": "if take <= 1e-6: -> if take < 1e-6:"
+    },
+    {
+     "id": "D3-wave-61862d35b6b2885d",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_cheapest_first",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g17",
+     "patch": "return np.clip(plan, 0.0, p_dhw_max) -> return (plan)"
+    },
+    {
+     "id": "D3-wave-5b123e9e5b76ebc3",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_cheapest_first.usable",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g17",
+     "patch": "plan[j] < p_dhw_max - 1e-6 -> plan[j] <= p_dhw_max - 1e-6"
+    },
+    {
+     "id": "D3-wave-4f1f941124291aeb",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_cheapest_first.usable",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g17",
+     "patch": "and temps[j + 1] < ceiling[j] - 0.1 -> and temps[j + 1] <= ceiling[j] - 0.1"
+    },
+    {
+     "id": "D3-wave-c1d6f40c74ee74ad",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g17",
+     "patch": "influence = np.where(lag >= 0, np.power(decay, np.maximum(lag, 0)) / c_dhw, 0.0) -> influence = np.where(lag >= 0, np.power(decay, (lag)) / c_dhw, 0.0)"
+    },
+    {
+     "id": "D3-wave-b1a8d3056bf42597",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "nit",
+     "gap_kind": "clamp",
+     "box": "D3-g17",
+     "patch": "demand = np.clip(np.asarray(space_demand, dtype=float), 0.0, None) -> demand = (np.asarray(space_demand, dtype=float))"
+    },
+    {
+     "id": "D3-wave-ddf4602569b157b1",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g17",
+     "patch": "spare = demand < p_total_max - 1e-6 -> spare = demand <= p_total_max - 1e-6"
+    },
+    {
+     "id": "D3-wave-247372989ae65baa",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g17",
+     "patch": "window = max(1, int(round(_DHW_REFILL_WINDOW_HOURS / max(dt, 1e-6)))) -> window = max(1, int(round(_DHW_REFILL_WINDOW_HOURS / (dt))))"
+    },
+    {
+     "id": "D3-wave-b1074e70396100d8",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g17",
+     "patch": "lo = max(0, j - window) -> lo = (0)"
+    },
+    {
+     "id": "D3-wave-b7a6f145165338bf",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g17",
+     "patch": "return best -> pass"
+    },
+    {
+     "id": "D3-wave-2074f3eefe8521aa",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g17",
+     "patch": "if not result.success: -> if False:"
+    },
+    {
+     "id": "D3-wave-64576dd552491452",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._plan_dhw_min_cost",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g18",
+     "patch": "if np.allclose(refined, cop, rtol=0.02): -> if False:"
+    },
+    {
+     "id": "D3-wave-91617fb42e33ebdf",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._repair_dhw_floor",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g18",
+     "patch": "pinned = np.where(temps[: b + 1] >= ceiling[: b + 1] - 0.1)[0] -> pinned = np.where(temps[: b + 1] > ceiling[: b + 1] - 0.1)[0]"
+    },
+    {
+     "id": "D3-wave-936bcb2da6441e86",
+     "file": "dhw_planner.py",
+     "fn": "DhwPlanner._repair_dhw_floor",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g18",
+     "patch": "if np.array_equal(plan, before): -> if False:"
+    },
+    {
+     "id": "D3-wave-eee37674711fa45f",
+     "file": "optimizer.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g19",
+     "patch": "PRICE_MEAN_GUESS_EPS = 1e-3 -> PRICE_MEAN_GUESS_EPS = 0.002e-3"
+    },
+    {
+     "id": "D3-wave-23b144fb9583c5c7",
+     "file": "optimizer.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g19",
+     "patch": "_MIN_MODULATION_BAND_KW = 0.1 -> _MIN_MODULATION_BAND_KW = 0.2"
+    },
+    {
+     "id": "D3-wave-68ef00f470ecea8d",
+     "file": "optimizer.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g19",
+     "patch": "_SAFETY_REPAIR_ROUNDS = 3 -> _SAFETY_REPAIR_ROUNDS = 6"
+    },
+    {
+     "id": "D3-wave-be95c184bf4746ff",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._analyze_forecast_trajectory",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g19",
+     "patch": "if n == 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-e53563e772b70dbc",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._analyze_forecast_trajectory",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g19",
+     "patch": "solar_peak_mask = solar_radiation > 200.0 -> solar_peak_mask = solar_radiation >= 200.0"
+    },
+    {
+     "id": "D3-wave-24ef8e54dad20484",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._analyze_forecast_trajectory",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g19",
+     "patch": "if typical_heat_loss > 0: -> if typical_heat_loss >= 0:"
+    },
+    {
+     "id": "D3-wave-7f048d7823b17826",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._analyze_forecast_trajectory",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g19",
+     "patch": "solar_fraction = min(future_solar_6_12h / max(typical_heat_loss * 6, 0.1), 1.0) -> solar_fraction = min(future_solar_6_12h / (typical_heat_loss * 6), 1.0)"
+    },
+    {
+     "id": "D3-wave-4c7e296370fc452d",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._analyze_forecast_trajectory",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g19",
+     "patch": "if avg_future_precip > 0.1: -> if avg_future_precip >= 0.1:"
+    },
+    {
+     "id": "D3-wave-9644a454ac8f288b",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._analyze_forecast_trajectory",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g19",
+     "patch": "rain_intensity = min(avg_future_precip / 2.0, 1.0) -> rain_intensity = (avg_future_precip / 2.0)"
+    },
+    {
+     "id": "D3-wave-d800d2857a698d22",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._anticipatory_weights",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g20",
+     "patch": "if future_solar > 0.5:  # > 0.5 kW solar gain is significant -> if future_solar >= 0.5:  # > 0.5 kW solar gain is significant"
+    },
+    {
+     "id": "D3-wave-176e4dd6d5aec097",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._anticipatory_weights",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g20",
+     "patch": "if future_loss > 1.1: -> if future_loss >= 1.1:"
+    },
+    {
+     "id": "D3-wave-c40e66fc9831672f",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._buffer_charge_ceiling",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g20",
+     "patch": "lo = max(20.0, float(p.cop_flow_reference_temp)) -> lo = (20.0)"
+    },
+    {
+     "id": "D3-wave-7add4cd79387ec24",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._buffer_charge_ceiling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g20",
+     "patch": "if net(hi) > 0.0: -> if net(hi) >= 0.0:"
+    },
+    {
+     "id": "D3-wave-bf2229e3f179f4b6",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._buffer_charge_ceiling",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g20",
+     "patch": "if net(mid) > 0.0: -> if net(mid) >= 0.0:"
+    },
+    {
+     "id": "D3-wave-47430bf93e309e76",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._build_comfort_bounds",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g20",
+     "patch": "if f.size < n_steps: -> if False:"
+    },
+    {
+     "id": "D3-wave-3652dbb5880d62c8",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._co_optimize",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g20",
+     "patch": "pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3) -> pinned = (dhw_power > 1e-6) & (space_power > headroom - 1e-3)"
+    },
+    {
+     "id": "D3-wave-b1926550efd8eac4",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._co_optimize",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g20",
+     "patch": "pinned = (dhw_power > 1e-6) & (space_power >= headroom - 1e-3) -> pinned = (dhw_power >= 1e-6) & (space_power >= headroom - 1e-3)"
+    },
+    {
+     "id": "D3-wave-fd57e13959b23a4c",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._co_optimize",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g21",
+     "patch": "if score < best_score - 1e-9: -> if score <= best_score - 1e-9:"
+    },
+    {
+     "id": "D3-wave-ad01ae06d7ea84ec",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._derive_hold_schedule",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g21",
+     "patch": "if p85 <= p25 * 1.05: -> if False:"
+    },
+    {
+     "id": "D3-wave-00298af0aa9d1903",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._derive_hold_schedule",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g21",
+     "patch": "if not bool(hold.any()): -> if False:"
+    },
+    {
+     "id": "D3-wave-a4f4c88e7480a514",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._energy_cost_fn",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g21",
+     "patch": "if surplus is None or not np.any(surplus[: len(prices)] > 1e-6): -> if surplus is None or not np.any(surplus[: len(prices)] >= 1e-6):"
+    },
+    {
+     "id": "D3-wave-be3a3a75280c7b7e",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._normalise_pins",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g21",
+     "patch": "take = min(n_steps, src.size) -> take = (n_steps)"
+    },
+    {
+     "id": "D3-wave-deb281264473bdd6",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._optimize_with_dhw",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g21",
+     "patch": "dhw_active_steps = int(np.sum(optimal_dhw > 0.1)) -> dhw_active_steps = int(np.sum(optimal_dhw >= 0.1))"
+    },
+    {
+     "id": "D3-wave-a66e107749d0ae11",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._optimize_with_dhw",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g21",
+     "patch": "float(max(dhw_floor_temps[0], dhw_ready_temps[0])) -> float((dhw_floor_temps[0]))"
+    },
+    {
+     "id": "D3-wave-4e5a67b907d13871",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._optimize_with_dhw",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g21",
+     "patch": "for idx in np.where(optimal_dhw > 0.1)[0][:48].tolist() -> for idx in np.where(optimal_dhw >= 0.1)[0][:48].tolist()"
+    },
+    {
+     "id": "D3-wave-ed5e3ec5b879ed90",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._optimize_with_dhw",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g21",
+     "patch": "float(np.sum((optimal_dhw > 0.1) & ~in_demand_window) * dt), 2 -> float(np.sum((optimal_dhw >= 0.1) & ~in_demand_window) * dt), 2"
+    },
+    {
+     "id": "D3-wave-6309f3e4a0a6c45f",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._pin_on_power",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g21",
+     "patch": "floor = max(float(self.model.params.min_electrical_power), 0.1) -> floor = (float(self.model.params.min_electrical_power))"
+    },
+    {
+     "id": "D3-wave-ef9a378b671791ca",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._power_to_displace_schedule",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g22",
+     "patch": "alpha = float(np.clip(self.config.dt_hours / tau, 0.0, 1.0)) -> alpha = float((self.config.dt_hours / tau))"
+    },
+    {
+     "id": "D3-wave-7da20bf51cc217e6",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._publish_breach_reports",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g22",
+     "patch": "np.max(np.clip(req[:steps] - planned[:steps], 0.0, None)) -> np.max((req[:steps] - planned[:steps]))"
+    },
+    {
+     "id": "D3-wave-ce686724ef107650",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g23",
+     "patch": "pinned_off = not _pin_is_free(pin) and pin < 0.5 -> pinned_off = not _pin_is_free(pin) or pin < 0.5"
+    },
+    {
+     "id": "D3-wave-8fd14c249b86abf7",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g23",
+     "patch": "if pinned_off: -> if False:"
+    },
+    {
+     "id": "D3-wave-0120a5a672990611",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g23",
+     "patch": "breach = temp <= floor + 0.15 -> breach = temp < floor + 0.15"
+    },
+    {
+     "id": "D3-wave-0ecb763c4bcb0828",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g23",
+     "patch": "breach = temp < floor - 0.25 -> breach = temp <= floor - 0.25"
+    },
+    {
+     "id": "D3-wave-bc3a42f14c903439",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g23",
+     "patch": "if temp >= float(req[i]) - 0.5: -> if temp > float(req[i]) - 0.5:"
+    },
+    {
+     "id": "D3-wave-856aa341a89a6ab0",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps._preceding_off",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g23",
+     "patch": "while j >= 0: -> while j > 0:"
+    },
+    {
+     "id": "D3-wave-fe3e41de6bdc640a",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._safety_release_steps._preceding_off",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g23",
+     "patch": "if not _pin_is_free(pin) and pin < 0.5: -> if not _pin_is_free(pin) or pin < 0.5:"
+    },
+    {
+     "id": "D3-wave-70791cdb98f8ddd7",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._settlement_caps",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g23",
+     "patch": "if initial is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-7516dd3d9e66d3ef",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._settlement_caps",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g23",
+     "patch": "float(p.buffer_max_temp), max(ceiling, float(initial)) -> float(p.buffer_max_temp), (ceiling)"
+    },
+    {
+     "id": "D3-wave-ce5b92d704397d85",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._stash_price_horizon",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g24",
+     "patch": "if price_sigma is not None and self.config.price_risk_lambda > 0.0: -> if price_sigma is not None or self.config.price_risk_lambda > 0.0:"
+    },
+    {
+     "id": "D3-wave-aab0b73e229ad900",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._stash_price_horizon",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g24",
+     "patch": "if np.any(risk > 0.0): -> if np.any(risk >= 0.0):"
+    },
+    {
+     "id": "D3-wave-56de38e47369b2b7",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._tighten_buffer_caps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g24",
+     "patch": "for i in np.nonzero(refused > 1e-9)[0]: -> for i in np.nonzero(refused >= 1e-9)[0]:"
+    },
+    {
+     "id": "D3-wave-df066a5f3f3d3e0f",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._tighten_buffer_caps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g24",
+     "patch": "if new_cap < float(power_caps[i]) - 1e-9: -> if new_cap <= float(power_caps[i]) - 1e-9:"
+    },
+    {
+     "id": "D3-wave-bbcded8a73c6a2f1",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer._tighten_buffer_caps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g24",
+     "patch": "int(np.count_nonzero(refused > 1e-9)), -> int(np.count_nonzero(refused >= 1e-9)),"
+    },
+    {
+     "id": "D3-wave-f3126cd40dc76143",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "step_s = starts[1] - starts[0] if len(starts) > 1 else 900.0 -> step_s = starts[1] - starts[0] if len(starts) >= 1 else 900.0"
+    },
+    {
+     "id": "D3-wave-f58c6d034aa31e46",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if starts[0] - now_s > step_s: -> if starts[0] - now_s >= step_s:"
+    },
+    {
+     "id": "D3-wave-6aec51dc6f670787",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.displace_schedule and i < len(result.displace_schedule) -> if result.displace_schedule and i <= len(result.displace_schedule)"
+    },
+    {
+     "id": "D3-wave-b2e075c0da35240d",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "elif p_norm < 0.4: -> elif p_norm <= 0.4:"
+    },
+    {
+     "id": "D3-wave-57f696b2f988d5a9",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "elif p_norm < 0.7: -> elif p_norm <= 0.7:"
+    },
+    {
+     "id": "D3-wave-b143b01c4ea02159",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g25",
+     "patch": "elif p_norm < 0.7: -> elif False:"
+    },
+    {
+     "id": "D3-wave-a581feadd69c6c42",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g25",
+     "patch": "elif p_norm < 0.9: -> elif False:"
+    },
+    {
+     "id": "D3-wave-e96ae75a1f1f213e",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "elif p_norm < 0.9: -> elif p_norm <= 0.9:"
+    },
+    {
+     "id": "D3-wave-d0de1c16101369f5",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.valve_target_schedule and i < len(result.valve_target_schedule): -> if result.valve_target_schedule and i <= len(result.valve_target_schedule):"
+    },
+    {
+     "id": "D3-wave-f8b7db7badd35158",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.upper_setpoints and i < len(result.upper_setpoints): -> if result.upper_setpoints and i <= len(result.upper_setpoints):"
+    },
+    {
+     "id": "D3-wave-cd766b55c44ca3ee",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.lower_setpoints and i < len(result.lower_setpoints): -> if result.lower_setpoints and i <= len(result.lower_setpoints):"
+    },
+    {
+     "id": "D3-wave-724471c27310230f",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.solar_gain_trajectory and i < len(result.solar_gain_trajectory): -> if result.solar_gain_trajectory and i <= len(result.solar_gain_trajectory):"
+    },
+    {
+     "id": "D3-wave-970ed4d74c36caa1",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.dhw_power_schedule and i < len(result.dhw_power_schedule): -> if result.dhw_power_schedule and i <= len(result.dhw_power_schedule):"
+    },
+    {
+     "id": "D3-wave-1d11f24436471959",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "action[\"dhw_heating_active\"] = dhw_power > 0.1 -> action[\"dhw_heating_active\"] = dhw_power >= 0.1"
+    },
+    {
+     "id": "D3-wave-e16ae8a6fd6cea40",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g25",
+     "patch": "if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory): -> if result.dhw_temp_trajectory and i <= len(result.dhw_temp_trajectory):"
+    },
+    {
+     "id": "D3-wave-119b25afdd5d4988",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g25",
+     "patch": "if result.predictive_info.get(\"dhw_target_temperature\") is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-35d104f30f878131",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.get_current_action",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if result.predictive_info: -> if False:"
+    },
+    {
+     "id": "D3-wave-f56e3474baa75dc5",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.optimize",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if space_pins is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-1721e50b7537a426",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.optimize",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if dhw_pins is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-2693e4fc04518cbf",
+     "file": "optimizer.py",
+     "fn": "HeatPumpOptimizer.optimize",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if not _pin_is_free(value) and value < 0.5: -> if not _pin_is_free(value) or value < 0.5:"
+    },
+    {
+     "id": "D3-wave-977021e3b3964277",
+     "file": "optimizer.py",
+     "fn": "OptimizationConfig._comfort_pair",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if self.holiday_comfort_night is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-10de422e4e1024a7",
+     "file": "optimizer.py",
+     "fn": "OptimizationConfig._comfort_pair",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if self.holiday_day_end_hour is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-e4affa9b9b540588",
+     "file": "optimizer.py",
+     "fn": "OptimizationConfig._comfort_pair",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "return day, night, start, end -> pass"
+    },
+    {
+     "id": "D3-wave-0fcdd4bdabc205ea",
+     "file": "optimizer.py",
+     "fn": "OptimizationConfig._comfort_pair",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if self.day_start_hour_weekend is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-8365c2592bae9886",
+     "file": "optimizer.py",
+     "fn": "OptimizationConfig._comfort_pair",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g26",
+     "patch": "if self.day_end_hour_weekend is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-d128afa0c1ce3d28",
+     "file": "optimizer.py",
+     "fn": "_apply_pins_to_bounds",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g27",
+     "patch": "out[i] = (min(min_on_power, high), high) -> out[i] = ((min_on_power), high)"
+    },
+    {
+     "id": "D3-wave-0a40fc8d3d37f2ba",
+     "file": "optimizer.py",
+     "fn": "_better_objective",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g27",
+     "patch": "if np.isfinite(ro) and (not np.isfinite(lo) or ro < lo - 1e-9): -> if False:"
+    },
+    {
+     "id": "D3-wave-f077d8a96cc1e3ed",
+     "file": "optimizer.py",
+     "fn": "_fd_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g27",
+     "patch": "violated = (x < lb) | (x > ub) -> violated = (x < lb) | (x >= ub)"
+    },
+    {
+     "id": "D3-wave-6a32950e7b3e62f2",
+     "file": "optimizer.py",
+     "fn": "_fd_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g27",
+     "patch": "forward = (upper_dist >= lower_dist) & ~fitting -> forward = (upper_dist > lower_dist) & ~fitting"
+    },
+    {
+     "id": "D3-wave-c5abe60d7c7ca966",
+     "file": "optimizer.py",
+     "fn": "_fd_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g27",
+     "patch": "backward = (upper_dist < lower_dist) & ~fitting -> backward = (upper_dist <= lower_dist) & ~fitting"
+    },
+    {
+     "id": "D3-wave-ef7b85a510c47950",
+     "file": "optimizer.py",
+     "fn": "_lbfgsb_restart",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g27",
+     "patch": "scale = max(abs(prior), 1e-12) -> scale = (abs(prior))"
+    },
+    {
+     "id": "D3-wave-3067ff76235329e4",
+     "file": "optimizer.py",
+     "fn": "_lbfgsb_restart",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g27",
+     "patch": "if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale: -> if np.isfinite(score) and (prior - score) >= _LBFGSB_RESTART_KEEP_REL * scale:"
+    },
+    {
+     "id": "D3-wave-b94f040a7b0aed92",
+     "file": "optimizer.py",
+     "fn": "_mark_manual_reasons",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g27",
+     "patch": "if _pin_is_free(pin) or pin < 0.5: -> if False:"
+    },
+    {
+     "id": "D3-wave-9aa50bd32847b4dd",
+     "file": "optimizer.py",
+     "fn": "_multi_start_minimize",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g28",
+     "patch": "if not scored: -> if False:"
+    },
+    {
+     "id": "D3-wave-1e3d68358832d695",
+     "file": "optimizer.py",
+     "fn": "_multi_start_minimize",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g28",
+     "patch": "if solve_index: -> if False:"
+    },
+    {
+     "id": "D3-wave-b53efc6448b724e4",
+     "file": "optimizer.py",
+     "fn": "_multi_start_minimize",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g28",
+     "patch": "if np.isfinite(score) and score < best_score: -> if np.isfinite(score) and score <= best_score:"
+    },
+    {
+     "id": "D3-wave-92e6a72a53dd339f",
+     "file": "optimizer.py",
+     "fn": "_multi_start_minimize",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g28",
+     "patch": "if best is None: -> if False:"
+    },
+    {
+     "id": "D3-wave-64629e9b22df0c16",
+     "file": "optimizer.py",
+     "fn": "_power_fraction",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g28",
+     "patch": "if p_max - p_min >= _MIN_MODULATION_BAND_KW: -> if p_max - p_min > _MIN_MODULATION_BAND_KW:"
+    },
+    {
+     "id": "D3-wave-0a673ba4467a184c",
+     "file": "optimizer.py",
+     "fn": "_power_fraction",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g28",
+     "patch": "elif p_max > 0: -> elif p_max >= 0:"
+    },
+    {
+     "id": "D3-wave-62abf71b9686f2b8",
+     "file": "optimizer.py",
+     "fn": "_price_guess_weights",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g28",
+     "patch": "if float(np.mean(prices)) > PRICE_MEAN_GUESS_EPS: -> if float(np.mean(prices)) >= PRICE_MEAN_GUESS_EPS:"
+    },
+    {
+     "id": "D3-wave-9e9ab1d6567ff65b",
+     "file": "optimizer.py",
+     "fn": "_price_guess_weights",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g28",
+     "patch": "return 1.0 - 0.8 * ranks / float(max(len(prices) - 1, 1)) -> return 1.0 - 0.8 * ranks / float((len(prices) - 1))"
+    },
+    {
+     "id": "D3-wave-01e740ed4f78ae95",
+     "file": "optimizer.py",
+     "fn": "_price_ranked_start",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g28",
+     "patch": "if energy_kwh <= 0 or p_max <= 0 or dt <= 0: -> if energy_kwh <= 0 or p_max <= 0 or dt < 0:"
+    },
+    {
+     "id": "D3-wave-09e80cfe3036223e",
+     "file": "optimizer.py",
+     "fn": "_price_ranked_start",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g28",
+     "patch": "if remaining <= 0: -> if False:"
+    },
+    {
+     "id": "D3-wave-8206a42b98c8dd86",
+     "file": "optimizer.py",
+     "fn": "_savings_percentage",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g28",
+     "patch": "if baseline_cost <= 0.01: -> if baseline_cost < 0.01:"
+    },
+    {
+     "id": "D3-wave-e670e7e026a9f4ec",
+     "file": "optimizer.py",
+     "fn": "_savings_percentage",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g28",
+     "patch": "return float(np.clip(savings / baseline_cost * 100.0, -100.0, 100.0)) -> return float((savings / baseline_cost * 100.0))"
+    },
+    {
+     "id": "D3-wave-8171db177f51df33",
+     "file": "optimizer.py",
+     "fn": "classify_space_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g29",
+     "patch": "if room <= temp_min_bounds[i] + 0.15: -> if room < temp_min_bounds[i] + 0.15:"
+    },
+    {
+     "id": "D3-wave-2aff1f5c0b10dffa",
+     "file": "optimizer.py",
+     "fn": "classify_space_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g29",
+     "patch": "if surplus is not None and i < len(surplus) and surplus[i] > 1e-6: -> if surplus is not None and i < len(surplus) and surplus[i] >= 1e-6:"
+    },
+    {
+     "id": "D3-wave-000221f3921dd956",
+     "file": "optimizer.py",
+     "fn": "classify_space_steps",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g29",
+     "patch": "if i < len(heat_loss_factors) and heat_loss_factors[i] > 1.1: -> if i < len(heat_loss_factors) and heat_loss_factors[i] >= 1.1:"
+    }
+   ]
+  },
+  "R11-SEAM-store-p2": {
+   "seam": "store",
+   "new": false,
+   "size": "S",
+   "after_added": [],
+   "count": 3,
+   "severity": {
+    "low": 3
+   },
+   "findings": [
+    {
+     "id": "D3-wave-16f7665306eebdf3",
+     "file": "coordinator.py",
+     "fn": "HeatPumpOptimizerCoordinator._async_load_energy_totals",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g03",
+     "patch": "if isinstance(since, str) and since: -> if isinstance(since, str) or since:"
+    },
+    {
+     "id": "D3-wave-372a4f4fcc8de86f",
+     "file": "coordinator.py",
+     "fn": "_learned_pair",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g11",
+     "patch": "if not (np.isfinite(value) and value > 0 and count >= 1): -> if not (np.isfinite(value) and value >= 0 and count >= 1):"
+    },
+    {
+     "id": "D3-wave-89bec0a0291b4756",
+     "file": "coordinator.py",
+     "fn": "_storable_sample_count",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g12",
+     "patch": "if not np.isfinite(count) or not 0 <= count <= 2**31: -> if not np.isfinite(count) or not 0 <= count < 2**31:"
+    }
+   ]
+  },
+  "R11-D3-PINS-sysid": {
+   "seam": "sysid",
+   "new": true,
+   "size": "L",
+   "after_added": [
+    "R11-SEAM-learners"
+   ],
+   "count": 62,
+   "severity": {
+    "low": 54,
+    "medium": 8
+   },
+   "findings": [
+    {
+     "id": "D3-wave-88732fcb7c604858",
+     "file": "sysid.py",
+     "fn": "<module>",
+     "severity": "low",
+     "gap_kind": "constant",
+     "box": "D3-g32",
+     "patch": "FAST_MODE_SETTLE_TAUS = 3.0 -> FAST_MODE_SETTLE_TAUS = 6.0"
+    },
+    {
+     "id": "D3-wave-0d5a6ef5041b90f9",
+     "file": "sysid.py",
+     "fn": "SystemIdentification._size_step_power",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g32",
+     "patch": "if fits(q, bound): -> if False:"
+    },
+    {
+     "id": "D3-wave-4a189db92053760e",
+     "file": "sysid.py",
+     "fn": "SystemIdentification._slab_outcome",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g32",
+     "patch": "if refusal is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-80cb9a8152f72e57",
+     "file": "sysid.py",
+     "fn": "SystemIdentification._slab_outcome",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g32",
+     "patch": "gains_kw = float(np.clip(gains_kw, 0.0, 2.0)) -> gains_kw = float((gains_kw))"
+    },
+    {
+     "id": "D3-wave-822c0c6477ed703e",
+     "file": "sysid.py",
+     "fn": "SystemIdentification._unadoptable",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 <= dt <= 2.0"
+    },
+    {
+     "id": "D3-wave-adc459d2db521041",
+     "file": "sysid.py",
+     "fn": "SystemIdentification._unadoptable",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "or self._baseline_temp is None or not 1e-3 < dt <= 2.0 -> or self._baseline_temp is None or not 1e-3 < dt < 2.0"
+    },
+    {
+     "id": "D3-wave-a23ed12204379870",
+     "file": "sysid.py",
+     "fn": "SystemIdentification._unadoptable",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "if hw <= UA_ADOPTION_HALFWIDTH_BAR: -> if hw < UA_ADOPTION_HALFWIDTH_BAR:"
+    },
+    {
+     "id": "D3-wave-6e67f128730b3ecd",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.conditions_met",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp): -> if not (cfg.min_outdoor_temp < outdoor_temp <= cfg.max_outdoor_temp):"
+    },
+    {
+     "id": "D3-wave-20e001c48fb19330",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.conditions_met",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "in_window = hour >= cfg.start_hour or hour < cfg.end_hour -> in_window = hour >= cfg.start_hour or hour <= cfg.end_hour"
+    },
+    {
+     "id": "D3-wave-95090bc58c6535b2",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "if len(usable) < 6: -> if len(usable) <= 6:"
+    },
+    {
+     "id": "D3-wave-505422349a01c3ff",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h < 1e-3 or dt_h > 2.0:"
+    },
+    {
+     "id": "D3-wave-7dbbb95252ced538",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "if dt_h <= 1e-3 or dt_h > 2.0: -> if dt_h <= 1e-3 or dt_h >= 2.0:"
+    },
+    {
+     "id": "D3-wave-aa6d264aa0411bcd",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g33",
+     "patch": "if len(rows) < 5: -> if len(rows) <= 5:"
+    },
+    {
+     "id": "D3-wave-b8d5ec03e8eba5c7",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g34",
+     "patch": "if len(rows) < 5: -> if False:"
+    },
+    {
+     "id": "D3-wave-756f3bebd6a42efc",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g34",
+     "patch": "prior_sd = 0.5 / max(self.config.thermal_mass_prior, 0.1) -> prior_sd = 0.5 / (self.config.thermal_mass_prior)"
+    },
+    {
+     "id": "D3-wave-84372c0eb1502d14",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g34",
+     "patch": "k_hat = max(float(pass1[0]), 0.0) -> k_hat = (float(pass1[0]))"
+    },
+    {
+     "id": "D3-wave-20f72103eda78713",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g34",
+     "patch": "if h_prev <= 1e-6: -> if False:"
+    },
+    {
+     "id": "D3-wave-4eeb366191982f92",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g34",
+     "patch": "if len(d2_all) >= 3: -> if len(d2_all) > 3:"
+    },
+    {
+     "id": "D3-wave-44bb0ce0b258242c",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g34",
+     "patch": "if sigma2 > 0.0 and sigma2 > x1_spread2 / 9.0: -> if sigma2 > 0.0 and sigma2 >= x1_spread2 / 9.0:"
+    },
+    {
+     "id": "D3-wave-10665a84dc064489",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g34",
+     "patch": "if rank < 2: -> if False:"
+    },
+    {
+     "id": "D3-wave-d7421c10ed63c281",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g34",
+     "patch": "if rank < 2: -> if rank <= 2:"
+    },
+    {
+     "id": "D3-wave-501a5e7cda702183",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g35",
+     "patch": "if drift_c_per_h is not None: -> if False:"
+    },
+    {
+     "id": "D3-wave-20cde1046cbd5681",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "if not (-0.5 <= gains_kw <= 2.0): -> if not (-0.5 <= gains_kw < 2.0):"
+    },
+    {
+     "id": "D3-wave-6cfdb101dc87a6ea",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "if not (-0.5 <= gains_kw <= 2.0): -> if not (-0.5 < gains_kw <= 2.0):"
+    },
+    {
+     "id": "D3-wave-d203230963349f60",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g35",
+     "patch": "gains_kw = float(np.clip(gains_kw, 0.0, 2.0)) -> gains_kw = float((gains_kw))"
+    },
+    {
+     "id": "D3-wave-5654f855fcc27724",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "if drift_c_per_h is not None and a.shape[1] >= 4: -> if drift_c_per_h is not None and a.shape[1] > 4:"
+    },
+    {
+     "id": "D3-wave-4593852cf3862b3c",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 < tau <= 200.0) or not (0.01 <= ua <= 5.0):"
+    },
+    {
+     "id": "D3-wave-784e362919d88a92",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau <= 200.0) or not (0.01 <= ua < 5.0):"
+    },
+    {
+     "id": "D3-wave-a5b06d898bf0ba03",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "and abs(drift_c_per_h) < self.config.sensor_drift_prior_c_per_h -> and abs(drift_c_per_h) <= self.config.sensor_drift_prior_c_per_h"
+    },
+    {
+     "id": "D3-wave-c51115b0104a8bf5",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g35",
+     "patch": "if abs(den) > 1e-6: -> if abs(den) >= 1e-6:"
+    },
+    {
+     "id": "D3-wave-b4f7503c6959449d",
+     "file": "sysid.py",
+     "fn": "_one_state_ua_halfwidth",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g37",
+     "patch": "if solution.shape[0] >= 4: -> if solution.shape[0] > 4:"
+    },
+    {
+     "id": "D3-wave-f6016f6adb9683a8",
+     "file": "sysid.py",
+     "fn": "_one_state_ua_halfwidth",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g37",
+     "patch": "if solution.shape[0] >= 4: -> if False:"
+    },
+    {
+     "id": "D3-wave-c1ce480d20083d83",
+     "file": "sysid.py",
+     "fn": "_slab_refusal",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g38",
+     "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if False:"
+    },
+    {
+     "id": "D3-wave-d8e588be2e0aba89",
+     "file": "sysid.py",
+     "fn": "_slab_refusal",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 < tau <= 200.0) or not (0.01 <= ua <= 5.0):"
+    },
+    {
+     "id": "D3-wave-e7edbe5bae5e180a",
+     "file": "sysid.py",
+     "fn": "_slab_refusal",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0): -> if not (0.1 <= tau <= 200.0) or not (0.01 < ua <= 5.0):"
+    },
+    {
+     "id": "D3-wave-a1ba3ad7c4c53dd5",
+     "file": "sysid.py",
+     "fn": "_slab_series",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if len(dts) < 5: -> if len(dts) <= 5:"
+    },
+    {
+     "id": "D3-wave-56294c2224449394",
+     "file": "sysid.py",
+     "fn": "_valve_regulates",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "return _held_state(model, observed, outdoor).buffer_tank_temperature >= flow - 0.01 -> return _held_state(model, observed, outdoor).buffer_tank_temperature > flow - 0.01"
+    },
+    {
+     "id": "D3-wave-6c7eefdfaf64ea5a",
+     "file": "sysid.py",
+     "fn": "adoption_decision",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not base_u > 1e-6: -> if not base_u >= 1e-6:"
+    },
+    {
+     "id": "D3-wave-a6c42cff101ffc65",
+     "file": "sysid.py",
+     "fn": "slab_mode_identifiability",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9):"
+    },
+    {
+     "id": "D3-wave-6f546669421ba07b",
+     "file": "sysid.py",
+     "fn": "slab_mode_one_state_identifiability",
+     "severity": "medium",
+     "gap_kind": "clamp",
+     "box": "D3-g38",
+     "patch": "settle_band = min(config.settle_hours, config.step_hours, config.relax_hours) -> settle_band = (config.settle_hours)"
+    },
+    {
+     "id": "D3-wave-7c25d8795fa2d46c",
+     "file": "sysid.py",
+     "fn": "slab_mode_one_state_identifiability",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9: -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band >= 1e-9:"
+    },
+    {
+     "id": "D3-wave-907d16324ff11dda",
+     "file": "sysid.py",
+     "fn": "slab_mode_one_state_identifiability",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9: -> if not (c_r >= 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:"
+    },
+    {
+     "id": "D3-wave-990cdd83373504ad",
+     "file": "sysid.py",
+     "fn": "slab_mode_one_state_identifiability",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9: -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9) or not settle_band > 1e-9:"
+    },
+    {
+     "id": "D3-wave-d0f2d18b2b49232c",
+     "file": "sysid.py",
+     "fn": "slab_mode_one_state_identifiability",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9) or not settle_band > 1e-9: -> if not (c_r > 1e-9 and c_s >= 1e-9 and k_s > 1e-9) or not settle_band > 1e-9:"
+    },
+    {
+     "id": "D3-wave-4467ecd198f47483",
+     "file": "sysid.py",
+     "fn": "slab_mode_one_state_identifiability",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g38",
+     "patch": "if FAST_MODE_SETTLE_TAUS * tau_fast <= settle_band: -> if FAST_MODE_SETTLE_TAUS * tau_fast < settle_band:"
+    },
+    {
+     "id": "D3-wave-559484953b5cdd5d",
+     "file": "sysid.py",
+     "fn": "slab_mode_tau_fast",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g39",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s > 1e-9 and k_s >= 1e-9):"
+    },
+    {
+     "id": "D3-wave-cb38833c854f6257",
+     "file": "sysid.py",
+     "fn": "slab_mode_tau_fast",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g39",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r >= 1e-9 and c_s > 1e-9 and k_s > 1e-9):"
+    },
+    {
+     "id": "D3-wave-fa6fdd76e6fa619d",
+     "file": "sysid.py",
+     "fn": "slab_mode_tau_fast",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g39",
+     "patch": "if not (c_r > 1e-9 and c_s > 1e-9 and k_s > 1e-9): -> if not (c_r > 1e-9 and c_s >= 1e-9 and k_s > 1e-9):"
+    },
+    {
+     "id": "D3-wave-440c0a6d5ee72d19",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g36",
+     "patch": "if len(usable) < 6: -> if len(usable) <= 6:"
+    },
+    {
+     "id": "D3-wave-809e8d14f04e1127",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g36",
+     "patch": "if len(usable) < 6: -> if False:"
+    },
+    {
+     "id": "D3-wave-0137ee1f014fb759",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g36",
+     "patch": "if bool(np.any((dts <= 1e-3) | (dts > 2.0))): -> if bool(np.any((dts < 1e-3) | (dts > 2.0))):"
+    },
+    {
+     "id": "D3-wave-24aa39e8c4c6d26a",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g36",
+     "patch": "if bool(np.any((dts <= 1e-3) | (dts > 2.0))): -> if bool(np.any((dts <= 1e-3) | (dts >= 2.0))):"
+    },
+    {
+     "id": "D3-wave-ae8f84354933d191",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g36",
+     "patch": "np.log(max(ua0, 1e-3)), -> np.log((ua0)),"
+    },
+    {
+     "id": "D3-wave-9460d3802a8903d6",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g36",
+     "patch": "np.log(max(cr0 * mult, 1e-2)), -> np.log((cr0 * mult)),"
+    },
+    {
+     "id": "D3-wave-de6bbadf1499bae9",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.identify_slab",
+     "severity": "low",
+     "gap_kind": "boundary",
+     "box": "D3-g36",
+     "patch": "if cost < best_cost: -> if cost <= best_cost:"
+    },
+    {
+     "id": "D3-wave-0baef4e86433b225",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.step",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g36",
+     "patch": "if not self.active: -> if False:"
+    },
+    {
+     "id": "D3-wave-b3c0e51c511b2618",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.step",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g36",
+     "patch": "thermal_cop = max(cop, 0.1) -> thermal_cop = (cop)"
+    },
+    {
+     "id": "D3-wave-9dd0547496b091b0",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.step",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g36",
+     "patch": "self.samples[-1].power_kw = max(plan_power_kw, 0.0) * thermal_cop -> self.samples[-1].power_kw = (plan_power_kw) * thermal_cop"
+    },
+    {
+     "id": "D3-wave-8840eb67a646cd97",
+     "file": "sysid.py",
+     "fn": "SystemIdentification.step",
+     "severity": "medium",
+     "gap_kind": "guard",
+     "box": "D3-g36",
+     "patch": "return None -> pass"
+    },
+    {
+     "id": "D3-wave-5104733df3085998",
+     "file": "sysid.py",
+     "fn": "_lm_solve",
+     "severity": "medium",
+     "gap_kind": "boundary",
+     "box": "D3-g36",
+     "patch": "if x.size >= 3: -> if x.size > 3:"
+    },
+    {
+     "id": "D3-wave-373207a8e12c37c5",
+     "file": "sysid.py",
+     "fn": "_lm_solve",
+     "severity": "low",
+     "gap_kind": "clamp",
+     "box": "D3-g36",
+     "patch": "np.clip(candidate[clip[0]], clip[1], clip[2]) -> (candidate[clip[0]])"
+    },
+    {
+     "id": "D3-wave-291748b42a54c1f6",
+     "file": "sysid.py",
+     "fn": "_lm_solve",
+     "severity": "low",
+     "gap_kind": "guard",
+     "box": "D3-g36",
+     "patch": "if np.isfinite(next_cost) and next_cost < cost: -> if np.isfinite(next_cost) or next_cost < cost:"
+    }
+   ]
+  }
+ },
+ "merged": {
+  "D3-wave-db9b59ec36304943": "D3-wave-ab918806fc8b4af6",
+  "D3-wave-816e18d55f46f0e4": "D3-wave-79db73ec81b29f23",
+  "D3-wave-8e729260c34e2e3b": "D3-wave-4542deee22df985f",
+  "D3-wave-30fcf9ba50130ea2": "D3-wave-89a3d25e2425b8e0",
+  "D3-wave-efa2c19c51831a68": "D3-wave-89a3d25e2425b8e0",
+  "D3-wave-205d200980d58e9e": "D3-wave-96fe4cecaa16f997",
+  "D3-wave-e163f6fbc359cd4c": "D3-wave-1a24365a55bfb2c7",
+  "D3-wave-7ec91efc2c6deffd": "D3-wave-4410da4e8eb84cb8",
+  "D3-wave-34c20aac32a34344": "D3-wave-ff56936f15fd4675",
+  "D3-wave-cdd17526ebbf2a93": "D3-wave-349b2e117d076731",
+  "D3-wave-e689dc488b493c6b": "D3-wave-8ab42c4ab9755537",
+  "D3-wave-a33188790c5affad": "D3-wave-61e748f094f2daa8",
+  "D3-wave-cb58757b91fa48c4": "D3-wave-ad01ae06d7ea84ec",
+  "D3-wave-8ef1027c9e221b64": "D3-wave-ce686724ef107650",
+  "D3-wave-5ce83ed87c36b9a5": "D3-wave-fe3e41de6bdc640a",
+  "D3-wave-6af4c3b8f521e3d3": "D3-wave-0a40fc8d3d37f2ba",
+  "D3-wave-26180738b4dfa52e": "D3-wave-01e740ed4f78ae95",
+  "D3-wave-f06caefa38815e4f": "D3-wave-a38612ad3ad9cd34",
+  "D3-wave-cf96494341270371": "D3-wave-6e67f128730b3ecd",
+  "D3-wave-50daaa57683189c5": "D3-wave-20f72103eda78713",
+  "D3-wave-2d64a114647f1551": "D3-wave-5371ee2b5e897750",
+  "D3-wave-fdf5872fd576c405": "D3-wave-98853a541b6b5d6a"
+ },
+ "refused": {
+  "D3-wave-64f3ef1feaaf7bc9": "unreproduced by the judge on arm64; Linux x86 re-take owed (R11-D3-JUDGE-LINUX, a carry of R11-SEAM-tests)",
+  "D3-wave-d661d68f54982097": "unreproduced by the judge on arm64; Linux x86 re-take owed (R11-D3-JUDGE-LINUX, a carry of R11-SEAM-tests)",
+  "D3-wave-4da9d281d4714565": "unreproduced by the judge on arm64; Linux x86 re-take owed (R11-D3-JUDGE-LINUX, a carry of R11-SEAM-tests)"
+ },
+ "deferred": {},
+ "carries": {
+  "R11-SEAM-cycle-reporting-p2": 17,
+  "R11-SEAM-store-p2": 3,
+  "R11-SEAM-tests": 3
+ },
+ "strata": 32,
+ "totals": {
+  "judged": 426,
+  "placed": 401,
+  "merged": 22,
+  "refused": 3,
+  "deferred": 0
+ }
+}

@@ -1178,15 +1178,27 @@ _arch_anywhere = sorted(
     if any(_arch_ha_import(n) for n in ast.walk(ast.parse(p.read_text())))
 )
 
-_arch_open = _re.search(r"(\d+) modules, of which\s+(\d+) import", _arch)
+# FG-1 (2026-11-26): the prose states no module count. A count here moved
+# with every module-adding pull request. Two such branches each re-derived
+# it, and git merged their sentences as text. The counts are derived and
+# printed here instead, and doc_claims.py refuses a module count anywhere in
+# the reader corpus.
+print(
+    f"  derived: package modules={len(_arch_disk)}, importing homeassistant "
+    f"at module level={len(_arch_modlevel)}, touching it anywhere="
+    f"{len(_arch_anywhere)}, free of it={len(_arch_disk) - len(_arch_anywhere)}"
+)
+_arch_open = _re.search(
+    r"fewer than half of the modules import the\s+`homeassistant` package at "
+    r"module level", _arch)
 R.check(
-    "architecture.md's opening counts name the package it describes",
+    "architecture.md's opening share of homeassistant importers is the tree's",
     _arch_open is not None
-    and int(_arch_open.group(1)) == len(_arch_disk)
-    and int(_arch_open.group(2)) == len(_arch_modlevel),
-    f"architecture.md says {_arch_open.groups() if _arch_open else '?'}; the "
-    f"package holds {len(_arch_disk)} modules, {len(_arch_modlevel)} of them "
-    f"importing homeassistant at module level",
+    and 0 < len(_arch_modlevel)
+    and 2 * len(_arch_modlevel) < len(_arch_disk),
+    f"opening sentence found={_arch_open is not None}; the package holds "
+    f"{len(_arch_disk)} modules, {len(_arch_modlevel)} of them importing "
+    f"homeassistant at module level",
 )
 
 _arch_map = _re.search(r"## The module map\n+```text\n(.*?)\n```", _arch, _re.S)
@@ -1206,22 +1218,20 @@ R.check(
 # follows is about a different claim (the one function-level toucher, pinned
 # below), and sweeping it in would make 22 names out of 21 importers.
 _arch_bound = _re.search(
-    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    r"These modules\s+import `homeassistant` at module level:\s+(.*?)\.",
     _arch, _re.S,
 )
 _arch_named = (
-    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(3))))
+    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(1))))
     if _arch_bound is not None
     else []
 )
 R.check(
     "architecture.md's HA boundary names exactly the module-level importers",
     _arch_bound is not None
-    and int(_arch_bound.group(1)) == len(_arch_modlevel)
-    and int(_arch_bound.group(2)) == len(_arch_disk)
+    and bool(_arch_modlevel)
     and _arch_named == _arch_modlevel,
-    f"documented {_arch_bound.group(1) if _arch_bound else '?'} of "
-    f"{_arch_bound.group(2) if _arch_bound else '?'}, named {_arch_named}; "
+    f"named {len(_arch_named)}: {_arch_named}; "
     f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
 )
 
@@ -1237,16 +1247,18 @@ R.check(
     f"{_arch_touchers}",
 )
 
-_arch_free = _re.search(
-    r"The other (\d+) modules are deliberately free", _arch
-)
+_arch_free = _re.search(r"Every other module is deliberately free", _arch)
 R.check(
-    "architecture.md's HA-free count is the tree's",
+    "architecture.md's HA-free remainder is the tree's: every module but the "
+    "named importers and the one toucher",
     _arch_free is not None
-    and int(_arch_free.group(1)) == len(_arch_disk) - len(_arch_anywhere),
-    f"architecture.md says {_arch_free.group(1) if _arch_free else '?'}; "
-    f"{len(_arch_disk)} modules less {len(_arch_anywhere)} that touch "
-    f"homeassistant anywhere leaves {len(_arch_disk) - len(_arch_anywhere)}",
+    and len(_arch_disk) - len(_arch_anywhere)
+    == len(_arch_disk) - len(_arch_modlevel) - 1 > 0,
+    f"sentence found={_arch_free is not None}; {len(_arch_disk)} modules less "
+    f"{len(_arch_anywhere)} that touch homeassistant anywhere leaves "
+    f"{len(_arch_disk) - len(_arch_anywhere)}, against "
+    f"{len(_arch_disk) - len(_arch_modlevel) - 1} outside the named set and "
+    "the toucher",
 )
 
 _arch_pages = _re.search(
@@ -4431,6 +4443,14 @@ _P2_CENSUSES = {
     "replay_numeric_domain": (
         "tests/debug_collect.py",
         "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # R11-LATE-P2-REPLAY-FINITE: replay_doc's number shape and its coordinate
+    # cut keep exactly what numeric admits.
+    "replay_number_finite": (
+        "tests/debug_collect.py",
+        "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric"),
+    "replay_coordinate_finite": (
+        "tests/debug_collect.py",
+        "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses"),
     # D7-s3-03: every reader of the plan step covering now takes plan_step's
     # index; the census drives the four on one plan, past its end included.
     "plan_step_covering": (
@@ -4821,7 +4841,7 @@ R.check(
 )
 # Null controls: the pre-fix countdown, a flat set returned and tested by a
 # caller, and a parameter carrying it into an instant test each fail alone.
-_FW_FIXED = "next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)"
+_FW_FIXED = "next_window = _dhw_next_window_hours(h.start_time, hours_mod, step_weekdays, windows, params, holiday_flags)"
 _fw_plants = {
     "pre-fix countdown": _P2_SOURCES["dhw_planner.py"].replace(
         _FW_FIXED, "next_window = hours_until_next_window(\n"
@@ -7369,6 +7389,27 @@ R.check(
 R.check(
     "suppression is reported separately from detection",
     heat.extra_state_attributes["suppressing_electric_dhw"] is True,
+)
+R.check(
+    "with the override switch off the sensor publishes no block_ignored key (#3862)",
+    "block_ignored" not in heat.extra_state_attributes,
+    str(sorted(heat.extra_state_attributes)),
+)
+# #3862: the switch on lifts the block; detection stays on and says so.
+_xh_ignored = next(
+    b for b in collect(binary_sensor, data={
+        **DATA,
+        "external_heat_suppressing": False,
+        "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if display_name("binary_sensor", b) == "External Heat Source"
+)
+R.check(
+    "with the override effective the sensor stays on, block_ignored true, nothing suppressed (#3862)",
+    _xh_ignored.is_on
+    and _xh_ignored.extra_state_attributes["block_ignored"] is True
+    and _xh_ignored.extra_state_attributes["suppressing_electric_dhw"] is False,
+    str(_xh_ignored.extra_state_attributes),
 )
 
 away = b_by_name["Away Mode"]
@@ -12034,7 +12075,50 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
+R.check(
+    "the switch platform adds the optimizer, away, boost, block and external-heat override switches",
+    len(switches) == 7,
+    str(len(switches)),
+)
+# #3862: the owner's external-heat block override; identity pinned, and its
+# state is boost's held flag, not a payload field.
+_xh_sw = next(
+    s for s in switches if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch keeps its unique id and object id (#3862)",
+    _xh_sw._attr_unique_id == f"{ENTRY.entry_id}_external_heat_ignore_block"
+    and _xh_sw.entity_id == "switch.heat_pump_optimizer_external_heat_ignore_block"
+    and display_name("switch", _xh_sw) == "External Heat Block Override",
+    f"{_xh_sw._attr_unique_id} {getattr(_xh_sw, 'entity_id', None)} {display_name('switch', _xh_sw)}",
+)
+R.check(
+    "the external-heat override switch is off and not effective on a fresh coordinator (#3862)",
+    _xh_sw.is_on is False
+    and _xh_sw.extra_state_attributes == {"block_ignored": False},
+    str(_xh_sw.extra_state_attributes),
+)
+asyncio.run(_xh_sw.async_turn_on())
+_xh_sw_on = _xh_sw.is_on
+asyncio.run(_xh_sw.async_turn_off())
+R.check(
+    "turning the external-heat override on and off moves boost's held flag (#3862)",
+    _xh_sw_on is True and _xh_sw.is_on is False
+    and _boost_mod.extheat_block_ignored(_xh_sw.coordinator) is False,
+    f"on={_xh_sw_on} off={_xh_sw.is_on}",
+)
+# The attribute reads the published flag, so an effective override reads True.
+_xh_sw_eff = next(
+    s for s in collect(switch_mod, data={
+        **DATA, "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)",
+    _xh_sw_eff.extra_state_attributes == {"block_ignored": True},
+    str(_xh_sw_eff.extra_state_attributes),
+)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -12263,10 +12347,12 @@ _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
                 switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
-                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch,
+                switch_mod.ExternalHeatIgnoreBlockSwitch)
 }
 for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
-                 "BlockDhwSwitch", "BlockSpaceSwitch"):
+                 "BlockDhwSwitch", "BlockSpaceSwitch",
+                 "ExternalHeatIgnoreBlockSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -13631,6 +13717,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "weather_forecast_available"
     }),
     "OptimizerEnableSwitch": frozenset({"mode", "optimization_status"}),
+    "ExternalHeatIgnoreBlockSwitch": frozenset({"block_ignored"}),
     "OutdoorTempSensor": frozenset({"source"}),
     "PVSurplusSensor": frozenset({
         "forecast_production_kwh", "forecast_surplus_kwh",
@@ -16190,10 +16277,15 @@ def _mig_raw_reads(entry):
 
 _mig_raw_before = _mig_raw_reads(_mig_raw)
 _mig_raw_ok, _ = _mig_warnings(_mig_raw)
+# Before R11-LATE-P1-OPTIONS the comfort band raised on the text hour until the
+# migration repaired it, and this check required that raise as its control.
+# The band now reads a non-number as the key's default (``comfort_band.effective``
+# through ``finite_float``). So the unmigrated read is required clean, and the
+# migration is still required to repair what is stored.
 R.check(
-    "an old entry's text hour and null tank volume no longer raise in the thermal table or the "
-    "comfort band once migrated",
-    _mig_raw_before is not None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
+    "an old entry's text hour and null tank volume raise in neither the thermal table nor the "
+    "comfort band, before or after the migration, and the migration repairs what is stored",
+    _mig_raw_before is None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
     and {**_mig_raw.data, **_mig_raw.options}
     == {"day_start_hour": const.DEFAULT_DAY_START_HOUR, "ecl110_mqtt_qos": 1},
     f"before={_mig_raw_before} after={_mig_raw_reads(_mig_raw)} "
@@ -16768,6 +16860,43 @@ R.check(
 # Later checks on this entry treat an absent target as "never written".
 _svc_entry.options.pop(const.CONF_DHW_SETPOINT, None)
 _svc_entry.options.pop(const.CONF_TARGET_TEMP, None)
+
+# R11-LATE-P1-OPTIONS: the deadband check reads the stored half of its pair the
+# way the entry's parse does. A wrong-typed stored setpoint or minimum (written
+# past the migration's repair) reads as its default, never a TypeError out of
+# the service; a well-typed stored one is still judged (the null control).
+def _p1_apply(stored, payload):
+    saved = dict(_svc_entry.options)
+    _svc_entry.options.update(stored)
+    try:
+        _svc_call(const.SERVICE_APPLY_SCHEDULE, payload)
+        outcome = "applied"
+    except ServiceValidationError:
+        outcome = "refused"
+    except (TypeError, ValueError) as err:
+        outcome = f"raised {type(err).__name__}"
+    _svc_entry.options.clear()
+    _svc_entry.options.update(saved)
+    return outcome
+
+
+_p1_outcomes = {
+    f"{key}={value!r}": _p1_apply({key: value}, payload)
+    for key, payload in (
+        (const.CONF_DHW_SETPOINT, {"dhw_min_temperature": 40.0}),
+        (const.CONF_DHW_MIN_TEMP, {"dhw_setpoint": 60.0}),
+    )
+    for value in ("abc", None, {"x": 1}, [1.0])
+}
+R.check(
+    "R11-LATE-P1-OPTIONS: apply_schedule reads a wrong-typed stored DHW setpoint or minimum as its default",
+    set(_p1_outcomes.values()) == {"applied"},
+    str(_p1_outcomes),
+)
+R.check(
+    "R11-LATE-P1-OPTIONS: null -- apply_schedule still refuses against a well-typed stored setpoint",
+    _p1_apply({const.CONF_DHW_SETPOINT: 46.0}, {"dhw_min_temperature": 44.0}) == "refused",
+)
 
 # v5.1.7 — the comfort band, on every path that writes it.
 #
@@ -18095,12 +18224,12 @@ R.check(
 # #1218 (D3-08): the deployment-shape lane's measured closure is the whole
 # tracked package -- it materialises the package file by file, and the
 # gate's tracer records every read -- so every diff touching any production
-# file selects the lane. The same recording pairs 53 of the 276 scripts at
-# 0.80 or more of shared production-module closure. The numbers are
-# re-derived here exactly as dev/audit/rounds/round5/D3/resource_r5.py derived
-# them (Jaccard over the closure files under
-# custom_components/heatpump_optimizer/, empty sets skipped), and the lane's
-# docstring records them as this repository's selection-cost note. A
+# file selects the lane. The same recording pairs scripts at 0.80 or more of
+# shared production-module closure. The numbers are derived here exactly as
+# dev/audit/rounds/round5/D3/resource_r5.py derived them (Jaccard over the
+# closure files under custom_components/heatpump_optimizer/, empty sets
+# skipped) and printed below; the lane's docstring is this repository's
+# selection-cost note and names this block as their source. A
 # SELECTION cost only: which mutants each script kills was never measured
 # (the pre-screen stops at the first killer), so nothing claims two
 # overlapping scripts are redundant.
@@ -18163,25 +18292,73 @@ R.check(
     f"it={_D308_SELECTED} -- this is the cost the note beside the lane "
     "records",
 )
-# The note carries the derived numbers, so a re-record that moves them fails
-# HERE instead of leaving stale prose behind. The text is whitespace-
-# normalised first so a future re-wrap of the paragraph cannot flip these.
+# The numbers are derived and printed HERE, never carried in the note
+# (FG-1, 2026-11-26). The pair count is a threshold function of the whole
+# recording, so it does not add across a merge. Two branches each re-derived
+# it, and git merged the two sentences as text. The merged tree derived a
+# third number (#3838, #3866, #3870). The note names the cost and this block;
+# a count written back into it is refused. The text is whitespace-normalised
+# first so a re-wrap of the paragraph cannot flip these.
+_D308_SAME = sorted(
+    (_a, _b, _n) for _jac, _a, _b, _n in _D308_PAIRS if _jac == 1.0)
+_D308_DERIVED = (
+    f"  derived (#1218): the lane reaches all {len(_D308_PROD)} production "
+    f"files; {len(_D308_PAIRS)} of the {_D308_TOTAL} script pairs share >= 0.80 "
+    f"of their production closure, among {_D308_COMPARABLE} comparable pairs; "
+    f"{len(_D308_SAME)} at exactly 1.00: "
+    + ", ".join(f"{_a}/{_b} ({_n})" for _a, _b, _n in _D308_SAME)
+)
+print(_D308_DERIVED)
 _D308_DS_TEXT = " ".join((_closure.ROOT / _D308_DS).read_text().split())
+# A count is a number, in digits or spelled out, up to three words before
+# "file(s)" or "pair(s)", or directly before "until". The derived line's own
+# wording ("reaches all 124 production files"), a bare "190 script pairs" and
+# "Eighteen of the pairs" all match; the planted corpus below pins each.
+_D308_NUM = (
+    r"(?:\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven"
+    r"|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen"
+    r"|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)"
+)
+_D308_COUNT_RE = _re.compile(
+    rf"\b{_D308_NUM}(?:[\s-]+[\w./-]+){{0,3}}?\s+(?:files?|pairs?)\b"
+    rf"|\b{_D308_NUM}\s+until\b",
+    _re.IGNORECASE,
+)
+_D308_CARRIED = _D308_COUNT_RE.findall(_D308_DS_TEXT)
 R.check(
-    "and the lane's docstring records those measured numbers as the "
-    "selection-cost note (#1218)",
+    "and the lane's docstring is the selection-cost note, naming this block "
+    "as the source of its numbers and carrying none of them (#1218, FG-1)",
     all(_s in _D308_DS_TEXT for _s in (
-        "D3-08", "#1218", "selection cost",
-        f"all {len(_D308_PROD)} files",
-        f"{len(_D308_PAIRS)} of the {_D308_TOTAL}",
-        f"{_D308_COMPARABLE} pairs",
+        "D3-08", "#1218", "selection cost", "tests/entities.py",
     ))
-    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY),
-    "the note cites numbers this tree derives: "
-    f"{len(_D308_PROD)} production files; {len(_D308_PAIRS)} of "
-    f"{_D308_TOTAL} pairs at >= 0.80; {_D308_COMPARABLE} pairs comparable; "
-    f"no production closure in {_D308_EMPTY}; missing markers -> "
-    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'all %d files' % len(_D308_PROD), '%d of the %d' % (len(_D308_PAIRS), _D308_TOTAL), '%d pairs' % _D308_COMPARABLE) if s not in _D308_DS_TEXT]}",
+    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY)
+    and not _D308_CARRIED,
+    "missing markers -> "
+    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'tests/entities.py') if s not in _D308_DS_TEXT]}; "
+    f"no production closure in {_D308_EMPTY}; hand-kept counts -> {_D308_CARRIED}",
+)
+# The refusal's own null control: every count wording, the derived line
+# printed above included, is matched. Narrowed back to the old phrasings, the
+# pattern lets the derived line be written into the note unrefused.
+_D308_PLANTED = (
+    _D308_DERIVED,
+    "the lane reaches all 124 production files",
+    "all 124 files",
+    "190 script pairs",
+    "190 of the 561 script pairs",
+    "Eighteen of the pairs",
+    "EIGHTEEN PAIRS",
+    "twenty-one shared production files",
+    "1,204 files",
+    "96 until R9 F2.2",
+    "eleven until",
+)
+_D308_MISSED = [_t for _t in _D308_PLANTED if not _D308_COUNT_RE.search(_t)]
+R.check(
+    "the #1218 note's count refusal matches the derived line's wording, a "
+    "bare pair count and a spelled-out one (planted corpus, FG-1)",
+    not _D308_MISSED,
+    f"not refused -> {_D308_MISSED}",
 )
 # The predicate itself, on synthetic closures built from real production
 # names: equal sets count, disjoint and below-boundary do not, an exactly
@@ -21411,8 +21588,8 @@ R.check(
 # `gate_required` is the list the ruleset and the seat readers will key on. The
 # check reads the module itself (loaded by path, as stamp.py is above), never a
 # copy, and pins its sorted union equal to the fixture list, which must hold no
-# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
-# red check, not a truncated run.
+# duplicate; `contexts` is `gate` alone since P2b's cut-over. A load failure
+# is a red check, not a truncated run.
 _CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
 import importlib.util as _cig_util
 try:
@@ -21557,7 +21734,9 @@ R.check(
 #     for every modelled event (on `merge_group` with `pr=- base=-`, which no
 #     expression can cut from the queue ref), so a past run's kind, PR, base
 #     and `sha=` read back as the prelude derived them;
-#   - one run per concurrency group, cancelling nothing (rev2, N1);
+#   - one run per concurrency group (rev2, N1), a push to main's included (no
+#     CI-main), but a non-bot `synchronize`'s first attempt (CI-pr-<number>,
+#     #3885 L1, cancelling the PR's older one);
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
@@ -21647,8 +21826,9 @@ _CI_EVENTS = {
 
 def _ci_ctx(ev: str, payload: dict, outputs=None, actor="hpo-author[bot]") -> "tuple[dict, dict]":
     """(the expression context, prelude.context's) for one modelled event;
-    `outputs` are the prelude's: a failed prelude's read as empty strings."""
-    flat = _ghx_flat("github.event", payload, {})
+    `outputs` are the prelude's: a failed prelude's read as empty strings.
+    The event's sender is `actor` unless the payload names one."""
+    flat = _ghx_flat("github.event", {"sender": {"login": actor}, **payload}, {})
     flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
                  "github.repository": "o/r", "github.actor": actor})
     flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
@@ -21725,18 +21905,28 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
-    # Every run and every re-run keeps its run-id group (N1), a push to main's included: no
-    # group serialises main push runs (owner 2026-11-25, retiring CI-5's `CI-main` group);
-    # main-cancel.yml cancels the superseded ones. Rendered per event and attempt, not as text.
+    # #3885 L1: a `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins
+    # its pull request's CI-pr-<number> group and cancels the older run there at creation. Every
+    # other run and every re-run keeps its run-id group (N1: a re-run never cancels a pending
+    # run), a push to main's included: no group serialises main push runs (owner 2026-11-25,
+    # retiring CI-5's `CI-main` group); main-cancel.yml cancels the superseded ones. A bot-sent
+    # run never cancels the run doing the other autofix jobs (cancel_superseded.BOT). Rendered per
+    # event, attempt and sender, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} cancels in progress")
     for (ev, a), payload in _CI_EVENTS.items():
         for attempt in ("1", "2"):
-            want = "CI-99"
-            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
-            if got != want:
-                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
+            for sender in ("hpo-author[bot]", "tvofi", _SELF_ACTOR):
+                ctx = {**_ci_ctx(ev, payload, actor=sender)[0], "github.run_attempt": attempt}
+                pr_group = (ev, a, attempt) == ("pull_request", "synchronize", "1") and sender != _SELF_ACTOR
+                want = "CI-pr-7" if pr_group else "CI-99"
+                got = _ghx(cc.get("group", ""), ctx)
+                if got != want:
+                    out.append(f"concurrency group under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"renders {got!r}, want {want!r}")
+                cancels = _ghx(cc.get("cancel-in-progress", False), ctx)
+                if cancels is not pr_group:
+                    out.append(f"concurrency under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"cancel-in-progress reads {cancels!r}, want {pr_group}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21845,13 +22035,27 @@ _CI_PLANTS = {
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                        "format('CI-{0}', github.event.pull_request.number)", 1),
+    # #3885 L1's own plants: each widens or narrows the CI-pr-<number> arm by one condition.
+    "the PR group on every pull_request action": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize'", "", 2),
+    "the PR group's cancel on every pull_request action": _CI_TEXT.replace(
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize'",
+        "cancel-in-progress: ${{ github.event_name == 'pull_request'", 1),
+    "PR re-runs in the PR group": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize' && github.run_attempt == '1'",
+        " && github.event.action == 'synchronize'", 2),
+    "bot-sent pushes in the PR group": _CI_TEXT.replace(
+        " && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}'", " && format('CI-pr-{0}'", 1),
+    "the PR group cancelling nothing": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: false", _CI_TEXT, count=1),
+    "no PR group": _CI_TEXT.replace(
+        "format('CI-pr-{0}', github.event.pull_request.number)", "format('CI-{0}', github.run_id)", 1),
     "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
-        "group: ${{ format('CI-{0}', github.run_id) }}",
+        "group: ${{ github.event_name == 'pull_request'",
         "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
-        " || format('CI-{0}', github.run_id) }}", 1),
-    "a run-id group cancelling in progress": _CI_TEXT.replace(
-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
-        "format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
+        " || github.event_name == 'pull_request'", 1),
+    "a run-id group cancelling in progress": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21897,7 +22101,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group, a push to main's included (no CI-main), "
+    "run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt "
+    "(CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), "
     "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
@@ -32885,7 +33090,7 @@ R.check(
                       # no source. Listed in full: a new job here is named.
                       "ci.yml": ["arch-score", "budget-raise-gate", "cancel-superseded",
                                  "codeql", "gate", "governance", "hassfest",
-                                 "kernel-points", "pr-contract", "prelude", "refresh",
+                                 "kernel-points", "pr-contract", "prelude",
                                  "sweep-self", "tests", "validate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
@@ -33146,17 +33351,58 @@ _CC_UMB_RUNS = [{"id": 11, "head_sha": _CC_OLD_SHA, "event": "pull_request", "st
                 {"id": 12, "head_sha": _CC_NEW_SHA, "event": "pull_request", "status": "in_progress",
                  "head_branch": "b"}]
 _CC_UMB_CANCELS = _CS.candidates(_CC_UMB_RUNS, live_sha=_CC_NEW_SHA, branch="b", run_id=13)
+# #3885 L5: the job also carries the refresh step (formerly its own `refresh`
+# job): one allocation per event. The cancel condition is the cancel STEP's;
+# the job admits the review events the refresh step serves.
+_CC_UMB_STEPS = _CC_UMB_JOB.get("steps") or []
+
+
+def _cc_step(needle: str) -> "tuple[int, dict]":
+    hit = [(i, st) for i, st in enumerate(_CC_UMB_STEPS) if needle in str(st.get("run") or "")]
+    return hit[0] if len(hit) == 1 else (-1, {})
+
+
+_CC_CANCEL_AT, _CC_CANCEL = _cc_step("python3 -I tools/pr/cancel_superseded.py run")
+_CC_REFRESH_AT, _CC_REFRESH = _cc_step("python3 -I tools/ci/gate.py --refresh")
+_CC_RESTORE_AT, _CC_RESTORE = _cc_step('git checkout "$PINNED" --')
+
+
+def _cc_cancel_if(ctx: dict) -> "bool | None":
+    return _if_under(_CC_UMB_JOB.get("if"), ctx) is True and _if_under(_CC_CANCEL.get("if"), ctx)
+
+
 R.check(
     "ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, "
     "on a non-bot same-repo pull_request run only",
-    "python3 -I tools/pr/cancel_superseded.py run" in str(_CC_UMB_JOB)
-    and "--workflow ci.yml" in str(_CC_UMB_JOB)
+    "--workflow ci.yml" in str(_CC_CANCEL.get("run"))
     and (_CC_UMB_JOB.get("permissions") or {}).get("actions") == "write"
-    and _if_under(_CC_UMB_JOB.get("if"), _CC_UMB_IF) is True
-    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"}) is False
-    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": "push"}) is False
+    and _cc_cancel_if(_CC_UMB_IF) is True
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event_name": "push"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event_name": "pull_request_review"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event.pull_request.head.repo.full_name": "fork/r"})
     and _CC_UMB_CANCELS == [11],
-    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)}",
+    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)} cancel step at {_CC_CANCEL_AT}",
+)
+_CC_REFRESH_IF = str(_CC_REFRESH.get("if") or "")
+R.check(
+    "#3885 L5: the same job re-runs the stale green gates on pull_request and review events, "
+    "fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, "
+    "and never past a failed restore (null: push and dispatch run no housekeeping)",
+    "refresh" not in (_RC_DOCS["ci.yml"].get("jobs") or {})
+    and 0 <= _CC_RESTORE_AT < _CC_CANCEL_AT < _CC_REFRESH_AT
+    and "tools/ci/*.py" in str(_CC_RESTORE.get("run"))
+    and "tools/pr/cancel_superseded.py" in str(_CC_RESTORE.get("run"))
+    and all(_if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": e}) is True
+            for e in ("pull_request", "pull_request_review"))
+    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.pull_request.head.repo.full_name": "fork/r"}) is True
+    and all(_if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": e}) is False
+            for e in ("push", "workflow_dispatch"))
+    and "!cancelled()" in _CC_REFRESH_IF
+    and f"steps.{_CC_RESTORE.get('id')}.outcome == 'success'" in _CC_REFRESH_IF
+    and "GH_TOKEN" in (_CC_REFRESH.get("env") or {}),
+    f"steps at restore={_CC_RESTORE_AT} cancel={_CC_CANCEL_AT} refresh={_CC_REFRESH_AT} "
+    f"refresh if={_CC_REFRESH_IF!r} jobs={sorted(_RC_DOCS['ci.yml'].get('jobs') or {})}",
 )
 R.check(
     "and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)",
@@ -33730,8 +33976,8 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
     "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
     "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
-    "workflow) and on ci.yml's cancel-superseded, refresh and sweep-self jobs (null control)",
-    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "ci.yml:sweep-self", "tests.yml:claims-autofix",
+    "workflow) and on ci.yml's cancel-superseded and sweep-self jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:sweep-self", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
@@ -33874,7 +34120,8 @@ R.check(
 # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
 _PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
 _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
-_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+# A chained read, ROOT / "tests" / "run.sh", is the one file tests/run.sh, never the directory.
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT((?:\s*/\s*\"[^\"]+\")+)", re.M)
 
 
 def _pcr_spawned(mjs: str) -> "list[str]":
@@ -33895,7 +34142,7 @@ def _pcr_closure(roots) -> "list[str]":
         text = Path(f).read_text()
         todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
                  if Path(q).is_file()]
-        todo += _PCR_READ.findall(text)
+        todo += ["/".join(re.findall(r'"([^"]+)"', m)) for m in _PCR_READ.findall(text)]
     return sorted(seen)
 
 
@@ -42840,6 +43087,8 @@ _egb3_resolve = {
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
     "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
+    # #3862: a producer that returns its owner's view whole (a listed source only).
+    "extheat.view(self._external_heat, boost.extheat_block_ignored(self))": ("external_heat", "view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
 
@@ -42854,6 +43103,8 @@ def _egb3_energy():
 
 def _egb3_enumerate(fn, unresolved):
     keys, merges = _egb3_top(fn)
+    merges += [n.value for n in ast.walk(fn) if isinstance(n, ast.Return)
+               and isinstance(n.value, ast.Call) and ast.unparse(n.value) in _egb3_resolve]
     for m in merges:
         src = ast.unparse(m)
         if src in _egb3_resolve:

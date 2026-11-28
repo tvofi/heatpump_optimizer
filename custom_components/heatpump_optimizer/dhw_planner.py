@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from functools import partial
 from typing import Any, Callable, NamedTuple, Protocol
 
@@ -28,15 +29,7 @@ from scipy.optimize import linprog
 
 from . import pv
 from .const import DHW_QUANTILE_MIN_EVENTS
-from .dhw_charges import (
-    SHORTFALL_K,
-    ChargeRuns,
-    commit_charges,
-    dhw_start_temps,
-    place_startable,
-    startable_steps,
-    whole_charges,
-)
+from .dhw_charges import SHORTFALL_K, ChargeRuns, commit_charges, whole_charges
 from .dhw_draws import window_label as draw_window_label
 from .dhw_schedule import (
     FULL_DAY,
@@ -48,6 +41,7 @@ from .dhw_schedule import (
     parse_windows,
     windows_for_day,
 )
+from .dhw_start import dhw_start_temps, place_startable, startable_steps
 from .manual_plan import _pin_is_free
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
@@ -92,13 +86,14 @@ def _dhw_windows_at(
 
 
 def _dhw_next_window_hours(
-    hours_mod: np.ndarray, weekdays: np.ndarray | None, windows: list[Window],
+    start: datetime, hours_mod: np.ndarray, weekdays: np.ndarray | None, windows: list[Window],
     params: ThermalParameters, holiday_flags: np.ndarray | None,
 ) -> float | None:
     """Hours to the next demand window in the day's windows (D17-s3-51), never the flat union.
 
     Today's are the ones ``in_window[0]`` tests (entry 1); tomorrow's the first step past
     midnight's, else, on a horizon ending first, the next weekday's with no holiday tier.
+    ``start`` is step 0's instant, which the countdown is measured from in its zone.
     """
     if not len(hours_mod):
         return None  # no step to read a day from
@@ -109,7 +104,7 @@ def _dhw_next_window_hours(
     else:
         nxt = None if weekdays is None else [cyclic_span(int(d), int(d) + 1, 7)[-1] for d in weekdays[1:2]]
         tomorrow = _dhw_windows_at(params, nxt, 0, windows, None)
-    return hours_until_next_window(float(hours_mod[0]), today, tomorrow)
+    return hours_until_next_window(start, today, tomorrow)
 
 
 # How far either side of a contended step space heating may look for spare
@@ -270,7 +265,6 @@ class DhwPlan:
     legionella_due: bool
     legionella_hour: float | None
     legionella_step: int | None
-    external_heat_suppressed_steps: int
     max_lead_hours: float
 
 
@@ -337,6 +331,8 @@ class _Horizon(Protocol):
     def dt(self) -> float: ...
     @property
     def step_hours(self) -> np.ndarray: ...
+    @property
+    def start_time(self) -> datetime: ...
     @property
     def outdoor_temps(self) -> np.ndarray: ...
     @property
@@ -413,7 +409,6 @@ class DhwPlanner:
 
     def _baseline_dhw_economics(
         self,
-        initial_state: ThermalState,
         outdoor_temps: np.ndarray,
         n_steps: int,
         dhw_setpoint: float,
@@ -834,7 +829,7 @@ class DhwPlanner:
                 else np.asarray(dhw_power, dtype=float)[:n]
             ),
             WeatherSeries.from_horizon(h),
-            start_hour=float(h.step_hours[0]),
+            step_hours=h.step_hours,
             dt_hours=h.dt,
             dhw_draw_rates=raw,
             valve_targets=h.valve_targets,
@@ -1202,7 +1197,7 @@ class DhwPlanner:
         # before each breach until the simulated trajectory honours the
         # requirement, then re-apply the rating, which always wins.
         start_below = dhw_start_temps(params, initial_state, n_steps, legionella_step)
-        tank = (ctx, initial_state.dhw_temperature, draw_rates)
+        tank, running = (ctx, initial_state.dhw_temperature, draw_rates), initial_state.dhw_charge_under_way
         schedule = place_startable(schedule, start_below, partial(self._ctx_temps, *tank), partial(
             self._repair_dhw_floor,
             ctx,
@@ -1211,8 +1206,8 @@ class DhwPlanner:
             requirement=requirement,
             max_temp=max_temp,
             forced_off=forced_off,
-        ))
-        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand)
+        ), running)
+        schedule = commit_charges(self, schedule, tank, (requirement, max_temp), forced_off, start_below, space_demand, running)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
@@ -1234,7 +1229,6 @@ class DhwPlanner:
         # temperature on its own, the coordinator's existing observer resets
         # the timer and the requirement disappears by itself. That is a real
         # saving and an easy one to miss.
-        suppress_steps = 0
         if getattr(initial_state, "external_heat_active", False) or getattr(
             initial_state, "peak_guard_active", False
         ):
@@ -1252,10 +1246,9 @@ class DhwPlanner:
             if legionella_step is not None:
                 mask[legionella_step] = False
             mask = whole_charges(self.charge_runs, schedule, mask)
-            suppress_steps = int(np.sum(mask & (schedule > 1e-6)))
             schedule = np.where(mask, 0.0, schedule)
 
-        next_window = _dhw_next_window_hours(hours_mod, step_weekdays, windows, params, holiday_flags)
+        next_window = _dhw_next_window_hours(h.start_time, hours_mod, step_weekdays, windows, params, holiday_flags)
 
         # A manual plan overrides *timing* last, after the economics and the
         # external-heat suppression, because it expresses the user's explicit
@@ -1307,7 +1300,6 @@ class DhwPlanner:
                 round(legionella_hour, 2) if legionella_hour is not None else None
             ),
             legionella_step=legionella_step,
-            external_heat_suppressed_steps=suppress_steps,
             max_lead_hours=max_lead_hours,
         ), requirement
 

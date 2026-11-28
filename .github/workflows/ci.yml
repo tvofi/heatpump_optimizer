@@ -64,23 +64,29 @@ on:
 
 permissions: {}
 
-# A group per run (rev2, N1): `refresh` and gate-sweep.yml re-run `gate` jobs,
+# A group per run (rev2, N1): the refresh step and gate-sweep.yml re-run `gate` jobs,
 # and a re-run re-enters its run's group, so a group shared between runs would
-# let a re-run cancel a pending run. A push to main's run is no exception
-# (owner 2026-11-25, retiring CI-5's `CI-main` group): every main push run
-# starts at once, and supersession is the cancellers' alone -- this file's
-# cancel-superseded job for a pull request, and for main main-cancel.yml, which
-# cancels the older active main push runs when the new push is graded in full,
-# never past three main runs with no concluded verdict.
+# let a re-run cancel a pending run. Except a `synchronize` run's first attempt
+# sent by anyone but github-actions[bot] (#3885 L1): it joins its pull request's
+# `CI-pr-<number>` group and cancels the older such run at creation, pending or
+# in progress. A synchronize always heads a new SHA, so no same-head twin is
+# cancelled; a re-run keeps its run-id group; a bot-sent run (an autofix push)
+# never cancels the run doing the other autofix jobs. Every other superseded run
+# (opened, reopened, dispatched, bot-sent) is the `cancel-superseded` job's.
+# A push to main's run is no exception to the run-id group (owner 2026-11-25,
+# retiring CI-5's `CI-main` group): every main push run starts at once, and
+# supersession is main-cancel.yml's, which cancels the older active main push
+# runs when the new push is graded in full, never past three main runs with no
+# concluded verdict.
 concurrency:
-  group: ${{ format('CI-{0}', github.run_id) }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}', github.event.pull_request.number) || format('CI-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.run_attempt == '1' && github.event.sender.login != 'github-actions[bot]' }}
 
 jobs:
   prelude:
     runs-on: ubuntu-latest
-    # A verdict run waits for every earlier run at its head (max measured 3450 s).
-    timeout-minutes: 150
+    # #3885 L3 W1: a run that would wait on another run's sources defers at once (prelude.busy_sources).
+    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
@@ -104,6 +110,10 @@ jobs:
       light: ${{ steps.derive.outputs.light }}
       stand_down: ${{ steps.derive.outputs.stand_down }}
       range_base: ${{ steps.derive.outputs.range_base }}
+      # R11-CI-CASE-SELECT P2 (#3885): the fast lane's shards and the plan assigning every script
+      # to one of them (tools/ci/shards.py); both empty: one unsharded `fast (3.14)` job.
+      fast_shards: ${{ steps.derive.outputs.fast_shards }}
+      fast_plan: ${{ steps.derive.outputs.fast_plan }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -149,17 +159,32 @@ jobs:
               --head "$HEAD_SHA" > "$RUNNER_TEMP/changed.txt"
           fi
           python3 -I tools/ci/prelude.py --changed-from "$RUNNER_TEMP/changed.txt" >> "$GITHUB_OUTPUT"
+      # #3885 L3 W1: no runner is held while another run at this head can still add a source.
+      # This step fails at once and names those runs; tools/ci/sweep.py keys on its name
+      # (sweep.DEFER_STEP) and re-runs this run's failed jobs once they have completed.
+      - name: "Defer: sources still running"
+        if: steps.derive.outputs.defer != ''
+        env:
+          DEFER: ${{ steps.derive.outputs.defer }}
+        run: |
+          echo "::error title=deferred::run(s) $DEFER at this head can still add a source; the gate sweep re-runs this run when they complete"
+          exit 1
 
-  # The one copy (R10-CI-CONCURRENCY): from a non-bot pull_request run at the
-  # PR's live head, cancel this workflow's older runs at a DIFFERENT head; never
-  # a same-SHA run, so never a gate attempt at this head.
+  # The housekeeping job (#3885 L5): one runner allocation and one checkout per
+  # pull-request event for its two steps, which need the same grant and act at
+  # the event. Both run the BASE's programs, restored before any step holds the
+  # token.
+  # - Cancel (the one copy, R10-CI-CONCURRENCY): from a non-bot pull_request
+  #   run at the PR's live head, cancel this workflow's older runs at a
+  #   DIFFERENT head; never a same-SHA run, so never a gate attempt at this head.
+  # - Refresh: an event can make an earlier green `gate` at this head stale:
+  #   re-run the gate of every completed run here whose latest gate is green, so
+  #   it re-judges against this run. A notice, not a failure, at a fork head.
+  #   Review events run this step alone.
   cancel-superseded:
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.sender.login != 'github-actions[bot]'
-      && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
@@ -169,10 +194,21 @@ jobs:
         with:
           fetch-depth: 2
           persist-credentials: false
+      - name: Restore the programs from the base
+        id: restore
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+          git checkout "$PINNED" -- tools/pr/cancel_superseded.py 'tools/ci/*.py'
       - name: Cancel this branch's runs at superseded heads
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.sender.login != 'github-actions[bot]'
+          && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -181,14 +217,19 @@ jobs:
           SENDER: ${{ github.event.sender.login }}
         run: |
           set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- tools/pr/cancel_superseded.py
           python3 -I tools/pr/cancel_superseded.py run --repo "$REPO" --workflow ci.yml \
             --pr "$PR" --head-sha "$HEAD_SHA" --branch "$HEAD_REF" \
             --run-id "$RUN_ID" --sender "$SENDER"
+      # Independent of the cancel step's outcome, as when they were two jobs;
+      # never past a failed restore, which would leave the head's copy.
+      - name: Re-run the stale green gates at this head
+        if: ${{ !cancelled() && steps.restore.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I tools/ci/gate.py --refresh
 
   # >>> units: one caller per unit file, id == stem; each runs when the
-  # prelude's workset names it. A probe ci.yml keeps prelude, refresh, gate
+  # prelude's workset names it. A probe ci.yml keeps prelude, cancel-superseded, gate
   # and the callers it probes, and drops the rest from every `needs:`.
   tests:
     needs: prelude
@@ -206,6 +247,8 @@ jobs:
       light: ${{ needs.prelude.outputs.light }}
       stand_down: ${{ needs.prelude.outputs.stand_down }}
       range_base: ${{ needs.prelude.outputs.range_base }}
+      fast_shards: ${{ needs.prelude.outputs.fast_shards }}
+      fast_plan: ${{ needs.prelude.outputs.fast_plan }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
@@ -305,33 +348,6 @@ jobs:
       actions: read
   # <<< units
 
-  # An event can make an earlier green `gate` at this head stale: re-run the
-  # gate of every completed run here whose latest gate is green, so it
-  # re-judges against this run. A notice, not a failure, at a fork head.
-  refresh:
-    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      actions: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore the programs from the base
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- 'tools/ci/*.py'
-      - name: Re-run the stale green gates at this head
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 -I tools/ci/gate.py --refresh
-
   # The one required check. Never skippable: a skipped required check passes.
   # It trusts no guard; gate.py derives what the event owes from the event.
   # It needs every unit through `pr-contract`, which needs them all and whose
@@ -376,6 +392,8 @@ jobs:
           # What the prelude ran here: an edit run beside an unfinished code run
           # runs no pr-contract (prelude.defer_to, R10-CI-SLIM C3).
           WORKSET: ${{ needs.prelude.outputs.workset }}
+          # The shards the prelude planned: each `tests / fast (3.14, K/N)` is owed (gate.fast_names).
+          FAST_SHARDS: ${{ needs.prelude.outputs.fast_shards }}
         run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
 
   # gate-sweep.yml's `workflow_run` never fires for a run whose actor is the bot:

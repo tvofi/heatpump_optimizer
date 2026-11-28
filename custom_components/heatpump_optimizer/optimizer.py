@@ -93,7 +93,6 @@ from .payload import (
 from .thermal_model import (
     CHANNEL_ACTIVE_KW,
     TANK_ROOM_AMBIENT_TEMP,
-    MIN_RUNNING_DRAW_KW,
     ThermalModel,
     ThermalParameters,
     ThermalState,
@@ -102,7 +101,6 @@ from .thermal_model import (
     _step_humidity,
     channel_heating_draw,
     refill_power_kwh,
-    channel_heating_steps,
     combi_dhw_net_series,
     combi_space_net_kw,
     levels_clamped,
@@ -877,7 +875,6 @@ def _baseline_targets(
 
 def _floor_demand_terms(
     model: ThermalModel,
-    outdoor_temp: float,
     wind_speed: float,
     precipitation: float,
     solar_radiation: float,
@@ -911,9 +908,7 @@ def _floor_demand_at_target(
     exchange is zero with both floors at ``target`` (the two-zone demand adds
     the exchange at the actual temperatures).
     """
-    u, a, b = _floor_demand_terms(
-        model, outdoor_temp, wind_speed, precipitation, solar_radiation
-    )
+    u, a, b = _floor_demand_terms(model, wind_speed, precipitation, solar_radiation)
     return u * (target - outdoor_temp) - a - b
 
 
@@ -1016,7 +1011,7 @@ def _settlement_schedule(
         prec = precs[i]
         sun = suns[i]
         delivered = 0.5 * (zone[i] + zone[j])
-        u, ga, gb = _floor_demand_terms(model, out, wind, prec, sun)
+        u, ga, gb = _floor_demand_terms(model, wind, prec, sun)
         d_t = u * (targets[i] - out) - ga - gb
         d_d = u * (delivered - out) - ga - gb
         step: CurrentAction = {
@@ -1220,7 +1215,7 @@ def _held_unreachable(
     ``buffer_max_temp`` caps the curve's top.
     """
     p = model.params
-    outdoor, wind, rain, solar = weather0
+    outdoor, wind, rain, _ = weather0
     if mixing_valve.is_throttling(p.mixing_valve_mode) and need_kw > valve_top_draw(
             model, held, outdoor, wind, rain):
         return True
@@ -2082,7 +2077,7 @@ def _combi_flux_exchange(
         buffer_temps = model.simulate_trajectory(
             initial_state=h.initial_state, power_schedule=space_power,
             weather=_with_buffer_exo(weather, dhw_exo), dt_hours=h.dt,
-            valve_targets=h.valve_targets, start_hour=float(h.step_hours[0]))[4]
+            valve_targets=h.valve_targets, step_hours=h.step_hours)[4]
         return combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
 
     def build(by: DhwPlanner, space_net: np.ndarray) -> np.ndarray:
@@ -4043,9 +4038,7 @@ class HeatPumpOptimizer:
             predicted_savings=savings,
             savings_percentage=_savings_percentage(savings, baseline_cost),
             deferred_energy_cost=deferred_cost,
-            optimal_setpoints=self._power_to_setpoints(
-                space_power, room_temps[:-1], h.outdoor_temps
-            ),
+            optimal_setpoints=self._power_to_setpoints(space_power, room_temps[:-1]),
             status=status,
             solve_time_ms=(time.monotonic() - h.t_start) * 1000,
             displace_schedule=self._power_to_displace_schedule(
@@ -4322,7 +4315,7 @@ class HeatPumpOptimizer:
             offpeak_factor=float(cfg.peak_offpeak_factor),
         )
         n_windows = self._n_peak_windows(n_steps, dt, offset_steps)
-        return window_factors(mask, start_time, n_windows, dt)
+        return window_factors(mask, start_time, n_windows)
 
     def _n_peak_windows(self, n_steps: int, dt: float, offset_steps: int) -> int:
         """How many metering windows a plan of ``n_steps`` spans.
@@ -5074,7 +5067,6 @@ class HeatPumpOptimizer:
         warm_start: np.ndarray | None,
         h: _Horizon,
         p_max: float,
-        n_steps: int,
         dt: float,
         prices: np.ndarray,
         init_base: np.ndarray,
@@ -5239,7 +5231,7 @@ class HeatPumpOptimizer:
         dt: float,
         *,
         valve_targets: np.ndarray | None = None,
-        start_hour: float | None = None,
+        step_hours: np.ndarray | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
 
@@ -5264,7 +5256,7 @@ class HeatPumpOptimizer:
             # objective did — with #53's profile active, flat internal
             # gains would judge the caps on a trajectory the solve does
             # not believe.
-            start_hour=start_hour,
+            step_hours=step_hours,
         )
         if refused is None:
             return False
@@ -5313,7 +5305,7 @@ class HeatPumpOptimizer:
             if not self._tighten_buffer_caps(
                 weather, initial_state, result, power_caps, dt,
                 valve_targets=valve_targets,
-                start_hour=float(step_hours[0]),
+                step_hours=step_hours,
             ):
                 break
             extras = _cap_tighten_starts(
@@ -5481,7 +5473,7 @@ class HeatPumpOptimizer:
                 weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
-                start_hour=float(h.step_hours[0]),
+                step_hours=h.step_hours,
             )
 
         def objective(
@@ -5566,7 +5558,7 @@ class HeatPumpOptimizer:
                 weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
-                start_hour=float(h.step_hours[0]),
+                step_hours=h.step_hours,
             )
             # The grid sees the combined draw: space plus the fixed DHW plan.
             grid_power = (
@@ -5848,14 +5840,12 @@ class HeatPumpOptimizer:
         comfort_targets = h.comfort_targets
         step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
         forecast_heat_loss_factors = h.heat_loss_factors
-        start_time, t_start = h.start_time, h.t_start
+        t_start = h.t_start
 
         p_min = self.model.params.min_electrical_power
         p_max = self.model.params.max_electrical_power
         dhw_min_temp = self.model.params.dhw_min_temp
         dhw_setpoint = self.model.params.dhw_setpoint
-
-        start_hour = start_time.hour + start_time.minute / 60.0
 
         anticipatory_weights = self._anticipatory_weights(
             n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
@@ -5920,7 +5910,6 @@ class HeatPumpOptimizer:
                 warm_start,
                 h,
                 p_max,
-                n_steps,
                 dt,
                 prices,
                 init_base,
@@ -5974,7 +5963,7 @@ class HeatPumpOptimizer:
             space_power_schedule=heat_space,
             dhw_power_schedule=optimal_dhw,
             weather=WeatherSeries.from_horizon(h),
-            start_hour=start_hour,
+            step_hours=step_hours,
             dt_hours=dt,
             dhw_draw_rates=dhw_draw_rates,
             valve_targets=h.valve_targets,
@@ -5997,7 +5986,7 @@ class HeatPumpOptimizer:
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             planner._baseline_dhw_economics(
-                initial_state, outdoor_temps, n_steps, dhw_setpoint,
+                outdoor_temps, n_steps, dhw_setpoint,
                 paid_cost_of, baseline_power, heat_space, optimal_dhw, h.humidity,
             )
         )
@@ -6577,7 +6566,6 @@ class HeatPumpOptimizer:
         self,
         power_schedule: np.ndarray,
         room_temps: np.ndarray,
-        outdoor_temps: np.ndarray,
     ) -> list[float]:
         """Convert power schedule to equivalent temperature setpoints."""
         setpoints: list[float] = []

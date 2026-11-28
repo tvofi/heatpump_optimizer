@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify BOOLOP 0eeb79b8",
+  "killed_by": "tests/features.py",
+  "old": "                    if ua_ss > 0.0 and abs(ua_ss - ua) / ua > 0.10:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if ua_ss > 0.0 or abs(ua_ss - ua) / ua > 0.10:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

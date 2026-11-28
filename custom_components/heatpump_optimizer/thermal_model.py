@@ -188,8 +188,8 @@ def _flow_curve_values(config: Mapping[str, Any], cop_flow_carnot: bool) -> dict
     )
     return {
         "flow_curve_cop": enabled and not cop_flow_carnot,
-        "flow_curve_indoor_target": float(
-            config.get(const.CONF_TARGET_TEMP, const.DEFAULT_TARGET_TEMP)
+        "flow_curve_indoor_target": finite_float(
+            config.get(const.CONF_TARGET_TEMP), const.DEFAULT_TARGET_TEMP
         ),
     }
 
@@ -1054,17 +1054,15 @@ class ThermalParameters:
         values["mixing_valve_mode"] = (
             mode if mode in mixing_valve.MODES else mixing_valve.MODE_NONE
         )
-        values["mixing_valve_target"] = float(
-            config.get(
-                const.CONF_MIXING_VALVE_TARGET, const.DEFAULT_MIXING_VALVE_TARGET
-            )
-            or 0.0
+        values["mixing_valve_target"] = (
+            finite_float(config.get(const.CONF_MIXING_VALVE_TARGET))
+            or const.DEFAULT_MIXING_VALVE_TARGET
         )
-        values["buffer_max_temp"] = float(
-            config.get(const.CONF_BUFFER_MAX_TEMP, const.DEFAULT_BUFFER_MAX_TEMP)
+        values["buffer_max_temp"] = finite_float(
+            config.get(const.CONF_BUFFER_MAX_TEMP), const.DEFAULT_BUFFER_MAX_TEMP
         )
-        values["comfort_ceiling"] = float(
-            config.get(const.CONF_MAX_TEMP, const.DEFAULT_MAX_TEMP)
+        values["comfort_ceiling"] = finite_float(
+            config.get(const.CONF_MAX_TEMP), const.DEFAULT_MAX_TEMP
         )
         # The COP penalty only means anything when a valve can actually charge
         # the tank, so it follows the mode rather than being separately switched.
@@ -1083,8 +1081,8 @@ class ThermalParameters:
             values["wood_tank_volume"] = 0.0
             values["dhw_wood_coil_enabled"] = False
         else:
-            values["wood_tank_volume"] = float(
-                config.get(const.CONF_WOOD_TANK_VOLUME) or const.DEFAULT_WOOD_TANK_VOLUME)
+            values["wood_tank_volume"] = (
+                finite_float(config.get(const.CONF_WOOD_TANK_VOLUME)) or const.DEFAULT_WOOD_TANK_VOLUME)
             values["dhw_wood_coil_enabled"] = bool(config.get(
                 const.CONF_DHW_WOOD_COIL_ENABLED, const.DEFAULT_DHW_WOOD_COIL_ENABLED))
         # The stored layout choice (v3.16.0). An unknown string is dropped
@@ -2029,9 +2027,9 @@ class ThermalState:
     # planned charge and every heating write is taken to start the pump.
     dhw_start_hysteresis_k: float | None = None
     space_start_hysteresis_k: float | None = None
-    # The grid the hot-water set-point entity is written on
-    # (``inputs.SetpointGrid``); None with no entity to write.
+    # The hot-water set-point entity's grid (``inputs.SetpointGrid``); None with no entity to write.
     dhw_setpoint_grid: Any = None
+    dhw_charge_under_way: bool = True  # a hot-water charge runs now (``pump_signals.with_dhw_under_way``)
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift
@@ -4354,7 +4352,7 @@ class ThermalModel:
         *,
         dt_hours: float = 0.25,
         valve_targets: np.ndarray | None = None,
-        start_hour: float | None = None,
+        step_hours: np.ndarray | None = None,
     ) -> tuple[
         np.ndarray,
         np.ndarray,
@@ -4401,9 +4399,8 @@ class ThermalModel:
         # The hour only matters when a learned gains profile exists (#53);
         # this loop runs thousands of times per solve, so the per-step
         # modulo is not paid on the default path.
-        hours_matter = (
-            start_hour is not None
-            and self.params.internal_gains_profile is not None
+        gains_clock = (
+            step_hours if self.params.internal_gains_profile is not None else None
         )
 
         state = initial_state
@@ -4430,9 +4427,7 @@ class ThermalModel:
                     float(humidity[i]) if humidity is not None else None
                 ),
                 hour_of_day=(
-                    (start_hour + i * dt_hours) % 24.0
-                    if start_hour is not None and hours_matter
-                    else None
+                    float(gains_clock[i]) % 24.0 if gains_clock is not None else None
                 ),
                 buffer_exo_kw=0.0 if buffer_exo is None else float(buffer_exo[i]),
             )
@@ -4534,7 +4529,7 @@ class ThermalModel:
         *,
         dt_hours: float = 0.25,
         valve_targets: np.ndarray | None = None,
-        start_hour: float | None = None,
+        step_hours: np.ndarray | None = None,
     ) -> dict[str, np.ndarray]:
         """Simulate B trajectories at once: ``power_matrix`` is [B, n].
 
@@ -4596,9 +4591,7 @@ class ThermalModel:
             and p.two_tank_modelled
             and initial_state.wood_tank_temperature is not None
         )
-        hours_matter = (
-            start_hour is not None and p.internal_gains_profile is not None
-        )
+        gains_clock = step_hours if p.internal_gains_profile is not None else None
         # Configuration constants hoisted out of the step (uniform per batch).
         C_buf = _buffer_capacity(p)
         rad_fraction = p.radiator_power_fraction
@@ -4650,11 +4643,7 @@ class ThermalModel:
             ext = np.maximum(0.0, ext_i)
             exo_i = 0.0 if buffer_exo is None else float(buffer_exo[i])
             hum_i = float(humidity[i]) if humidity is not None else None
-            hour_i = (
-                (start_hour + i * dt_hours) % 24.0
-                if start_hour is not None and hours_matter
-                else None
-            )
+            hour_i = float(gains_clock[i]) % 24.0 if gains_clock is not None else None
 
             n_sub, u_first, u_second = self._substeps_and_loss(
                 wind_i, rain_i, dt_hours, ua_valve, C_buf
@@ -4858,7 +4847,7 @@ class ThermalModel:
         dhw_power_schedule: np.ndarray,
         weather: WeatherSeries,
         *,
-        start_hour: float = 0.0,
+        step_hours: np.ndarray | None = None,
         dt_hours: float = 0.25,
         dhw_draw_rates: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
@@ -4899,8 +4888,10 @@ class ThermalModel:
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
         )
+        # The caller's step clock, never start + i * dt across a DST day (P7, #3786).
+        clock = np.arange(n_steps) * dt_hours if step_hours is None else step_hours
+        hours = np.asarray(clock, dtype=float) % 24.0
         if dhw_draw_rates is None:
-            hours = (start_hour + np.arange(n_steps) * dt_hours) % 24.0
             dhw_draw_rates = self.dhw_draw_rates(hours)
 
         (room_temps, slab_temps, upper_temps, lower_temps, buffer_temps,
@@ -4909,7 +4900,6 @@ class ThermalModel:
         dhw_temps[0] = initial_state.dhw_temperature
 
         state = initial_state
-        current_hour = start_hour
         # The DHW refill coil (v3.15.1): active only with the two-tank
         # model, and only while the wood state is real. Hoisted so the
         # feature-off path stays byte-identical inside the loop.
@@ -4946,7 +4936,7 @@ class ThermalModel:
                 ),
                 humidity=_step_humidity(humidity, i),
                 hour_of_day=(
-                    current_hour % 24.0 if gains_hours_matter else None
+                    float(hours[i]) if gains_hours_matter else None
                 ),
                 buffer_exo_kw=exo_i,
             )
@@ -4971,7 +4961,7 @@ class ThermalModel:
                     dhw_power_thermal=dhw_charge_kw(
                         self, state.dhw_temperature, dhw_power_schedule[i],
                         outdoor_temps[i], _step_humidity(humidity, i)),
-                    hour_of_day=current_hour % 24.0,
+                    hour_of_day=float(hours[i]),
                     ambient_temp=TANK_ROOM_AMBIENT_TEMP,
                     dt_hours=dt_hours,
                     draw_power=draw_i,
@@ -4987,7 +4977,6 @@ class ThermalModel:
             if wood_temps is not None:
                 wood_temps[i + 1] = state.wood_tank_temperature
 
-            current_hour += dt_hours
 
         if end_state is not None:
             end_state.append(state)

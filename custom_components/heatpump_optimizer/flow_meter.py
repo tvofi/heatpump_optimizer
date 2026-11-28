@@ -144,8 +144,8 @@ def space_reference_cop(
 
 
 def observe_water(bias: Any, reader: Any, config: Any) -> None:
-    """Fold this cycle's supply, return and flow into the flow-bias holder."""
+    """Fold this cycle's supply temperature and flow output into the flow-bias holder."""
     temps = read_water_temps(reader)
     bias.observe_temps(
-        *temps, heat_output_kw=read_heat_output_kw(reader, config, temps)
+        temps[0], heat_output_kw=read_heat_output_kw(reader, config, temps)
     )

@@ -8553,6 +8553,178 @@ async def seam_config_one_place():
     await recover(flow, "finish_now", {}, (("setup_overview", {}),))
 
 
+def stored_options_of_the_wrong_type() -> None:
+    """R11-LATE-P1-OPTIONS: a stored option of the wrong type reads as its default.
+
+    The migration repairs a non-number stored under a declared numeric option
+    (``entry_config.number_repairs``) only when it stamps the version, so a value
+    written past it -- a hand edit, a restored backup -- still reaches the raw
+    readers. Each reader below is driven through its own production symbol with
+    the spellings ``float()`` refuses; each must return what it returns for the
+    absent key, and a well-typed value (the null control) must still be read.
+    """
+    from heatpump_optimizer import quiet_windows
+
+    bad = ("abc", None, {"x": 1}, [1.0], True, float("nan"))
+
+    def same(call, absent, label):
+        ok, got = True, []
+        for value in bad:
+            try:
+                result = call(value)
+            except (TypeError, ValueError) as err:
+                ok, result = False, f"raised {type(err).__name__}"
+            if result != absent:
+                ok = False
+                got.append(f"{value!r}->{result!r}")
+        R.check(f"R11-LATE-P1-OPTIONS: {label} reads a wrong-typed stored option as its default",
+                ok, "; ".join(got))
+
+    # The options flow's effective-value reader, through its two cross-field checks.
+    # Each pair is a check and a key it reads: _power_errors never reads the derate.
+    for check_fn, key in (
+        (config_flow._power_errors, const.CONF_HEAT_PUMP_MIN_POWER),
+        (config_flow._power_errors, const.CONF_HEAT_PUMP_MAX_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_MIN_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_MAX_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_COP_PARTLOAD_DERATE),
+    ):
+        same(lambda v: check_fn({}, {key: v}), check_fn({}, {}),
+             f"config_flow.{check_fn.__name__} on stored {key}")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored floor above the ceiling is still refused",
+            config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 99.0,
+                                           const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
+            == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"})
+    # The bound is strict, a design choice: a floor equal to the ceiling is a
+    # fixed-output pump, which the solver's bounds admit.
+    R.check("R11-LATE-P1-OPTIONS: a stored floor equal to the ceiling is not refused",
+            config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 5.0,
+                                           const.CONF_HEAT_PUMP_MAX_POWER: 5.0}) == {})
+
+    # The setup description's wood-tank volume.
+    def volume(v):
+        return topology.describe_setup({const.CONF_WOOD_TANK_VOLUME: v})["wood"]["volume_l"]
+    same(volume, topology.describe_setup({})["wood"]["volume_l"], "topology.describe_setup")
+    R.check("R11-LATE-P1-OPTIONS: null -- describe_setup reads a well-typed tank volume",
+            volume(321.0) == 321.0, f"{volume(321.0)!r}")
+
+    # The mixing-valve slot's manual setpoint.
+    def setpoint(v):
+        return topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY,
+                                     {const.CONF_MIXING_VALVE_TARGET: v})
+    same(setpoint, topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {}),
+         "topology._slot_extras")
+    R.check("R11-LATE-P1-OPTIONS: null -- _slot_extras reads a well-typed setpoint",
+            setpoint(21.5) == {"manual_setpoint": 21.5}, f"{setpoint(21.5)!r}")
+    R.check("R11-LATE-P1-OPTIONS: an unset mixing-valve target publishes a 0.0 setpoint",
+            topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {})
+            == {"manual_setpoint": 0.0},
+            f"{topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {})!r}")
+
+    # The measured quiet-window ceiling, off a compressor-frequency reading.
+    def states(entity_id):
+        return FakeState("60") if entity_id == "sensor.hz" else None
+    for key in (const.CONF_COMPRESSOR_FREQ_MIN_HZ, const.CONF_COMPRESSOR_FREQ_MAX_HZ):
+        def ceiling(v, key=key):
+            return quiet_windows.measured_ceiling_kw(
+                {key: v, const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, states, 9.0)
+        same(ceiling, quiet_windows.measured_ceiling_kw(
+            {const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, states, 9.0),
+             f"quiet_windows.measured_ceiling_kw on stored {key}")
+    hz = quiet_windows.measured_ceiling_kw(
+        {const.CONF_COMPRESSOR_FREQ_MAX_HZ: 120.0, const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"},
+        states, 9.0)
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored max Hz scales the ceiling",
+            hz is not None and abs(hz - 4.5) < 1e-9, f"{hz!r}")
+
+    # The thermal table's two raw reads (D1-s2-05's judged sites, past the migration).
+    from heatpump_optimizer import thermal_model
+
+    def tank(v):
+        return thermal_model.ThermalParameters.from_config(
+            {const.CONF_WOOD_FURNACE_ENABLED: True, const.CONF_WOOD_TANK_VOLUME: v}).wood_tank_volume
+    same(tank, thermal_model.ThermalParameters.from_config(
+        {const.CONF_WOOD_FURNACE_ENABLED: True}).wood_tank_volume,
+         "thermal_model.ThermalParameters.from_config")
+    R.check("R11-LATE-P1-OPTIONS: null -- from_config reads a well-typed tank volume",
+            tank(321.0) == 321.0, f"{tank(321.0)!r}")
+
+    def indoor(v):
+        return thermal_model._flow_curve_values({const.CONF_TARGET_TEMP: v}, False)
+    same(indoor, thermal_model._flow_curve_values({}, False), "thermal_model._flow_curve_values")
+    R.check("R11-LATE-P1-OPTIONS: null -- _flow_curve_values reads a well-typed target",
+            indoor(19.5)["flow_curve_indoor_target"] == 19.5, f"{indoor(19.5)!r}")
+
+    # The thermal table's other raw reads.
+    for key, field in ((const.CONF_MIXING_VALVE_TARGET, "mixing_valve_target"),
+                       (const.CONF_BUFFER_MAX_TEMP, "buffer_max_temp"),
+                       (const.CONF_MAX_TEMP, "comfort_ceiling")):
+        def param(v, key=key, field=field):
+            return getattr(thermal_model.ThermalParameters.from_config({key: v}), field)
+        same(param, getattr(thermal_model.ThermalParameters.from_config({}), field),
+             f"thermal_model.ThermalParameters.from_config on stored {key}")
+        R.check(f"R11-LATE-P1-OPTIONS: null -- from_config reads a well-typed {key}",
+                param(31.5) == 31.5, f"{param(31.5)!r}")
+
+    # The questionnaire's stored upper-floor share.
+    from heatpump_optimizer import modbus_prefill, presets
+
+    def ratio(v):
+        return presets.preset_from_config({}, {const.CONF_UPPER_FLOOR_AREA_RATIO: v}).upper_area_ratio
+    same(ratio, presets.preset_from_config({}, {}).upper_area_ratio, "presets.preset_from_config")
+    R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed ratio",
+            ratio(0.3) == 0.3, f"{ratio(0.3)!r}")
+
+    # The heated area: presets.grade passes the stored configuration as the answers.
+    def area(v):
+        return presets.preset_from_config({const.CONF_HEATED_AREA: v}, {}).heated_area_m2
+    same(area, presets.preset_from_config({}, {}).heated_area_m2,
+         "presets.preset_from_config on stored heated_area")
+    R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed area",
+            area(140.0) == 140.0, f"{area(140.0)!r}")
+
+    # The quick-setup derive: the options page's baseline copies the stored
+    # questionnaire keys, so a bare post hands it the stored heated area.
+    def derived(v):
+        return quick_setup.derive({const.CONF_HEATED_AREA: v})
+    same(derived, quick_setup.derive({}), "quick_setup.derive on stored heated_area")
+    # The quick-setup page's stored answers: a stored buffer volume.
+    def buffer_answer(v):
+        return quick_setup.suggested_answers({const.CONF_BUFFER_TANK_VOLUME: v})
+    same(buffer_answer, quick_setup.suggested_answers({}), "quick_setup.suggested_answers")
+    R.check("R11-LATE-P1-OPTIONS: null -- suggested_answers reads a well-typed volume",
+            buffer_answer(300.0)[quick_setup.FIELD_BUFFER_TANK] is True, f"{buffer_answer(300.0)!r}")
+
+    # The hot-water page's deadband rule, on the stored half of its pair.
+    for key in (const.CONF_DHW_SETPOINT, const.CONF_DHW_MIN_TEMP):
+        same(lambda v, key=key: config_flow._dhw_min_too_close({}, {key: v}),
+             config_flow._dhw_min_too_close({}, {}), f"config_flow._dhw_min_too_close on stored {key}")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored setpoint still closes the deadband",
+            config_flow._dhw_min_too_close({}, {const.CONF_DHW_SETPOINT: 46.0}) is True)
+
+    # The pre-fill page's uncapped-schedule rule, on the stored fraction.
+    windows = {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00"}
+    same(lambda v: config_flow._uncapped_schedule_errors(windows, {const.CONF_SILENT_MODE_FRACTION: v}),
+         config_flow._uncapped_schedule_errors(windows, {}), "config_flow._uncapped_schedule_errors")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored fraction of 1.0 is still refused",
+            config_flow._uncapped_schedule_errors(windows, {const.CONF_SILENT_MODE_FRACTION: 1.0})
+            == {const.CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"})
+
+    R.check("R11-LATE-P1-OPTIONS: null -- derive reads a well-typed area",
+            derived(95.0)[const.CONF_HEATED_AREA] == 95.0, f"{derived(95.0).get(const.CONF_HEATED_AREA)!r}")
+
+    # The Modbus prefill's ceiling, scaled by the stored nominal COP.
+    snap = {"unit_capacity": ("sensor.capacity", "7.0", 1.0)}
+
+    def ceiling_kw(v):
+        return modbus_prefill._plant(snap, {const.CONF_HEAT_PUMP_COP_NOMINAL: v})[
+            const.CONF_HEAT_PUMP_MAX_POWER]
+    same(ceiling_kw, modbus_prefill._plant(snap, {})[const.CONF_HEAT_PUMP_MAX_POWER],
+         "modbus_prefill._plant")
+    R.check("R11-LATE-P1-OPTIONS: null -- _plant scales by a well-typed nominal COP",
+            ceiling_kw(2.0) == 3.5, f"{ceiling_kw(2.0)!r}")
+
+
 async def main() -> int:
     if "--self-check" in sys.argv:
         return await self_check()
@@ -8605,6 +8777,7 @@ async def main() -> int:
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
     await options_room_list()
+    stored_options_of_the_wrong_type()
 
     rendered, recovered = LEDGER.error_triples()
     residual = sorted(f"{k}/{s}/{c}" for k, s, c in rendered - recovered)

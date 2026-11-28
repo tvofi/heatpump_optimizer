@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_slot GUARD_OFF 39ff0db0",
+  "killed_by": "tests/features.py",
+  "old": "    if window <= 60:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=-9 failed=3."
+}
