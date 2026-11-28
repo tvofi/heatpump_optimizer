@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 10.1.6
+# claims-for: 10.1.7
 #
-# v10.1.6: Stored options and booleans of the wrong type read as defaults; review verdict auto-carry; CI queue changes. The stamp empties the list; the
+# v10.1.7: Unread state deleted; round-11 mutant kills pinned. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 config_flow # R11-OWNER-FAULT-HOLD (#3872): the pump-entities page gains the fault_hold option (a BooleanSelector, default on) beside the Fault alarm entity, so the seed, the seeded render and the plain render each gain the key; all three moved leaves are "present on one side only", ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No solve fixture stores the option, so every other fixture is byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
