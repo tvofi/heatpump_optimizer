@@ -1,0 +1,9 @@
+MUTANT orch-refusal: rc=1 KILLED 
+MUTANT orch-default: rc=1 KILLED 
+MUTANT selfgroup-const: rc=1 KILLED   FAIL  self_group_for names the round's own closeout group;  FAIL  a round-11 roster proceeds past its own group and names R10's as a blocker;
+MUTANT selfgroup-noraise: rc=1 KILLED   FAIL  a file that is not a roster names no self group (refuses);
+MUTANT run-uses-const: rc=0 SURVIVED 
+MUTANT ctx-const: rc=0 SURVIVED 
+MUTANT tip-no-retry: rc=1 KILLED   FAIL  tip_ages: a batch with one missing sha still reads the others;  PASS  a ref moved after the plan read is not deleted: delete-FAILED, its new tip stays;SELF-TEST FAIL (81 checks);
+MUTANT tip-no-len: rc=0 SURVIVED   PASS  a ref moved after the plan read is not deleted: delete-FAILED, its new tip stays;
+MUTANT tip-return0: rc=1 KILLED   FAIL  tip_ages: a batch with one missing sha still reads the others;  PASS  a ref moved after the plan read is not deleted: delete-FAILED, its new tip stays;SELF-TEST FAIL (81 checks);
