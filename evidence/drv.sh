@@ -1,0 +1,1 @@
+cd "$1" && PYTHONPATH=tests/hastub:tests timeout 200 python3 -c 'import replay; [print("PASS" if ok else "FAIL", n, d) for n, ok, d in replay.controls() if "headroom" in n and ("linear" in n or "reads_the_replay" in n)]'
