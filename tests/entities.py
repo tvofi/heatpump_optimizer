@@ -32938,8 +32938,7 @@ def _recarry_head_fixture():
         (w / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
         (w / "other.txt").write_text("v1\n")
         (w / ".gitignore").write_text("body.md\n")
-        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(o)], capture_output=True,
-                       env={**os.environ, **throwaway_git_env()})
+        throwaway_git_init(o, "-q", "--bare", "-b", "main")
         throwaway_git_init(w, "-q", "-b", "main")
         g("remote", "add", "origin", str(o))
         base = commit("base", {})

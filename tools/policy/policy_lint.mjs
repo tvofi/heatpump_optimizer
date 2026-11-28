@@ -6879,18 +6879,17 @@ function autofixChain(head, names) {
 // predicate, `review_carry.py` (`app_approve.sh --carry` beneath it), never
 // copied: CARRY from a commit `## Head` names is a head the body describes.
 // Asked only of a named commit the head descends from and origin/main does not
-// hold; the predicate answers its own fork question (a head no branch of origin
+// hold (`git rev-list <head> --not origin/main`); the predicate answers its own fork question (a head no branch of origin
 // holds carries only the automatic merge of main), and anything but its exit 0
 // -- FRESH-REVIEW, cannot decide, no such program -- leaves the refusal.
 // `{ base, why }` on a carry, `{ why }` otherwise. `root` is the tree whose
 // review_carry.py answers: in CI the base's, which pr-contract restores.
-function carriedHead(head, headSec, root = ROOT) {
-  const isAnc = (a, b) => spawnSync('git', ['merge-base', '--is-ancestor', a, b], { cwd: ROOT, stdio: 'ignore' }).status === 0
-  const named = []
-  for (const tok of new Set(headSec.match(/\b[0-9a-f]{7,40}\b/g) ?? [])) {
-    const sha = git(['rev-parse', '--verify', '--quiet', `${tok}^{commit}`], { allowFail: true, quiet: true }).trim()
-    if (/^[0-9a-f]{40}$/.test(sha) && sha !== head && !named.includes(sha) && isAnc(sha, head) && !isAnc(sha, 'origin/main')) named.push(sha)
-  }
+function carriedHead(head, names, root = ROOT) {
+  // The candidates are the head's own commits outside origin/main that `names`
+  // -- the direct check's own rule, a full SHA or its 7-character prefix --
+  // finds in the section: one naming rule for `## Head`, not a second grammar.
+  const named = git(['rev-list', head, '--not', 'origin/main'], { allowFail: true, quiet: true })
+    .split('\n').map((x) => x.trim()).filter((sha) => /^[0-9a-f]{40}$/.test(sha) && sha !== head && names(sha))
   if (!named.length) return { why: 'the section names no commit this head descends from that origin/main does not hold' }
   const whys = []
   for (const sha of named) {
@@ -7305,7 +7304,7 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
   const names = (sha) => headSec.includes(sha) || headSec.includes(sha.slice(0, 7))
   if (head && headSec && !names(head)) {
     const chain = autofixChain(head, names)
-    const carried = chain.base ? null : carriedHead(head, headSec)
+    const carried = chain.base ? null : carriedHead(head, names)
     if (chain.base) {
       notes.push(`HEAD: \`## Head\` names ${chain.base.slice(0, 7)}; accepted autofix commit(s) on top of it: ${
         chain.accepted.map((c) => `${c.sha.slice(0, 7)} (${c.message})`).join(', ')}`)

@@ -142,21 +142,23 @@ effective="${set_flags[*]:-none}"
 
 if [ "$selftest" = 1 ]; then
   [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded train bash "$0" --self-test; }  # pr_args.sh's self-test bound
-  # 0. every arm runs this script from a throwaway clone of a local bare origin, so each launch's
+  # 0. every arm runs this script from a throwaway clone of a local origin, so each launch's
   #    checkout_fresh fetches that origin, never this repository's: a branch behind main would
-  #    otherwise refuse its own self-test. The copy is of "$0", so a mutant is what runs.
+  #    otherwise refuse its own self-test. The copy is of "$0", so a mutant is what runs. The
+  #    origin is a plain repository on main, and "main moved" is a commit made in it.
+  . "$(dirname -- "$0")/../../../tests/throwaway_git.sh" && throwaway_git_env
   if [ -z "${TRAIN_FX:-}" ]; then
-    . "$(dirname -- "$0")/../../../tests/throwaway_git.sh" && throwaway_git_env
     fx=$(mktemp -d)
-    git init -q --bare -b main "$fx/o.git" && git clone -q "$fx/o.git" "$fx/c" 2>/dev/null \
-      && mkdir -p "$fx/c/tools/audit/seat" && cp "$0" "$fx/c/tools/audit/seat/train.sh" \
-      && cp "$(dirname -- "$0")/pr_args.sh" "$(dirname -- "$0")/merge_train.py" "$fx/c/tools/audit/seat/" \
-      && git -C "$fx/c" add -A && git -C "$fx/c" commit -qm fixture && git -C "$fx/c" push -q origin HEAD:main \
+    throwaway_git_init "$fx/o" -q -b main && mkdir -p "$fx/o/tools/audit/seat" "$fx/o/tests" \
+      && cp "$0" "$fx/o/tools/audit/seat/train.sh" \
+      && cp "$(dirname -- "$0")/pr_args.sh" "$(dirname -- "$0")/merge_train.py" "$fx/o/tools/audit/seat/" \
+      && cp "$(dirname -- "$0")/../../../tests/throwaway_git.sh" "$fx/o/tests/" \
+      && git -C "$fx/o" add -A && git -C "$fx/o" commit -qm fixture && throwaway_git_clone -q "$fx/o" "$fx/c" \
       || { rm -rf "$fx"; die "self-test: the fixture checkout could not be built"; }
     TRAIN_FX=$fx bash "$fx/c/tools/audit/seat/train.sh" --self-test; rc=$?
     rm -rf "$fx"; exit "$rc"
   fi
-  fxclone() { git clone -q "$TRAIN_FX/o.git" "$1" 2>/dev/null; }  # a checkout of the fixture's origin
+  fxclone() { throwaway_git_clone -q "$TRAIN_FX/o" "$1"; }  # a checkout of the fixture's origin
   # 1. missing required arguments refuse.
   for miss in "--repo x" "--state-dir x"; do
     if "$0" --queue /dev/null $miss >/dev/null 2>&1; then
@@ -438,9 +440,9 @@ if [ "$selftest" = 1 ]; then
   printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
     > "$st/venv-ci/bin/python3"
   chmod +x "$st/venv-ci/bin/python3"
-  : > "$st/queue.json"; fxclone "$st/w"
-  mainadds() { mkdir -p "$st/w/$(dirname "$1")" && echo m > "$st/w/$1" && git -C "$st/w" add "$1" \
-    && git -C "$st/w" commit -qm "main: $1" && git -C "$st/w" push -q origin HEAD:main; }
+  : > "$st/queue.json"
+  mainadds() { mkdir -p "$TRAIN_FX/o/$(dirname "$1")" && echo m > "$TRAIN_FX/o/$1" && git -C "$TRAIN_FX/o" add "$1" \
+    && git -C "$TRAIN_FX/o" commit -qm "main: $1"; }
   launch() { rm -f "$st/argv"; out=$(HPO_STATE_DIR="$st" "$@" 2>&1); rc=$?; ran=$([ -s "$st/argv" ] && echo ran || echo unrun); }
   mainadds docs/zz
   launch "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state"
