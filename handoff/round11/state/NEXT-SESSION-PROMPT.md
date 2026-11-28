@@ -14,6 +14,8 @@ git show origin/handoff/audit-r11-roster:dev/programme/rosters/wave-r11-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R11-OUTSIDE-HONEST-DHW-RUNS (stage in-progress, branch `handoff/r11-outside-honest-dhw-runs`): `git fetch origin handoff/r11-outside-honest-dhw-runs && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-CLOSEOUT-CLEANUP (stage in-progress, branch `fix/r11-closeout-cleanup`): `git fetch origin fix/r11-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-PRODUCT-TEXT-PINS (stage in-progress, branch `fix/r11-product-text-pins`): `git fetch origin fix/r11-product-text-pins && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-inputs-freshness (stage in-progress, branch `handoff/r11-seam-inputs-freshness`): `git fetch origin handoff/r11-seam-inputs-freshness && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-learners (stage in-progress, branch `handoff/r11-seam-learners`): `git fetch origin handoff/r11-seam-learners && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-actuation-writes (stage in-progress, branch `handoff/r11-seam-actuation-writes`): `git fetch origin handoff/r11-seam-actuation-writes && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -29,7 +31,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-OWNER-COOLING-AUTORETURN (stage in-progress, branch `handoff/r11-owner-cooling-autoreturn`): `git fetch origin handoff/r11-owner-cooling-autoreturn && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OUTSIDE-START-APPROACH (stage in-progress, branch `handoff/r11-outside-start-approach`): `git fetch origin handoff/r11-outside-start-approach && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-D3-PINS-money (stage carries-open, branch `handoff/r11-d3-pins-money`): `git fetch origin handoff/r11-d3-pins-money && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-OWNER-FEATURES-SPLIT (stage in-progress, branch `handoff/r11-owner-features-split`): `git fetch origin handoff/r11-owner-features-split && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R11-OWNER-FEATURES-SPLIT (stage carries-open, branch `handoff/r11-owner-features-split`): `git fetch origin handoff/r11-owner-features-split && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
 Ready next (after-edges satisfied; nothing open constrains them): R11-CI-CASE-SELECT-P2, R11-CLOSEOUT-CLEANUP, R11-D3-JUDGE-RETAKE, R11-D3-PINS-money, R11-DX0-OWNER-ACTS, R11-NO-READ-BUILDERS-C, R11-OUTSIDE-HONEST-DHW-RUNS, R11-OWNER-FEATURES-SPLIT, R11-OWNER-FROST-HOLD, R11-PRODUCT-TEXT-PINS, R11-RCA-CLASS-I1, R11-RECARRY-HEAD-RULE, R11-SEAM-actuation-writes, R11-SEAM-comments-tests, R11-SEAM-cycle-reporting, R11-SEAM-cycle-solve, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SELFTEST-SCOPE-P3, R11-WHATIF-PAIR-SCATTER, R12-D0-CONTINUATION-GUARD
 
