@@ -145,6 +145,10 @@ step by :mod:`duty_ledger`. The last
 is not persisted. It is what decides whether control is worth turning on:
 ``delivered`` over the other verdicts is how often the pump already does
 what the plan wanted.
+
+**A latched fault suspends control** (:mod:`fault_hold`): while the pump's
+fault alarm holds, a pass writes nothing, an unload leaves the baseline row
+owed, and the ledger scores the step ``device-fault``.
 """
 from __future__ import annotations
 
@@ -166,7 +170,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, draw_range, duty_ledger, duty_switch, flow_limit, issues, off_restore, pump_mode, quiet_windows
+from . import boost, draw_range, duty_ledger, duty_switch, fault_hold, flow_limit, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -265,10 +269,6 @@ def log_steps() -> int:
 
 
 _TICK = timedelta(minutes=1)
-#: How long into a step the meter still reads the last step (#2492 carry 8):
-#: the supply tick writes the switch in the step's first tick, and the
-#: arbiter's tick in that same minute reads the draw from before the write.
-RUN_SETTLE = _TICK
 
 #: The power-feedback loop on a water set-point (R10-WATER-SETPOINT-FEEDBACK,
 #: outside report #3380): a controller that integrates on target minus inlet
@@ -1829,34 +1829,12 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
         await _write(coord, inp, slot, values[slot], now)
 
 
-def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
-    """Fold this pass into the current step's ledger row; close the last one.
-
-    ``planned`` is re-frozen whenever a new plan is adopted inside the step:
-    the cycle's re-solve can move a slot onto the current step, and the
-    switch is written from that plan, so the step is scored against the
-    plan that actuated it, not the one in force at its first tick. A meter
-    reading inside ``RUN_SETTLE`` of the step's start is the last step's tail
-    and folds into neither ``measured`` nor ``ran``.
-    """
-    held.last_duty = duty
-    start = plan_step_start(now)
-    tank = getattr(inp.state, "dhw_temperature", None)
-    row = held.step
-    if row is None or row["start"] != start:
-        if row is not None:
-            held.log.append(duty_ledger.step_verdict(row, tank))
-        held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
-                           "measured": False, "ran": False, "dhw_mode": False}
-        row["start_below"] = _dhw_start_below_c(inp)
-    elif row["plan"] is not inp.plan:
-        row["planned"], row["plan"] = duty, inp.plan
+def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime, faulted: bool = False) -> None:
+    """Fold this pass into the step ledger (:func:`duty_ledger.observe`) with what it read."""
     power = inp.measured_power_kw
-    if power is not None and now - start >= RUN_SETTLE:
-        row["measured"] = True
-        row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
     mode = pump_mode.resolve(getattr(_slot_state(inp, "mode"), "state", None))
-    row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
+    duty_ledger.observe(held, inp, duty, now, ran=None if power is None else float(power) >= _ran_kw(inp),
+                        dhw_mode=mode == pump_mode.MODE_DHW, start_below=_dhw_start_below_c(inp), faulted=faulted)
 
 
 def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
@@ -1873,7 +1851,9 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
     """One arbitration pass; safe to call from the cycle and from the tick."""
     now = now or dt_util.now()
     held = state_for(coord)
-    mode = duty_mode(coord.arbiter_inputs().config)
+    inp = coord.arbiter_inputs()
+    faulted = fault_hold.consult(coord.entry, inp, now)  # every install, duty off too
+    mode = duty_mode(inp.config)
     if mode == DUTY_OFF:
         release_listeners(coord)
         return
@@ -1883,10 +1863,11 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
         if inp.entry_released:
             return  # queued before the unload: arm and write nothing (D1-s3-02)
         _listen(coord)
-        await _arbitrate(coord, held, inp, mode, now)
+        await _arbitrate(coord, held, inp, mode, now, faulted)
 
 
-async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: str, now: datetime) -> None:
+async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: str, now: datetime,
+                     faulted: bool = False) -> None:
     if inp.mode == MODE_OFF or mode != DUTY_CONTROL:
         # Off writes nothing here: the baseline row and the space set-point's
         # baseline are written back by off_restore (tvofi, 2026-11-15; ROW,
@@ -1902,9 +1883,9 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     if boost.release_blocked(coord, inp, now):
         await boost.persist(coord)
     duty = _step_duty(coord, held, inp, now)
-    _observe(held, inp, duty, now)
+    _observe(held, inp, duty, now, faulted)
     await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))
-    if mode != DUTY_CONTROL or _pump_off(inp, held):
+    if mode != DUTY_CONTROL or _pump_off(inp, held) or _fault_stands(inp.hass, held, faulted):
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
@@ -1913,6 +1894,21 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, served, boosted, now)
     await _write_night_schedule(coord, inp, now)
+
+
+def _fault_stands(hass: Any, held: ArbiterState, faulted: bool) -> bool:
+    """Whether a latched fault suspends this pass (:mod:`fault_hold`).
+
+    Nothing is compared or written: the space reading before the next write
+    is forgotten, as :func:`_pump_off` forgets it, and a pending retry dies
+    with its warning, so the pass after the clear writes the step's row and a
+    reset the fault left is never adopted as a person's edit.
+    """
+    if faulted:
+        held.space_before = None
+        held.retry.clear()
+        issues.clear_issue(hass, ISSUE_IGNORED)
+    return faulted
 
 
 def _step_duty(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> str | None:
@@ -1940,7 +1936,7 @@ async def _lead_mode(coord: Any, on: bool) -> None:
     async with held.lock:
         await _load(coord)
         inp = coord.arbiter_inputs()
-        if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
+        if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held) or fault_hold.held(coord.entry):
             return
         duty = _step_duty(coord, held, inp, now)
         await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
@@ -2157,11 +2153,13 @@ async def release(coord: Any) -> None:
     """Unload: let go of the listeners and save the record; nothing is written.
 
     The unload's restore (:mod:`off_restore`) has written the baseline row
-    and the space set-point's baseline back already.
+    and the space set-point's baseline back already, unless a latched fault
+    (:mod:`fault_hold`) held it; the latch and its repair go here.
     """
     release_listeners(coord)
     held = state_for(coord)
     release_supply(held)
+    fault_hold.release(coord.hass, coord.entry)
     if held.loaded:
         await _persist(coord)
 
@@ -2180,14 +2178,15 @@ def baseline_row(coord: Any, inp: ArbiterInputs, now: datetime) -> PumpCommand:
 async def _release_row(_hass: Any, entry: Any, _config: Any, reason: str) -> bool:
     """The off restore of :data:`ROW`: write the baseline row; True once every slot took it.
 
-    While the power switch reads off the pump takes no write
-    (:func:`_pump_off`), so the row stays owed and the next cycle tries
-    again; an unload has no next cycle and writes regardless. Takes no
-    arbiter lock: a pass that forgets the record between two of these
-    writes drops only what is cleared here anyway.
+    While the power switch reads off the pump takes no write (:func:`_pump_off`),
+    so the row stays owed and the next cycle tries again; an unload has no next
+    cycle and writes regardless, but not into a latched fault (:mod:`fault_hold`),
+    on the restore run again after :func:`release` too: that row stays owed. Off
+    ends the hold, so its row is written. Takes no arbiter lock: a pass that
+    forgets the record between two of these writes drops only what is cleared here.
     """
     coord = getattr(entry, "runtime_data", None)
-    if coord is None:
+    if coord is None or (reason == "unload" and fault_hold.unload_holds(coord.entry)):
         return False
     inp, held, now = coord.arbiter_inputs(), state_for(coord), dt_util.now()
     if reason != "unload" and _pump_off(inp, held):

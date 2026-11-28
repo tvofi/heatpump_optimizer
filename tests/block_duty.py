@@ -23,6 +23,7 @@ from heatpump_optimizer import boost as boost_mod  # noqa: E402
 from heatpump_optimizer import duty_ledger  # noqa: E402
 from heatpump_optimizer import entity as entity_mod  # noqa: E402
 from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
+from heatpump_optimizer import duty_ledger  # noqa: E402
 from heatpump_optimizer import setpoint_check  # noqa: E402
 from heatpump_optimizer import switch as switch_mod  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
@@ -1164,6 +1165,10 @@ def hysteresis_checks() -> None:
 
     check("an idle hot water step on a tank above the start temperature is not-startable",
           lambda: verdict() == "not-startable")
+    check("a step a pass held under a latched fault is device-fault, before every other verdict "
+          "(R11-OWNER-FAULT-HOLD)",
+          lambda: [verdict(planned=p, faulted=True) for p in ("dhw", "space", "both", None)]
+          == ["device-fault"] * 4 and verdict(faulted=False) == "not-startable")
     check("an idle hot water step on a tank exactly at the start temperature is not-startable",
           lambda: verdict(51.0) == "not-startable")
     check("an idle hot water step on a tank below the start temperature is idle-instead",
