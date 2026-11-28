@@ -1,0 +1,32 @@
+== f7b44e69ec Merge origin/main into PR #3845: dev/audit/config/scopes.json takes main's D5 s7 re-cut (7df39f34)
+
+diff --git a/dev/audit/config/scopes.json b/dev/audit/config/scopes.json
+remerge CONFLICT (content): Merge conflict in dev/audit/config/scopes.json
+index e1ee47773d..a4bea3234e 100644
+--- a/dev/audit/config/scopes.json
++++ b/dev/audit/config/scopes.json
+@@ -425,11 +425,7 @@
+    "s7": [
+     {
+      "files": [
+-<<<<<<< 36417ab5fa (Merge commit '361cc26c97d27d423469e8e9d66dc3b9a3831e10' into fix/r11-seam-cycle-reporting-pr)
+-      "tests/features.py"
+-=======
+       "tests/fe*"
+->>>>>>> ef797d7940 (Merge pull request #3924 from tvofi/fix/r11-selftests-shard)
+      ],
+      "steps": [
+       "M1",
+@@ -442,12 +438,7 @@
+    "s8": [
+     {
+      "files": [
+-<<<<<<< 36417ab5fa (Merge commit '361cc26c97d27d423469e8e9d66dc3b9a3831e10' into fix/r11-seam-cycle-reporting-pr)
+-      "tests/{a,b,c,d,g}*",
+-      "tests/f{i,r}*",
+-=======
+       "tests/{a,b,c,d,fi,fr,g}*",
+->>>>>>> ef797d7940 (Merge pull request #3924 from tvofi/fix/r11-selftests-shard)
+       "tools/policy/**"
+      ],
+      "steps": [

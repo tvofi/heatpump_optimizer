@@ -1,0 +1,17 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_learning.py b/custom_components/heatpump_optimizer/dhw_learning.py
+index c4021ac988..495ce0c954 100644
+--- a/custom_components/heatpump_optimizer/dhw_learning.py
++++ b/custom_components/heatpump_optimizer/dhw_learning.py
+@@ -381,9 +381,10 @@ class DhwProfileLearner:
+             self.draw_stats = DrawStats.from_dict(stored)
+ 
+     async def async_save_draws(self) -> None:
+-        async def save() -> None:
++        try:
+             await self.draws_store.async_save(self.draw_stats.as_dict())
+-        await save_held(self.draws_store, "DHW draw statistics", save)
++        except Exception as err:  # noqa: BLE001
++            _LOGGER.debug("Could not persist DHW draw statistics: %s", err)
+ 
+     def pattern_for(self, weekend: bool) -> list[float]:
+         """The #18 blended pattern for one day type, volume-preserving.

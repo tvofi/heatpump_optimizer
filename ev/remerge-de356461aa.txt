@@ -1,0 +1,6 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17220 + both deltas = 17214
+  module_excess_loc: 21646 + both deltas = 21615
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+== de356461aa Merge origin/main into fix/r11-seam-cycle-reporting-pr
