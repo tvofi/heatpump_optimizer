@@ -28,7 +28,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-SEAM-comments-production (stage carries-open, branch `handoff/r11-seam-comments-production`): `git fetch origin handoff/r11-seam-comments-production && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-SEAM-comments-tests (stage carries-open, branch `handoff/r11-seam-comments-tests`): `git fetch origin handoff/r11-seam-comments-tests && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-ARCH-fabric-learner (stage in-progress, branch `handoff/r11-arch-fabric-learner`): `git fetch origin handoff/r11-arch-fabric-learner && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R11-SEAM-wallclock-dst (stage in-progress): no branch pushed yet, so nothing to fetch
+- R11-SEAM-wallclock-dst (stage carries-open): no branch pushed yet, so nothing to fetch
 - R11-OWNER-FROST-HOLD (stage in-progress, branch `handoff/r11-owner-frost-hold`): `git fetch origin handoff/r11-owner-frost-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-FAULT-HOLD (stage in-progress, branch `handoff/r11-owner-fault-hold`): `git fetch origin handoff/r11-owner-fault-hold && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-OWNER-MODE-LEGS (stage in-progress, branch `handoff/r11-owner-mode-legs`): `git fetch origin handoff/r11-owner-mode-legs && git worktree add --detach $SEAT/wt FETCH_HEAD`
