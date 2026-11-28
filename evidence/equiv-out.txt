@@ -1,0 +1,1 @@
+corpus 115840 strings, base matched 23265; head disagrees on 0; null control disagrees on 8400
