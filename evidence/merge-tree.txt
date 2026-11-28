@@ -1,1 +1,7 @@
-17605524df1ca9398b1b7edd627928e2a29fe16f
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17204 + both deltas = 17189
+  module_excess_loc: 21607 + both deltas = 21588
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+9d2884a8a058f9243e2833ea64a44aa5f3888d61
+mt=0
