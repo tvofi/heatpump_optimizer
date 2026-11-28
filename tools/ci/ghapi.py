@@ -13,6 +13,7 @@ there that imports urllib (contract item 2), stdlib only.
                                          SARIF `Accept`); additive, the contract's form stands
     post(path, body=None)  -> Resp
     paginate(path, params) -> list       every item of every page, Link-followed
+    Meter(get=None)                      a `get` of the same signature that accounts its time
 
 A GET retries a 5xx or a TRANSPORT failure twice (RETRY_5XX backoffs) before
 answering, or raising the last transport failure. A non-2xx
@@ -24,6 +25,11 @@ hook re-runs before the reset. GitHub words the primary limit "API rate limit
 exceeded" and the secondary one "You have exceeded a secondary rate limit":
 both are matched. `paginate` raises `ApiError` on any non-200 page. The token
 is GITHUB_TOKEN, else GH_TOKEN.
+
+A `Meter` splits a caller's wall time in GETs into `api_s`, spent in the transport,
+and `sleep_s`, spent in RETRY_5XX backoffs, each nap with the path that caused it
+(#3885 L3): over the real client it times each attempt and each nap apart; over an
+injected `get` (a self-test's) all of a call's time is `api_s`.
 """
 from __future__ import annotations
 
@@ -108,12 +114,15 @@ def _sleep(seconds: float) -> None:
     time.sleep(seconds)
 
 
-def get(path: str, params=None, headers=None):
+def get(path: str, params=None, headers=None, meter=None):
     """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), and so is a TRANSPORT
     failure (#2859: prelude red on one IncompleteRead), so a GET retries either after each
     backoff in RETRY_5XX and then returns what it got, or raises the last transport failure; any
-    other status, a rate limit included, answers at once. A POST is never retried."""
+    other status, a rate limit included, answers at once. A POST is never retried. A `meter`
+    is credited each attempt's time as API time and each backoff's as sleep."""
+    clock = meter.clock if meter else None
     for nap in RETRY_5XX + (None,):
+        t0 = clock() if clock else 0.0
         try:
             resp = _request("GET", path, params, headers=headers)
         except TRANSPORT:
@@ -122,7 +131,37 @@ def get(path: str, params=None, headers=None):
         else:
             if resp[0] < 500 or nap is None:
                 return resp
+        finally:
+            if clock:
+                meter.api_s += clock() - t0
+        t0 = clock() if clock else 0.0
         _sleep(nap)
+        if clock:
+            meter.slept(path, clock() - t0)
+
+
+class Meter:
+    """A `get` that accounts its wall time: `api_s` and `calls` in the API, `sleep_s` and
+    `naps` [(path, seconds)] in backoffs. Over `get=None` (the real client) the split is
+    ghapi.get's own; over an injected `get` the whole call is API time."""
+
+    def __init__(self, get=None, clock=time.monotonic):
+        self._inner, self.clock = get, clock
+        self.api_s, self.sleep_s, self.calls, self.naps = 0.0, 0.0, 0, []
+
+    def slept(self, path: str, seconds: float) -> None:
+        self.sleep_s += seconds
+        self.naps.append((path.split("?")[0], round(seconds, 3)))
+
+    def __call__(self, path: str, params=None, headers=None):
+        self.calls += 1
+        if self._inner is None:
+            return get(path, params, headers, meter=self)
+        t0 = self.clock()
+        try:
+            return self._inner(path, params) if headers is None else self._inner(path, params, headers)
+        finally:
+            self.api_s += self.clock() - t0
 
 
 def post(path: str, body=None):
@@ -312,6 +351,23 @@ def self_test() -> int:
                 check("a non-transport exception raises", "returned", "raised")
             except ValueError:
                 check("a non-transport exception raises at once (null control)", len(calls), 1)
+            # #3885 L3: a Meter splits API time from backoff time, and names the path that slept.
+            t = [0.0]
+            _open = lambda req, seq=iter([502, 200]): (t.__setitem__(0, t[0] + 0.5),  # noqa: E731
+                                                         serve(next(seq), b"{}")(req))[1]
+            _sleep = lambda s: t.__setitem__(0, t[0] + s)  # noqa: E731
+            m = Meter(clock=lambda: t[0])
+            check("Meter: a 502 then a 200 answers the 200", m("repos/o/r/actions/runs/1/jobs", {"page": 1})[0], 200)
+            check("Meter: two attempts' transport time is API time, the backoff is sleep",
+                  (m.calls, m.api_s, m.sleep_s, m.naps), (1, 1.0, float(RETRY_5XX[0]),
+                                                          [("repos/o/r/actions/runs/1/jobs", RETRY_5XX[0])]))
+            _open = lambda req: (t.__setitem__(0, t[0] + 0.25), serve(200, b"{}")(req))[1]  # noqa: E731
+            m = Meter(clock=lambda: t[0])
+            m("x")
+            check("Meter: an answer at once sleeps nothing (null control)", (m.api_s, m.sleep_s, m.naps), (0.25, 0.0, []))
+            m = Meter(lambda path, params=None: (t.__setitem__(0, t[0] + 3.0), (200, {}, None))[1], clock=lambda: t[0])
+            m("x")
+            check("Meter: an injected get's whole call is API time", (m.calls, m.api_s, m.sleep_s), (1, 3.0, 0.0))
         finally:
             _sleep = saved_sleep
         _open = serve(200, b"{}")
