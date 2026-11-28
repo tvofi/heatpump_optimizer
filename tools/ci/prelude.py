@@ -42,6 +42,9 @@ held while a source runs. A busy head prints `defer=<run ids>`, and ci.yml's ste
 `Defer: sources still running` fails the prelude at once; tools/ci/sweep.py re-runs
 the failed jobs of that run when a run it deferred to completes (`sweep.undefer`).
 A failed read or a rate limit (`RATE-LIMITED`) fails closed (A1 item 4).
+Every exit past the argument check also prints one `PRELUDE-TIMING {json}` line to
+stderr and the step summary (`timing`, #3885 L3): GET time, backoff time and the runs
+deferred to, measured by a ghapi.Meter; it decides nothing and never fails the job.
 """
 from __future__ import annotations
 
@@ -719,7 +722,37 @@ def outputs(ctx: dict, changed: list[str] | None, get, proof=proof_scope,
     return out, why
 
 
-def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
+TIMING = "PRELUDE-TIMING"
+
+
+def timing(meter: ghapi.Meter, wall_s: float, outcome: str, defer: str, attempt: int) -> str:
+    """#3885 L3: the one machine-readable line of where this prelude's wall time went --
+    `api_s` in GitHub GETs, `sleep_s` in their 5xx/transport backoffs (each nap and the path
+    that caused it), the rest local work -- and the runs it DEFERRED to: a deferral holds no
+    runner, so its wait is the gap to the attempt the sweep starts, `attempt` + 1."""
+    r = lambda x: round(x, 3)  # noqa: E731
+    return TIMING + " " + json.dumps({
+        "outcome": outcome, "attempt": attempt, "wall_s": r(wall_s), "api_s": r(meter.api_s),
+        "api_calls": meter.calls, "sleep_s": r(meter.sleep_s), "naps": [list(n) for n in meter.naps],
+        "local_s": r(max(0.0, wall_s - meter.api_s - meter.sleep_s)),
+        "defer": [int(i) for i in defer.split()]}, separators=(",", ":"))
+
+
+def report(line: str, env) -> None:
+    """The timing line to the job log (stderr: stdout is GITHUB_OUTPUT) and the step summary.
+    A summary that cannot be written is named, never a failure: it decides nothing."""
+    print(line, file=sys.stderr)
+    path = env.get("GITHUB_STEP_SUMMARY")
+    if path:
+        try:
+            with open(path, "a") as fh:
+                fh.write(f"### prelude timing\n\n`{line}`\n")
+        except OSError as e:
+            print(f"NOTE step summary unwritten: {e}", file=sys.stderr)
+
+
+def main(argv: list[str], get=None, env=os.environ, clock=None) -> int:
+    """`get` is ghapi's client unless injected; either way it is metered (`timing`)."""
     if argv == ["--self-test"]:
         return self_test()
     changed = None
@@ -728,18 +761,26 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
     elif argv:
         print("usage: prelude.py [--changed-from FILE] | --self-test", file=sys.stderr)
         return 2
-    ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
+    meter = ghapi.Meter(get, **({"clock": clock} if clock else {}))
+    t0, outcome, out = meter.clock(), "fail", {}
     try:
-        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get, fast=shards.outputs)
-    except ghapi.RateLimited as e:
-        print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
-        return 3
-    for k, v in out.items():
-        print(f"{k}={v}")
-    if why:
-        print(f"FAIL {why}", file=sys.stderr)
-        return 1
-    return 0
+        ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
+        try:
+            out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, meter, fast=shards.outputs)
+        except ghapi.RateLimited as e:
+            outcome = "rate-limited"
+            print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
+            return 3
+        for k, v in out.items():
+            print(f"{k}={v}")
+        if why:
+            print(f"FAIL {why}", file=sys.stderr)
+            return 1
+        outcome = "defer" if out.get("defer") else "ok"
+        return 0
+    finally:
+        report(timing(meter, meter.clock() - t0, outcome, out.get("defer", ""),
+                      int(env.get("GITHUB_RUN_ATTEMPT") or 1)), env)
 
 
 def self_test() -> int:
@@ -1119,6 +1160,49 @@ def self_test() -> int:
         with contextlib.redirect_stderr(io.StringIO()) as err:
             rc = main([], limited, {**env, "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": path})
         check("rate limit fails closed", (rc, err.getvalue().split()[:1]), (3, ["RATE-LIMITED"]))
+        # #3885 L3: every exit reports where its wall time went, to the log and the step summary.
+        tick = [0.0]
+
+        def slow(gt, dt):
+            return lambda p, q=None: (tick.__setitem__(0, tick[0] + dt), gt(p, q))[1]
+
+        def timed(fake_outputs, get, attempt="1"):
+            global outputs
+            saved, outputs = outputs, fake_outputs
+            fd2, summ = tempfile.mkstemp(suffix=".md")
+            os.close(fd2)
+            try:
+                with contextlib.redirect_stderr(io.StringIO()) as e2, contextlib.redirect_stdout(io.StringIO()):
+                    rc = main([], get, {**env, "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_EVENT_PATH": path,
+                                        "GITHUB_STEP_SUMMARY": summ, "GITHUB_RUN_ATTEMPT": attempt},
+                              clock=lambda: tick[0])
+                lines = [x for x in e2.getvalue().splitlines() if x.startswith(TIMING + " ")]
+                return rc, [json.loads(x.split(" ", 1)[1]) for x in lines], Path(summ).read_text()
+            finally:
+                outputs = saved
+                os.unlink(summ)
+
+        def deferring(c, ch, get, **kw):
+            tick[0] += 0.5                                 # local work: no get is running
+            return {"defer": " ".join(str(i) for i in busy_sources(c, get)), "kind": "review"}, ""
+        busy = slow(once(run(40, "code", "in_progress", done("code", gate=False)),
+                         run(41, "code", "in_progress", done("code", gate=False))), 2.0)
+        rc, got, summ = timed(deferring, busy, attempt="2")
+        t = got[0] if got else {}
+        check("L3: a deferring prelude prints ONE timing line", (rc, len(got)), (0, 1))
+        check("L3: ... naming the runs it deferred to, its attempt and outcome",
+              (t.get("defer"), t.get("attempt"), t.get("outcome")), ([40, 41], 2, "defer"))
+        check("L3: ... its GET time is API time, apart from local work and sleep",
+              (t.get("api_calls"), t.get("api_s"), t.get("local_s"), t.get("sleep_s"), t.get("wall_s")),
+              (3, 6.0, 0.5, 0.0, 6.5))
+        check("L3: ... and the same line is in the step summary", bool(got) and json.dumps(t, separators=(",", ":"))
+              in summ, True)
+        rc, got, _ = timed(lambda c, ch, get, **kw: ({"defer": "", "kind": "review"}, ""), busy)
+        check("L3 null: a prelude deferring to nothing names no run", (rc, [g["defer"] for g in got],
+                                                                       [g["outcome"] for g in got]), (0, [[]], ["ok"]))
+        rc, got, _ = timed(lambda c, ch, get, **kw: get("x"), lambda p, q=None: limited(p, q))
+        check("L3: a rate-limited prelude still reports, as rate-limited", (rc, [g["outcome"] for g in got]),
+              (3, ["rate-limited"]))
     finally:
         os.unlink(path)
     # The wiring: each machinery lane gates on exactly the output its
