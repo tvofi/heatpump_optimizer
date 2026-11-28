@@ -7493,8 +7493,8 @@
     "From #3883 (r11-repair-3883), body item f6ad2e1b: fixer.md: cost: two fixer seats built R11-OWNER-STEP-KICK. Their heads `58a605d3a6` (the other local seat's ten commits from e6873a7fb1) and `f67fb20bae` (the stopped cloud seat, prepr rc 0), the reviewed `4c2f14778b` and the PR head `bdb3b6885d` are each an ancestor of `280a51a4cc` (`git merge-base --is-ancestor`, rc 0 for all four), so nothing is ported and nothing is dropped. `pump_arbiter.py` keeps 58a605d3a6's coordinator-free `_note_served`/`_settle` shape. Carry: R11-OWNER-STEP-KICK (items f6ad2e1b)"
    ],
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "carries-open",
+    "commit": "b0a4ae22dee63f1cd7a93e14f299e21f4df8e5ba",
     "branch": "handoff/r11-owner-step-kick",
     "last_step": null,
     "next_step": "fixer",
