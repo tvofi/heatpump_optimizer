@@ -1,0 +1,21 @@
+== base-regex
+PASS control:headroom:reads_the_replay_job read 45
+FAIL control:headroom:cap_read_is_linear read None in 1.310 s
+== third-overlap-arm
+PASS control:headroom:reads_the_replay_job read 45
+FAIL control:headroom:cap_read_is_linear read None in 1.619 s
+== drop-tab-arm
+FAIL control:headroom:reads_the_replay_job read 45
+PASS control:headroom:cap_read_is_linear read None in 0.000 s
+== drop-space-arm
+FAIL control:headroom:reads_the_replay_job read None
+PASS control:headroom:cap_read_is_linear read None in 0.000 s
+== narrow-0-2
+PASS control:headroom:reads_the_replay_job read 45
+PASS control:headroom:cap_read_is_linear read None in 0.000 s
+== greedy
+PASS control:headroom:reads_the_replay_job read 45
+PASS control:headroom:cap_read_is_linear read None in 0.000 s
+== lookahead
+PASS control:headroom:reads_the_replay_job read 45
+PASS control:headroom:cap_read_is_linear read None in 0.000 s
