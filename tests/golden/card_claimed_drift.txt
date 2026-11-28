@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 10.1.7
+# claims-for: 10.1.8
 #
-# v10.1.7: Unread state deleted; round-11 mutant kills pinned. The stamp empties the list; the
+# v10.1.8: timed duty switches no longer buy a solve; DST-correct DHW countdown; one-zone zone-field refusal. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

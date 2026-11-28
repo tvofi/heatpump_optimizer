@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_anchor.py:Served.anchor_c BOOLOP b59b5d0d",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        space_c = space[0] if space is not None and _within(space[1], now, max_age) else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`space_c = space[0] if space is not None or _within(space[1], now, max_age) else None`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

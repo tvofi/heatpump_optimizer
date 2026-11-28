@@ -204,6 +204,9 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── flow_anchor.py        # The space flow floor's inlet: the sensors it reads,
+│                         #   and the space loop's own water for a settle span
+│                         #   after a hot-water -> space swap
 ├── duty_ledger.py        # The arbiter's step verdicts: what the pump did
 │                         #   over one step against the plan
 ├── supply_hold.py        # The supply switch's minimum run and pause, held
