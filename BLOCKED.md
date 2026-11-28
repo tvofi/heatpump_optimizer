@@ -1,4 +1,6 @@
-# R11-SEAM-tests fixer, carries pass: measurements at origin/main ac9045c223721608e684c8a2213831aa34c1fa4f
+Question: carry 1 (R11-D3-JUDGE-GATE) needs 32 sequential full gates at 92d38ecb, about 28 h of one exclusive box (null measured green here at 3165 s). Carries 0, 2 and 3 need no code from this group, so there is no diff to hand off. Should carry 1 be (a) dispatched as its own box run, split across boxes by key, with this group's carries then closed as a record-only handoff; or (b) run on by this seat over the next ~28 h, pushing each key's gate record to handoff-wip as it lands?
+
+# BLOCKED: R11-SEAM-tests fixer, carries pass: measurements at origin/main ac9045c223721608e684c8a2213831aa34c1fa4f
 
 Box: cloud container, x86_64, 4 cores, venv-ci CPython 3.14.7, numpy 2.5.5, scipy 1.18.1,
 OPENBLAS_CORETYPE Haswell (`cloud-setup.sh --check` OK).
@@ -71,4 +73,28 @@ prints `426 32`. Each key is one `GATE_SCOPE=full GATE_JOBS=1 ./tests/run.sh` un
 `fullgate.py run` at 92d38ecb, alone on the box. The green null precondition is one more
 such gate (`fullgate.py null`).
 
-NULL_GATE
+Null control: `fullgate.py null` (a826f55f8c, `dev/audit/rounds/round11/D3/s1/fullgate.py`)
+was run in a worktree at 92d38ecb640bd462f2e19c0814d0f0b7df1ee692 with the script copied in,
+alone on this box. It read `gate_rc=0`, `failed_scripts=0`, `ALL TEST SCRIPTS PASSED`,
+wall 3164.6 s, child CPU 5214.1 s, load1 0.62 -> 1.00. So the precondition ("a tree whose null
+gate is green") holds on Linux x86_64 at the record's own baseline. The judge's box read the
+null red on `closure.py selftest`, `entities.py` and `harness_headers.py`.
+
+Cost: 32 keys x 3165 s is about 28 h of exclusive box time. The keys must run one at a time,
+because each takes the gate_lock lease and stress.py's timing channels need the box alone.
+A killed key also re-opens its stratum's other keys (up to 426 in all). No key was run.
+
+Carry: R11-SEAM-tests (pending orchestrator ruling: the question above)
+
+## Forward-carry (for the relay to fold; this seat writes no roster)
+
+- The three sysid.py exact-float boundary mutants 64f3ef1feaaf7bc9, d661d68f54982097 and
+  4da9d281d4714565 reproduce on Linux x86_64, at 92d38ecb and at ac9045c2. In each probe
+  `differing_cases=1` of 30, and the key case's `completed` goes True -> False. The control is
+  the 29 non-key cases, which are identical in both arms. The probes are at a826f55f8c
+  `dev/audit/rounds/round11/D3/s1/wave/D3-g35/probes/` (sha1s above). At the current base the
+  one port is dropping `enabled=True` from `SysIdConfig(...)`. Re-measure at your merge base;
+  claim each kill from your own pin under the patch. Carry: R11-D3-PINS-sysid
+- Class I1 (#3755): no round-11 I1 class analysis exists under `dev/audit/rca/` at ac9045c2,
+  so there is no path to record on the issue yet. The analysis is the root-cause seat's.
+  Carry: R11-SEAM-tests (pending orchestrator ruling: dispatch the I1 root-cause seat; this group records its path on #3755 once it exists)
