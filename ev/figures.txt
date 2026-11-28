@@ -1,0 +1,18 @@
+$ grep -rln "orch-root\|orch_root" tools/ .claude dev/governance
+tools/audit/seat/closeout.py
+$ closure select
+      SKIP  tests/wood_advisor.py  (closure: 119 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+$ structure
+
+STRUCTURE RATCHET PASSED
+$ VERSION/manifest/notes touched?
+ dev/programme/delivery/3942.md |  1 +
+ tools/audit/seat/closeout.py   | 79 ++++++++++++++++++++++++++++++++++--------
+ tools/audit/seat/prune_refs.py | 41 +++++++++++++++++++---
+ 3 files changed, 101 insertions(+), 20 deletions(-)
+  MODE: SCOPED -- 0 script(s) run, 34 scoped out.

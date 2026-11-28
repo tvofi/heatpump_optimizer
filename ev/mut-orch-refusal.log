@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/tmp/wt-3942/tools/audit/seat/closeout.py", line 875, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/wt-3942/tools/audit/seat/closeout.py", line 851, in main
+    return self_test()
+  File "/tmp/wt-3942/tools/audit/seat/closeout.py", line 479, in self_test
+    rc_no_root = main(["--roster-file", "wave-r10-groups.json"])
+  File "/tmp/wt-3942/tools/audit/seat/closeout.py", line 866, in main
+    roster = json.load(open(a.roster_file, encoding="utf-8"))
+                       ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'wave-r10-groups.json'
