@@ -3140,8 +3140,14 @@ def _apply_result_payload(
 
     Split out of ``_build_data_dict`` so the assembler stays a facade over
     the subsystem views; every key here is read off ``result`` or off one
-    of the two coordinator values passed in.
+    of the coordinator values passed in. A row carries floor temperatures
+    only when the plan has floors: ``zone_trajectories`` on the model's
+    ``two_zone_enabled`` the thermal view put in ``data`` (R11-LATE-P2-ZONE-GATE).
     """
+    n_steps = len(result.timestamps)
+    zones = result.zone_trajectories(bool(data.get("two_zone_enabled")))
+    upper_temps = zones[0][1:] if zones is not None else [None] * n_steps
+    lower_temps = zones[1][1:] if zones is not None else [None] * n_steps
     # DHW schedule data
     dhw_schedule: list[DhwScheduleStep] = []
     if result.dhw_power_schedule:
@@ -3203,16 +3209,8 @@ def _apply_result_payload(
                     result.optimal_setpoints,
                     result.prices,
                     result.room_temp_trajectory[1:],
-                    (
-                        result.upper_temp_trajectory[1:]
-                        if result.upper_temp_trajectory
-                        else result.room_temp_trajectory[1:]
-                    ),
-                    (
-                        result.lower_temp_trajectory[1:]
-                        if result.lower_temp_trajectory
-                        else result.room_temp_trajectory[1:]
-                    ),
+                    upper_temps,
+                    lower_temps,
                     (
                         result.solar_gain_trajectory
                         if result.solar_gain_trajectory
