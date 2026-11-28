@@ -28299,14 +28299,14 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
     ThermalParameters as _PtpParams,
 )
 
-# (1) The narrative's hot-water sentences (dabc6d30af). Witness: a plan whose
-# dearest step is a hot-water charge outside any window and whose window
-# charge is a later step, not the present one. classify_dhw_steps tags the
-# first dhw_preheat and the second dhw_window, so a dhw_preheat sentence that
-# claims cheap electricity, or a dhw_window one that claims "now", states
-# what the classifier never decided. The vocabulary is per language; the
-# texts the correction replaced are the detector's own control, and a
-# detector that misses them reads as a pass.
+# (1) The narrative's hot-water sentences (dabc6d30af). The witness plan's
+# dearest step is a hot-water charge outside any window. Its window charge is
+# a later step, not the present one. classify_dhw_steps tags the first
+# dhw_preheat and the second dhw_window. So a dhw_preheat sentence claiming
+# cheap electricity states what the classifier never decided, and so does a
+# dhw_window sentence claiming "now". The vocabulary is per language. The
+# texts the correction replaced are the detector's own control: a detector
+# that missed them would read as a pass.
 _ptp_prices = _ptp_np.array([0.5, 3.0, 0.4])
 _ptp_codes = optimizer_mod.classify_dhw_steps(
     _ptp_np.array([0.0, 2.0, 2.0]),
