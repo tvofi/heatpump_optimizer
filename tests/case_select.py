@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Case-level test units inside the long flat scripts (R11-CI-CASE-SELECT, part P1).
+"""Case-level test units inside the long flat scripts (R11-CI-CASE-SELECT, parts P1 and P2).
 
     python3 tests/case_select.py split <script>                   print the spans, one line each
     python3 tests/case_select.py run <script> [--plan FILE]       run the script span by span
     python3 tests/case_select.py record <script> [--union] [--table T]
+    python3 tests/case_select.py gate <script> --base REF         plan against the diff and run the plan
     python3 tests/case_select.py stats <script>                   selectivity figures from the table
     python3 tests/case_select.py scripts                          the scripts recorded per span
     python3 tests/case_select.py --self-test
@@ -19,8 +20,9 @@ reads, into `tests/case_closures.json`:
   code and its own names reach through a module-level import (one hop further
   through that module's own imports), and the repository paths on its
   subprocess command lines;
-- `needs`: the earlier spans it depends on. A span needs an earlier one that
-  binds a name it reads. Binding means an assignment, def, class, import or
+- `needs`: the earlier spans it depends on. The table holds the recorded
+  edges below; `plan` adds the static ones from the head's AST. A span needs
+  an earlier one that binds a name it reads. Binding means an assignment, def, class, import or
   `global`, an attribute or item store on the name, an in-place method call on
   it, or a call of a function whose body does one of these. It also needs an
   earlier span that moved a module-level value or a repository module's
@@ -30,8 +32,9 @@ reads, into `tests/case_closures.json`:
   locale. Every span that draws both reads and moves `@random`, so each
   drawing span needs the previous one.
 
-Nothing here selects. `tests/run.sh` still runs each selected script whole;
-selection over this table is part P2 of the design (`design/R11-CI-CASE-SELECT`).
+`plan` and `gate` select (part P2 of the design, `design/R11-CI-CASE-SELECT`):
+on a scoped pull-request run `tests/run.sh` runs a case script through `gate`,
+which runs the spans the diff reaches and prints one `CASES:` line.
 `record` on Darwin only unions into an existing entry (`--union`); a full
 re-derivation replaces entries and runs on Linux (`tests/derive_closures.sh --cases`).
 """
@@ -265,6 +268,104 @@ def _function_effects(fn: ast.AST, aliases) -> tuple[set[str], set[str], set[str
     return muts | fs, reads | fr, calls
 
 
+def _bound_in(body: list, args: ast.arguments | None) -> set[str]:
+    """The names a function scope binds: its parameters, stores, defs, classes and imports, less `global`s."""
+    out = {a.arg for a in ast.walk(args) if isinstance(a, ast.arg)} if args else set()
+    glob: set[str] = set()
+    stack = list(body)
+    while stack:
+        n = stack.pop()
+        if isinstance(n, (ast.Global, ast.Nonlocal)):
+            glob |= set(n.names)
+        elif isinstance(n, ast.Name) and not isinstance(n.ctx, ast.Load):
+            out.add(n.id)
+        elif isinstance(n, (ast.Import, ast.ImportFrom)):
+            out |= {(a.asname or a.name).split(".")[0] for a in n.names}
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.add(n.name)
+            stack.extend(getattr(n, "decorator_list", []))
+            continue  # a nested scope's own names are its own
+        if isinstance(n, (ast.Lambda, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+            stack.extend(w.target for w in ast.walk(n) if isinstance(w, ast.NamedExpr))
+            continue
+        stack.extend(ast.iter_child_nodes(n))
+    return out - glob
+
+
+def _free_reads(node: ast.AST, local: frozenset, out: set[str]) -> None:
+    """Add the names `node` loads that resolve outside every enclosing function scope."""
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        a = node.args
+        for e in getattr(node, "decorator_list", []) + a.defaults + [d for d in a.kw_defaults if d]:
+            _free_reads(e, local, out)
+        body = node.body if isinstance(node.body, list) else [node.body]
+        inner = local | _bound_in(body, a)
+        for st in body:
+            _free_reads(st, inner, out)
+        return
+    if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
+        gens = node.generators
+        _free_reads(gens[0].iter, local, out)
+        inner = local | {t.id for g in gens for t in ast.walk(g.target) if isinstance(t, ast.Name)}
+        for g in gens:
+            for e in ([g.iter] if g is not gens[0] else []) + list(g.ifs):
+                _free_reads(e, inner, out)
+        for e in ([node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt]):
+            _free_reads(e, inner, out)
+        return
+    if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id not in local:
+        out.add(node.id)
+    if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name) and node.target.id not in local:
+        out.add(node.target.id)  # `x += 1` loads x first
+    for c in ast.iter_child_nodes(node):
+        _free_reads(c, local, out)
+
+
+def _global_reads(stmts: list) -> set[str]:
+    """The module-level names one span reads before it binds them itself.
+
+    Python's scoping decides: a name a def, lambda or comprehension binds is
+    local there. At the span's top level, a read after an earlier statement of
+    the same span bound the name definitely (assignment to the bare name, def,
+    class, import) reads the span's own value, and so does a read inside a
+    `for` or `with` body of the name that statement's target binds. Class
+    bodies are read as module scope, which over-reads and never misses.
+    """
+    out: set[str] = set()
+    own: set[str] = set()
+    for top in stmts:
+        got: set[str] = set()
+        if isinstance(top, (ast.For, ast.AsyncFor)):
+            _free_reads(top.iter, frozenset(), got)
+            _free_reads(top.target, frozenset(), got)
+            tgt = frozenset(t.id for t in ast.walk(top.target) if isinstance(t, ast.Name))
+            for st in top.body:
+                _free_reads(st, tgt, got)
+            for st in top.orelse:
+                _free_reads(st, frozenset(), got)
+        elif isinstance(top, (ast.With, ast.AsyncWith)):
+            tgt = frozenset(t.id for it in top.items if it.optional_vars is not None
+                            for t in ast.walk(it.optional_vars) if isinstance(t, ast.Name))
+            for it in top.items:
+                _free_reads(it.context_expr, frozenset(), got)
+                if it.optional_vars is not None:
+                    _free_reads(it.optional_vars, frozenset(), got)
+            for st in top.body:
+                _free_reads(st, tgt, got)
+        else:
+            _free_reads(top, frozenset(), got)
+        out |= got - own
+        if isinstance(top, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            own.add(top.name)
+        elif isinstance(top, (ast.Import, ast.ImportFrom)):
+            own |= {(a.asname or a.name).split(".")[0] for a in top.names}
+        elif isinstance(top, (ast.Assign, ast.AnnAssign)) and getattr(top, "value", None) is not None:
+            for t in (top.targets if isinstance(top, ast.Assign) else [top.target]):
+                if isinstance(t, ast.Name):
+                    own.add(t.id)
+    return out
+
+
 def static_effects(stmts: list, aliases: dict[str, str], funcs: dict) -> tuple[set, set, set]:
     """(names bound definitely, names bound in place or conditionally, names read) by one span.
 
@@ -286,7 +387,8 @@ def static_effects(stmts: list, aliases: dict[str, str], funcs: dict) -> tuple[s
     called: set[str] = set()
     for n in _module_scope(stmts):
         if isinstance(n, ast.Name):
-            (reads if isinstance(n.ctx, ast.Load) else muts).add(n.id)
+            if not isinstance(n.ctx, ast.Load):
+                muts.add(n.id)
         elif isinstance(n, ast.Global):
             muts |= set(n.names)
         elif isinstance(n, ast.Call):
@@ -299,12 +401,9 @@ def static_effects(stmts: list, aliases: dict[str, str], funcs: dict) -> tuple[s
         elif isinstance(n, (ast.Attribute, ast.Subscript)) and isinstance(n.ctx, (ast.Store, ast.Del)):
             if _root(n):
                 muts.add(_root(n))
-    # Every name loaded anywhere in the span, def bodies included: a function
-    # the span defines and calls later reads these too.
-    for top in stmts:
-        for n in ast.walk(top):
-            if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Load):
-                reads.add(n.id)
+    # Every global the span loads, def bodies included: a function the span
+    # defines and calls later reads these too.
+    reads |= _global_reads(stmts)
     for top in stmts:
         fr, fs = _families(top, aliases)
         reads |= fr
@@ -1015,13 +1114,14 @@ def record(script: str, union: bool, table: Path = TABLE) -> int:
         rc = run(script, None, rec)
     finally:
         rec.close()
+    # The table holds the recorded edges alone: `plan` derives the static ones
+    # from the head's AST, so an edit's new edges are seen and an old rule's
+    # edges do not outlive it.
     aliases = _aliases(tree)
-    needs = static_needs(spans, header, aliases)
     funcs: dict = {}
     static_effects(header, aliases, funcs)
     reads = {s.id: static_effects(s.stmts, aliases, funcs)[2] for s in spans}
-    for k, v in dynamic_needs(spans, rec.units, reads).items():
-        needs.setdefault(k, set()).update(v)
+    needs = dynamic_needs(spans, rec.units, reads)
     current = load(table) or {"version": VERSION, "files": [], "scripts": {}}
     entries = _entries(current)
     new = build_entry(rel, spans, header_hash, rec.units, needs)
@@ -1145,6 +1245,20 @@ def _self_test() -> int:
     check("static: every RNG draw binds @random, so a draw needs the previous draw and the seeder",
           "draw one" in sn["draw two"] and "seed" in sn["draw one"] and "no rng" not in sn["draw two"],
           (sn["draw one"], sn["draw two"]))
+    scoped = ("R.section('a')\nx = 1\nfor i in range(2):\n    pass\n"
+              "R.section('locals')\ndef g(x):\n    return x\ny = [i for i in range(3)]\nh = lambda x: x\n"
+              "R.section('own')\nx = 5\nprint(x)\nfor i in range(2):\n    print(i)\n"
+              "R.section('aug')\nx += 1\n"
+              "R.section('reads')\nprint(x, i)\n")
+    sh, _, ss, _ = split(scoped)
+    sc = static_needs(ss, sh, {})
+    check("static scoping: a parameter, a comprehension variable and a lambda parameter read no global",
+          sc["locals"] == set(), sc["locals"])
+    check("static scoping: a read after the span's own binding, or of its own loop target, needs no earlier span",
+          sc["own"] == set(), sc["own"])
+    check("static scoping null: an augmented assignment and a bare read do read the global (x += 1 needs own; "
+          "i, bound by two for loops, needs both)",
+          sc["aug"] == {"own"} and sc["reads"] == {"aug", "own", "a"}, (sc["aug"], sc["reads"]))
     check("static: a span reading nothing earlier spans bind needs none (beta)",
           sn["beta reads a constant of M"] == set(), sn["beta reads a constant of M"])
     tmp = os.path.realpath(tempfile.mkdtemp(prefix="case-select-"))
@@ -1351,7 +1465,7 @@ def _plan_checks(check) -> None:
              'SCOPE_RUN="$W/scope.run" CASE_SCRIPTS="tests/features.py"; run py tests/features.py\n'
              'run py tests/other.py\nSCOPE_RUN=""; run py tests/features.py\n')
     with tempfile.TemporaryDirectory() as w:
-        out = subprocess.run(["bash", "-c", drive], capture_output=True, text=True,
+        out = subprocess.run(["bash", "-e", "-c", drive], capture_output=True, text=True,
                              env=dict(os.environ, W=w)).stdout.splitlines()
     check("run.sh: a scoped run sends a case script through the gate, keyed on the case script; "
           "another script and an unscoped run go straight",
