@@ -9514,6 +9514,92 @@
     "next_step": "fixer per the carries; re-measure first",
     "note": null
    }
+  },
+  {
+   "group": "R11-CI-CASE-SELECT-P2",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "ci",
+   "severity": "medium",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R11-OUTSIDE-CI-3885"
+   ],
+   "files": [
+    "tests/case_select.py",
+    "tests/run.sh",
+    "tests/closure.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "outside",
+   "brief": "Outside item #3885. Part P2 of the approved design design/R11-CI-CASE-SELECT at 25fa1f763e93 (design review approve at design-verdict/R11-CI-CASE-SELECT b7e7f57f8e): the plan, the selection rule and its fail-safe (FULL for the script), the tests/run.sh wiring and the composition with case_sample, plus the design's evidence 4-5 and its measurement table. P1 merged as PR 3896 (658fcae30b). The P2 items PR 3896 recorded (selectivity as recorded, recorder overhead, pin-count) are in dev/programme/carries/carry-3885.json: read them first and re-measure at your own merge base.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-ci-case-select-p2",
+    "commit": null,
+    "last_step": "created 2026-11-28 at the coordinator's request (orphan-carry rewire): the approved design's remaining parts had no roster row",
+    "next_step": "fixer per the approved design; re-measure first",
+    "note": null
+   }
+  },
+  {
+   "group": "R11-CI-CASE-SELECT-P3",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "ci",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R11-CI-CASE-SELECT-P2"
+   ],
+   "files": [
+    ".github/workflows/tests.yml",
+    "dev/governance/rules/ci-autofix.md",
+    "tests/closure.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "outside",
+   "brief": "Outside item #3885. Part P3 of the approved design design/R11-CI-CASE-SELECT at 25fa1f763e93 (design review approve at design-verdict/R11-CI-CASE-SELECT b7e7f57f8e): closures-autofix for the per-span table and the CASE UNDER-SCOPED refusal. Editing .github/workflows/tests.yml and dev/governance/rules/ci-autofix.md is policy: the owner approves before merging, and gate-scoping.md's note in P3 is policy too.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-ci-case-select-p3",
+    "commit": null,
+    "last_step": "created 2026-11-28 at the coordinator's request (orphan-carry rewire): the approved design's remaining parts had no roster row",
+    "next_step": "fixer per the approved design; re-measure first",
+    "note": "overlap admitted (R11-CI-CASE-SELECT-P2): remaining parts of an approved outside design with no roster row; same seam as R11-OUTSIDE-CI-3885, which is done"
+   }
   }
  ]
 }
