@@ -33,7 +33,7 @@ from . import boost
 from .const import MODE_AUTO, MODE_OFF
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import DHWEntityMixin
-from .entity import HeatPumpOptimizerEntity, publish_then_refresh
+from .entity import HeatPumpOptimizerEntity, off_the_action, publish_then_refresh
 
 # Turning the optimizer on or off lands on the coordinator, which commands
 # one heat pump; two toggles racing is two commands to one machine, so
@@ -187,7 +187,8 @@ class TimedDutySwitch(_KeyedSwitch):
             await boost.set_channel(
                 self.coordinator, self._channel, active, refresh=False
             )
-        publish_then_refresh(self)
+        self.async_write_ha_state()
+        off_the_action(self, self.coordinator.async_apply_held())
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self._press(True)
