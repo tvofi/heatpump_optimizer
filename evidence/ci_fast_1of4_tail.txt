@@ -1,0 +1,203 @@
+2026-11-28T17:46:24.5568373Z       RUN   tests/card.mjs
+2026-11-28T17:46:24.5568629Z       RUN   tests/card_drift.mjs
+2026-11-28T17:46:24.5568903Z       RUN   tests/solar_alignment.py
+2026-11-28T17:46:24.5569166Z       RUN   tests/stress.py
+2026-11-28T17:46:24.5569413Z       RUN   tests/structure.py
+2026-11-28T17:46:24.5569664Z       RUN   tests/typing_ruler.py
+2026-11-28T17:46:24.5569920Z       RUN   tests/validate.py
+2026-11-28T17:46:24.5570185Z       RUN   tests/wood_advisor.py
+2026-11-28T17:46:24.5570339Z 
+2026-11-28T17:46:24.5570640Z       SKIP  tests/arch_score.py  (closure: 166 files, no changed file is in its measured closure)
+2026-11-28T17:46:24.5571237Z       SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+2026-11-28T17:46:24.5571852Z       SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+2026-11-28T17:46:24.5572431Z       SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+2026-11-28T17:46:24.5573025Z       SKIP  tests/open_meteo.py  (closure: 4 files, no changed file is in its measured closure)
+2026-11-28T17:46:24.5573341Z 
+2026-11-28T17:46:24.5573550Z   A skipped script is a claim that no changed file is in its measured
+2026-11-28T17:46:24.5574045Z   closure. The claim is re-checked by the FULL unscoped suite that runs
+2026-11-28T17:46:24.5574511Z   on every push to main, so a wrong closure turns main red within one
+2026-11-28T17:46:24.5574931Z   gate. Set GATE_SCOPE=full to run everything here and now.
+2026-11-28T17:46:24.5880517Z   SHARD: 1/4 -- the scripts tools/ci/shards.py assigned this job; the other shards run the rest
+2026-11-28T17:46:24.7849454Z 
+2026-11-28T17:46:24.7850323Z ########## 3 lanes in parallel: units golden e2e ##########
+2026-11-28T17:46:24.8073229Z   [17:46:24] start  python3 tests/entities.py
+2026-11-28T17:54:46.7972337Z   [17:54:46] FAILED python3 tests/entities.py (502s)
+2026-11-28T17:54:46.8707183Z 
+2026-11-28T17:54:46.8708231Z ########## alone on the box: stress, then harness_headers ##########
+2026-11-28T17:54:47.0837344Z 
+2026-11-28T17:54:47.0855024Z SKIP: tests/env_drift.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.0858114Z 
+2026-11-28T17:54:47.0876115Z SKIP: tests/closure.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.0879353Z 
+2026-11-28T17:54:47.1452655Z   ok   and it demands the roster on a run that already failed
+2026-11-28T17:54:47.1452788Z   ok   A3 named escapes are unique E-identifiers counted at this merge base
+2026-11-28T17:54:47.1452896Z   ok   the nightly demands A3 published-state checks by name
+2026-11-28T17:54:47.1452967Z   ok   A3 is not merged with A4
+2026-11-28T17:54:47.1453118Z   ok   the A3 roster is derived from collect() over PLATFORM_LIST, not a second literal
+2026-11-28T17:54:47.1453245Z   ok   the committed A3 roster is the entity_id set collect() produces
+2026-11-28T17:54:47.1453413Z   ok   a3:roster  [84 registered, 84 in the committed collect() roster; missing=[]; extra=[]]
+2026-11-28T17:54:47.1453517Z   ok   a3:roster passes when HA's registry matches collect()
+2026-11-28T17:54:47.1462450Z   FAIL a3:roster  [1 registered, 84 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_source', 'binary_sensor.heat_pump_optimizer_input_problem', 'binary_sensor.heat_pump_optimizer_mold_floor_breach', 'binary_sensor.heat_pump_optimizer_open_window_detected', 'binary_sensor.heat_pump_optimizer_wood_cheaper', 'button.heat_pump_optimizer_learning_finalize_debug', 'button.heat_pump_optimizer_learning_measure_power_response', 'button.heat_pump_optimizer_learning_reset_comfort_weight', 'button.heat_pump_optimizer_learning_reset_heat_loss', 'button.heat_pump_optimizer_learning_run_system_identification', 'button.heat_pump_optimizer_optimize_now', 'button.heat_pump_optimizer_prediction_diagnose_last_interval', 'climate.heat_pump_optimizer', 'datetime.heat_pump_optimizer_away_return', 'sensor.heat_pump_optimizer_buffer_tank_temperature_model', 'sensor.heat_pump_optimizer_compressor_frequency_advisor', 'sensor.heat_pump_optimizer_compressor_starts', 'sensor.heat_pump_optimizer_cost_baseline', 'sensor.heat_pump_optimizer_cost_contract_comparison', 'sensor.heat_pump_optimizer_cost_current_electricity_price', 'sensor.heat_pump_optimizer_cost_monthly_peak_power', 'sensor.heat_pump_optimizer_cost_power_headroom', 'sensor.heat_pump_optimizer_cost_predicted', 'sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'sensor.heat_pump_optimizer_ecl110_displace', 'sensor.heat_pump_optimizer_ecl110_effective_displace', 'sensor.heat_pump_optimizer_floor_heating_return_temperature', 'sensor.heat_pump_optimizer_heat_pump_action', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer', 'sensor.heat_pump_optimizer_indoor_temperature_predicted', 'sensor.heat_pump_optimizer_last_optimization', 'sensor.heat_pump_optimizer_learning_comfort_weight', 'sensor.heat_pump_optimizer_learning_estimated_cop', 'sensor.heat_pump_optimizer_learning_model_status', 'sensor.heat_pump_optimizer_learning_observed_cop', 'sensor.heat_pump_optimizer_lifetime_cost_total_heating', 'sensor.heat_pump_optimizer_lifetime_space_heating_cost', 'sensor.heat_pump_optimizer_lifetime_space_heating_energy', 'sensor.heat_pump_optimizer_lifetime_total_energy', 'sensor.heat_pump_optimizer_lower_floor_temperature', 'sensor.heat_pump_optimizer_measured_power', 'sensor.heat_pump_optimizer_model_restart_advisor', 'sensor.heat_pump_optimizer_next_optimization', 'sensor.heat_pump_optimizer_optimal_setpoint', 'sensor.heat_pump_optimizer_optimization_mode', 'sensor.heat_pump_optimizer_optimization_schedule', 'sensor.heat_pump_optimizer_optimization_schedule_steps', 'sensor.heat_pump_optimizer_optimization_status', 'sensor.heat_pump_optimizer_outdoor_temperature_optimizer', 'sensor.heat_pump_optimizer_plan_dhw_heating', 'sensor.heat_pump_optimizer_plan_monthly_savings', 'sensor.heat_pump_optimizer_plan_narrative', 'sensor.heat_pump_optimizer_plan_optimization_score', 'sensor.heat_pump_optimizer_plan_predicted_savings', 'sensor.heat_pump_optimizer_plan_savings_percentage', 'sensor.heat_pump_optimizer_plan_space_heating', 'sensor.heat_pump_optimizer_prediction_accuracy', 'sensor.heat_pump_optimizer_predictive_optimization_insight', 'sensor.heat_pump_optimizer_recommended_power', 'sensor.heat_pump_optimizer_sensor_gap_advisor', 'sensor.heat_pump_optimizer_slab_temperature_estimated', 'sensor.heat_pump_optimizer_solar_heat_gain', 'sensor.heat_pump_optimizer_solar_irradiance', 'sensor.heat_pump_optimizer_solar_surplus_forecast', 'sensor.heat_pump_optimizer_thermal_battery_charge', 'sensor.heat_pump_optimizer_thermal_battery_energy', 'sensor.heat_pump_optimizer_upper_floor_temperature', 'sensor.heat_pump_optimizer_valve_target_recommendation', 'sensor.heat_pump_optimizer_wood_burn_advisor', 'switch.heat_pump_optimizer_away', 'switch.heat_pump_optimizer_block_dhw', 'switch.heat_pump_optimizer_block_space', 'switch.heat_pump_optimizer_boost_space', 'switch.heat_pump_optimizer_dhw_boost', 'switch.heat_pump_optimizer_external_heat_ignore_block', 'switch.heat_pump_optimizer_optimizer_active']; extra=['sensor.not_ours']]
+2026-11-28T17:54:47.1462671Z   ok   a3:roster fails when the registered ids are not collect()'s set
+2026-11-28T17:54:47.1462781Z   ok   a3:orjson serialises through Home Assistant's json_bytes
+2026-11-28T17:54:47.1462866Z   ok   a3:orjson  [0 failed HA json_bytes]
+2026-11-28T17:54:47.1463121Z   FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+2026-11-28T17:54:47.1463253Z   ok   a3:orjson fails a payload orjson rejects, and passes a finite one
+2026-11-28T17:54:47.1463388Z   ok   a3:orjson  [0 failed HA json_bytes]
+2026-11-28T17:54:47.1463546Z   ok   json_bytes_ha returning b"{}" leaves a3:orjson green on an orjson-illegal payload
+2026-11-28T17:54:47.1463664Z   FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+2026-11-28T17:54:47.1463740Z   ok   a3:finite  [0 non-finite]
+2026-11-28T17:54:47.1463858Z   ok   a3:finite fails a non-finite attribute and passes a finite one
+2026-11-28T17:54:47.1463974Z   ok   a3:device_class_state_class reads DEVICE_CLASS_STATE_CLASSES
+2026-11-28T17:54:47.1464141Z   FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+2026-11-28T17:54:47.1464245Z   ok   a3:device_class_state_class  [0 forbidden pair(s)]
+2026-11-28T17:54:47.1464360Z   ok   a3:device_class_state_class fails a pair the HA table forbids
+2026-11-28T17:54:47.1464607Z   ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+2026-11-28T17:54:47.1464916Z   FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer:temperature=21.0']]
+2026-11-28T17:54:47.1465189Z   FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['climate.heat_pump_optimizer.current_temperature=21.0']]
+2026-11-28T17:54:47.1465892Z   FAIL a3:no_constructor_defaults  [3 constructor default(s) published as available: ['sensor.heat_pump_optimizer_dhw_temperature:temperature=55.0', "sensor.heat_pump_optimizer_dhw_mixed_water:available volume_storage='270.0'", 'climate.heat_pump_optimizer.dhw_temperature=55.0']]
+2026-11-28T17:54:47.1466057Z   FAIL a3:no_constructor_defaults  [empty sweep: no published states were judged]
+2026-11-28T17:54:47.1466159Z   ok   a3:no_constructor_defaults fails an empty sweep
+2026-11-28T17:54:47.1466270Z   ok   a3:no_constructor_defaults passes unavailable records
+2026-11-28T17:54:47.1466415Z   ok   a3:no_constructor_defaults fails available indoor at the constructor default
+2026-11-28T17:54:47.1466588Z   ok   a3:no_constructor_defaults fails climate current_temperature at the constructor default
+2026-11-28T17:54:47.1466721Z   ok   a3:no_constructor_defaults fails an available ThermalState default
+2026-11-28T17:54:47.1466861Z   ok   A3(e) numeric defaults are read from the ThermalState constructor fields
+2026-11-28T17:54:47.1466975Z   ok   A3(e) is a second seed, not collapsed into the thermometer boot
+2026-11-28T17:54:47.1467073Z   ok   and a passing A3 check still keeps its detail
+2026-11-28T17:54:47.1467385Z   ok   A4 named escapes are the §4 A4 row, listed
+2026-11-28T17:54:47.1467498Z   ok   the nightly demands A4 fault-injection checks by name
+2026-11-28T17:54:47.1467623Z   ok   A4 breaks the price source; it does not poke last_update_success
+2026-11-28T17:54:47.1467774Z   ok   A4 exhausts the published prices at the counterparty, not the coordinator
+2026-11-28T17:54:47.1467960Z   ok   a4:bridged  [bridged: last_update_success=True, price_feed_stale raised, 2 entities available]
+2026-11-28T17:54:47.1468135Z   FAIL a4:bridged  [last_update_success=False price_feed_stale_raised=True unavailable=none]
+2026-11-28T17:54:47.1468298Z   FAIL a4:bridged  [last_update_success=True price_feed_stale_raised=False unavailable=none]
+2026-11-28T17:54:47.1468501Z   FAIL a4:bridged  [last_update_success=True price_feed_stale_raised=True unavailable=['button.b', 'sensor.a']]
+2026-11-28T17:54:47.1468774Z   FAIL a4:bridged  [last_update_success=True price_feed_stale_raised=True unavailable=none-published-before]
+2026-11-28T17:54:47.1468965Z   ok   a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set
+2026-11-28T17:54:47.1469049Z   ok   a4:failed  [last_update_success=False]
+2026-11-28T17:54:47.1469138Z   FAIL a4:failed  [last_update_success=True]
+2026-11-28T17:54:47.1469340Z   ok   a4:failed fails when last_update_success stayed True
+2026-11-28T17:54:47.1469421Z   ok   a4:unavailable  [2 unavailable]
+2026-11-28T17:54:47.1469507Z   FAIL a4:unavailable  [0 still published: []]
+2026-11-28T17:54:47.1469779Z   FAIL a4:unavailable  [1 still published: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+2026-11-28T17:54:47.1469926Z   ok   a4:unavailable fails an empty sweep and a leftover available state
+2026-11-28T17:54:47.1470013Z   ok   a4:buttons  [1 button(s) unavailable]
+2026-11-28T17:54:47.1470221Z   FAIL a4:buttons  [clickable after fail: ['button.heat_pump_optimizer_run_optimization']]
+2026-11-28T17:54:47.1470621Z   FAIL a4:buttons  [no button entity in the enabled roster]closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
+2026-11-28T17:54:47.1470908Z closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
+2026-11-28T17:54:47.1471066Z stamp: read 1/4: <urlopen error timed out>; sleeping 5s
+2026-11-28T17:54:47.1471217Z stamp: read 1/4: HTTP Error 502: Bad Gateway; sleeping 5s
+2026-11-28T17:54:47.1471341Z stamp: read 2/4: HTTP Error 500: Server Error; sleeping 15s
+2026-11-28T17:54:47.1471456Z stamp: read 1/4: <urlopen error timed out>; sleeping 5s
+2026-11-28T17:54:47.1766007Z   ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+2026-11-28T17:54:47.1766290Z   ok   `policy_lint.mjs --budgets` prints a moved policy file at its live path, naming the old-path key its caps sit under; an unmoved file names no key
+2026-11-28T17:54:47.1766297Z 
+2026-11-28T17:54:47.1766412Z -- The case runner and recorder (R11-CI-CASE-SELECT)
+2026-11-28T17:54:47.1766816Z   ok   the case runner's self-test passes: spans match the R.section count, a span-wise run equals the script's own output, the recorder sees reads no code runs and moves no store shows, and the table merges per span
+2026-11-28T17:54:47.1766821Z 
+2026-11-28T17:54:47.1766944Z -- The tests/features.py freeze (R11-OWNER-FEATURES-SPLIT)
+2026-11-28T17:54:47.1768189Z   FAIL tests/features.py keeps the freeze: every span id is in tests/features_frozen_budgets.json, its line count is at or below the manifest's, and every seam script's spans are at home  [span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home); lines: tests/features.py has 106163 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate]
+2026-11-28T17:54:47.1768750Z   FAIL the freeze manifest is its recorder's shape: an integer `lines`, a `seam_pins` map of span-id lists, and unique span ids covering every span case_select.split yields from tests/features.py  [keys ['lines', 'seam_pins', 'spans'], 252 listed, 253 live]
+2026-11-28T17:54:47.1772951Z   FAIL null control (span ids): a section appended, inserted mid-file, or repeating an existing title is refused by name; the live text under the same manifest is not  [["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", "span: tests/features.py has span 'planted freeze probe', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106165 lines, above the 104745 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate'] ["span: tests/features.py has span 'planted freeze probe', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", "span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106165 lines, above the 104745 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate'] ["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", "span: tests/features.py has span 'Input staleness watchdog (item 12)#2', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106164 lines, above the 104745 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate']]
+2026-11-28T17:54:47.1774733Z   FAIL null control (lines): one line added inside an existing span is refused on `lines` alone; one line removed passes, so the freeze never refuses a move down  [["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106164 lines, above the 106163 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate'] ["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)"]]
+2026-11-28T17:54:47.1778758Z   FAIL null control (seam home): a dhw span in features_model.py is refused naming features_dhw.py; in features_dhw.py, or pinned in seam_pins, it passes; a seam header importing features.py and a script named for no seam are refused  [["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106163 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate', "seam: tests/features_model.py holds span 'planted dhw span', whose home is tests/features_dhw.py"] ["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106163 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate', 'header: tests/features_dhw.py imports or names tests/features.py; a seam script shares no process and no kill path with the frozen file'] ["span: tests/features.py has span 'R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence', which tests/features_frozen_budgets.json does not list; tests/features.py is frozen, so the section goes to a seam script (`--seam` names its home)", 'lines: tests/features.py has 106163 lines, above the 104695 tests/features_frozen_budgets.json records; net the growth out, move the test to a seam script, or raise `lines` through budget-raise-gate', 'seam: tests/features_misc.py is named for no seam; the seams are inputs, model, plan, dhw, actuation, surface, cycle']]
+2026-11-28T17:54:47.1779491Z   ok   null control (laundering): the manifest has its own budget-raise-gate SCHEMA entry, `lines` a cap and `spans` and every `seam_pins` list frozen, so a span appended and the manifest re-recorded in the same diff is a raise on both, a new pin and a dropped span id are raises, `lines` re-recorded down is routine, and an unchanged manifest is none
+2026-11-28T17:54:47.1779498Z 
+2026-11-28T17:54:47.1779589Z 5 of 2801 ENTITY CHECKS FAILED
+2026-11-28T17:54:47.1779684Z >>> FAILED: python3 tests/entities.py
+2026-11-28T17:54:47.1779689Z 
+2026-11-28T17:54:47.1779795Z SKIP: tests/block_duty.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1779806Z 
+2026-11-28T17:54:47.1779908Z SKIP: tests/doc_claims.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1779913Z 
+2026-11-28T17:54:47.1780017Z SKIP: tests/md_tables.mjs (fast shard 2/4 runs it)
+2026-11-28T17:54:47.1780021Z 
+2026-11-28T17:54:47.1780132Z SKIP: tests/wood_advisor.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1780137Z 
+2026-11-28T17:54:47.1780259Z SKIP: tests/config_flow_steps.py (fast shard 2/4 runs it)
+2026-11-28T17:54:47.1780264Z 
+2026-11-28T17:54:47.1780362Z SKIP: tests/cycle_lane.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1780366Z 
+2026-11-28T17:54:47.1780469Z SKIP: tests/structure.py (fast shard 2/4 runs it)
+2026-11-28T17:54:47.1780473Z 
+2026-11-28T17:54:47.1780584Z SKIP: tests/typing_ruler.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1780588Z 
+2026-11-28T17:54:47.1780797Z SKIP: tests/ha_contract.py (scoped out: no changed file is in its measured closure of 36 file(s))
+2026-11-28T17:54:47.1780801Z 
+2026-11-28T17:54:47.1780903Z SKIP: tests/manual_plan.py (fast shard 2/4 runs it)
+2026-11-28T17:54:47.1780907Z 
+2026-11-28T17:54:47.1781105Z SKIP: tests/open_meteo.py (scoped out: no changed file is in its measured closure of 4 file(s))
+2026-11-28T17:54:47.1781111Z 
+2026-11-28T17:54:47.1781227Z SKIP: tests/solar_alignment.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1781231Z 
+2026-11-28T17:54:47.1781336Z SKIP: tests/guard_pins.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1781341Z 
+2026-11-28T17:54:47.1781449Z SKIP: tests/debug_collect.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1781459Z 
+2026-11-28T17:54:47.1781567Z SKIP: tests/finite_boundary.py (fast shard 2/4 runs it)
+2026-11-28T17:54:47.1781571Z 
+2026-11-28T17:54:47.1781673Z SKIP: tests/layout.py (fast shard 2/4 runs it)
+2026-11-28T17:54:47.1781677Z 
+2026-11-28T17:54:47.1781797Z SKIP: tests/deployment_shape.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1781802Z 
+2026-11-28T17:54:47.1781979Z SKIP: tests/golden.py (GOLDEN_MODE=drift checks fixtures via env_drift.py instead)
+2026-11-28T17:54:47.1781984Z 
+2026-11-28T17:54:47.1782081Z SKIP: tests/env_drift.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1782085Z 
+2026-11-28T17:54:47.1782317Z SKIP: tests/arch_score.py (RUN_PART=fast: CI's tests / arch-instrument job runs it)
+2026-11-28T17:54:47.1782322Z 
+2026-11-28T17:54:47.1782504Z SKIP: tests/arch_score_head.py (RUN_PART=fast: CI's tests / arch-instrument job runs it)
+2026-11-28T17:54:47.1782509Z 
+2026-11-28T17:54:47.1782773Z SKIP: tests/validate.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1782778Z 
+2026-11-28T17:54:47.1782868Z SKIP: tests/edge.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1782878Z 
+2026-11-28T17:54:47.1782972Z SKIP: tests/backtest.py (fast shard 3/4 runs it)
+2026-11-28T17:54:47.1782976Z 
+2026-11-28T17:54:47.1783098Z SKIP: tests/boost_drift_replay.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1783133Z 
+2026-11-28T17:54:47.1783237Z SKIP: tests/optimality.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1783242Z 
+2026-11-28T17:54:47.1783408Z SKIP: tests/rolling.py (set SLOW=1 to include the closed-loop simulation)
+2026-11-28T17:54:47.1783413Z 
+2026-11-28T17:54:47.1783560Z SKIP: tests/plan_view.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1783564Z 
+2026-11-28T17:54:47.1783762Z SKIP: tests/frontend.py (scoped out: no changed file is in its measured closure of 6 file(s))
+2026-11-28T17:54:47.1783766Z 
+2026-11-28T17:54:47.1783865Z SKIP: tests/card.mjs (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1783871Z 
+2026-11-28T17:54:47.1784023Z SKIP: tests/setup_qa_render.mjs (scoped out: not in the scoped run set)
+2026-11-28T17:54:47.1784027Z 
+2026-11-28T17:54:47.1784135Z SKIP: tests/card_drift.mjs (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1784139Z 
+2026-11-28T17:54:47.1784308Z SKIP: tests/stress.py (pull_request: the push to main and the nightly run it, #3885)
+2026-11-28T17:54:47.1784312Z 
+2026-11-28T17:54:47.1784426Z SKIP: tests/harness_headers.py (fast shard 4/4 runs it)
+2026-11-28T17:54:47.1784431Z 
+2026-11-28T17:54:47.1784515Z ########## wall clock ##########
+2026-11-28T17:54:47.1784600Z      502s  python3 tests/entities.py
+2026-11-28T17:54:47.1784665Z      503s  TOTAL (3 lane(s))
+2026-11-28T17:54:47.1784670Z 
+2026-11-28T17:54:47.1784784Z ########## NOT RUN: scoped out of this gate ##########
+2026-11-28T17:54:47.2468258Z   tests/arch_score.py      did NOT run -- no changed file is in its measured closure (closure: 166 files)
+2026-11-28T17:54:47.2468459Z   tests/frontend.py        did NOT run -- no changed file is in its measured closure (closure: 6 files)
+2026-11-28T17:54:47.2468641Z   tests/ha_contract.py     did NOT run -- no changed file is in its measured closure (closure: 36 files)
+2026-11-28T17:54:47.2468814Z   tests/layout.py          did NOT run -- no changed file is in its measured closure (closure: 3 files)
+2026-11-28T17:54:47.2468987Z   tests/open_meteo.py      did NOT run -- no changed file is in its measured closure (closure: 4 files)
+2026-11-28T17:54:47.2588327Z 
+2026-11-28T17:54:47.2588941Z   Each line above is a claim that no file changed by this branch is in
+2026-11-28T17:54:47.2589090Z   that script's MEASURED closure (tests/closures.json, recorded by
+2026-11-28T17:54:47.2589218Z   tests/derive_closures.sh from real instrumented runs). The claim is
+2026-11-28T17:54:47.2589389Z   re-checked in full: every push to main touching production runs this
+2026-11-28T17:54:47.2589520Z   suite unscoped, so a closure that is wrong turns main red at that push.
+2026-11-28T17:54:47.2589661Z   Run everything here and now with: GATE_SCOPE=full ./tests/run.sh
+2026-11-28T17:54:47.2589682Z 
+2026-11-28T17:54:47.2589755Z 1 TEST SCRIPT(S) FAILED
+2026-11-28T17:54:47.2655199Z ##[error]Process completed with exit code 1.
+2026-11-28T17:54:47.2704604Z ##[group]Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+2026-11-28T17:54:47.2704659Z with:
+2026-11-28T17:54:47.2704724Z   name: ci-metrics-fast
+2026-11-28T17:54:47.2704809Z   path: /home/runner/work/_temp/ci-metrics-fast.tsv
+2026-11-28T17:54:47.2704864Z   if-no-files-found: ignore
+2026-11-28T17:54:47.2704916Z   retention-days: 7

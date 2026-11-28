@@ -7,5 +7,5 @@ RESULT booked_kwh_unplanned_max=3.0160 kWh
 RESULT booked_kwh_draw_then_charge_max=3.0160 kWh
 RESULT unplanned_inputs_equal_draw_then_charge=True
 RESULT thread_factor=1.0000
-RESULT load1=22.76
-RESULT swapins=nan
+RESULT load1=1.76
+RESULT swapins=0

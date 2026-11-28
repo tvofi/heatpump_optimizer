@@ -1,0 +1,18 @@
+r16 forget sweep floor off: rc=1 fails=4
+   : FAIL through the production _arbitrate, the inlet rising 0.05 K a minute: a sweep writes one set-point per level, each the map of its level on the floor its first pass read (the inlet then plus the li
+   : FAIL r16: the first pass whose action is not a sweep's forgets the held floor, and the plan's level maps on the inlet of that pass (r1: a reload starts from a fresh state, which holds none)  [37.0 liv
+   : FAIL r16: a probe's pass forgets a sweep's floor too (any kind but the sweep's)
+   : FAIL r2: the sweep night starts the compressor no more often than the same night under the plan at one level; and the floor it held is forgotten by the night's end  [1 vs 1]
+hold sweep floor never: rc=1 fails=1
+   : FAIL through the production _arbitrate, the inlet rising 0.05 K a minute: a sweep writes one set-point per level, each the map of its level on the floor its first pass read (the inlet then plus the li
+tank cold standdown off: rc=1 fails=2
+   : FAIL the sweep's hot-water bound: with the tank below the pump's own start temperature (48 - 5 = 43 degC) the pass serves hot water; at it, above it, with no tank reading or no hysteresis read it stay
+   : FAIL a sweep night on a tank below its start temperature serves hot water on every pass: no level is held and no row kept, the passes are still the sweep's (the window gets none of them), and the ener
+tank cold cmp: rc=1 fails=1
+   : FAIL the sweep's hot-water bound: with the tank below the pump's own start temperature (48 - 5 = 43 degC) the pass serves hot water; at it, above it, with no tank reading or no hysteresis read it stay
+pass_origin sweep->fit: rc=1 fails=1
+   : FAIL pass_origin maps the sweep kind to the sweep origin, whatever duty the pass served; draw_range's routing reads the same word
+sweep_band_k floor dropped: rc=1 fails=1
+   : FAIL the band a sweep is gated on is the heating ceiling less the floor a level maps on now (55 - (30 + lift)); a warmer inlet narrows it; an install driving no flow set-point reads none  [55.0]
+button sweep flag False: rc=1 fails=1
+   : FAIL the two buttons: the system-identification press asks for no sweep, the power-response press asks for one, and the sweep button is the system-identification button's kind (its gate and its busy s

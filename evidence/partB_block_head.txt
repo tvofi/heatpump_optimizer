@@ -1,28 +1,3 @@
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
-Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
 
 === features block ===
 
@@ -60,10 +35,10 @@ Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the o
   ok   the band a sweep is gated on is the heating ceiling less the floor a level maps on now (55 - (30 + lift)); a warmer inlet narrows it; an install driving no flow set-point reads none
   ok   the sweep's hot-water bound: with the tank below the pump's own start temperature (48 - 5 = 43 degC) the pass serves hot water; at it, above it, with no tank reading or no hysteresis read it stays space; a probe and a fit keep today's suspension on the same cold tank
   ok   the power feedback is off in a sweep's hold: a plan step at the level is the loop's, the same level under the sweep's action is not
-  FAIL the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked sweep and still no window sample; held at the gate it is no idle reading
+  ok   the routing invariant (draw_range.fold, the one place): a sweep's interval below the band top reaches no window, no idle reading and no ceiling row; at the band top it is a ceiling row marked sweep and still no window sample; held at the gate it is no idle reading
   ok   null: the same three intervals with no sweep pass in them route as before -- the window, a ceiling row marked probe, an idle reading
-  FAIL a sweep's band-top interval is ceiling evidence only by the probe's own rule: not frozen, distorted or defrosting, running above standby, an experiment's interval, with no hot water asked
-  FAIL the flag is the interval's: the fold reads and clears it, so the first plan interval after a sweep reaches the window again; a hot-water stand-down pass marks its interval a sweep's too
+  ok   a sweep's band-top interval is ceiling evidence only by the probe's own rule: not frozen, distorted or defrosting, running above standby, an experiment's interval, with no hot water asked
+  ok   the flag is the interval's: the fold reads and clears it, so the first plan interval after a sweep reaches the window again; a hot-water stand-down pass marks its interval a sweep's too
   ok   the idle rule by name: the gate held, no hot water asked, nothing blocked on the meter; one set-point step above the gate tolerance is not idle; and an interval with no reading is none
   ok   the yield report: per commanded level its fraction of the band, the set-point held, and its rows' steady minutes with the minute-weighted drawn and inlet means; a level whose compressor never ran is a level with zero steady minutes and no means, never a point; a hot-water stand-down is no level
   ok   the sweep's metered energy is each sweep pass's reading held to the next pass, the stand-down's draw included, closed by the first pass after it and no further (null: the 9.0 kW plan minute after it adds nothing)
@@ -73,11 +48,36 @@ Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the o
   ok   the draw diagnostics publish the last sweep (none: null)
   ok   the synthetic sweep night: five levels held at five distinct set-points mapped on the floor the first step pass read, each one segment of 27 steady minutes (the rule's 30 less the settle), their draws rising with the set-point up to the pump's 3.2 kW top, every row marked sweep and space
   ok   the cost: the published metered energy equals the meter's own minute readings summed over the run, and sits under the published bound (5 x 0.5 h x 4.0 kW)
-  FAIL where the night's draws went: the band-top level is the one ceiling row, marked sweep, and the probe's clock is unmoved; no sweep interval reached the window (4 plan intervals folded, against 9 on the same night with no sweep) or an idle reading  [[(3.2, 1768269600.0, 'sweep')] window 8]
+  ok   where the night's draws went: the band-top level is the one ceiling row, marked sweep, and the probe's clock is unmoved; no sweep interval reached the window (4 plan intervals folded, against 9 on the same night with no sweep) or an idle reading
   ok   null: the same night without its band-top level leaves the ceiling store empty
   ok   r17: the store takes the meter's reading at the close of the band-top interval, the probe's pairing; on this run it equals that segment's steady drawn mean
   ok   r2: the sweep night starts the compressor no more often than the same night under the plan at one level; and the floor it held is forgotten by the night's end
-  FAIL null: the window after the sweep night holds only its plan intervals -- samples, commands, the latch and the ask evidence are those of a window fed those four intervals and nothing else
+  ok   null: the window after the sweep night holds only its plan intervals -- samples, commands, the latch and the ask evidence are those of a window fed those four intervals and nothing else
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the optimizer: DHW); retrying
   ok   a sweep night on a tank below its start temperature serves hot water on every pass: no level is held and no row kept, the passes are still the sweep's (the window gets none of them), and the energy is metered
   ok   the coordinator's route: the sweep press arms the sweep on a flow-metered install, its levels the hub's band beside the rows held, and is refused with the reason on one that cannot run it; the system-identification press on an unconverged, unlearned install arms the probe first and says so
   ok   through the coordinator's cycle: an armed sweep on warm water waits, held with the reason, and once the band opens that hold is gone; the band is read from the arbiter's inputs for a sweep's cycle only -- an armed probe's cycle reads no entity for it
@@ -98,4 +98,4 @@ Pump duty: the pump does not hold a write, select.sw_mode: Heating (set by the o
   ok   the feedback loop still runs through desired on a water set-point (the state it and the sweep's floor are read from)
   ok   the platform adds the sweep button beside the system-identification one, under its own key and translation key
 
-5 of 70 FEATURES BLOCK FAILED
+ALL 70 FEATURES BLOCK PASSED

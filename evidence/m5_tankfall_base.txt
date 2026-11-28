@@ -5,5 +5,5 @@ RESULT booked_kwh_long_max=0.0000 kWh
 RESULT booked_kwh_short_max=0.0000 kWh
 RESULT booked_kwh_unplanned_max=3.0160 kWh
 RESULT thread_factor=1.0000
-RESULT load1=22.76
-RESULT swapins=nan
+RESULT load1=1.70
+RESULT swapins=0
