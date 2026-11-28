@@ -275,10 +275,6 @@ class OpenMeteoSolar:
         return self._forecast
 
     @property
-    def observed(self) -> IrradianceSeries:
-        return self._observed
-
-    @property
     def available(self) -> bool:
         return bool(self._forecast) or bool(self._observed)
 

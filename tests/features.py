@@ -155,8 +155,15 @@ def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
 
 def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
                  step_weekdays=None, holiday_flags=None, humidity=None,
-                 dhw_pins=None):
-    """A minimal solve horizon for the DHW planner's direct calls (#1776)."""
+                 dhw_pins=None, start_time=None):
+    """A minimal solve horizon for the DHW planner's direct calls (#1776).
+
+    ``start_time`` defaults to a naive instant on step 0's hour, the clock
+    the planner's next-window countdown is measured from (issue 3786)."""
+    hours = np.arange(n) * dt if step_hours is None else step_hours
+    if start_time is None:
+        start_time = datetime(2026, 1, 5) + timedelta(
+            hours=float(hours[0]) if len(hours) else 0.0)
     return _Horizon(
         initial_state=state or ThermalState(
             room_temperature=21.0, slab_temperature=22.0,
@@ -165,10 +172,10 @@ def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
             buffer_tank_temperature=40.0),
         prices=prices, outdoor_temps=outdoor,
         wind_speeds=np.zeros(n), precipitation=np.zeros(n),
-        solar_radiation=np.zeros(n), start_time=None, n_steps=n, dt=dt,
+        solar_radiation=np.zeros(n), start_time=start_time, n_steps=n, dt=dt,
         comfort_targets=np.full(n, 21.0), temp_min_bounds=np.full(n, 17.0),
         temp_max_bounds=np.full(n, 23.0),
-        step_hours=np.arange(n) * dt if step_hours is None else step_hours,
+        step_hours=hours,
         solar_gains=np.zeros(n), heat_loss_factors=np.ones(n), forecast={},
         t_start=0.0, step_weekdays=step_weekdays, holiday_flags=holiday_flags,
         humidity=humidity, dhw_pins=dhw_pins,
@@ -5882,28 +5889,140 @@ R.check(
 # outside every window, so the inside-a-window answer is never computed there:
 # without a direct check, "0.0 while inside" lives only in the docstring.
 from heatpump_optimizer.dhw_schedule import hours_until_next_window as _hunw
+_hunw_at = lambda h: datetime(2026, 6, 10) + timedelta(hours=h)  # noqa: E731
 
 _hunw_windows = _parse_w("06:00-08:30, 17:00-22:00")
 R.check(
     "inside a demand window the next window is now, not the following one",
-    _hunw(7.0, _hunw_windows) == 0.0 and _hunw(18.0, _hunw_windows) == 0.0,
-    f"07:00 -> {_hunw(7.0, _hunw_windows)}, 18:00 -> {_hunw(18.0, _hunw_windows)} "
+    _hunw(_hunw_at(7.0), _hunw_windows) == 0.0 and _hunw(_hunw_at(18.0), _hunw_windows) == 0.0,
+    f"07:00 -> {_hunw(_hunw_at(7.0), _hunw_windows)}, 18:00 -> {_hunw(_hunw_at(18.0), _hunw_windows)} "
     "-- reading the FOLLOWING window while inside one pre-heats for a tank "
     "that is already being drawn",
 )
 R.check(
     "outside one it counts the hours to the next opening, wrapping past midnight",
-    _hunw(5.0, _hunw_windows) == 1.0
-    and _hunw(9.0, _hunw_windows) == 8.0
-    and _hunw(23.0, _hunw_windows) == 7.0,
-    f"05:00 -> {_hunw(5.0, _hunw_windows)}, 09:00 -> {_hunw(9.0, _hunw_windows)}, "
-    f"23:00 -> {_hunw(23.0, _hunw_windows)}",
+    _hunw(_hunw_at(5.0), _hunw_windows) == 1.0
+    and _hunw(_hunw_at(9.0), _hunw_windows) == 8.0
+    and _hunw(_hunw_at(23.0), _hunw_windows) == 7.0,
+    f"05:00 -> {_hunw(_hunw_at(5.0), _hunw_windows)}, 09:00 -> {_hunw(_hunw_at(9.0), _hunw_windows)}, "
+    f"23:00 -> {_hunw(_hunw_at(23.0), _hunw_windows)}",
 )
 R.check(
     "with no windows configured there is no answer, which is not 'now'",
-    _hunw(7.0, []) is None,
-    f"got {_hunw(7.0, [])}",
+    _hunw(_hunw_at(7.0), []) is None,
+    f"got {_hunw(_hunw_at(7.0), [])}",
 )
+
+# P7, issue 3786: a wall-clock hour carried across a DST change. The window
+# countdown is real hours in the zone, and each trajectory step reads its gains
+# (and its draw pattern) at the step clock's hour, not one extrapolated from
+# step 0. The plain day is the null control: there both clocks agree.
+from zoneinfo import ZoneInfo as _p7_zone  # noqa: E402
+from heatpump_optimizer.optimizer import _step_clock as _p7_clock  # noqa: E402
+
+_p7_tz = _p7_zone("Europe/Stockholm")
+_p7_days = {
+    "spring": datetime(2026, 3, 29, tzinfo=_p7_tz),
+    "autumn": datetime(2026, 10, 25, tzinfo=_p7_tz),
+    "plain": datetime(2026, 6, 10, tzinfo=_p7_tz),
+}
+_p7_until = {
+    k: _hunw(d.replace(minute=30), [(4.0, 6.0)]) for k, d in _p7_days.items()
+}
+R.check(
+    "the next-window countdown is the zone's real hours across a DST change "
+    "(00:30 to a 04:00 window: 2.5 h spring, 4.5 h autumn, 3.5 h plain)",
+    _p7_until == {"spring": 2.5, "autumn": 4.5, "plain": 3.5},
+    f"{_p7_until}",
+)
+
+# The countdown runs to the first instant after ``now`` at which the wall
+# clock enters a window. That is its start, read each time that wall time
+# occurs: once, twice in the autumn repeated hour, never in the spring skipped
+# hour. Or it is a DST jump landing inside a window. Europe/Stockholm; the
+# plain day is the null.
+_p7_fold = {
+    k: (_hunw(d.replace(hour=2, minute=30), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.75, 3.5)]),
+        _hunw(d.replace(hour=2, minute=30), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30, fold=1), [(2.25, 2.4)]),
+        _hunw(d.replace(hour=2, minute=30), [(1.5, 2.25)]))
+    for k, d in _p7_days.items() if k != "spring"
+}
+_p7_gap = (_hunw(_p7_days["spring"].replace(minute=30), [(2.5, 4.0)]),
+           _hunw(_p7_days["spring"].replace(minute=30), [(2.25, 2.4)]),
+           _hunw(_p7_days["plain"].replace(minute=30), [(2.25, 2.4)]))
+R.check(
+    "the next-window countdown runs to the first instant the wall clock enters "
+    "a window: from 02:30 in either pass of the autumn repeated hour 0.25 h to "
+    "02:45, 0.75 h or 23.75 h to 02:15, 0.5 h to the jump back into 01:30-02:15; "
+    "from 00:30 on the spring day 1.5 h to the jump into 02:30-04:00 and 24.75 h "
+    "past a 02:15-02:24 window it skips (plain day 23.75, 23.0 and 1.75 h)",
+    _p7_fold == {"autumn": (0.25, 0.25, 0.75, 23.75, 0.5),
+                 "plain": (0.25, 0.25, 23.75, 23.75, 23.0)}
+    and _p7_gap == (1.5, 24.75, 1.75),
+    f"{_p7_fold}, spring/plain gap {_p7_gap}",
+)
+from heatpump_optimizer.pump_schedule import vvc_should_run as _p7_vvc  # noqa: E402
+
+_p7_lead = {
+    (k, f): _p7_vvc(d.replace(hour=2, minute=30, fold=f), [(2.75, 3.5)], 30.0)[0]
+    for k, d in _p7_days.items() if k != "spring" for f in (0, 1)
+}
+R.check(
+    "the circulation pump pre-heats 15 min before a 02:45 window from 02:30 in "
+    "either pass of the autumn repeated hour, as on a plain day",
+    all(_p7_lead.values()) and len(_p7_lead) == 4,
+    f"{_p7_lead}",
+)
+
+
+def _p7_slips(name, day):
+    """Steps of 96 whose gains (and DHW draw) hour is off ``day``'s step clock."""
+    _, hours = _p7_clock(day, 96, 0.25)
+    m = ThermalModel(ThermalParameters(
+        internal_gains_profile=[0.05 * h for h in range(24)]))
+    seen, draws = [], []
+    real_gains, real_draws = m.internal_gains_at, m.dhw_draw_rates
+
+    def gains(h):
+        if h is not None:
+            seen.append(float(h))
+        return real_gains(h)
+
+    def draw(hs):
+        draws.append(np.asarray(hs, dtype=float).copy())
+        return real_draws(hs)
+
+    m.internal_gains_at, m.dhw_draw_rates = gains, draw
+    st = ThermalState(room_temperature=20.0, outdoor_temperature=0.0)
+    ws, pw = _WS(np.zeros(96)), np.full(96, 2.0)
+    if name == "batch":
+        m.simulate_trajectory_batch(st, pw[None, :], ws, dt_hours=0.25, step_hours=hours)
+    elif name == "dhw":
+        m.simulate_trajectory_with_dhw(st, pw, np.zeros(96), ws, dt_hours=0.25, step_hours=hours)
+    else:
+        m.simulate_trajectory(st, pw, ws, dt_hours=0.25, step_hours=hours)
+    want = np.floor(hours % 24.0)
+    if not seen or len(seen) % 96:
+        return f"{len(seen)} gains reads for 96 steps"  # the probe's own precondition
+    read = np.floor(np.array(seen).reshape(96, -1) % 24.0)
+    off = int(np.sum(np.any(read != want[:, None], axis=1)))
+    if name == "dhw":
+        off += int(np.sum(np.floor(draws[0] % 24.0) != want)) if len(draws) == 1 else 96
+    return off
+
+
+_p7_traj = {
+    (n, k): _p7_slips(n, d) for n in ("scalar", "batch", "dhw") for k, d in _p7_days.items()
+}
+R.check(
+    "every trajectory step reads its gains and draw hour off the step clock on "
+    "both DST days and a plain one (scalar, batched, with hot water)",
+    all(v == 0 for v in _p7_traj.values()),
+    f"{_p7_traj}",
+)
+
 
 
 # --- #329/#321: one grammar, exhaustively ----------------------------------
@@ -6305,6 +6424,7 @@ def _nw_cell(params, t0, holidays=frozenset()):
         _dhw_horizon(
             prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0), n=_n, dt=0.25,
             step_hours=np.array([t.hour + t.minute / 60.0 for t in _ts]),
+            start_time=t0,
             step_weekdays=np.array(
                 [(t0 + _nw_dt.timedelta(hours=(i - 1) * 0.25)).weekday()
                  for i in range(_n + 1)]),
@@ -6314,10 +6434,9 @@ def _nw_cell(params, t0, holidays=frozenset()):
         ),
         p_max=4.0,
     )
-    _h = t0.hour + t0.minute / 60.0
-    _owner = _nw_hunw(_h, _nw_wif(params, None, t0, holidays),
+    _owner = _nw_hunw(t0, _nw_wif(params, None, t0, holidays),
                       _nw_wif(params, None, t0, holidays, days=1))
-    _flat = _nw_hunw(_h, list(params.dhw_demand_windows))
+    _flat = _nw_hunw(t0, list(params.dhw_demand_windows))
     return _plan.next_window_in_hours, _owner, _flat
 
 
@@ -6818,12 +6937,12 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     )
     batch = m.simulate_trajectory_batch(
         st, powers, _WS(ot, wi, ra, so, hum, ext), dt_hours=0.25,
-        start_hour=7.0)
+        step_hours=7.0 + 0.25 * np.arange(powers.shape[1]))
     mism = []
     for b in range(powers.shape[0]):
         r, s, u, l, buf, _, wood = m.simulate_trajectory(
             st, powers[b], _WS(ot, wi, ra, so, hum, ext), dt_hours=0.25,
-            start_hour=7.0)
+            step_hours=7.0 + 0.25 * np.arange(len(powers[b])))
         refs = (("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
                 ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
                 ("buffer", batch["buffer"][b], buf))
@@ -6852,14 +6971,15 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     def space_obj(x):
         rr, _, _, _, _, _, _ = m.simulate_trajectory(
             st, np.clip(x, 0.0, None), _WS(ot, wi, ra, so, hum, ext),
-            dt_hours=0.25, start_hour=7.0)
+            dt_hours=0.25, step_hours=7.0 + 0.25 * np.arange(len(x)))
         room = rr[1:]
         return float(np.sum((room - targets) ** 2) + 0.01 * np.sum(x))
 
     def space_obj_batch(mat, *a):
         tr = m.simulate_trajectory_batch(
             st, np.clip(mat, 0.0, None), _WS(ot, wi, ra, so, hum, ext),
-            dt_hours=0.25, start_hour=7.0)
+            dt_hours=0.25,
+            step_hours=7.0 + 0.25 * np.arange(mat.shape[1]))
         out = np.empty(mat.shape[0])
         for bi in range(mat.shape[0]):
             room = tr["room"][bi][1:]
@@ -6977,8 +7097,9 @@ def _r11pp_batch(extra, buf, wood_t, zone=True, n=24):
         buffer_tank_temperature=buf, wood_tank_temperature=wood_t)
     ws = _WS(ot, wi, ra, so, np.full(n, 78.0), np.zeros(n))
     powers = np.zeros((2, n))
-    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, start_hour=7.0),
-            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, start_hour=7.0))
+    hours = (7.0 + np.arange(n) * 0.25) % 24.0
+    return (m.simulate_trajectory_batch(st, powers, ws, dt_hours=0.25, step_hours=hours),
+            m.simulate_trajectory(st, powers[0], ws, dt_hours=0.25, step_hours=hours))
 
 
 _r11pp_res, _r11pp_scal = _r11pp_batch(
@@ -17068,7 +17189,7 @@ def _r7cap_coil_implied_q(wood_l, dt=_R7CAP_DT):
     out = model.simulate_trajectory_with_dhw(
         _w2t_state(20.0, buf=45.0),
         np.full(1, 2.0), np.zeros(1), _WS(np.full(1, -5.0)),
-        start_hour=7.0, dt_hours=dt,
+        step_hours=7.0 + dt * np.arange(1), dt_hours=dt,
     )
     return (20.0 - out[6][1]) * params.wood_tank_thermal_mass / dt
 
@@ -17459,7 +17580,7 @@ def _coil_run(params, wood):
     n = 24
     out = m.simulate_trajectory_with_dhw(
         s, np.full(n, 0.5), np.zeros(n), _WS(np.full(n, -5.0)),
-        start_hour=6.0, dt_hours=0.25,
+        step_hours=6.0 + 0.25 * np.arange(n), dt_hours=0.25,
     )
     return m, out
 
@@ -20781,34 +20902,35 @@ R.check(
 )
 
 # --- #6 the pump schedule ------------------------------------------------------------
+_ps_at = lambda h: datetime(2026, 6, 10) + timedelta(hours=h)  # noqa: E731
 R.check(
     "the VVC pump runs inside a demand window and rests outside",
-    _ps.vvc_should_run(7.0, _WINDOWS, 20)[0]
-    and not _ps.vvc_should_run(12.0, _WINDOWS, 20)[0],
+    _ps.vvc_should_run(_ps_at(7.0), _WINDOWS, 20)[0]
+    and not _ps.vvc_should_run(_ps_at(12.0), _WINDOWS, 20)[0],
 )
 R.check(
     "the lead time pre-heats the loop just before a window opens",
-    _ps.vvc_should_run(16.8, _WINDOWS, 20)[0]
-    and not _ps.vvc_should_run(16.3, _WINDOWS, 20)[0],
+    _ps.vvc_should_run(_ps_at(16.8), _WINDOWS, 20)[0]
+    and not _ps.vvc_should_run(_ps_at(16.3), _WINDOWS, 20)[0],
 )
 R.check(
     "a window shorter than the lead has no hole in its final approach",
     all(
-        _ps.vvc_should_run(h, [(17.0, 17.5)], 60)[0]
+        _ps.vvc_should_run(_ps_at(h), [(17.0, 17.5)], 60)[0]
         for h in (16.0, 16.4, 16.7, 16.9, 17.2)
     )
-    and not _ps.vvc_should_run(15.9, [(17.0, 17.5)], 60)[0],
+    and not _ps.vvc_should_run(_ps_at(15.9), [(17.0, 17.5)], 60)[0],
     "probing the single instant now+lead went dark 16:30-17:00 — the "
     "exact minutes the pre-heat exists for",
 )
 R.check(
     "with no schedule the loop is simply left on",
-    _ps.vvc_should_run(3.0, None, 20)[0],
+    _ps.vvc_should_run(_ps_at(3.0), None, 20)[0],
 )
 R.check(
     "a schedule with no window today keeps the loop off (D17-s3-51)",
-    not _ps.vvc_should_run(3.0, [], 20)[0] and not _ps.vvc_should_run(7.0, [], 20)[0],
-    f"{_ps.vvc_should_run(3.0, [], 20)!r} -- an empty day of a day-aware spec "
+    not _ps.vvc_should_run(_ps_at(3.0), [], 20)[0] and not _ps.vvc_should_run(_ps_at(7.0), [], 20)[0],
+    f"{_ps.vvc_should_run(_ps_at(3.0), [], 20)!r} -- an empty day of a day-aware spec "
     "read as 'no schedule' ran the loop all day",
 )
 
@@ -21235,22 +21357,32 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
             if name in module_funcs
         )
 
+    def self_refs(node) -> list[str]:
+        names = []
+        for ref in _d102_ast.walk(node):
+            if isinstance(ref, _d102_ast.Call) and isinstance(
+                ref.func, _d102_ast.Attribute
+            ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+                names.append(ref.func.attr)
+            elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+                ref.value, _d102_ast.Name
+            ) and ref.value.id == "self":
+                names.append(ref.attr)  # a bound method handed to the fence, not called
+        return [n for n in names if n in methods]
+
+    # The cycle and the duty toggle (N-solve-recompute) share their write tail
+    # (``_actuate_plan``): a seam either root reaches directly, or through one
+    # method that writes nothing itself, is a seam the cycle reaches.
+    reached = []
+    for root in ("_async_update_data", "async_apply_held"):
+        for name in self_refs(methods[root]):
+            hop = [name] if writes(methods[name]) else self_refs(methods[name])
+            reached += [n for n in hop if writes(methods[n])]
     out = []
-    for ref in _d102_ast.walk(methods["_async_update_data"]):
-        if isinstance(ref, _d102_ast.Call) and isinstance(
-            ref.func, _d102_ast.Attribute
-        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
-            name = ref.func.attr
-        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
-            ref.value, _d102_ast.Name
-        ) and ref.value.id == "self":
-            name = ref.attr  # a bound method handed to the fence, not called
-        else:
-            continue
-        if name in methods and writes(methods[name]):
-            pair = (name, gated(methods[name]))
-            if pair not in out:
-                out.append(pair)
+    for name in reached:
+        pair = (name, gated(methods[name]))
+        if pair not in out:
+            out.append(pair)
     return out
 
 
@@ -21264,6 +21396,7 @@ R.check(
             ("_apply_action", True),
             ("_async_drive_pumps", True),
             ("_command_frequency", True),
+            ("_command_valve_target", True),  # through async_run_optimization, one hop
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -28055,6 +28188,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
     "set_thermal_params_house_field_two_zone": ({"field"}, "sve"),
+    "set_thermal_params_zone_field_one_zone": ({"field"}, "sve"),
     "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
@@ -42598,6 +42732,7 @@ _ET_KEYS = {
     "no_loaded_config_entry": set(),
     "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "set_thermal_params_house_field_two_zone": {"field"},
+    "set_thermal_params_zone_field_one_zone": {"field"},
     "assign_entity_missing": {"entity_id"},
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
@@ -52080,6 +52215,8 @@ _RC2_EXEMPT = {
 # The coordinator's own setters, which the services call with a refresh: each
 # is reached through a row above or says where its state lives.
 _RC2_SETTERS = {
+    "async_apply_held": "rows: the four duty switches; it writes no state, the boost store "
+        "holds what the press set",
     "async_set_mode": "rows: the switch and thermostat mode actions",
     "async_set_away": "rows: the away switch and the return time",
     "async_set_target_temperature": "row: the thermostat target, via entry options",
@@ -65073,7 +65210,7 @@ def _r7d203_coil_mismatches(wood_l):
                 precipitation=h.precipitation[:1],
                 solar_radiation=h.solar_radiation[:1],
             ),
-            start_hour=float(h.step_hours[0]), dt_hours=h.dt,
+            step_hours=h.step_hours, dt_hours=h.dt,
             dhw_draw_rates=np.array([rate]),
         )
         return float(wood[1])
@@ -71778,14 +71915,14 @@ R.check(
 from heatpump_optimizer.dhw_planner import _dhw_next_window_hours as _sw_next_window  # noqa: E402
 
 _sw_next_empty = _sw_try(lambda: _sw_next_window(
-    np.array([]), None, _sw_normal, _sw_wparams, None,
+    datetime(2026, 6, 10), np.array([]), None, _sw_normal, _sw_wparams, None,
 ))
 _sw_next_repeat = _sw_try(lambda: _sw_next_window(
-    np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
+    datetime(2026, 6, 10, 10, 30), np.array([10.5, 10.5, 10.75]), None, _sw_normal, _sw_wparams,
     np.array([False, False, True]),
 ))
 _sw_next_wrap = _sw_try(lambda: _sw_next_window(
-    np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
+    datetime(2026, 6, 10, 23, 30), np.array([23.5, 23.75, 0.0, 0.25]), None, _sw_normal, _sw_wparams,
     np.array([False, False, False, True]),
 ))
 R.check(
@@ -73248,7 +73385,7 @@ def _f23_coil_residual(dhw0, wood0):
             wood_tank_temperature=wood0,
         )
         r = m.simulate_trajectory_with_dhw(
-            s, np.zeros(1), np.zeros(1), _WS(np.zeros(1)), start_hour=7.0,
+            s, np.zeros(1), np.zeros(1), _WS(np.zeros(1)), step_hours=7.0 + 0.25 * np.arange(1),
             dt_hours=0.25, dhw_draw_rates=np.full(1, 2.0))
         out.append((r[4][-1], r[6][-1], m._step_dhw_floor_injected * 0.25))
     (d_on, w_on, f_on), (d_off, w_off, f_off) = out
@@ -87617,7 +87754,7 @@ def _pl_dhw_traj(derate, kw=5.0):
                      outdoor_temperature=5.0, buffer_tank_temperature=24.0,
                      dhw_temperature=45.0),
         np.zeros(1), np.full(1, kw), _WS(np.full(1, 5.0)),
-        start_hour=20.0, dt_hours=0.25)
+        step_hours=20.0 + 0.25 * np.arange(1), dt_hours=0.25)
     return float(out[4][-1])
 
 
@@ -94971,6 +95108,134 @@ R.check(
     f"{_pm_svc_one_out} mass={_pm_svc_one.runtime_data._thermal_params.room_thermal_mass}",
 )
 
+# R11-LATE-P2-ZONE-GATE: whether an install runs two zones has one answer,
+# thermal_model.two_zone_from_config, and every reader takes it. The set the
+# action refuses on one zone is that rule's own output: the service fields
+# whose presence alone turns an auto config two-zone (TWO_ZONE_FIELDS). The
+# census asserts its precondition (the set is non-empty and is exactly what
+# the rule reads), so a key the rule starts reading is driven the day it lands.
+# A key the rule stops reading is caught by the literal set below, written
+# independently of TWO_ZONE_FIELDS. The rule's output is compared with it and
+# the refusals drive it, so deleting a key from the constant fails both. A
+# census of the constant against itself would not. The literal encodes a
+# design choice: these four keys are the two-zone model's own parameters.
+from heatpump_optimizer import thermal_model as _zg_tm  # noqa: E402
+from heatpump_optimizer import coordinator as _zg_coord  # noqa: E402
+
+_zg_values = {"upper_floor_thermal_mass": 40.0, "lower_floor_thermal_mass": 40.0,
+              "inter_zone_heat_transfer": 1.5, "radiator_power_fraction": 0.9}
+_zg_rule_set = {
+    k for k in _zg_coord._THERMAL_PARAM_FIELDS
+    if _zg_tm.two_zone_from_config({k: 1.0})
+}
+R.check(
+    "R11-LATE-P2-ZONE-GATE census precondition: the refused set is the "
+    "presence rule's own output over the action's fields",
+    bool(_zg_rule_set) and _zg_rule_set == set(getattr(_zg_tm, "TWO_ZONE_FIELDS", ())),
+    f"rule={sorted(_zg_rule_set)} declared={sorted(getattr(_zg_tm, 'TWO_ZONE_FIELDS', ()))}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the presence rule turns an auto config two-zone "
+    "on each of the four zone keys, and on no other action field",
+    _zg_rule_set == set(_zg_values),
+    f"rule={sorted(_zg_rule_set)} pinned={sorted(_zg_values)}",
+)
+_zg_before = _pm_svc_one.runtime_data._thermal_params
+for _zg_field in sorted(_zg_values):
+    _zg_out = _svc_call(
+        _pm_svc1_hass, "set_thermal_parameters", {_zg_field: _zg_values[_zg_field]}
+    )
+    _svc_check(
+        f"R11-LATE-P2-ZONE-GATE: set_thermal_parameters refuses {_zg_field} "
+        "on a single-zone entry",
+        _zg_out,
+        "set_thermal_params_zone_field_one_zone",
+    )
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the refused calls wrote nothing",
+    all(
+        getattr(_pm_svc_one.runtime_data._thermal_params, a)
+        == getattr(_zg_before, a)
+        for k, a in _zg_coord._THERMAL_PARAM_FIELDS.items() if k in _zg_values
+    )
+    and not (set(_zg_values) & set(_pm_svc_one.options)),
+    f"options={sorted(_pm_svc_one.options)}",
+)
+_zg_two_out = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"upper_floor_thermal_mass": 41.0}
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: a two-zone entry still takes a "
+    "floor's mass",
+    _zg_two_out[0] == "returned"
+    and _pm_svc_two.runtime_data._thermal_params.upper_floor_thermal_mass == 41.0,
+    f"{_zg_two_out} upper={_pm_svc_two.runtime_data._thermal_params.upper_floor_thermal_mass}",
+)
+# An auto entry with no zone key runs one zone, and a floor's mass is the
+# presence that turns it two-zone: the call is the switch, not a no-op.
+_zg_auto_hass = FakeHass()
+_seed_prices(_zg_auto_hass)
+_asyncio.run(_ha_setup_component(_integ, _zg_auto_hass))
+_zg_auto = FakeEntry(
+    data={k: v for k, v in _LC_DATA.items() if k != "two_zone_mode"}, entry_id="zg_auto"
+)
+_asyncio.run(_ha_setup_entry(_integ, _zg_auto_hass, _zg_auto))
+_zg_auto_out = _svc_call(
+    _zg_auto_hass, "set_thermal_parameters", {"upper_floor_thermal_mass": 41.0}
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: an auto one-zone entry takes a "
+    "floor's mass, which makes its persisted config two-zone",
+    not _zg_tm.two_zone_from_config(_zg_auto.data)
+    and _zg_auto_out[0] == "returned"
+    and _zg_tm.two_zone_from_config({**_zg_auto.data, **_zg_auto.options}),
+    f"{_zg_auto_out} options={sorted(_zg_auto.options)}",
+)
+
+# The schedule rows publish a floor's temperature only when the model runs
+# two zones (OptimizationResult.zone_trajectories): a one-zone solve fills
+# both trajectories with the room's, which is no floor. Null control: the
+# two-zone entry's rows carry them.
+_zg_rows_one = (_pm_svc_one.runtime_data.data or {}).get("schedule") or []
+_zg_rows_two = (_pm_svc_two.runtime_data.data or {}).get("schedule") or []
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a single-zone plan's schedule rows publish no "
+    "zone temperature",
+    bool(_zg_rows_one)
+    and all(r.get("upper_temp") is None and r.get("lower_temp") is None
+            for r in _zg_rows_one),
+    f"rows={len(_zg_rows_one)} zoned="
+    f"{sum(1 for r in _zg_rows_one if r.get('upper_temp') is not None)}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: a two-zone plan's schedule rows "
+    "publish both floors",
+    bool(_zg_rows_two)
+    and all(isinstance(r.get("upper_temp"), float)
+            and isinstance(r.get("lower_temp"), float) for r in _zg_rows_two),
+    f"rows={len(_zg_rows_two)}",
+)
+from heatpump_optimizer.payload import ScheduleStep as _zg_Step  # noqa: E402
+
+_zg_res_two = _pm_svc_two.runtime_data._optimization_result
+_zg_up = [round(v, 9) for v in _zg_res_two.upper_temp_trajectory[1:]]
+_zg_lo = [round(v, 9) for v in _zg_res_two.lower_temp_trajectory[1:]]
+R.check(
+    "R11-LATE-P2-ZONE-GATE: each floor's column is that floor's trajectory "
+    "(precondition: the two floors differ somewhere)",
+    _zg_up != _zg_lo
+    and [round(r["upper_temp"], 9) for r in _zg_rows_two] == _zg_up
+    and [round(r["lower_temp"], 9) for r in _zg_rows_two] == _zg_lo,
+    f"up[:2]={_zg_up[:2]} lo[:2]={_zg_lo[:2]} "
+    f"rows[:2]={[(r['upper_temp'], r['lower_temp']) for r in _zg_rows_two[:2]]}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a schedule row publishes exactly the keys "
+    "ScheduleStep declares, on either topology",
+    all(set(r) == set(_zg_Step.__annotations__) for r in _zg_rows_one + _zg_rows_two),
+    f"declared={sorted(_zg_Step.__annotations__)} row={sorted(_zg_rows_one[0]) if _zg_rows_one else None}",
+)
+
 # D17-s2-03: quick setup's wood answers record the furnace and the tank; the
 # page says what else the plan needs, as buffer_tank's sentence does.
 import json as _pm_json  # noqa: E402
@@ -102055,6 +102320,158 @@ R.check(
     "ends, run directly rather than through the debouncer, and the trailing mark is spent",
     _sg_trail == (0, 2, False),
     f"debouncer calls, refreshes, trailing: {_sg_trail}",
+)
+
+
+# N-solve-recompute (carry, R11-SEAM-cycle-solve): a timed duty switch's toggle is laid on the plan in
+# hand. Boost and block state is no solve input: the overlay is applied after the solve. So the toggle
+# actuates and publishes the adopted plan without a fetch or a solve. It requests a refresh only with no
+# plan base, or with a refresh or solve in flight, whose trailing refresh or re-run lays the overlay after.
+async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
+    """One toggle through ``async_apply_held``: (solves, debouncer calls, actuations, published, action, gate)."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make(f"sg_duty_{based}_{refreshing}_{solving}")
+    n = {"solve": 0, "call": 0, "act": 0, "pub": 0}
+
+    async def _solve():
+        n["solve"] += 1
+
+    async def _call():
+        n["call"] += 1
+
+    async def _act():
+        n["act"] += 1
+
+    async def _none():
+        return None
+
+    coord.async_run_optimization, coord._debounced_refresh.async_call = _solve, _call
+    coord._apply_action, coord._command_frequency, coord._async_drive_pumps = _act, _none, _none
+    coord.async_update_listeners = lambda: n.__setitem__("pub", n["pub"] + 1)
+    if based:
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.25, "dhw_power": 1.0, "heat_pump_on": True})
+    boost_mod.held_for(coord).set(boost_mod.CHANNEL_SPACE, True, _R9F13_NOW, block=True)
+    gate = solve_gate.gate_for(coord)
+    coord._refresh_task = object() if refreshing else None
+    gate.solving, coord._entry_released = solving, released
+    before = coord.data
+    await coord.async_apply_held()
+    _r9f13_dt.freeze(None)
+    return (n["solve"], n["call"], n["act"], n["pub"] if coord.data is not before else -n["pub"],
+            dict(coord._current_action or {}), (gate.trailing, gate.rerun))
+
+
+_sg_held = _sg_aio.run(_sg_duty())
+R.check(
+    "N-solve-recompute: a duty toggle on a held plan actuates and publishes it with the overlay laid "
+    "on (a space block zeroes the space power, hot water untouched), and never solves or requests a refresh",
+    _sg_held[:4] == (0, 0, 1, 1)
+    and _sg_held[4].get("power_normalized") == 0.0 and _sg_held[4].get("dhw_power") == 1.0,
+    f"solves, calls, actuations, publishes, action: {_sg_held[:5]}",
+)
+_sg_unbased = _sg_aio.run(_sg_duty(based=False))
+_sg_inflight = (_sg_aio.run(_sg_duty(refreshing=True)), _sg_aio.run(_sg_duty(solving=True)))
+_sg_released = _sg_aio.run(_sg_duty(released=True))
+R.check(
+    "N-solve-recompute: with no plan base the toggle is an ordinary request; with a refresh in flight it "
+    "trails it, with a solve in flight it re-runs it; a released entry writes nothing (#237) -- and none "
+    "of the four actuates beside them",
+    _sg_unbased[:4] == (0, 1, 0, 0) and _sg_released[2:4] == (0, 0)
+    and _sg_inflight[0][:4] == (0, 0, 0, 0) and _sg_inflight[0][5] == (True, False)
+    and _sg_inflight[1][:4] == (0, 0, 0, 0) and _sg_inflight[1][5] == (False, True),
+    f"unbased {_sg_unbased[:4]}, refreshing {_sg_inflight[0][:4]} {_sg_inflight[0][5]}, "
+    f"solving {_sg_inflight[1][:4]} {_sg_inflight[1][5]}",
+)
+
+
+async def _sg_cycle_tail():
+    """One refresh on a stubbed solve: the order the cycle runs its writes and its bookkeeping."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make("sg_cycle_tail")
+    ran = []
+
+    def _rec(name):
+        async def _step(*_a, **_k):
+            ran.append(name)
+        return _step
+
+    async def _solve():
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.5})
+
+    coord.async_run_optimization = _solve
+    steps = ("_apply_action", "_command_frequency", "_async_drive_pumps", "_record_accuracy",
+             "_track_realised_peak", "_async_save_accuracy", "_async_save_energy_totals")
+    for name in steps:
+        setattr(coord, name, _rec(name))
+    coord._next_optimization = None
+    await coord._async_update_data()
+    _r9f13_dt.freeze(None)
+    due = _R9F13_NOW + timedelta(minutes=_r9f13_cmod._ctx_of(coord)._config.optimization_interval)
+    return ran == list(steps) and coord._next_optimization == due, ran, coord._next_optimization
+
+
+_sg_tail = _sg_aio.run(_sg_cycle_tail())
+R.check(
+    "N-solve-recompute: the cycle's write tail the toggle shares runs inside every refresh -- action, "
+    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order, and "
+    "the next solve is stamped one configured interval on",
+    _sg_tail[0],
+    f"ran {_sg_tail[1]}, next {_sg_tail[2]}",
+)
+
+
+async def _sg_diagnose_publish():
+    """A diagnose press publishes the insight view without a cycle (D9-s1-01), through the shared publish."""
+    _hass, _entry, coord = _r9f13_make("sg_diagnose")
+    real, pubs = _r9f13_cmod._await_process, []
+
+    async def _no_report(*_a, **_k):
+        return None
+
+    _r9f13_cmod._await_process = _no_report
+    coord.data = {"plan": "held"}
+    coord.async_update_listeners = lambda: pubs.append(1)
+    try:
+        await coord.async_diagnose_interval()
+    finally:
+        _r9f13_cmod._await_process = real
+    return coord.data.get("plan"), "insight" in coord.data, len(pubs)
+
+
+_sg_diag = _sg_aio.run(_sg_diagnose_publish())
+R.check(
+    "N-solve-recompute: a diagnose press publishes the insight view on the held payload, once, without a cycle",
+    _sg_diag == ("held", True, 1),
+    f"{_sg_diag}",
+)
+
+
+def _sg_press(cls):
+    """Toggle a duty switch; the name of the coroutine its press hands the entry's background task."""
+    _hass, _entry, coord = _r9f13_make(f"sg_press_{cls.__name__}")
+    handed = []
+
+    class _Entry:
+        entry_id = "sg_press"
+
+        def async_create_background_task(self, _hass, coro, name=None):
+            handed.append(coro.cr_code.co_name)
+            coro.close()
+
+    ent = cls(coord, _Entry())
+    ent.async_write_ha_state = lambda: handed.append("published")
+    _sg_aio.run(ent.async_turn_on())
+    return handed
+
+
+from heatpump_optimizer import switch as _sg_switch  # noqa: E402
+
+_sg_presses = {c.__name__: _sg_press(c) for c in (_sg_switch.BoostSpaceSwitch, _sg_switch.BlockSpaceSwitch)}
+R.check(
+    "N-solve-recompute: a boost or block switch publishes its state, then hands the entry's background "
+    "task the held-plan toggle, not the publish-then-refresh helper's refresh",
+    all(v == ["published", "async_apply_held"] for v in _sg_presses.values()),
+    f"{_sg_presses}",
 )
 
 

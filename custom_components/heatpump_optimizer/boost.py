@@ -343,6 +343,11 @@ def adopt_plan(coord: _BoostCoord, action: CurrentAction) -> None:
     coord.adopt_action(action)
 
 
+def plan_base(coord: Any) -> CurrentAction | None:
+    """The plan base the last cycle adopted, which the overlay is laid on; None before any."""
+    return _PLAN_BASES.get(coord)
+
+
 def held_for(coord: Any) -> BoostState:
     """In-memory boost state for this coordinator, created on first use."""
     held = _STATES.get(coord)
