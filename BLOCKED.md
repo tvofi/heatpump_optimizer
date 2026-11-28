@@ -1,16 +1,17 @@
-# BLOCKED: r11-seam-wallclock-dst
+# BLOCKED: R11-SEAM-wallclock-dst (fixer-r11-seam-wallclock-dst)
 
-body_push.sh exited 4 (REFUSED CARRY-LANDED) at code head 4edae55888adc266403a5d2325d62daa2de79cf8 (handoff/r11-seam-wallclock-dst). prepr.sh is clean at that head (rc 0). The refused body is kept at handoff-wip/r11-seam-wallclock-dst-body 19fb0f37566c7287b974bf84c71ba93c89d2a4c5.
+Question: R11-SEAM-wallclock-dst already merged on main as #3914 (merge cb2026c3b5, an ancestor of the dispatched head ac9045c223), but the roster still shows `resume.stage: not-started`. Should this dispatch be withdrawn and the roster row set to done, or is there a residual scope beyond #3914 that you want fixed?
 
-Question: fold this body's carry (Forward-carry: Carry: R11-OUTSIDE-HONEST-DHW-RUNS) onto the round's roster branch and re-run body_push.sh r11-seam-wallclock-dst with the kept body.
+## Evidence, measured at ac9045c223721608e684c8a2213831aa34c1fa4f
 
-body_push output:
-```
-fill-red: `## Red checks` already names mutation; nothing written
-ref_privacy (body) ok: no host identity in the body
-review-packet handoff: R11-SEAM-wallclock-dst at 4edae55888ad, 0 live, 0 dispatched carries, 0 refused
-CARRY-LANDED: 1 missing
-body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body
-body_push: REFUSED CARRY-LANDED
-body_push: refused body kept at handoff-wip/r11-seam-wallclock-dst-body 19fb0f37566c7287b974bf84c71ba93c89d2a4c5
-```
+Harness: `dev/audit/harnesses/r11_wallclock_dst.py`, which #3914 landed. Each run was
+`PYTHONPATH=tests/hastub:<tree>/custom_components python3 dev/audit/harnesses/r11_wallclock_dst.py <instance> --day <day>`,
+with its exit code read directly (1 = disagrees with the zone's real clock, 0 = agrees).
+
+- At the head ac9045c223, all 15 runs exit 0: the instances `hours_until_next_window`, `simulate_trajectory`, `simulate_trajectory_batch`, `simulate_trajectory_with_dhw` and `next_window_census`, each on the spring, autumn and plain days.
+- Null control at 265e061f65, the first parent of #3914's merge, with `custom_components/` taken from `git archive`: `hours_until_next_window`, `simulate_trajectory` and `simulate_trajectory_batch` each exit 1 on the spring and autumn days and 0 on the plain day. This is the reproduction the brief describes. The probe does detect the defect, and the merge removed it.
+- D15-s2-04 stays `unreproduced` in `dev/audit/rounds/round11/ISSUES.json` (class P7, issue 3786). Running its bundle harness `m5_zone.py` needs a diagnostics bundle, and this tree does not have one. I did not run it.
+
+I made no code change. Nothing was pushed to `handoff/r11-seam-wallclock-dst`.
+
+This ref's earlier tip, 1404098d53, was the previous seat's 2026-11-26 `body_push: REFUSED CARRY-LANDED` block. The relay re-ran body_push, #3914 merged, and this step ref was never deleted. I stacked this commit on top of it so the push stays fast-forward-only.
