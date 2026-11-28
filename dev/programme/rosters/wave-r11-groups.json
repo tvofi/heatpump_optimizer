@@ -1121,7 +1121,7 @@
     "Moved from R10-COP-LEARNER-DRAW-FLOOR (owner-approved stale-group audit 2026-11-15): From r10-cop-learner-draw-floor, body item b4659e0c: fixer.md: contradiction: step 17 has the architect note followed and a departure raised, not made; step 14 forbids the allow-list entry that would have kept the note's call site. With no live seat to ask, the route was changed and the departure is raised in this body. Carry: R10-COP-LEARNER-DRAW-FLOOR (items b4659e0c) [moved: R11-CARRY-FIXER-CONTRACT]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "fix/r11-pre-handoff-bookkeeping-p2",
     "commit": "ef6363d5f291e2eaa60620b5ea12d8d5fb902478",
     "last_step": null,
