@@ -3955,10 +3955,9 @@ class Train:
         self.run(["git", "fetch", "-q", "origin", self.base, v, h])
         code, o = self.run(["python3", "-I", tool("review_carry"), v, h, "--main", f"origin/{self.base}",
                             "--verdict-only"])
-        if code != 0:
-            return (f"readmit: [{cls}] skip at this verdict; the verdict {v[:12]} does not carry to the live head "
-                    f"{h[:12]} ({(o.strip().splitlines() or ['no output'])[-1][:160]}): a new verdict re-admits it")
-        return None
+        return None if code == 0 else (
+            f"readmit: [{cls}] skip at this verdict; the verdict {v[:12]} does not carry to the live head "
+            f"{h[:12]} ({(o.strip().splitlines() or ['no output'])[-1][:160]}): a new verdict re-admits it")
 
     def live_classify(self, h: str, pr: int) -> "tuple[int, str]":
         """`classify`'s reading of pull request <pr>'s head <h>: (0 GREEN, 1 RED, 3 WAIT, 4 APPROVAL-OWED; its line)."""
@@ -11400,7 +11399,9 @@ def _skip_readmit_self_test(check) -> None:
                 tr._queue = {"batches": bs, "next": 1, "closed": False}
                 more = (tr.queue_take(bs, 1), [int(e["pr"]) for e in bs[-1]])
             carried = [a for a in argvs if any(str(x).endswith("review_carry.py") for x in a)]
-            return rc, rl, spool, more, carried
+            at = next((i for i, a in enumerate(argvs) if a in carried), len(argvs))
+            fetched = ["git", "fetch", "-q", "origin", "main", V7, head] in argvs[:at]
+            return rc, rl, spool, more, carried + ([] if fetched or not carried else [["unfetched"]])
     readd = {c: ra_add(c, drain=True) for c in (CI_TIMEOUT, MAIN_MOVED, HEAD_MOVED)}
     check("skip readmit: a same-verdict re-add of an entry skipped [TIMEOUT], [MAIN-MOVED] or [HEAD-MOVED] is "
           "ADDED once its live head classifies GREEN and the verdict carries to it (review_carry.py <verdict> "
@@ -11417,6 +11418,21 @@ def _skip_readmit_self_test(check) -> None:
           and "not GREEN" in nulls["red"][1][0] and "does not carry" in nulls["fresh"][1][0])
     rc_red, say_red, sp_red, _m, car_red = ra_add(None)
     rc_v9, say_v9, sp_v9, _m, car_v9 = ra_add(CI_TIMEOUT, green=1, carry=1, at="9" * 40)
+    rc_nh, say_nh, sp_nh, _m, car_nh = ra_add(MAIN_MOVED, head="")
+    check("skip readmit null: an unreadable live head is ADD REFUSED `readmit:` (could not read), nothing spooled "
+          "and review_carry.py never asked",
+          rc_nh == 1 and say_nh[0].startswith("ADD REFUSED #9 readmit:") and "could not read" in say_nh[0]
+          and sp_nh == [] and car_nh == [])
+    with tempfile.TemporaryDirectory() as d:
+        tl = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+        tl._check_runs = lambda sha: []
+        tl.required = lambda pr_head=False: []
+        tl.classify_at = lambda h, runs, req: ("green", [], [])
+        tl.introduced = lambda sha, runs: (["a step the PR made red"], "")
+        lc = tl.live_classify(H8, 9)
+    check("skip readmit: `live_classify` is `classify`'s pull-request reading (on_main False): a step red the "
+          "head introduced reads RED even where the required set reads green",
+          lc[0] == 1 and lc[1].startswith("RED ") and "INTRODUCED a step the PR made red" in lc[1])
     check("skip readmit null: a skip for a real red (no class) at the same verdict stays ALREADY, nothing read; "
           "a TIMEOUT skip re-added at a NEW verdict is admitted as today, with no live re-read",
           rc_red == 0 and say_red[0].startswith("ALREADY #9:") and sp_red == [] and car_red == []
