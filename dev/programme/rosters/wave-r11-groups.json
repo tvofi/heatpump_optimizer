@@ -9302,6 +9302,47 @@
     "next_step": "owner's act; no fixer dispatch",
     "note": null
    }
+  },
+  {
+   "group": "R11-WHATIF-PAIR-SCATTER",
+   "lane": "CORE",
+   "kind": "defect",
+   "class": "production",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/whatif.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "audit",
+   "brief": "Measure the steady pair's hour scatter for a hot-water window, quiet-hours or wood-slot ask sent alone, which R11-SEAM-cycle-solve's design excluded (PR 3738 recorded the exclusion at its merge). Carried below verbatim.",
+   "carry": [
+    "Moved from R11-SEAM-cycle-solve carry 0 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). PR 3738 (merged f52e700df1) and PR 3934 (ac9045c223) recorded it excluded by that group's design, under the carry's own release clause; the measurement is unbuilt. Text verbatim:\n\nLeft behind (carry census 2026-11-21): PR 3674's fix review routed this to R11-INTAKE-R10-RESIDUE, which is deferred and never received it; this group owns custom_components/heatpump_optimizer/whatif.py. Follow-up, review item f9a20486: the steady pair's hour scatter is measured only for the asks the item named. A hot-water window, quiet-hours or wood-slot change sent alone also takes the pair branch (`schedule_days` in whatif.py returns None, since no comfort target moves), and its figure is equally one day's, priced from the hour asked; nothing measures it for the same scatter, and the card sentence names only the weight and the floor. Control: the asks arm with those overrides added to the pair asks; precondition: the card still sends them alone. Not owed by the open pull request if its design excludes it: record the disposition at its merge. Carry: R11-SEAM-cycle-solve (items f9a20486)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-whatif-pair-scatter",
+    "commit": null,
+    "last_step": "created by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups)",
+    "next_step": "fixer per the carries; re-measure first",
+    "note": null
+   }
   }
  ]
 }
