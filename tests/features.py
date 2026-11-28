@@ -92745,6 +92745,33 @@ R.check(
     _ml_t7["fixed"] == 0 and _ml_t7["off"] > 0 and _ml_t7["plans"] == 400,
     str(_ml_t7),
 )
+# T7b: the default rule is free. Both minimums 0 serve today's legs without running
+# the fixed point, the cost the solve's batch path pays per candidate. A minimum
+# stops at its first pass that changes nothing: one change and one confirming pass.
+_ml_t7b_runs, _ml_t7b_real = [], _ds_legs._mode_runs
+
+
+def _ml_t7b_count(*args, **kwargs):
+    _ml_t7b_runs.append(1)
+    return _ml_t7b_real(*args, **kwargs)
+
+
+_ml_t7b = {}
+_ds_legs._mode_runs = _ml_t7b_count
+try:
+    for _ml_t7b_name, _ml_t7b_rule in (("off", {}), ("heat 10", {"heat": 10.0}), ("dhw 10", {"dhw": 10.0})):
+        _ml_t7b_runs.clear()
+        _ml_legs([1.0, 1.0, 0.0], [0.0, 1.0, 1.0], **_ml_t7b_rule)
+        _ml_t7b[_ml_t7b_name] = len(_ml_t7b_runs)
+finally:
+    _ds_legs._mode_runs = _ml_t7b_real
+R.check(
+    "T7b, a rule with both minimums 0 serves its plan without one run computation, and a heating or a "
+    "hot-water minimum of 10 stops after the pass that changes nothing (2 runs, not the cap's 7); null "
+    "control, each minimum runs the fixed point",
+    _ml_t7b == {"off": 0, "heat 10": 2, "dhw 10": 2},
+    str(_ml_t7b),
+)
 # T8: availability. R1 at M = 10 on a 6-min hot-water share moves 4 heating minutes;
 # R2 removes a step's heating; an untouched plan prices nothing.
 _ml_t8_r1 = _ds_legs.availability(np.array([1.0, 1.5, 1.0]), np.array([0.0, 1.0, 0.0]), 0.0, rule=_ml_rule(dhw=10))
