@@ -689,8 +689,9 @@ class ScheduleStep(TypedDict, total=False):
     setpoint: float
     price: float
     room_temp: float
-    upper_temp: float
-    lower_temp: float
+    #: None unless the model runs two zones (R11-LATE-P2-ZONE-GATE).
+    upper_temp: float | None
+    lower_temp: float | None
     solar_gain: float
     displace: float
     heat_pump_on: bool

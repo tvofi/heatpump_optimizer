@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/services.py:_refuse_zone_fields_on_one_zone BOOLOP 9aad2236",
+  "killed_by": "tests/entities.py",
+  "old": "    asked = {k: v for k, v in params.items() if k in TWO_ZONE_FIELDS and v is not None}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`asked = {k: v for k, v in params.items() if k in TWO_ZONE_FIELDS or v is not None}`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

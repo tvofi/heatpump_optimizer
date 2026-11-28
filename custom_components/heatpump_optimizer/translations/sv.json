@@ -421,6 +421,9 @@
     "set_thermal_params_house_field_two_zone": {
       "message": "{field} gäller bara en enzonsmodell; den här installationen räknar med två zoner. Ange upper_floor_thermal_mass och lower_floor_thermal_mass i den här åtgärden och varje zons värmeförlust på alternativsidan Tvåzonsmodell."
     },
+    "set_thermal_params_zone_field_one_zone": {
+      "message": "{field} gäller bara en tvåzonsmodell; den här installationen räknar med en zon. Ange house_thermal_mass och house_heat_loss_coefficient i den här åtgärden, eller slå på två zoner på alternativsidan Tvåzonsmodell."
+    },
     "assign_entity_missing": {
       "message": "Enheten {entity_id} finns inte"
     },

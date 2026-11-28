@@ -1134,11 +1134,19 @@ class ThermalParameters:
 
         return cls(**values)
 
-#: The whole-house fields only a one-zone model reads: on two zones every
-#: reader takes the floors' masses and losses instead (D17-s1-03, D17-s3-02).
+#: The fields only one topology reads. On two zones every reader takes the
+#: floors' masses and losses instead of the whole house's (D17-s1-03,
+#: D17-s3-02); the two-zone keys' presence is what makes an "auto" config
+#: two-zone, and on one zone nothing reads them (R11-LATE-P2-ZONE-GATE).
 SINGLE_ZONE_HOUSE_FIELDS: tuple[str, ...] = (
     const.CONF_HOUSE_THERMAL_MASS,
     const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT,
+)
+TWO_ZONE_FIELDS: tuple[str, ...] = (
+    const.CONF_UPPER_FLOOR_THERMAL_MASS,
+    const.CONF_LOWER_FLOOR_THERMAL_MASS,
+    const.CONF_INTER_ZONE_TRANSFER,
+    const.CONF_RADIATOR_POWER_FRACTION,
 )
 
 
@@ -1161,15 +1169,7 @@ def two_zone_from_config(config: Mapping[str, Any]) -> bool:
         return True
     if two_zone_mode == const.TWO_ZONE_MODE_OFF:
         return False
-    return any(
-        key in config
-        for key in (
-            const.CONF_UPPER_FLOOR_THERMAL_MASS,
-            const.CONF_LOWER_FLOOR_THERMAL_MASS,
-            const.CONF_INTER_ZONE_TRANSFER,
-            const.CONF_RADIATOR_POWER_FRACTION,
-        )
-    )
+    return any(key in config for key in TWO_ZONE_FIELDS)
 
 
 def dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
