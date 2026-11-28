@@ -12476,7 +12476,9 @@ _ct_blind = [n.lineno for n in _ct_walk_calls
 _ct_fns = {n.name: _ct_ast.get_source_segment(_ct_sources["dhw_planner.py"], n)
            for n in _ct_ast.walk(_ct_plan_tree) if isinstance(n, _ct_ast.FunctionDef)}
 _ct_affine = [f for f in ("_plan_dhw_min_cost", "_dhw_legionella_ceilings", "_clamp_dhw_to_capacity")
-              if "_exo_at(" not in _ct_fns.get(f, "")]
+              if "_exo_at(" not in _ct_fns.get(f, "")
+              # the linear program's recursion is the context's (R11-OUTSIDE-HONEST-DHW-RUNS)
+              and not ("ctx.coast(" in _ct_fns.get(f, "") and "_exo_at(self.tank_exo_kw" in _ct_fns.get("coast", ""))]
 _ct_space = [f for f in ("def simulate_trajectory(", "def simulate_trajectory_batch(")
              if f not in _ct_sources["thermal_model.py"]
              or "buffer_exo = weather.buffer_exo_kw" not in _ct_sources["thermal_model.py"].split(f)[1][:4000]]
@@ -34989,6 +34991,7 @@ class _Split:
         self._measured_power = measured
         self._immersion_active = False
         self._pump_signals = signals
+        self._accuracy = AccuracyTracker()  # R11-OUTSIDE-START-APPROACH: the tracking gate reads its draw window
 
 
 _sp_blind = _Split(PumpSignals())
@@ -82651,7 +82654,7 @@ def _wrr_folded(command, experiment_s=None):
     """A fresh store after one running 3.0 kW space interval held at ``command``."""
     d = _dr.DrawRange()
     _dr.fold(d, 3.0, (5.0, 0.0), _dr_params(1.5, 5.5), frozen=False, distorted=False,
-             defrost=False, command=command, experiment_s=experiment_s)
+             defrost=False, command=command, span=None if experiment_s is None else _dr.Span(experiment_s, experiment_s, experiment=True))
     return d
 
 
@@ -92655,7 +92658,7 @@ def _cp_params(lo=1.0, hi=5.0):
 
 def _cp_fold(d, drawn, command, experiment_s, split=(5.0, 0.0), hi=5.0):
     _cp_dr.fold(d, drawn, split, _cp_params(hi=hi), frozen=False, distorted=False,
-                defrost=False, command=command, experiment_s=experiment_s)
+                defrost=False, command=command, span=None if experiment_s is None else _cp_dr.Span(experiment_s, experiment_s, experiment=True))
 
 
 def _cp_store(values, newest_s=_CP_NOW):
@@ -93106,7 +93109,7 @@ def _cp_pump(house, nights, late=False, noise=0.02, seed=3):
                 drawn = (3.0 if pending["command"] is _CP_CEIL else 1.5) * (1.0 + noise * rng.standard_normal())
                 _cp_dr.fold(store, drawn, (pending["power"], 0.0), _cp_params(), frozen=False,
                             distorted=False, defrost=False, command=pending["command"],
-                            experiment_s=pending["when"] if key == "system_identification" else None)
+                            span=_cp_dr.Span(pending["when"], pending["when"], experiment=True) if key == "system_identification" else None)
             pending = {"mode": mode, "power": power, "when": now.timestamp(),
                        "command": _CP_CEIL if power >= 5.0 else _CP_MID}
             prev_mode = mode
@@ -96769,6 +96772,7 @@ R.check(
     "a plausible target raised a notice",
 )
 
+# --- R10-DUTY-SWITCH-PLANNER-PRICE block start
 R.section(
     "R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops "
     "the compressor (pull request 3420, Bankaifan)"
@@ -97356,10 +97360,12 @@ def _dsp_same_plan(a, b):
 # with a start priced as a start that install plans runs, and on the 2 degC day
 # the plan it ships makes no priced switch at all (the mild day of the two
 # descents below), so the checks of a charged step and of the banned candidate
-# had nothing to read there.
+# had nothing to read there. 2 K colder again since R11-OUTSIDE-HONEST-DHW-RUNS:
+# with its hot water committed as runs the 0 degC plan makes no priced switch
+# either (dev/audit/harnesses/r11_honest_dhw_runs.py, switches).
 _DSP_INSTALLS = {
-    "duty-cycle": dict(clamp=False, out_mean=0.0),
-    "modulating clamped": dict(clamp=True),
+    "duty-cycle": dict(clamp=False, out_mean=-2.0),
+    "modulating clamped": dict(clamp=True, out_mean=0.0),
     "fixed-speed": dict(clamp=True, p_min=5.5),
 }
 _dsp_base = {name: _dsp_solve(None, **kw) for name, kw in _DSP_INSTALLS.items()}
@@ -98572,12 +98578,16 @@ R.check(
 # plan the true objective scores above the one that kept it. Such a solve
 # therefore descends twice, with the switch operand and as a solve that
 # prices no stop would, and the true objective judges the candidates of both.
-# Two duty-cycle days, one where each descent supplies the plan that ships:
-# the cells "duty-cycle price phase 30 outdoor 2.0" (mild) and "... outdoor
-# -4.0" (cold) that dev/audit/harnesses/r11_honest_starts_runs.py's
-# descents mode prints, both and each descent alone (design verdict r2).
-# The scores are of one non-convex solve per arm (``fixer.md`` step 15): the
-# margins measured on x86_64 are 0.07 and 0.39, the checks ask for 0.01.
+# Two duty-cycle days, one where each descent supplies the plan that ships.
+# Each is the duty-cycle solve at price phase 30 that
+# dev/audit/harnesses/r11_honest_starts_runs.py's descents mode runs, at an
+# outdoor mean of 1.0 (mild) and -1.0 (cold), both and each descent alone
+# (design verdict r2). The scores are of one
+# non-convex solve per arm (``fixer.md`` step 15). So each day is one whose
+# shipping arm stands apart, by the 0.01 the checks ask for, in each of four
+# kernel classes measured. They are OPENBLAS_CORETYPE unset with numpy's own
+# dispatch, Haswell without AVX-512, and Sandybridge and Nehalem without AVX,
+# numpy narrowed to match by NPY_DISABLE_CPU_FEATURES.
 _dsp_real_plans, _dsp_real_term = _dsp_om._relaxed_plans, _dsp_om._switch_cost_fn
 _dsp_descents = []
 
@@ -98605,18 +98615,68 @@ def _dsp_arm(arm, **kw):
 
 _dsp_days = {
     day: {arm: _dsp_arm(arm, **kw) for arm in ("both", "operand", "unpriced", "no operand")}
-    for day, kw in (("mild", {}), ("cold", {"out_mean": -4.0}))
+    # Both days moved with R11-OUTSIDE-HONEST-DHW-RUNS. With the hot water
+    # committed as runs both descents ship one plan at -4 degC. At 2 degC
+    # the operand's descent alone comes within 0.01 of the shipped plan once
+    # numpy's dispatch has no AVX.
+    for day, kw in (("mild", {"out_mean": 1.0}), ("cold", {"out_mean": -1.0}))
 }
+# What the commit stage guarantees is read where it decides: each commit call
+# scores the committed form of every relaxed plan (one per descent) on the
+# true objective, start term included, and ships the lowest. The solve's final
+# objective is not that score: stages after the commit move it. So which arm
+# alone ships the lower final objective is a property of one non-convex solve
+# per arm, and it moved with the CPU class (``fixer.md`` step 15). With hot
+# water committed as runs, the 2 degC day's operand arm alone scored under both
+# descents on one CI runner class and on arm64, and above them on another.
+# The 1 degC day chosen over four x86 kernel classes failed on arm64.
+_dsp_real_best, _dsp_real_commit = _dsp_om._best_runs, _dsp_om._commit_runs
+
+
+def _dsp_commit_calls(**kw):
+    """Per commit call of one priced duty-cycle solve with both descents:
+    each descent's committed (score, plan) and the plan that shipped."""
+    calls = []
+
+    def best(*args):
+        out = _dsp_real_best(*args)
+        calls[-1][0].append((float(out[0]), np.array(out[1], float)))
+        return out
+
+    def commit(*args, **kwargs):
+        calls.append(([], None))
+        out = _dsp_real_commit(*args, **kwargs)
+        calls[-1] = (calls[-1][0], np.array(out[0], float))
+        return out
+
+    _dsp_om._best_runs, _dsp_om._commit_runs = best, commit
+    try:
+        _dsp_solve(_DSP_PAIR, _DSP_OFF, **kw)
+    finally:
+        _dsp_om._best_runs, _dsp_om._commit_runs = _dsp_real_best, _dsp_real_commit
+    return calls
+
+
+_dsp_stage = {day: _dsp_commit_calls(**kw) for day, kw in (("mild", {}), ("cold", {"out_mean": -1.0}))}
+_dsp_stage_calls = [c for calls in _dsp_stage.values() for c in calls]
+_dsp_stage_scores = [[round(c[0], 6) for c in cands] for cands, _ in _dsp_stage_calls]
 R.check(
-    "a solve that prices a stop commits both descents and ships the lower: on "
-    "the mild day (duty-cycle, price phase 30, 2 degC) the unpriced descent's "
-    "plan, which the operand's descent alone scores above; on the cold day "
-    "(the same at -4 degC) the operand's, which the unpriced descent alone scores above",
-    _dsp_days["mild"]["both"] <= _dsp_days["mild"]["unpriced"] + 1e-9
-    and _dsp_days["mild"]["both"] < _dsp_days["mild"]["operand"] - 0.01
-    and _dsp_days["cold"]["both"] <= _dsp_days["cold"]["operand"] + 1e-9
-    and _dsp_days["cold"]["both"] < _dsp_days["cold"]["unpriced"] - 0.01,
-    f"{_dsp_days}",
+    "a solve that prices a stop commits both descents and ships the lower: on the "
+    "duty-cycle days at 2 and -1 degC every commit call scores one committed plan per "
+    "descent and ships the one that scores lowest",
+    bool(_dsp_stage_calls)
+    and all(
+        len(cands) == 2 and shipped is not None
+        and np.array_equal(shipped, min(cands, key=lambda c: c[0])[1])
+        for cands, shipped in _dsp_stage_calls
+    ),
+    f"{_dsp_stage_scores}",
+)
+R.check(
+    "and the choice is live: on some commit call the unpriced descent's committed plan "
+    "scores below the operand's, so shipping the first descent's plan would ship the higher",
+    any(len(cands) == 2 and cands[1][0] < cands[0][0] - 1e-9 for cands, _ in _dsp_stage_calls),
+    f"{_dsp_stage_scores}",
 )
 R.check(
     "the relaxed descent still leaves a priced switch: with the switch operand "
@@ -100658,6 +100718,789 @@ R.check(
 _sce_dt.freeze(None)
 
 
+
+# ---------------------------------------------------------------------------
+# R11-OUTSIDE-HONEST-DHW-RUNS (pull request 3529, Bankaifan): hot-water
+# charges ship as runs. On a solve that plans runs the planner commits its
+# plan (dhw_charges.commit_charges): the store program's plan or the lifted
+# plan, each only if charge_refusal passes it on the planner's own walk; the
+# uncommitted plan is the one unconditional fallback. The finding, the store
+# program and the tail are the contributor's.
+# ---------------------------------------------------------------------------
+R.section("R11-OUTSIDE-HONEST-DHW-RUNS: hot-water charges committed on the planner's own store")
+import golden as _hdr_golden  # noqa: E402
+import heatpump_optimizer.dhw_planner as _hdr_dp  # noqa: E402
+import heatpump_optimizer.dhw_charges as _hdr_dc  # noqa: E402
+import heatpump_optimizer.optimizer as _hdr_om  # noqa: E402
+from heatpump_optimizer import runs as _hdr_runs  # noqa: E402
+from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _HDR_RUNS_AT  # noqa: E402
+
+_HDR_N = 32
+
+
+def _hdr_rig(*, start=0.5, clamped=False, running=False, prices=None, draws=None, t0=50.0, p_min=1.0, n=_HDR_N, dt=0.25,
+             p_run=4.8):
+    """A planner that plans runs, on the default 200 l tank, and its context."""
+    params = ThermalParameters(min_electrical_power=p_min, max_electrical_power=6.0)
+    planner = DhwPlanner(
+        ThermalModel(params), SimpleNamespace(pv_export_price=0.0),
+        charge_runs=_hdr_dc.ChargeRuns(start, running, clamped))
+    prices = np.full(n, 1.0) if prices is None else np.asarray(prices, dtype=float)
+    ctx = _dhw_ctx(prices=prices, outdoor=np.full(n, 5.0), n=n, dt=dt, c_dhw=params.dhw_store.capacity_kwh_per_c,
+                   p_dhw_max=p_run, params=params, min_run_power=0.6, max_lead_steps=n)
+    draws = np.zeros(n) if draws is None else np.asarray(draws, dtype=float)
+    return SimpleNamespace(
+        planner=planner, ctx=ctx, tank=(t0, draws), floor=_hdr_runs.floor_kw(p_min),
+        temps=lambda plan: planner._ctx_temps(ctx, t0, draws, np.asarray(plan, dtype=float)))
+
+
+def _hdr_commit(rig, plan, requirement, *, ceiling=55.0, start_below=None, space=None, forced_off=None):
+    n = rig.ctx.n_steps
+    return _hdr_dc.commit_charges(
+        rig.planner, np.asarray(plan, dtype=float), (rig.ctx, *rig.tank),
+        (np.broadcast_to(np.asarray(requirement, dtype=float), (n,)), np.full(n, ceiling)),
+        forced_off, start_below, space)
+
+
+def _hdr_under(plan, floor):
+    """Charging steps under the floor that are not a charge's last step."""
+    plan = np.asarray(plan, dtype=float)
+    low = (plan > _HDR_RUNS_AT) & (plan < floor - 1e-9)
+    last = np.r_[plan[1:] <= 0.0, True] & np.r_[False, plan[:-1] >= floor - 1e-9]
+    return int(np.sum(low & ~last))
+
+
+def _hdr_programs(fn, replace=None):
+    """``fn()`` with the store program's plans recorded, or replaced."""
+    seen, real = [], _hdr_dc._StoreProgram.plan
+
+    def plan(self, may_start):
+        out = real(self, may_start) if replace is None else replace(self, may_start)
+        seen.append(None if out is None else np.array(out))
+        return out
+
+    _hdr_dc._StoreProgram.plan = plan
+    try:
+        return fn(), seen
+    finally:
+        _hdr_dc._StoreProgram.plan = real
+
+
+# 1. The failing case, on the two goldens that price a start on an install
+# that can duty-cycle. Each is solved as the tree solves it and with the
+# planner handed no ChargeRuns (the uncommitted plan, what shipped before).
+def _hdr_capture(name, committed):
+    real, solve, seen = _hdr_om._charge_runs, _hdr_om.HeatPumpOptimizer.optimize, []
+    if not committed:
+        _hdr_om._charge_runs = lambda _opt, _running: None
+    _hdr_om.HeatPumpOptimizer.optimize = lambda self, **kw: (seen.append(self), solve(self, **kw))[1]
+    try:
+        got = _hdr_golden.capture(name, _hdr_golden.SCENARIOS[name])
+    finally:
+        _hdr_om._charge_runs, _hdr_om.HeatPumpOptimizer.optimize = real, solve
+    space, dhw = (np.asarray(got[k], dtype=float) for k in ("power_schedule", "dhw_power_schedule"))
+    short = np.asarray(seen[-1]._dhw_requirement) - np.asarray(got["dhw_temp_trajectory"], dtype=float)[1:]
+    return SimpleNamespace(
+        dhw=dhw, low=_hdr_under(dhw, 1.0), short=float(np.max(short)),
+        starts=_hdr_runs.start_count(space + dhw, 1.0), got=got)
+
+
+_hdr_fix = {name: (_hdr_capture(name, True), _hdr_capture(name, False)) for name in ("cycling_cost", "everything_on")}
+R.check(
+    "acceptance: on an install that can duty-cycle, with a start priced, no shipped hot-water step lies "
+    "between the running rule and the floor but a charge's last; the same solves with the planner handed "
+    "no ChargeRuns ship such steps (the plan before this group, the control)",
+    all(new.low == 0 and old.low > 0 for new, old in _hdr_fix.values()),
+    f"{ {k: (new.low, old.low) for k, (new, old) in _hdr_fix.items()} }",
+)
+R.check(
+    "the committed plans hold the tank no further under its floor than the uncommitted ones (0.05 K, the "
+    "planners' tolerance), and the combined draw starts no more often",
+    all(new.short <= max(old.short, 0.0) + 0.05 and new.starts <= old.starts + 1e-9 for new, old in _hdr_fix.values()),
+    f"{ {k: (round(new.short, 3), round(old.short, 3), new.starts, old.starts) for k, (new, old) in _hdr_fix.items()} }",
+)
+
+# Null control: a solve that plans no runs hands the planner nothing, and a
+# planner handed nothing returns its plan object untouched.
+_hdr_free_opt = _hsr_opt(0.0, False, 1.1)
+_hdr_none = _hdr_rig()
+_hdr_none.planner.charge_runs = None
+_hdr_trickle = np.zeros(_HDR_N)
+_hdr_trickle[[6, 14, 22, 29]] = 0.6
+R.check(
+    "unengaged (no start priced, an install that can duty-cycle) the optimizer hands the planner no "
+    "ChargeRuns, engaged it hands the start price the solve plans with (a clamped install configured "
+    "at zero: the clamped default, never the raw configured zero), the running reading and the clamp; a "
+    "planner handed none returns the plan it was given, the same object",
+    _hdr_om._charge_runs(_hdr_free_opt, True) is None
+    and _hdr_om._charge_runs(_hsr_opt(0.25, False, 1.1), True) == (0.25, True, False)
+    and _hdr_om._charge_runs(_hsr_opt(0.0, True, 1.1), False)
+    == (_hdr_om.CLAMPED_DEFAULT_START_PRICE, False, True)
+    and _hdr_commit(_hdr_none, _hdr_trickle, 50.0) is _hdr_trickle,
+    f"{_hdr_om._charge_runs(_hsr_opt(0.25, False, 1.1), True)}",
+)
+
+# 2a. Ruling b, the boolean. The tank sags under a 51 degC start temperature
+# before each of the plan's four trickles. The program's first plan charges
+# longer early, so the charge it opens later begins on a tank the pump would
+# not start; that step is cleared and the program runs again.
+_hdr_a = _hdr_rig(t0=51.2, draws=np.r_[np.zeros(8), np.full(24, 0.25)])
+_hdr_a_below = np.full(_HDR_N, 51.0)
+_hdr_a_out, _hdr_a_seen = _hdr_programs(lambda: _hdr_commit(_hdr_a, _hdr_trickle, 50.0, start_below=_hdr_a_below))
+R.check(
+    "ruling b: the store program is handed where the pump would start; a charge its own walk refuses "
+    "clears that step and the program runs again, and what ships is the program's last plan, committed, "
+    "in more than one round and fewer than STARTABLE_ROUNDS",
+    1 < len(_hdr_a_seen) < _hdr_dc.STARTABLE_ROUNDS
+    and np.array_equal(_hdr_a_out, _hdr_a_seen[-1])
+    and not np.array_equal(_hdr_a_seen[0], _hdr_a_seen[-1])
+    and _hdr_under(_hdr_a_out, 1.0) == 0 and bool(np.any(_hdr_a_out > 0.0))
+    and _hdr_dc.charge_refusal(_hdr_a_out, _hdr_a_below, _hdr_a.temps, np.full(_HDR_N, -np.inf)) is None
+    and _hdr_dc.charge_refusal(_hdr_a_seen[0], _hdr_a_below, _hdr_a.temps, np.full(_HDR_N, -np.inf))[0] == "start",
+    f"rounds {len(_hdr_a_seen)}, shipped on {np.flatnonzero(_hdr_a_out > 0).tolist()}",
+)
+# With no start condition known every charge is taken to start (verdict
+# item r7): the first plan ships, and drop_unstartable is never asked.
+_hdr_a_free, _hdr_a_free_seen = _hdr_programs(lambda: _hdr_commit(_hdr_a, _hdr_trickle, 50.0))
+R.check(
+    "with no start condition known the program runs once and its plan ships (null of the rounds above)",
+    len(_hdr_a_free_seen) == 1 and np.array_equal(_hdr_a_free, _hdr_a_free_seen[0])
+    and _hdr_dc.charge_refusal(_hdr_a_seen[0], None, _hdr_a.temps, np.full(_HDR_N, -np.inf)) is None,
+    f"{len(_hdr_a_free_seen)}",
+)
+
+# 2b. The start clause, called directly: a plan whose second charge opens on
+# a tank at its start temperature.
+_hdr_b_plan = np.zeros(8)
+_hdr_b_plan[[1, 5]] = 2.0
+_hdr_b_walk = np.array([49.0, 49.0, 52.0, 51.5, 51.2, 51.0, 54.0, 53.5, 53.0])
+R.check(
+    "the acceptance refuses a plan whose second charge opens at its start temperature on the supplied "
+    "walk, at that step; one degree lower it passes",
+    _hdr_dc.charge_refusal(_hdr_b_plan, np.full(8, 51.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf)) == ("start", 5)
+    and _hdr_dc.charge_refusal(_hdr_b_plan, np.full(8, 52.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf)) is None,
+    f"{_hdr_dc.charge_refusal(_hdr_b_plan, np.full(8, 51.0), lambda _p: _hdr_b_walk, np.full(8, -np.inf))}",
+)
+
+# 2c. The lifted plan passes through the acceptance too (design verdict
+# point 1). The program is handed no feasible plan; raising the first
+# trickle to the floor warms the second's opening step past its start
+# temperature, so the uncommitted plan ships. Null: with the floor at 0.7 kW
+# the lift is a quarter of that and the lifted plan ships.
+_hdr_c_plan = np.zeros(_HDR_N)
+_hdr_c_plan[[4, 16]] = 0.6
+
+
+def _hdr_lifted(p_min, plan=_hdr_c_plan, requirement=45.0, t0=50.0, start_below=None):
+    rig = _hdr_rig(t0=t0, p_min=p_min)
+    walk = rig.temps(plan)
+    below = np.full(_HDR_N, float(walk[16]) + 0.5) if start_below is None else start_below
+    out = _hdr_programs(lambda: _hdr_commit(rig, plan, requirement, start_below=below), lambda *_a: None)[0]
+    return out, rig, below
+
+
+_hdr_c_out, _hdr_c_rig, _hdr_c_below = _hdr_lifted(1.0)
+_hdr_c_null = _hdr_lifted(0.7)[0]
+_hdr_c_lift = np.where(_hdr_c_plan > 0.0, 1.0, 0.0)
+R.check(
+    "the lifted plan ships only through the acceptance: where raising a charge to the floor leaves a "
+    "later one unstartable the uncommitted plan ships, the same object; with a floor the lift does not "
+    "carry that far the lifted plan ships",
+    _hdr_c_out is _hdr_c_plan
+    and _hdr_dc.charge_refusal(_hdr_c_lift, _hdr_c_below, _hdr_c_rig.temps, np.full(_HDR_N, -np.inf)) == ("start", 16)
+    and np.array_equal(_hdr_c_null, np.where(_hdr_c_plan > 0.0, 0.7, 0.0)),
+    f"{np.round(_hdr_c_null[_hdr_c_null > 0], 2)}",
+)
+
+# 2d. A charge at the first step (#3863's start rule, dhw_start): the commit
+# judges it as the floor repair does. On a tank at its start temperature it
+# starts only while a charge is under way (ThermalState.dhw_charge_under_way);
+# commit_charges hands that reading to the acceptance and to the program's
+# start mask. Null: under way, the same charge passes. Called without the
+# reading, both take a charge to be under way, as dhw_start's functions do.
+_hdr_d0_plan = np.zeros(8)
+_hdr_d0_plan[0] = 2.0
+_hdr_d0_walk = np.array([52.0, 54.0, 53.8, 53.6, 53.4, 53.2, 53.0, 52.8, 52.6])
+_hdr_d0 = [
+    _hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf), running)
+    for running in (False, True)
+] + [_hdr_dc.charge_refusal(_hdr_d0_plan, np.full(8, 51.0), lambda _p: _hdr_d0_walk, np.full(8, -np.inf))]
+_hdr_d0_rig = _hdr_rig(t0=52.0)
+_hdr_d0_seen = []
+_hdr_d0_kept = (_hdr_dc.charge_refusal, _hdr_dc.startable_steps)
+_hdr_dc.charge_refusal = lambda *a: _hdr_d0_seen.append(("refusal", a[4:])) or _hdr_d0_kept[0](*a)
+_hdr_dc.startable_steps = lambda *a: _hdr_d0_seen.append(("mask", a[3:])) or _hdr_d0_kept[1](*a)
+try:
+    for _hdr_d0_running in ((False,), (True,), ()):
+        _hdr_d0_seen.append(("run", _hdr_d0_running))
+        _hdr_dc.commit_charges(
+            _hdr_d0_rig.planner, np.where(np.arange(_HDR_N) < 2, 0.6, 0.0), (_hdr_d0_rig.ctx, *_hdr_d0_rig.tank),
+            (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.full(_HDR_N, 51.0), None, *_hdr_d0_running)
+finally:
+    _hdr_dc.charge_refusal, _hdr_dc.startable_steps = _hdr_d0_kept
+R.check(
+    "a charge at the first step on a tank at its start temperature is refused for its start unless a "
+    "charge is under way, and the commit hands that reading to the acceptance and the program's start mask",
+    _hdr_d0 == [("start", 0), None, None]
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (False,))) + 1 : _hdr_d0_seen.index(("run", (True,)))])
+    == {("refusal", (False,)), ("mask", (False,))}
+    and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (True,))) + 1 :]) - {("run", ())}
+    == {("refusal", (True,)), ("mask", (True,))},
+    f"{_hdr_d0}, {sorted(set(_hdr_d0_seen))}",
+)
+
+# 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
+# to its ceiling. Lifted, the first leaves the second no room, the rating
+# clamp cuts it under a runnable block and zeroes it, and the tank ends
+# under the floor the uncommitted plan held.
+_hdr_d_plan = np.zeros(_HDR_N)
+_hdr_d_plan[[4, 5]] = 0.6
+_hdr_d_rig = _hdr_rig(t0=52.6)
+_hdr_d_req = np.where(np.arange(_HDR_N) >= 5, 54.5, 45.0)
+_hdr_d_out = _hdr_programs(lambda: _hdr_commit(_hdr_d_rig, _hdr_d_plan, _hdr_d_req), lambda *_a: None)[0]
+_hdr_d_lift = _hdr_d_rig.planner._ctx_clamp(
+    _hdr_d_rig.ctx, 52.6, _hdr_d_rig.tank[1], np.full(_HDR_N, 55.0), np.where(_hdr_d_plan > 0.0, 1.0, 0.0))
+_hdr_d_held = np.minimum(_hdr_d_req, _hdr_d_rig.temps(_hdr_d_plan)[1:])
+R.check(
+    "the acceptance refuses a lifted plan whose clamped tail leaves the tank under a floor the "
+    "uncommitted plan held, and the uncommitted plan ships; against no floor the same plan passes",
+    _hdr_d_out is _hdr_d_plan
+    and _hdr_d_lift[5] == 0.0 and _hdr_d_lift[4] == 1.0
+    and _hdr_dc.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, _hdr_d_held) == ("floor", 5)
+    and _hdr_dc.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, np.full(_HDR_N, -np.inf)) is None,
+    f"{_hdr_dc.charge_refusal(_hdr_d_lift, None, _hdr_d_rig.temps, _hdr_d_held)}, "
+    f"worst gap {float(np.max(_hdr_d_held - _hdr_d_rig.temps(_hdr_d_lift)[1:])):.3f} K",
+)
+
+# 3. The kernel both programs call (runs.advance, runs.read_back), driven
+# here on an affine store with hard bounds and two charging levels, against
+# an exhaustive search over every on/off/level sequence of nine steps. The
+# kernel's cost is read off its own read-back, so the action index is
+# pinned with it. Null: the search with the bounds ignored.
+def _hdr_small(seed, cells=800, bounds=True):
+    rng = np.random.default_rng(seed)
+    n, heats, decay, top = 9, (1.0, 2.5), 0.97, 20.0
+    price, drift = rng.uniform(0.5, 2.0, n), rng.uniform(-1.5, -0.2, n)
+    floors, ceiling = rng.uniform(2.0, 6.0, n), float(rng.uniform(9.0, 13.0))
+    start, first = float(rng.choice([0.0, 0.7])), float(rng.uniform(6.0, 9.0))
+    width = top / cells
+
+    def place(k):
+        def rule(v, _charged):
+            j = np.rint(v / width).astype(np.int64)
+            inside = (v >= floors[k]) & (v <= ceiling) & (j >= 0) & (j <= cells)
+            return np.clip(j, 0, cells), np.where(inside, 0.0, np.inf)
+        return rule
+
+    def actions(k):
+        return ([lambda v, _r, h=h: (decay * v + drift[k] + h, price[k] * h) for h in heats],
+                [lambda v, _r: (decay * v + drift[k], 0.0)])
+
+    cost = np.full((2, cells + 1), np.inf)
+    val = np.zeros_like(cost)
+    cost[1, int(round(first / width))], val[1, int(round(first / width))] = 0.0, first
+    trail = []
+    for k in range(n):
+        cost, val, back = _hdr_runs.advance(cost, val, _hdr_runs.state_moves(1, 1, np.nan), actions(k), start, place(k), 1)
+        trail.append(back)
+    grid = np.indices((3,) * n).reshape(n, -1).T  # 0 off, 1 and 2 the levels
+    v, paid, ok, was = np.full(len(grid), first), np.zeros(len(grid)), np.ones(len(grid), dtype=bool), np.zeros(len(grid), dtype=bool)
+    for k in range(n):
+        on = grid[:, k] > 0
+        heat = np.where(on, np.take(heats, np.maximum(grid[:, k] - 1, 0)), 0.0)
+        v = decay * v + drift[k] + heat
+        paid += price[k] * heat + start * (on & ~was)
+        ok &= (v >= floors[k]) & (v <= ceiling) if bounds else True
+        was = on
+    best = float(np.min(np.where(ok, paid, np.inf)))
+    if not np.isfinite(cost).any():
+        return best, np.inf, np.inf
+    mask, action = _hdr_runs.read_back(trail, cost, 1)
+    replay = sum(price[k] * heats[action[k]] for k in range(n) if mask[k]) + start * int(np.sum(mask & ~np.r_[False, mask[:-1]]))
+    return best, float(np.min(cost)), float(replay)
+
+
+_hdr_k = [_hdr_small(s) for s in range(60)]
+_hdr_k_null = [_hdr_small(s, bounds=False) for s in range(60)]
+_hdr_k_same = sum(abs(b - c) <= 1e-9 and abs(c - r) <= 1e-9 for b, c, r in _hdr_k if np.isfinite(b))
+_hdr_k_live = sum(bool(np.isfinite(b)) for b, _c, _r in _hdr_k)
+R.check(
+    "the generalised kernel's cost equals an exhaustive search's on every feasible nine-step case with "
+    "two levels and hard bounds at 800 cells, and the cost of the path its read-back returns (mask and "
+    "action index) is that cost; the kernel never beats the search, and declares no plan only where the "
+    "search finds none",
+    _hdr_k_live >= 30 and _hdr_k_same == _hdr_k_live
+    and all(c >= b - 1e-9 for b, c, _r in _hdr_k)
+    and all(np.isfinite(c) == np.isfinite(b) for b, c, _r in _hdr_k),
+    f"{_hdr_k_same} of {_hdr_k_live} feasible, of 60",
+)
+R.check(
+    "null control: a search that ignores the bounds finds a cheaper plan than the kernel in most cases, "
+    "so the agreement above is the bounds' and not the search's",
+    sum(b < c - 1e-9 for b, c, _r in _hdr_k_null) >= 40,
+    f"{sum(b < c - 1e-9 for b, c, _r in _hdr_k_null)} of 60",
+)
+R.check(
+    "the move rule begins no run on a free step it is told the pump would not start, and still does on "
+    "a forced-on step; told nothing it is the rule commit always had",
+    not any(s for _a, _b, s in _hdr_runs.state_moves(2, 2, np.nan, False))
+    and any(s for _a, _b, s in _hdr_runs.state_moves(2, 2, 1.0, False))
+    and _hdr_runs.state_moves(2, 2, np.nan) == _hdr_runs.state_moves(2, 2, np.nan, True)
+    and sum(s for _a, _b, s in _hdr_runs.state_moves(2, 2, np.nan)) == 1,
+    f"{_hdr_runs.state_moves(2, 2, np.nan, False)}",
+)
+
+# 4. Two levels (the contributor's forward-carry). Three trickles hold a
+# 51.5 degC floor late in the horizon, the steps before them dear. Two
+# steps at the floor hold it for less than a fill to the ceiling does, and
+# a whole step at the run power would pass the ceiling. Without the floor level the fill ships, dearer.
+_hdr_l_plan = np.zeros(_HDR_N)
+_hdr_l_plan[[17, 18, 19]] = 0.6
+_hdr_l_req = np.where(np.arange(_HDR_N) >= 19, 51.5, 45.0)
+_hdr_l_prices = np.where(np.arange(_HDR_N) < 16, 3.0, 1.0)  # dear early: no fill while the tank is warm
+
+
+def _hdr_levels(floor_level):
+    real = _hdr_dc._StoreProgram.__init__
+
+    def init(self, *a, **k):
+        real(self, *a, **k)
+        if not floor_level:
+            self.levels = self.levels[-1:]
+
+    _hdr_dc._StoreProgram.__init__ = init
+    try:
+        return _hdr_commit(_hdr_rig(prices=_hdr_l_prices), _hdr_l_plan, _hdr_l_req)
+    finally:
+        _hdr_dc._StoreProgram.__init__ = real
+
+
+_hdr_l_two, _hdr_l_one = _hdr_levels(True), _hdr_levels(False)
+R.check(
+    "a second level at the floor: the long charge at the floor ships where it is the cheaper one (every "
+    "step at the floor, more than one step), and with the floor level taken from the program the plan "
+    "that ships buys more energy",
+    np.all(_hdr_l_two[_hdr_l_two > 0] == 1.0) and int(np.sum(_hdr_l_two > 0)) > 1
+    and float(np.sum(_hdr_l_one)) > float(np.sum(_hdr_l_two)) + 0.5 and _hdr_under(_hdr_l_one, 1.0) == 0,
+    f"kW-steps {float(np.sum(_hdr_l_two)):.2f} with the floor level, {float(np.sum(_hdr_l_one)):.2f} without",
+)
+
+# 5. A start priced as one start, on the combined draw. Two candidates, the
+# same in both arms: the program's (replaced here by a fixed late charge,
+# less energy) and the lifted plan, whose charge follows a space run.
+_hdr_p_plan = np.zeros(_HDR_N)
+_hdr_p_plan[[12, 13]] = 0.6
+_hdr_p_late = np.zeros(_HDR_N)
+_hdr_p_late[20] = 1.0
+_hdr_p_space = np.zeros(_HDR_N)
+_hdr_p_space[8:12] = 2.0
+_hdr_p_req = np.where(np.arange(_HDR_N) >= 24, 49.4, 45.0)
+
+
+def _hdr_priced(space, start=2.0, replace=lambda *_a: _hdr_p_late.copy()):
+    return _hdr_programs(lambda: _hdr_commit(_hdr_rig(start=start), _hdr_p_plan, _hdr_p_req, space=space), replace)[0]
+
+
+_hdr_p_beside, _hdr_p_alone, _hdr_p_free = _hdr_priced(_hdr_p_space), _hdr_priced(None), _hdr_priced(_hdr_p_space, 0.0)
+R.check(
+    "the commit ranks its candidates by energy plus the starts of the combined draw: beside a space run "
+    "the charge that follows it ships though it buys more energy (no start of its own), with no space "
+    "plan the cheaper late charge ships (each is one start), and with no start priced the cheaper ships "
+    "beside the space run too",
+    np.array_equal(_hdr_p_beside, np.where(_hdr_p_plan > 0, 1.0, 0.0))
+    and np.array_equal(_hdr_p_alone, _hdr_p_late) and np.array_equal(_hdr_p_free, _hdr_p_late)
+    and _hdr_runs.start_count(_hdr_p_space + _hdr_p_beside, 1.0) == _hdr_runs.start_count(_hdr_p_space, 1.0) == 1.0,
+    f"{np.flatnonzero(_hdr_p_beside > 0).tolist()} {np.flatnonzero(_hdr_p_alone > 0).tolist()}",
+)
+# The program's own start price (design verdict item r11): what a start
+# pays inside the program is the share the space plan's step before leaves.
+_hdr_p_own = _hdr_priced(_hdr_p_space, replace=None)
+_hdr_p_own_alone = _hdr_priced(None, replace=None)
+R.check(
+    "the store program prices a start by the share of it the space plan's step before leaves open: "
+    "beside a space run its charge begins inside or straight after the run and adds no start to the "
+    "combined draw; with no space plan it stays on the plan's own steps",
+    _hdr_runs.start_count(_hdr_p_space + _hdr_p_own, 1.0) == 1.0
+    and 9 <= int(np.flatnonzero(_hdr_p_own > 0)[0]) <= 12
+    and set(np.flatnonzero(_hdr_p_own_alone > 0).tolist()) <= {12, 13}
+    and _hdr_runs.start_count(_hdr_p_own_alone, 1.0) == 1.0,
+    f"{np.flatnonzero(_hdr_p_own > 0).tolist()} {np.flatnonzero(_hdr_p_own_alone > 0).tolist()}",
+)
+
+# 8. Program cases (the contributor's). A floor at step 8 and a dearer
+# price there: the charge runs step 8 at the floor and fills the tank in
+# step 9, under the floor, ending inside it (the tail).
+_hdr_t_plan = np.zeros(_HDR_N)
+_hdr_t_plan[[7, 8, 9]] = 0.6
+_hdr_t_req = np.where(np.arange(_HDR_N) == 9, 54.85, np.where(np.arange(_HDR_N) == 8, 52.9, 45.0))
+_hdr_t_prices = np.where(np.arange(_HDR_N) == 9, 0.5, 1.0)
+_hdr_t = {
+    clamped: _hdr_commit(
+        _hdr_rig(clamped=clamped, t0=51.55, prices=_hdr_t_prices), _hdr_t_plan, _hdr_t_req)
+    for clamped in (False, True)
+}
+R.check(
+    "the tail: on an install that can end a run at any moment a charge that would pass the ceiling ends "
+    "inside its last step, under the floor, after a step at the floor; an install that cannot ships no "
+    "step under the floor for the same tank",
+    _hdr_t[False][8] == 1.0 and 0.6 <= _hdr_t[False][9] < 1.0 and _hdr_t[False][10] == 0.0
+    and _hdr_under(_hdr_t[False], 1.0) == 0
+    and bool(np.any(_hdr_t[True] > 0.0)) and float(np.min(_hdr_t[True][_hdr_t[True] > 0.0])) >= 1.0,
+    f"{np.round(_hdr_t[False][6:11], 3)} {np.round(_hdr_t[True][6:11], 3)}",
+)
+_hdr_f_off = np.zeros(_HDR_N, dtype=bool)
+_hdr_f_off[[17, 18]] = True
+_hdr_f_plan = np.zeros(_HDR_N)
+_hdr_f_plan[[14, 15]] = 0.9
+_hdr_f_out = _hdr_commit(_hdr_rig(prices=_hdr_l_prices), _hdr_f_plan, _hdr_l_req, forced_off=_hdr_f_off)
+_hdr_f_free = _hdr_commit(_hdr_rig(prices=_hdr_l_prices), _hdr_f_plan, _hdr_l_req)
+R.check(
+    "a forced-off step stays off in the committed plan; the same tank with none forced charges on one "
+    "of those steps (the control)",
+    bool(np.any(_hdr_f_out > 0.0)) and not np.any(_hdr_f_out[_hdr_f_off] > 0.0) and bool(np.any(_hdr_f_free[_hdr_f_off] > 0.0)),
+    f"{np.flatnonzero(_hdr_f_out > 0).tolist()} {np.flatnonzero(_hdr_f_free > 0).tolist()}",
+)
+_hdr_5_n = 96
+_hdr_5_plan = np.zeros(_hdr_5_n)
+_hdr_5_plan[[20, 40, 60, 80]] = 1.8
+_hdr_5_rig = _hdr_rig(n=_hdr_5_n, dt=1.0 / 12.0, draws=np.full(_hdr_5_n, 0.4))
+_hdr_5_out = _hdr_dc.commit_charges(
+    _hdr_5_rig.planner, _hdr_5_plan, (_hdr_5_rig.ctx, *_hdr_5_rig.tank),
+    (np.minimum(48.5, _hdr_5_rig.temps(_hdr_5_plan)[1:]), np.full(_hdr_5_n, 55.0)), None, None, None)
+_hdr_5_on = _hdr_5_out > 0.0
+_hdr_5_runs = [len(g) for g in "".join("1" if v else "0" for v in _hdr_5_on).split("0") if g]
+_hdr_5_gaps = [len(g) for g in "".join("1" if v else "0" for v in _hdr_5_on).strip("0").split("1") if g]
+R.check(
+    "at a 5-minute step every committed charge and every pause between two is at least the two steps "
+    "MIN_RUN and MIN_PAUSE cover, where the uncommitted plan's charges were one step each",
+    len(_hdr_5_runs) >= 1 and min(_hdr_5_runs) >= 2 and (not _hdr_5_gaps or min(_hdr_5_gaps) >= 2)
+    and not np.array_equal(_hdr_5_out, _hdr_5_plan),
+    f"runs {_hdr_5_runs}, pauses {_hdr_5_gaps}",
+)
+# Nothing to commit: a plan that already runs, with no start priced, ships
+# as it is (design verdict item r9: the rule that ships the uncommitted plan
+# is this one, not the ranking).
+_hdr_r_plan = np.zeros(_HDR_N)
+_hdr_r_plan[[17, 18]] = 1.4
+_hdr_r_seen = _hdr_programs(lambda: (
+    _hdr_commit(_hdr_rig(start=0.0), _hdr_r_plan, _hdr_l_req) is _hdr_r_plan,
+    _hdr_commit(_hdr_rig(start=0.0), _hdr_l_plan, _hdr_l_req) is _hdr_l_plan,
+    _hdr_commit(_hdr_rig(start=0.5), _hdr_r_plan, _hdr_l_req) is _hdr_r_plan))
+R.check(
+    "with no start priced a plan whose charges already run ships as it is, the same object, and the "
+    "program is not asked; one with a step under the floor, or with a start priced, is committed",
+    _hdr_r_seen[0][0] is True and _hdr_r_seen[0][1] is False and len(_hdr_r_seen[1]) == 2,
+    f"{_hdr_r_seen[0]}, program calls {len(_hdr_r_seen[1])}",
+)
+R.check(
+    "charges_run: a step under the floor is a charge that runs only as the last step of a charge whose "
+    "step before ran at the floor or above, and only where a run may end inside a step",
+    _hdr_dc.charges_run(np.array([0.0, 1.0, 0.7, 0.0]), 1.0, True)
+    and not _hdr_dc.charges_run(np.array([0.0, 1.0, 0.7, 0.0]), 1.0, False)
+    and not _hdr_dc.charges_run(np.array([0.0, 1.0, 0.7, 1.0]), 1.0, True)
+    and not _hdr_dc.charges_run(np.array([0.0, 0.7, 0.0, 0.0]), 1.0, True)
+    and not _hdr_dc.charges_run(np.array([0.0, 0.8, 0.7, 0.0]), 1.0, True)
+    and _hdr_dc.charges_run(np.array([1.0, 0.7]), 1.0, True)
+    and _hdr_dc.charges_run(np.array([0.0, 1.0, 3.0, 0.0]), 1.0, False),
+    "",
+)
+
+
+# 6. Combi (R10-COMBI-TANK's exchange). The rounds exchange uncommitted
+# plans; one committed build follows on the settled flux and ships only
+# where the store, under the flux that plan itself leaves, falls no further
+# under the requirement than the last round's.
+def _hdr_combi(cost, slack=None, plans=None):
+    opt = _StoreOpt(ThermalModel(_ct_params()), _StoreCfg(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0, cycling_cost=cost))
+    real, saved, calls = _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K, []
+    dhw_build = _hdr_om._dhw_build
+
+    def exchange(o, h, planner, *rest):
+        build, charge = DhwPlanner._build_dhw_requirements, planner.charge_runs
+
+        def run(runs_planned):
+            builds = []
+
+            def counted(self, *a, **k):
+                got = build(self, *a, **k)
+                builds.append((self.charge_runs is not None, np.array(got[0].schedule)))
+                return got
+
+            def handed(by, *a, **k):
+                got, req = dhw_build(by, *a, **k)
+                return SimpleNamespace(schedule=plans(len(builds), np.asarray(got.schedule))), req
+
+            DhwPlanner._build_dhw_requirements, planner.charge_runs = counted, runs_planned
+            if plans is not None:
+                _hdr_om._dhw_build = handed
+            try:
+                out = real(o, h, planner, *rest)
+            finally:
+                DhwPlanner._build_dhw_requirements, planner.charge_runs = build, charge
+                _hdr_om._dhw_build = dhw_build
+            return SimpleNamespace(rounds=[s for c, s in builds if not c], commits=[s for c, s in builds if c], out=out)
+
+        # The same exchange with the planner handed no ChargeRuns, then as the solve runs it.
+        calls.append((run(None), run(charge)))
+        return calls[-1][1].out
+
+    _hdr_om._combi_flux_exchange = exchange
+    if slack is not None:
+        _hdr_om._COMBI_COMMIT_SLACK_K = slack
+    try:
+        opt.optimize(inputs=solve_inputs(
+            initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0, buffer_tank_temperature=50.0,
+                                       dhw_temperature=50.0, outdoor_temperature=0.0),
+            prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96), start_time=datetime(2026, 1, 15)))
+    finally:
+        _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K = real, saved
+    return calls[-1]
+
+
+(_hdr_x_none, _hdr_x), (_hdr_xr_none, _hdr_x_refused), (_, _hdr_x_free) = _hdr_combi(0.5), _hdr_combi(0.5, slack=-np.inf), _hdr_combi(0.0)
+R.check(
+    "combi: the exchange's rounds build with a planner handed no runs to commit, the same number and "
+    "the same last plan as the same exchange with no ChargeRuns at all; that one and an unengaged solve "
+    "make no committed build, an engaged one makes one, after the rounds",
+    0 < len(_hdr_x.rounds) == len(_hdr_x_none.rounds) <= _hdr_om._COMBI_EXCHANGE_ROUNDS
+    and np.array_equal(_hdr_x.rounds[-1], _hdr_x_none.rounds[-1])
+    and not _hdr_x_none.commits and not _hdr_x_free.commits and len(_hdr_x.commits) == 1,
+    f"rounds {len(_hdr_x.rounds)} and {len(_hdr_x_none.rounds)}, committed builds {len(_hdr_x.commits)}",
+)
+R.check(
+    "combi: the committed build ships where the store under its own flux holds what the last round's "
+    "plan held, with no step under the floor but a charge's last; refused (the slack taken away), the "
+    "last round's plan ships, as it does with no ChargeRuns",
+    np.array_equal(_hdr_x.out, _hdr_x.commits[0]) and _hdr_under(_hdr_x.out, 1.0) == 0
+    and not np.array_equal(_hdr_x.out, _hdr_x_none.out)
+    and np.array_equal(_hdr_x_refused.out, _hdr_xr_none.out)
+    and not np.array_equal(_hdr_x_refused.out, _hdr_x_refused.commits[0]),
+    f"under the floor: committed {_hdr_under(_hdr_x.out, 1.0)}, last round {_hdr_under(_hdr_x_none.out, 1.0)}",
+)
+
+# The external-heat and peak-guard suppression runs after the commit point
+# (design verdict item r3): on a solve that plans runs it takes a committed
+# charge whole or leaves it whole.
+_hdr_s_plan = np.array([0.0, 1.0, 1.0, 0.7, 0.0, 1.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0])
+_hdr_s_mask = np.array([True, True, True, False, False, True, True, True, False, False, False, False])
+_hdr_s_kept = _hdr_dc.whole_charges(_hdr_dc.ChargeRuns(0.5, False, False), _hdr_s_plan, _hdr_s_mask)
+_hdr_s_left = np.where(_hdr_s_kept, 0.0, _hdr_s_plan)
+R.check(
+    "a suppression takes a committed charge whole or leaves it whole: the charge it would cut before its "
+    "tail stays (no lone step under the floor), the one it covers goes, and the steps outside any "
+    "charge stay suppressed; on a solve that plans no runs the mask is returned as it is, which leaves "
+    "the tail alone (the control)",
+    np.array_equal(_hdr_s_left, [0.0, 1.0, 1.0, 0.7, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0])
+    and _hdr_dc.charges_run(_hdr_s_left, 1.0, True)
+    and bool(_hdr_s_kept[0] and _hdr_s_kept[7])
+    and _hdr_dc.whole_charges(None, _hdr_s_plan, _hdr_s_mask) is _hdr_s_mask
+    and not _hdr_dc.charges_run(np.where(_hdr_s_mask, 0.0, _hdr_s_plan), 1.0, True),
+    f"{_hdr_s_left}",
+)
+
+# The constants and the boundaries a mutant moved without a check failing.
+# The grid, the table spacing and the margin are design choices (the
+# contributor's spike on one install): pinned by value, so a change is a
+# decision and not a drift. The two tolerances are the planners' 0.05 K.
+R.check(
+    "the store program's grid is 0.25 K, its COP table 1 K and its margin 0.02 K, and the commit's and "
+    "the combi exchange's tolerances are the planners' 0.05 K (design choices, pinned by value)",
+    (_hdr_dc._STORE_GRID_K, _hdr_dc._COP_KNOT_K, _hdr_dc._STORE_MARGIN_K) == (0.25, 1.0, 0.02)
+    and _hdr_dc.SHORTFALL_K == _hdr_om._COMBI_COMMIT_SLACK_K == 0.05,
+    f"{_hdr_dc._STORE_GRID_K} {_hdr_dc._COP_KNOT_K} {_hdr_dc._STORE_MARGIN_K} {_hdr_om._COMBI_COMMIT_SLACK_K}",
+)
+_hdr_e_held = np.full(8, 50.05)
+_hdr_e_edge = _hdr_e_held - _hdr_dc.SHORTFALL_K
+R.check(
+    "the acceptance's floor clause passes a walk exactly the tolerance under the floor and refuses the "
+    "next float down",
+    _hdr_dc.charge_refusal(_hdr_b_plan, None, lambda _p: np.r_[50.0, _hdr_e_edge], _hdr_e_held) is None
+    and _hdr_dc.charge_refusal(
+        _hdr_b_plan, None, lambda _p: np.r_[50.0, np.nextafter(_hdr_e_edge, 0.0)], _hdr_e_held) == ("floor", 0),
+    "",
+)
+# What a start pays inside the program, read off the program itself.
+_hdr_q_space = np.r_[np.zeros(4), np.full(4, 2.0), np.full(4, 0.5), np.zeros(_HDR_N - 12)]
+
+
+def _hdr_start_price(running, space=_hdr_q_space):
+    rig = _hdr_rig(start=2.0, running=running)
+    return _hdr_dc._StoreProgram(
+        rig.planner, rig.ctx, _hdr_p_plan, rig.tank, (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, space,
+    ).start_price
+
+
+R.check(
+    "the program's start price is the start cost less the share of a start the space plan's step before "
+    "carries: all of it after an idle step, none after a step at the floor or above, half after half the "
+    "floor, and none on the first step while the compressor runs",
+    np.array_equal(_hdr_start_price(False)[[0, 4, 5, 8, 9, 12, 13]], [2.0, 2.0, 0.0, 0.0, 1.0, 1.0, 2.0])
+    and _hdr_start_price(True)[0] == 0.0 and _hdr_start_price(True)[1] == 2.0,
+    f"{_hdr_start_price(False)[:14]}",
+)
+# A tank that starts over its ceiling coasts: the ceiling binds a charging
+# step only. A fill needs room: a tank already at its mark is not filled.
+_hdr_h_plan = np.zeros(_HDR_N)
+_hdr_h_plan[[26, 27]] = 0.6
+_hdr_h_rig = _hdr_rig(t0=56.0, draws=np.full(_HDR_N, 0.5))
+_hdr_h_out, _hdr_h_seen = _hdr_programs(lambda: _hdr_commit(
+    _hdr_h_rig, _hdr_h_plan, np.minimum(49.0, _hdr_h_rig.temps(_hdr_h_plan)[1:])))
+_hdr_h_prog = _hdr_dc._StoreProgram(
+    _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, _hdr_h_rig.tank,
+    (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
+_hdr_h_mark = np.array([(55.0 - _hdr_dc._STORE_MARGIN_K - _hdr_h_rig.ctx.tank_decay[1]
+                         + 0.5 * 0.25 / _hdr_h_rig.ctx.c_dhw) / _hdr_h_rig.ctx.tank_decay[0]])
+R.check(
+    "a store that begins over its ceiling pauses there and the program still finds its plan (the ceiling "
+    "binds charging arrivals only); a tank that coasts onto its mark has no room and is not filled, one "
+    "a kelvin under is",
+    _hdr_h_seen[0] is not None and np.array_equal(_hdr_h_out, _hdr_h_seen[-1]) and _hdr_under(_hdr_h_out, 1.0) == 0
+    and abs(float(_hdr_h_rig.ctx.coast(_hdr_h_rig.tank[1], 0, _hdr_h_mark)[0]) - (55.0 - _hdr_dc._STORE_MARGIN_K)) < 1e-9
+    and not bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark + 1e-6)[1][0])
+    and bool(_hdr_h_prog._to_ceiling(0, _hdr_h_mark - 1.0)[1][0]),
+    f"{np.flatnonzero(_hdr_h_out > 0).tolist()}",
+)
+# Whether a real solve's exchange settles before the cap is the solver's
+# arithmetic: the unengaged solve above stops short of it on one BLAS build
+# and oscillates to it on another (round-to-round moves of 4.0, 4.0 and
+# 0.6 kW). The exit is pinned on builds the check hands the rounds instead:
+# one plan built again and again repeats from the second round, and a plan
+# that alternates never repeats, so only the exit tells the two apart.
+_hdr_x_same = _hdr_combi(0.0, plans=lambda n, built: np.full(built.shape, 1.0))[0]
+_hdr_x_flip = _hdr_combi(0.0, plans=lambda n, built: np.full(built.shape, 1.0 + n % 2))[0]
+R.check(
+    "combi: the exchange leaves its rounds when a round's plan repeats the one before: a build that "
+    "repeats stops short of the cap, one that alternates runs to it",
+    0 < len(_hdr_x_same.rounds) <= 2 < len(_hdr_x_flip.rounds) == _hdr_om._COMBI_EXCHANGE_ROUNDS,
+    f"repeating {len(_hdr_x_same.rounds)}, alternating {len(_hdr_x_flip.rounds)} of {_hdr_om._COMBI_EXCHANGE_ROUNDS}",
+)
+
+# The kernel hands an action whether the cells it leaves were running, and
+# the cell rule whether the arrival is in a run: one step from a pause.
+_hdr_g_cost = np.array([[np.inf], [0.0]])
+_hdr_g = _hdr_runs.advance(
+    _hdr_g_cost, np.zeros((2, 1)), _hdr_runs.state_moves(1, 1, np.nan),
+    ([lambda v, ran: (v, np.inf if ran else 1.0)], [lambda v, ran: (v, 5.0 if ran else 2.0)]), 0.0,
+    lambda v, charged: (np.zeros(v.size, dtype=np.int64), np.full(v.size, 10.0 if charged else 20.0)), 1)[0]
+R.check(
+    "from a pause the kernel tells a running and a pausing action their cells were not running, and "
+    "tells the cell rule which arrival is in a run",
+    _hdr_g[0, 0] == 11.0 and _hdr_g[1, 0] == 22.0,
+    f"{_hdr_g.ravel()}",
+)
+# Run and pause lengths are two numbers: with a 30-minute shortest pause at
+# a 15-minute step, a charge may be one step and no pause between two is.
+_hdr_m_real = _hdr_runs.MIN_PAUSE
+_hdr_runs.MIN_PAUSE = timedelta(minutes=30)
+try:
+    _hdr_m_rig = _hdr_rig(draws=np.full(_HDR_N, 0.9), running=True)
+    _hdr_m_plan = np.where(np.arange(_HDR_N) % 2 == 1, 0.8, 0.0)
+    _hdr_m_out = _hdr_commit(_hdr_m_rig, _hdr_m_plan, np.minimum(47.0, _hdr_m_rig.temps(_hdr_m_plan)[1:]))
+finally:
+    _hdr_runs.MIN_PAUSE = _hdr_m_real
+_hdr_m_on = "".join("1" if v else "0" for v in _hdr_m_out > 0.0)
+R.check(
+    "the shortest run and the shortest pause are held apart: with a two-step pause at a one-step run, "
+    "every pause between two committed charges is two steps or more, the plan charges on its first step "
+    "(the compressor runs, so that is no start and waits for no pause), and its charges hold the floors",
+    not np.array_equal(_hdr_m_out, _hdr_m_plan) and "101" not in _hdr_m_on and _hdr_m_on[0] == "1"
+    and _hdr_under(_hdr_m_out, 1.0) == 0
+    and _hdr_dc.charge_refusal(
+        _hdr_m_out, None, _hdr_m_rig.temps, np.minimum(47.0, _hdr_m_rig.temps(_hdr_m_plan)[1:])) is None,
+    _hdr_m_on,
+)
+# The program enters on a run while the compressor runs: a tank that must be
+# charged on the first step is held where the pump would not start a charge
+# then, and is not from a pause. Asked with every start allowed, both hold
+# it, so the entry alone decides.
+_hdr_y_draws = np.r_[3.0, np.zeros(_HDR_N - 1)]
+_hdr_y_blocked = np.r_[False, np.ones(_HDR_N - 1, dtype=bool)]
+
+
+def _hdr_entry(running, may_start):
+    rig = _hdr_rig(running=running, t0=46.0, draws=_hdr_y_draws)
+    return _hdr_dc._StoreProgram(
+        rig.planner, rig.ctx, np.zeros(_HDR_N), rig.tank, (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None,
+        np.zeros(_HDR_N),
+    ).plan(may_start.copy())
+
+
+_hdr_y_run, _hdr_y_pause = _hdr_entry(True, _hdr_y_blocked), _hdr_entry(False, _hdr_y_blocked)
+_hdr_y_free = [_hdr_entry(r, np.ones(_HDR_N, dtype=bool)) for r in (True, False)]
+R.check(
+    "while the compressor runs the store program enters on a run: a tank the first step's draw takes "
+    "under its floor is charged on that step where the pump would start no charge there, and from a "
+    "pause the same program has no plan; with every start allowed both enter to the same plan",
+    _hdr_y_run is not None and _hdr_y_run[0] > 0.0 and _hdr_y_pause is None
+    and all(p is not None and p[0] > 0.0 for p in _hdr_y_free) and np.array_equal(*_hdr_y_free)
+    and np.array_equal(_hdr_y_run, _hdr_y_free[0]),
+    f"{None if _hdr_y_run is None else np.round(_hdr_y_run[:4], 2)} {_hdr_y_pause is None}",
+)
+# The program says so where no mask keeps the store in bounds. A program
+# plan refused for anything but a start is not asked for again. A plan
+# the rating leaves with a step under the floor inside a charge is refused.
+_hdr_n_prog = _hdr_dc._StoreProgram(
+    _hdr_h_rig.planner, _hdr_h_rig.ctx, _hdr_h_plan, (50.0, np.zeros(_HDR_N)),
+    (np.full(_HDR_N, 70.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
+_hdr_n_low = np.zeros(_HDR_N)
+_hdr_n_low[[17, 18, 19]] = [1.0, 0.7, 1.0]
+_hdr_n_out, _hdr_n_seen = _hdr_programs(
+    lambda: _hdr_commit(_hdr_rig(start=0.0), _hdr_l_plan, _hdr_l_req, start_below=np.full(_HDR_N, 80.0)),
+    lambda *_a: _hdr_n_low.copy())
+_hdr_n_cold, _hdr_n_cold_seen = _hdr_programs(
+    lambda: _hdr_commit(_hdr_rig(), _hdr_l_plan, _hdr_l_req, start_below=np.full(_HDR_N, 80.0)),
+    lambda *_a: np.zeros(_HDR_N))
+R.check(
+    "the store program returns no plan where a floor is over the ceiling; a program plan with a step "
+    "under the floor inside a charge does not ship though it is the cheapest and holds every floor, and "
+    "neither it nor one refused for a floor is asked for a second time",
+    _hdr_n_prog.plan(np.ones(_HDR_N, dtype=bool)) is None
+    and _hdr_dc.charge_refusal(_hdr_n_low, None, _hdr_rig().temps, np.minimum(_hdr_l_req, _hdr_rig().temps(_hdr_l_plan)[1:])) is None
+    and float(np.sum(_hdr_n_low)) < float(np.sum(_hdr_n_out)) and not np.array_equal(_hdr_n_out, _hdr_n_low)
+    and len(_hdr_n_seen) == 1 and len(_hdr_n_cold_seen) == 1 and bool(np.any(_hdr_n_cold > 0.0)),
+    f"{len(_hdr_n_seen)} {len(_hdr_n_cold_seen)} {np.round(_hdr_n_out[_hdr_n_out > 0], 2)}",
+)
+# A pump whose run power is its floor still commits: one level.
+_hdr_o_out = _hdr_commit(_hdr_rig(p_run=1.0), _hdr_l_plan, _hdr_l_req)
+_hdr_o_none = _hdr_commit(_hdr_rig(p_run=0.9), _hdr_l_plan, _hdr_l_req)
+R.check(
+    "a run power equal to the floor commits at that one level; a run power under the floor ships the "
+    "plan as it is, the same object",
+    bool(np.any(_hdr_o_out > 0.0)) and bool(np.all(_hdr_o_out[_hdr_o_out > 0.0] == 1.0)) and _hdr_o_none is _hdr_l_plan,
+    f"{np.round(_hdr_o_out[_hdr_o_out > 0], 2)}",
+)
+
+
+# The build hands the suppression its mask through whole_charges, with the
+# planner's own ChargeRuns: the external-heat golden, its planner told the
+# solve plans runs.
+def _hdr_suppressed():
+    real, runs_arg, seen = _hdr_dp.whole_charges, _hdr_om._charge_runs, []
+
+    def spy(charge_runs, plan, mask):
+        out = real(charge_runs, plan, mask)
+        seen.append((charge_runs, bool(np.all(out <= mask))))
+        return out
+
+    _hdr_dp.whole_charges, _hdr_om._charge_runs = spy, lambda _o, running: _hdr_dc.ChargeRuns(0.5, running, False)
+    try:
+        _hdr_golden.capture("external_heat_active", _hdr_golden.SCENARIOS["external_heat_active"])
+    finally:
+        _hdr_dp.whole_charges, _hdr_om._charge_runs = real, runs_arg
+    return seen
+
+
+_hdr_w = _hdr_suppressed()
+R.check(
+    "a build under external heat passes its suppression mask through whole_charges with the planner's "
+    "ChargeRuns, and what comes back suppresses no step the mask did not",
+    len(_hdr_w) >= 1 and all(c == (0.5, False, False) and within for c, within in _hdr_w),
+    f"{len(_hdr_w)} call(s)",
+)
+
+
 # -- R11-OUTSIDE-HONEST-METERED-FLOOR: the learned floor moves the plan -------
 # Group C of design/R11-OUTSIDE-HONEST-STARTS-RUNS for pull request 3529 by
 # Bankaifan: configured 0.53 kW against a metered running draw from 1.1 kW.
@@ -100953,7 +101796,7 @@ R.check(
     and _mf_set_attrs == _mf_cfg_attrs
     and _mf_min_attrs == {
         "pump_min_power": {"configured_min_kw": 0.53, "planned_min_kw": 1.1,
-                           "learned_min_kw": 1.1, "samples": 0},
+                           "learned_min_kw": 1.1, "samples": 0, "approach_kwh": None},
         "pump_min_power_source": "metered", "pump_min_power_reason": "measured"}
     and _mf_sensor._pump_min_power(_mf_within.as_dict())["pump_min_power"]["samples"]
     == _mf_within.min_samples != _mf_within.samples
@@ -101067,6 +101910,244 @@ R.check(
     and _mf_na_pert[3].get("min_reason") == "measured",
     f"base {_mf_na_base[:2]} {_mf_na_base[2] and _mf_na_base[2][0]} same {_mf_na_same[:2]} "
     f"pert {_mf_na_pert[:2]} {_mf_na_pert[2] and _mf_na_pert[2][0]}",
+)
+
+
+# The cell rule's floor bound, met exactly: a store that coasts onto the
+# floor less the tolerance, plus the margin, is inside it; one float higher
+# a floor puts the same coast outside, and the program charges at once.
+def _hdr_w_edge(t0=50.0):
+    rig = _hdr_rig(t0=t0, draws=np.full(_HDR_N, 0.5))
+    at = float(rig.ctx.coast(rig.tank[1], 0, np.array([t0]))[0])
+    edge = bound = at + _hdr_dc.SHORTFALL_K - _hdr_dc._STORE_MARGIN_K
+    for _ in range(64):
+        bound = edge - _hdr_dc.SHORTFALL_K + _hdr_dc._STORE_MARGIN_K
+        if bound == at:
+            break
+        edge = np.nextafter(edge, np.inf if bound < at else -np.inf)
+
+    def plan(first):
+        floors = np.full(_HDR_N, 45.0)
+        floors[0] = first
+        return _hdr_dc._StoreProgram(
+            rig.planner, rig.ctx, _hdr_l_plan, rig.tank, (floors, np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N),
+        ).plan(np.ones(_HDR_N, dtype=bool))
+
+    return bound == at, plan(edge), plan(np.nextafter(edge, np.inf))
+
+
+_hdr_w_met, _hdr_w_on, _hdr_w_over = _hdr_w_edge()
+R.check(
+    "the store program keeps a store that coasts exactly onto its floor bound (the floor less the tolerance, "
+    "plus the margin) in its cell and coasts through the first step; a first floor one float higher leaves "
+    "the coast outside and the program charges on the first step",
+    _hdr_w_met and _hdr_w_on is not None and _hdr_w_on[0] == 0.0
+    and _hdr_w_over is not None and _hdr_w_over[0] > 0.0,
+    f"{None if _hdr_w_on is None else np.flatnonzero(_hdr_w_on).tolist()} "
+    f"{None if _hdr_w_over is None else np.flatnonzero(_hdr_w_over).tolist()}",
+)
+# The grid's top: a combi flux that carries the store one cell past the
+# grid's top knot leaves it in no cell, and no mask keeps it in bounds; the
+# same flux onto the top knot itself plans (the control).
+_hdr_y_rig = _hdr_rig()
+_hdr_y_coast = float(_hdr_y_rig.ctx.coast(_hdr_y_rig.tank[1], 0, np.array([50.0]))[0])
+
+
+def _hdr_y_plan(top):
+    flux = np.zeros(_HDR_N)
+    flux[0] = (top - _hdr_y_coast) * _hdr_y_rig.ctx.c_dhw / _hdr_y_rig.ctx.dt
+    prog = _hdr_dc._StoreProgram(
+        _hdr_y_rig.planner, dataclasses.replace(_hdr_y_rig.ctx, tank_exo_kw=flux), _hdr_l_plan, _hdr_y_rig.tank,
+        (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)), None, np.zeros(_HDR_N))
+    return float(prog.knots[-1]), prog.plan(np.ones(_HDR_N, dtype=bool))
+
+
+_hdr_y_knot, _hdr_y_on = _hdr_y_plan(56.0)
+_hdr_y_past = _hdr_y_plan(56.0 + _hdr_dc._STORE_GRID_K)[1]
+R.check(
+    "the store program's grid ends at its top knot: a store a combi flux carries one cell past it has no "
+    "plan, and the same store carried onto the top knot plans",
+    _hdr_y_knot == 56.0 and _hdr_y_on is not None and _hdr_y_past is None,
+    f"top knot {_hdr_y_knot}; onto it {None if _hdr_y_on is None else np.flatnonzero(_hdr_y_on).tolist()}; "
+    f"past it {_hdr_y_past}",
+)
+# A space plan under zero is no space run: a charge the program plans under
+# it keeps its start, so the dear early charge does not undercut the plan
+# that ships with no space plan at all.
+_hdr_z_early = np.zeros(_HDR_N)
+_hdr_z_early[[14, 15]] = 1.0
+_hdr_z_space = np.where(_hdr_z_early > 0.0, -10.0, 0.0)
+_hdr_z_rig = _hdr_rig(start=2.0, prices=_hdr_l_prices)
+_hdr_z_none, _hdr_z_under = (
+    _hdr_programs(lambda s=s: _hdr_commit(_hdr_z_rig, _hdr_l_plan, _hdr_l_req, space=s), lambda *_a: _hdr_z_early.copy())[0]
+    for s in (np.zeros(_HDR_N), _hdr_z_space))
+R.check(
+    "a space plan under zero commits as no space plan: under the program's dear early charge it hides "
+    "no start, and the plan that ships is the one that ships with a zero space plan, not the early charge "
+    "(which the acceptance passes)",
+    np.array_equal(_hdr_z_under, _hdr_z_none) and not np.array_equal(_hdr_z_none, _hdr_z_early)
+    and _hdr_dc.charge_refusal(
+        _hdr_z_early, None, _hdr_z_rig.temps, np.minimum(_hdr_l_req, _hdr_z_rig.temps(_hdr_l_plan)[1:])) is None,
+    f"{np.flatnonzero(_hdr_z_none).tolist()} {np.flatnonzero(_hdr_z_under).tolist()}",
+)
+
+
+# The combi commit's tolerance, met exactly: the committed plan ships where
+# its store falls exactly the slack further under the requirement than the
+# plan the rounds settled on, and that plan where the slack is a float
+# short. Both plans are the ones the exchange's comparison reads. The
+# slack is set inside the solve, from the two worst gaps the exchange has
+# just read and before its comparison reads the slack, because one solve's
+# gaps need not be the next solve's to the float.
+def _hdr_k_combi(short):
+    real, exchange, saved, worst, inside, slacks, plans = (
+        DhwPlanner._dhw_shortfall, _hdr_om._combi_flux_exchange, _hdr_om._COMBI_COMMIT_SLACK_K, [], [], [], [])
+
+    def slack_for(committed, last):
+        slack = committed - last
+        for _ in range(64):
+            if last + slack == committed:
+                break
+            slack = np.nextafter(slack, np.inf if last + slack < committed else -np.inf)
+        if short:
+            slack = float(np.nextafter(committed, -np.inf)) - last
+            for _ in range(64):
+                if last + slack < committed:
+                    break
+                slack = float(np.nextafter(last + slack, -np.inf)) - last
+        return slack
+
+    def spy(self, *a, **k):
+        out = real(self, *a, **k)
+        if inside:
+            worst.append(float(np.max(out[1])))
+            plans.append(np.array(a[1]))
+            if len(worst) >= 2:
+                _hdr_om._COMBI_COMMIT_SLACK_K = slack_for(worst[-2], worst[-1])
+                slacks.append(_hdr_om._COMBI_COMMIT_SLACK_K)
+        return out
+
+    def within(*a, **k):
+        inside.append(True)
+        try:
+            return exchange(*a, **k)
+        finally:
+            inside.pop()
+
+    DhwPlanner._dhw_shortfall, _hdr_om._combi_flux_exchange = spy, within
+    try:
+        got = _hdr_combi(0.5)[1]
+        return got, worst[-2], worst[-1], float(slacks[-1]), plans[-2], plans[-1]
+    finally:
+        DhwPlanner._dhw_shortfall, _hdr_om._combi_flux_exchange = real, exchange
+        _hdr_om._COMBI_COMMIT_SLACK_K = saved
+
+
+_hdr_k_at, _hdr_k_c1, _hdr_k_r1, _hdr_k_s1, _hdr_k_pc1, _hdr_k_pr1 = _hdr_k_combi(False)
+_hdr_k_under, _hdr_k_c2, _hdr_k_r2, _hdr_k_s2, _hdr_k_pc2, _hdr_k_pr2 = _hdr_k_combi(True)
+_hdr_k_parts = (
+    _hdr_k_r1 + _hdr_k_s1 == _hdr_k_c1, _hdr_k_r2 + _hdr_k_s2 < _hdr_k_c2,
+    not np.array_equal(_hdr_k_pc1, _hdr_k_pr1), np.array_equal(_hdr_k_at.out, _hdr_k_pc1),
+    not np.array_equal(_hdr_k_pc2, _hdr_k_pr2), np.array_equal(_hdr_k_under.out, _hdr_k_pr2))
+R.check(
+    "combi: the committed build ships where its store falls exactly the slack further under the "
+    "requirement than the plan the rounds settled on, and that plan ships where the slack is a float short",
+    all(_hdr_k_parts),
+    f"{_hdr_k_parts}; committed {_hdr_k_c1!r} round {_hdr_k_r1!r} slack {_hdr_k_s1!r}; "
+    f"committed {_hdr_k_c2!r} round {_hdr_k_r2!r} slack {_hdr_k_s2!r}",
+)
+
+
+# The charge bound, met exactly: on 5-minute steps a floor-level charge
+# from 50 degC that ends exactly on step 0's ceiling less the margin, plus
+# the tolerance, is inside it. The fill to the ceiling sits more than
+# the tolerance under the floor there, so it is no stand-in. One float
+# lower, a ceiling leaves that charge outside, and the start moves off step 0.
+def _hdr_u_plans():
+    rig = _hdr_rig(dt=1.0 / 12.0, draws=np.full(_HDR_N, 0.5), prices=np.where(np.arange(_HDR_N) < 1, 0.2, 3.0))
+    floors = np.where(np.arange(_HDR_N) >= 4, 50.0, 45.0)
+
+    def program(first):
+        ceilings = np.full(_HDR_N, 60.0)
+        ceilings[0] = first
+        return _hdr_dc._StoreProgram(
+            rig.planner, rig.ctx, _hdr_l_plan, rig.tank, (floors, ceilings), None, np.zeros(_HDR_N))
+
+    lands = float(rig.ctx.coast(rig.tank[1], 0, np.array([50.0]))[0]) + float(
+        program(60.0)._rise(0, np.array([50.0]), rig.floor)[0])
+    edge = lands + _hdr_dc._STORE_MARGIN_K - 1e-9
+    for _ in range(64):
+        bound = edge - _hdr_dc._STORE_MARGIN_K + 1e-9
+        if bound == lands:
+            break
+        edge = np.nextafter(edge, np.inf if bound < lands else -np.inf)
+    on = program(edge)
+    fill = float(on._to_ceiling(0, np.array([50.0]))[0][0])
+    return (bound == lands, fill < rig.floor - 1e-9, on.plan(np.ones(_HDR_N, dtype=bool)),
+            program(np.nextafter(edge, -np.inf)).plan(np.ones(_HDR_N, dtype=bool)))
+
+
+_hdr_u_met, _hdr_u_under, _hdr_u_on, _hdr_u_off = _hdr_u_plans()
+R.check(
+    "the store program keeps a charge that ends exactly on its charge bound (the ceiling less the margin, "
+    "plus the tolerance) in its cell: on 5-minute steps a floor-level charge onto step 0's bound starts "
+    "the plan at step 0, where the fill to the ceiling sits under the floor; a ceiling one float lower "
+    "moves the start off step 0",
+    _hdr_u_met and _hdr_u_under and _hdr_u_on is not None and _hdr_u_on[0] == 1.0
+    and _hdr_u_off is not None and _hdr_u_off[0] == 0.0,
+    f"{None if _hdr_u_on is None else np.flatnonzero(_hdr_u_on).tolist()} "
+    f"{None if _hdr_u_off is None else np.flatnonzero(_hdr_u_off).tolist()}",
+)
+# The program's ceiling is the higher of the maximum and the uncommitted
+# plan's own walk: a plan that charges steps 0-2 at the run power over a
+# 55 degC maximum, in the cheap early hours, ships those steps. A program
+# held at the maximum alone cannot carry that walk, and moves the charge.
+_hdr_v_rig = _hdr_rig(prices=np.where(np.arange(_HDR_N) < 8, 0.5, 2.0), draws=np.full(_HDR_N, 0.3))
+_hdr_v_plan = np.where(np.arange(_HDR_N) < 3, 4.8, 0.0)
+_hdr_v_max = _hdr_commit(_hdr_v_rig, _hdr_v_plan, 45.0)
+R.check(
+    "the store program's ceiling is the higher of the maximum and the uncommitted plan's own walk: a plan "
+    "charging steps 0-2 at the run power past a 55 degC maximum ships exactly that plan",
+    float(np.max(_hdr_v_rig.temps(_hdr_v_plan))) > 55.0 and np.array_equal(_hdr_v_max, _hdr_v_plan),
+    f"walk max {float(np.max(_hdr_v_rig.temps(_hdr_v_plan))):.2f}; ships {np.flatnonzero(_hdr_v_max).tolist()}",
+)
+# The commit's early returns: a store with no capacity, and a plan that
+# charges nowhere, ship the plan given, the same object, unwalked (no walk
+# divides by a capacity of zero) and the program unasked. The null control,
+# the same rig and a plan that charges, walks it and asks the program.
+_hdr_x_rig = _hdr_rig()
+_hdr_x_empty = dataclasses.replace(
+    _hdr_x_rig.ctx, store=dataclasses.replace(_hdr_x_rig.ctx.store, capacity_kwh_per_c=0.0))
+
+
+def _hdr_x_commit(ctx, plan):
+    real, walks = DhwPlanner._ctx_temps, []
+
+    def walk(self, *a, **k):
+        walks.append(1)
+        return real(self, *a, **k)
+
+    DhwPlanner._ctx_temps = walk
+    try:
+        out, seen = _hdr_programs(lambda: _hdr_dc.commit_charges(
+            _hdr_x_rig.planner, plan, (ctx, *_hdr_x_rig.tank), (np.full(_HDR_N, 45.0), np.full(_HDR_N, 55.0)),
+            None, None, None))
+    finally:
+        DhwPlanner._ctx_temps = real
+    return out, len(seen) + len(walks)
+
+
+_hdr_x_zero = np.zeros(_HDR_N)
+(_hdr_x_a, _hdr_x_a_seen), (_hdr_x_b, _hdr_x_b_seen), (_hdr_x_c, _hdr_x_c_seen) = (
+    _hdr_x_commit(_hdr_x_empty, _hdr_l_plan), _hdr_x_commit(_hdr_x_rig.ctx, _hdr_x_zero),
+    _hdr_x_commit(_hdr_x_rig.ctx, _hdr_l_plan))
+R.check(
+    "commit_charges ships the plan given, unwalked and with the store program unasked, for a store with no "
+    "capacity and for a plan that charges nowhere; the same rig with a plan that charges walks it and asks",
+    _hdr_x_empty.c_dhw == 0.0 and _hdr_x_a is _hdr_l_plan and _hdr_x_a_seen == 0
+    and _hdr_x_b is _hdr_x_zero and _hdr_x_b_seen == 0 and _hdr_x_c_seen > 0,
+    f"no capacity: same {_hdr_x_a is _hdr_l_plan}, walks and programs {_hdr_x_a_seen}; nowhere: same "
+    f"{_hdr_x_b is _hdr_x_zero}, {_hdr_x_b_seen}; control: {_hdr_x_c_seen}",
 )
 
 
@@ -104262,7 +105343,7 @@ def _cf_fold(drawn, floor_kw=None):
     frozen = _lf.reason(_lf.Facts(), (), _LF_K.CEILING,
                         _lf.Evidence(at_running_floor=_cf_dr.at_running_floor(d, drawn))) is not None
     _cf_dr.fold(d, drawn, (6.0, 0.0), _CF_P, frozen=False, distorted=False, defrost=False,
-                command=_CF_CEIL, experiment_s=1.0e9, ceiling_frozen=frozen)
+                command=_CF_CEIL, span=_cf_dr.Span(1.0e9, 1.0e9, experiment=True), ceiling_frozen=frozen)
     return frozen, len(d.ceiling), len(d.samples) - window
 
 
@@ -104804,6 +105885,474 @@ R.check(
     all(card and card == want for _, card, want in _oc_rows)
     and all(want and card[:-1] != want for _, card, want in _oc_rows),
     str(_oc_rows),
+)
+
+
+R.section("R11-OUTSIDE-START-APPROACH: a run's first steps draw what the pump draws (Bankaifan, comment 6944433306 on #3670)")
+# Series D's shape (Bankaifan's): from off, 1.25 kW falling 12.6 W/min to the
+# 0.53 kW floor; series H's: 0.785 kW for the first interval after the gate.
+# Figures are one install's; the checks pin the mechanism, not the install.
+from types import SimpleNamespace as _sa_NS  # noqa: E402
+import dataclasses as _sa_dc  # noqa: E402
+from heatpump_optimizer import approach as _sa_ap, draw_range as _sa_dr, runs as _sa_runs  # noqa: E402
+from heatpump_optimizer import optimizer as _sa_om  # noqa: E402
+from heatpump_optimizer.accuracy import COP_REFUSED_OFF_ASK as _SA_OFF_ASK, MeasuredCop as _SaCop  # noqa: E402
+
+_SA_P = _sa_NS(min_electrical_power=0.53, max_electrical_power=3.0)
+_SA_STEP_S = 300.0
+
+
+def _sa_feed(draw, rows, t0=1.0e9, params=_SA_P):
+    """Fold (drawn, space ask, hot water ask, gates) rows, 5 min each; the time after."""
+    t = t0
+    for drawn, space, dhw, *gates in rows:
+        g = {"frozen": False, "distorted": False, "defrost": False, **(gates[0] if gates else {})}
+        _sa_dr.fold(draw, drawn, (space, dhw), params, span=_sa_dr.Span(t, t + _SA_STEP_S), **g)
+        t += _SA_STEP_S
+    return t
+
+
+def _sa_run(n_floor=12, ramp=0.785):
+    """One series-D run from off, then a pause opening with series H's wind-down."""
+    return ([(1.25 - 0.0126 * 5 * i, 0.53, 0.0) for i in range(12)] + [(0.53, 0.53, 0.0)] * n_floor
+            + [(ramp, 0.0, 0.0)] + [(0.02, 0.0, 0.0)] * 11)
+
+
+def _sa_learned(runs_n=5, **kw):
+    d = _sa_dr.DrawRange()
+    t = _sa_feed(d, [(0.02, 0.0, 0.0)])
+    for _ in range(runs_n):
+        t = _sa_feed(d, _sa_run(**kw), t)
+    return d, t
+
+
+_sa_d, _sa_t = _sa_learned()
+# One outlier run (2.0 kW in its first bin) beside four of series D: a bin's
+# level is its median, so the first bin still reads 1.25 kW (a max or a mean moves).
+_sa_o, _sa_ot = _sa_learned(runs_n=4)
+_sa_ot = _sa_feed(_sa_o, [(2.0, 0.53, 0.0)] + _sa_run()[1:], _sa_ot)
+_sa_oa = _sa_dr.solve_approach(_sa_o, _SA_P, _sa_ot)
+_sa_a = _sa_dr.solve_approach(_sa_d, _SA_P, _sa_t)
+_sa_none, _ = _sa_learned(runs_n=0)
+_sa_two, _sa_t2 = _sa_learned(runs_n=2)
+# 3. The learner at both ends: zero evidence and a bin under its count read
+# none; five runs reproduce series D's excess within one bin's width
+# (5/60 h at 0.72 kW over the floor, 0.06 kWh; spike s1 read 0.377 kWh).
+R.check(
+    "approach learner: zero evidence and two runs (bins under MIN_COUNT) read no approach; five series-D "
+    "runs read an entry whose energy over the floor is series D's within one bin, and series H's ramp",
+    _sa_dr.solve_approach(_sa_none, _SA_P, 1e9) is None and _sa_dr.solve_approach(_sa_two, _SA_P, _sa_t2) is None
+    and _sa_a is not None and abs(_sa_a.entry_kwh(0.53) - 0.377) < 5 / 60 * 0.72
+    and _sa_a.ramp.size == 1 and abs(_sa_a.ramp[0] - 0.785) < 1e-9 and _sa_a.age_h == 0.0
+    and _sa_oa is not None and abs(_sa_oa.entry[0] - 1.25) < 1e-9,
+    f"entry {None if _sa_a is None else _sa_a.entry} kwh {None if _sa_a is None else _sa_a.entry_kwh(0.53)}",
+)
+
+
+def _sa_gated(**gates):
+    d, t = _sa_learned(runs_n=0)
+    for _ in range(5):
+        t = _sa_feed(d, [(r[0], r[1], r[2], gates) for r in _sa_run()], t)
+    return _sa_dr.solve_approach(d, _SA_P, t)
+
+
+_sa_high, _ = _sa_learned(runs_n=0)
+_sa_th = 1.0e9
+for _ in range(5):
+    _sa_th = _sa_feed(_sa_high, [(r[0], 1.5 if r[1] else 0.0, 0.0) for r in _sa_run(ramp=0.02)], _sa_th)
+R.check(
+    "approach learner folds nothing from a frozen, a distorted or a defrost interval, nor an entry asked above "
+    "the floor (a higher ask draws more by asking more)",
+    all(_sa_gated(**{k: True}) is None for k in ("frozen", "distorted", "defrost"))
+    and _sa_dr.solve_approach(_sa_high, _SA_P, _sa_th) is None,
+    str([_sa_gated(**{k: True}) for k in ("frozen", "distorted", "defrost")]),
+)
+_sa_stored = _sa_d.as_dict()
+_sa_stored["approach"]["entry"][0][0] = "x"
+_sa_back = _sa_dr.DrawRange.from_dict(_sa_stored)
+_sa_moved = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_moved.approach.observe(0.02, (0.0, 0.0), 0.53, _sa_t, _sa_t + 300, sample=True, standby_kw=0.25,
+                           tolerance=0.15, config=(0.5, 3.0))
+R.check(
+    "a stored approach round-trips, a bad cell costs only that cell, and a changed configured range drops it",
+    _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach.as_dict() == _sa_d.approach.as_dict()
+    and len(_sa_back.approach.entry[0]) == len(_sa_d.approach.entry[0]) - 1
+    and len(_sa_back.approach.entry[1]) == len(_sa_d.approach.entry[1])
+    and all(len(b) == 0 for b in _sa_moved.approach.entry),
+    str(_sa_back.approach.entry[0]),
+)
+# A restart (a gap longer than an interval) leaves the run's age unknown: no
+# entry is read across it, and the age reads None (books no entry at step 0).
+_sa_gap = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_gap_t = _sa_feed(_sa_gap, [(1.25, 0.53, 0.0)], _sa_t + 3600)
+R.check(
+    "after a gap the live run's age is unknown and no entry sample is folded across it",
+    _sa_gap.approach.age_h(_sa_gap_t) is None
+    and [len(b) for b in _sa_gap.approach.entry] == [len(b) for b in _sa_d.approach.entry],
+    str(_sa_gap.approach.age_h(_sa_gap_t)),
+)
+
+# The learner's boundaries. Three runs (MIN_COUNT) already read a profile. An
+# ask exactly at the floor's tolerance is an entry sample; a draw exactly at
+# standby is no ramp sample. An interval starting exactly one interval after
+# the last ended is no gap, so the run continues; a gap inside a live run
+# leaves its age unknown. A sample at the age the profile covers is outside it.
+def _sa_obs(prof, drawn, space, t, **kw):
+    return prof.observe(drawn, (space, 0.0), 0.53, t, t + 300.0, sample=True, standby_kw=0.25,
+                        tolerance=0.15, config=(0.53, 3.0), **kw)
+
+
+_sa_three = _sa_dr.solve_approach(_sa_learned(runs_n=3)[0], _SA_P, _sa_learned(runs_n=3)[1])
+_sa_b = _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach
+_sa_bt = _sa_t
+_sa_bn = len(_sa_b.entry[0])
+_sa_obs(_sa_b, 1.25, (1.0 + 0.15) * 0.53, _sa_bt)
+_sa_at_edge = len(_sa_b.entry[0]) == _sa_bn + 1
+_sa_cont = _sa_b.age_h(_sa_bt + 900.0)
+_sa_obs(_sa_b, 1.2, 0.53, _sa_bt + 600.0)
+_sa_cont_after = _sa_b.age_h(_sa_bt + 900.0)
+_sa_obs(_sa_b, 1.2, 0.53, _sa_bt + 7200.0)
+_sa_gap_age = _sa_b.age_h(_sa_bt + 7500.0)
+_sa_r0 = _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach
+_sa_obs(_sa_r0, 0.6, 0.53, _sa_t)
+_sa_rk = len(_sa_r0.ramp[0])
+_sa_standby = _sa_obs(_sa_r0, 0.25, 0.0, _sa_t + 300.0)
+_sa_cov = _sa_dr.DrawRange.from_dict(_sa_d.as_dict()).approach
+_sa_obs(_sa_cov, 1.25, 0.53, _sa_t)
+_sa_edge_age = _sa_a.entry.size * 5 * 60.0
+_sa_kinds = [_sa_obs(_sa_cov, 0.6, 0.53, _sa_t + age) for age in np.arange(300.0, _sa_edge_age + 1.0, 300.0)][-2:]
+R.check(
+    "approach learner boundaries: three runs read a profile; an ask at the tolerance's edge is an entry sample; a "
+    "draw at standby is no ramp sample; an interval one interval after the last is no gap; a gap in a live run "
+    "reads its age unknown; the last covered bin is inside and the next is not",
+    _sa_three is not None and _sa_at_edge and _sa_cont_after is not None and _sa_cont_after > 0.0
+    and _sa_gap_age is None and _sa_standby is None and len(_sa_r0.ramp[0]) == _sa_rk
+    and _sa_kinds == ["inside", None],
+    f"three {_sa_three is not None} edge {_sa_at_edge} cont {_sa_cont_after} gap {_sa_gap_age} "
+    f"standby {_sa_standby} kinds {_sa_kinds}",
+)
+
+# 4. The ramp-down: the first pause interval after a space run is a ramp sample and
+# no idle reading (design note s3); with no run before it, it is the idle store's.
+_SA_GATE = _sa_NS(written_c=20.0, gate_c=20.0, ceiling_c=45.0)
+_sa_r, _sa_rt = _sa_learned(runs_n=1)
+_sa_r2 = _sa_dr.DrawRange.from_dict(_sa_r.as_dict())
+_sa_rt = _sa_feed(_sa_r2, [(1.0, 0.53, 0.0)], _sa_rt)
+_sa_idle0 = len(_sa_r2.idle)
+_sa_dr.fold(_sa_r2, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span=_sa_dr.Span(_sa_rt, _sa_rt + 300))
+_sa_r3 = _sa_dr.DrawRange.from_dict(_sa_r.as_dict())
+_sa_rt3 = _sa_feed(_sa_r3, [(0.02, 0.0, 0.0)], _sa_rt - 300)
+_sa_dr.fold(_sa_r3, 0.785, (0.0, 0.0), _SA_P, frozen=False, distorted=False, defrost=False, command=_SA_GATE, span=_sa_dr.Span(_sa_rt3, _sa_rt3 + 300))
+R.check(
+    "the first pause interval after a space run folds a ramp sample and no idle reading; after a pause "
+    "(null control) the same interval is an idle reading and no ramp sample",
+    len(_sa_r2.idle) == _sa_idle0 and len(_sa_r2.approach.ramp[0]) == len(_sa_r.approach.ramp[0]) + 1
+    and len(_sa_r3.idle) == len(_sa_r.idle) + 1 and len(_sa_r3.approach.ramp[0]) == len(_sa_r.approach.ramp[0]),
+    f"idle {_sa_idle0}->{len(_sa_r2.idle)}, null idle {len(_sa_r.idle)}->{len(_sa_r3.idle)}",
+)
+
+# The received draw. A 15-minute run at the floor from off takes the mean of
+# the profile's first three bins. A live run of unknown age books no entry. A
+# charge before a space run leaves it an entry (2: the space edge, not the start).
+_sa_plan = np.array([0.0, 0.53, 0.0, 0.0])
+_sa_got = _sa_runs.received(_sa_plan, 0.0, _sa_a, dt=0.25, p_max=3.0)
+_sa_unknown = _sa_runs.received(_sa_plan[1:], 0.0, _sa_a._replace(age_h=None), dt=0.25, p_max=3.0)
+_sa_charge = _sa_runs.received(np.array([0.0, 0.53, 0.53]), np.array([1.0, 0.0, 0.0]), _sa_a, dt=0.25, p_max=3.0)
+R.check(
+    "runs.received: a 15-minute run from off takes the mean of the first three bins, the pause after it the "
+    "ramp's share; unknown age books nothing; no approach is the shipped array itself",
+    abs(_sa_got[1] - float(np.mean(_sa_a.entry[:3]))) < 1e-9 and abs(_sa_got[2] - _sa_a.ramp[0] / 3) < 1e-9
+    and _sa_got[0] == 0.0 and np.array_equal(_sa_unknown, _sa_plan[1:])
+    and _sa_runs.received(_sa_plan, 0.0, None, dt=0.25, p_max=3.0) is _sa_plan
+    and _sa_runs.received(_sa_plan, 0.0, _sa_a, dt=0.25, p_max=0.8)[1] == 0.8,
+    f"{_sa_got} unknown {_sa_unknown}",
+)
+R.check(
+    "a charge before a space run leaves the run an entry while the combined draw starts once",
+    abs(_sa_charge[1] - float(np.mean(_sa_a.entry[:3]))) < 1e-9
+    and _sa_runs.edge_count(np.array([1.0, 0.53, 0.53])) == 1,
+    str(_sa_charge),
+)
+_sa_rows = np.stack([_sa_plan, np.array([0.53, 0.53, 0.0, 0.53])])
+_sa_b = _sa_runs.received(_sa_rows, 0.0, _sa_a._replace(age_h=0.5), dt=0.25, p_max=3.0)
+R.check(
+    "runs.received of a batch is the one-row answer per row, bit for bit, the live age continued at step 0",
+    all(np.array_equal(_sa_b[i], _sa_runs.received(_sa_rows[i], 0.0, _sa_a._replace(age_h=0.5), dt=0.25, p_max=3.0)) for i in range(2))
+    and abs(_sa_b[1][0] - float(np.mean(_sa_a.entry[6:9]))) < 1e-9,
+    str(_sa_b),
+)
+
+# 1. The objective: _shipped_and_received hands the true objective the received
+# draw, and a descent and an install with no approach the shipped one.
+_sa_opt = _sa_om.HeatPumpOptimizer(
+    _sa_om.ThermalModel(_sa_dc.replace(_sa_om.ThermalParameters(), min_electrical_power=0.53, max_electrical_power=3.0)),
+    _sa_dc.replace(_sa_om.OptimizationConfig(), clamp_planned_levels=True))
+_sa_opt._approach = _sa_a
+_sa_sr = _sa_om._shipped_and_received(_sa_opt, _sa_plan, None, None)
+_sa_sd = _sa_om._shipped_and_received(_sa_opt, _sa_plan, None, None, "relaxed")
+_sa_opt._approach = None
+_sa_s0 = _sa_om._shipped_and_received(_sa_opt, _sa_plan, None, None)
+R.check(
+    "the true objective's received draw is runs.received of the shipped plan; a descent and no approach "
+    "receive the shipped array itself",
+    np.array_equal(_sa_sr[2], _sa_got) and _sa_sr[0] is _sa_plan and _sa_sd[2] is _sa_plan and _sa_s0[2] is _sa_plan,
+    f"{_sa_sr[2]}",
+)
+
+# The published trajectory simulates the received draw the objective scored:
+# the simulation whose room trajectory a full solve publishes is runs.received
+# of the plan it ships. Null: with no approach it is the shipped plan itself.
+def _sa_solve(approach, dhw=False):
+    opt = _sa_om.HeatPumpOptimizer(
+        _sa_om.ThermalModel(_sa_dc.replace(_sa_om.ThermalParameters(), min_electrical_power=0.53, max_electrical_power=3.0, dhw_enabled=dhw)),
+        _sa_dc.replace(_sa_om.OptimizationConfig(), clamp_planned_levels=True))
+    n, seen, real = opt.config.n_steps, [], opt.model.simulate_trajectory
+
+    def spy(*a, **k):
+        out = real(*a, **k)
+        seen.append((np.array(k.get("power_schedule")), np.array(out[0])))
+        return out
+
+    opt.model.simulate_trajectory = spy
+    state = _sa_om.ThermalState(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=9.0)
+    inputs = solve_inputs(initial_state=state, prices=0.2 + 0.1 * np.sin(np.arange(n) * 4 * np.pi / n),
+                          outdoor_temps=np.full(n, 9.0), start_time=datetime(2026, 1, 10, tzinfo=timezone.utc))
+    result = opt.optimize(inputs=_sa_dc.replace(inputs, approach=approach))
+    # The published simulation: the call whose room trajectory the result carries.
+    published = [p for p, room in seen if np.array_equal(room, np.asarray(result.room_temp_trajectory))]
+    return np.asarray(result.power_schedule), published[-1] if published else None
+
+
+for _sa_hw in (False, True):
+    _sa_ship1, _sa_pub1 = _sa_solve(_sa_a, _sa_hw)
+    _sa_ship0, _sa_pub0 = _sa_solve(None, _sa_hw)
+    R.check(
+        f"the published trajectory simulates runs.received of the shipped plan; with no approach, the shipped "
+        f"plan ({'hot-water' if _sa_hw else 'space-only'} solve)",
+        _sa_pub1 is not None and _sa_pub0 is not None
+        and np.allclose(_sa_pub1, _sa_runs.received(_sa_ship1, 0.0, _sa_a, dt=0.25, p_max=3.0))
+        and not np.allclose(_sa_pub1, _sa_ship1) and np.allclose(_sa_pub0, _sa_ship0),
+        f"published {_sa_pub1} shipped {np.round(_sa_ship1[:8], 3)}",
+    )
+
+# 7, the coordinator's wiring: the pending prediction it files for the live
+# step carries the expected draw (the accuracy sample's predicted power, the
+# cost error, the defrost derate's delivered ratio), and the day-ahead promise
+# is costed on the received schedule. Null: the same coordinator with no
+# learned approach files the shipped total and the shipped schedule.
+def _sa_coord(runs_n, **config):
+    """A coordinator whose window learned ``runs_n`` series-D runs, scaled to its own floor."""
+    c = _t2_coord(**config)
+    params = getattr(c, "_ctx", c)._thermal_params
+    k = params.min_electrical_power / 0.53
+    t = _sa_feed(c._accuracy.draw, [(0.02, 0.0, 0.0)], params=params)
+    for _ in range(runs_n):
+        t = _sa_feed(c._accuracy.draw, [(d * k, a * k, h) for d, a, h in _sa_run()], t, params)
+    c._current_action = {**c._current_action, "power": params.min_electrical_power, "dhw_power": 0.0}
+    c._pending_prediction = None
+    with _sa_frozen_now(t):
+        c._record_accuracy()
+    return c, params.min_electrical_power
+
+
+import contextlib as _sa_cl  # noqa: E402
+from unittest import mock as _sa_mock  # noqa: E402
+
+
+@_sa_cl.contextmanager
+def _sa_frozen_now(epoch_s):
+    """The coordinator's clock at ``epoch_s``: the learned run's clock reads it."""
+    at = datetime.fromtimestamp(epoch_s, tz=timezone.utc)
+    with _sa_mock.patch("heatpump_optimizer.coordinator.dt_util.now", lambda *a: at):
+        yield
+
+
+_sa_c1, _sa_f = _sa_coord(5)
+_sa_c0, _ = _sa_coord(0)
+_sa_pend1, _sa_pend0 = _sa_c1._pending_prediction["power"], _sa_c0._pending_prediction["power"]
+
+
+def _sa_promise(c, f):
+    """The space schedule the coordinator files as the day-ahead promise of a plan with one run."""
+    seen = []
+    c._mode = "auto"
+    c._file_dhw_lead_predictions = lambda *a: None
+    c._accuracy.note_promise = lambda *a: seen.append(list(a[3]))
+    plan = _sa_NS(sensor_trajectory=lambda _two: [21.0] * 5, power_schedule=[0.0, f, 0.0, 0.0, 0.0],
+                           dhw_power_schedule=[0.0] * 5, prices=[0.1] * 5)
+    c._file_lead_predictions(plan, datetime(2026, 1, 10, tzinfo=timezone.utc))
+    return seen[0] if seen else None
+
+
+_sa_prom1, _sa_prom0 = _sa_promise(_sa_c1, _sa_f), _sa_promise(_sa_c0, _sa_f)
+R.check(
+    "the coordinator files the expected draw as the interval's predicted power, above the shipped floor on an "
+    "entry, and the promise costed on the received schedule; with no learned approach the shipped total and "
+    "the shipped schedule",
+    _sa_pend1 > 1.5 * _sa_f and _sa_pend0 == _sa_f
+    and _sa_prom1 is not None and _sa_prom1[1] > 1.5 * _sa_f and _sa_prom0 == [0.0, _sa_f, 0.0, 0.0, 0.0],
+    f"pending {_sa_pend1} null {_sa_pend0} floor {_sa_f} promise {_sa_prom1} null {_sa_prom0}",
+)
+
+# The COP fold of the interval the coordinator filed inside the approach reads
+# it as off its ask; the same fold with no learned approach does not.
+def _sa_cop(c):
+    c._measured_power = 1.2
+    return c._fold_measured_cop(c._accuracy.draw)
+
+
+_sa_cop1, _sa_cop0 = _sa_cop(_sa_c1), _sa_cop(_sa_c0)
+# A charge between two space runs moves the run clock (``fold``'s ``charged``):
+# the run after it is an entry, its sample inside the profile adds no window pair.
+_sa_ch = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_cht = _sa_feed(_sa_ch, [(0.53, 0.53, 0.0)] * 2, _sa_t)
+_sa_dr.fold(_sa_ch, 1.4, (0.0, 1.0), _SA_P, frozen=False, distorted=False, defrost=False, span=_sa_dr.Span(_sa_cht, _sa_cht + 300, True))
+_sa_chn = len(_sa_ch.samples)
+_sa_feed(_sa_ch, [(1.25, 0.53, 0.0)], _sa_cht + 300)
+R.check(
+    "the COP fold refuses the interval filed inside the approach as off its ask, and not with none learned; a "
+    "charge between two space runs leaves the second an entry",
+    _sa_cop1 == _SA_OFF_ASK and _sa_cop0 != _SA_OFF_ASK and len(_sa_ch.samples) == _sa_chn
+    and _sa_ch.approach.entered_s == _sa_cht + 300,
+    f"cop {_sa_cop1} null {_sa_cop0} pairs {_sa_chn}->{len(_sa_ch.samples)}",
+)
+
+# The fabric learner's tracking gate reads the expected draw: an entry metered
+# at series D's first-step level is kept (the metered figure, less no hot
+# water); with no learned approach the same reading is tracking and skipped.
+def _sa_fabric(runs_n):
+    c, f = _sa_coord(runs_n, heat_pump_power_entity="sensor.hp_power")
+    c._measured_power = 1.2 * f / 0.53
+    return c._interval_space_power(), c._measured_power
+
+
+_sa_fab1, _sa_fab0 = _sa_fabric(5), _sa_fabric(0)
+R.check(
+    "the fabric interval of an entry inside the learned approach keeps its metered space figure; with none "
+    "learned the tracking gate skips it (spike s3)",
+    _sa_fab1[0] == _sa_fab1[1] and _sa_fab0[0] is None,
+    f"kept {_sa_fab1} null {_sa_fab0}",
+)
+
+# The plan's band stamp carries the learned entry energy, and the status
+# sensor's pump_min_power row shows it. Null: none learned stamps None.
+from heatpump_optimizer import sensor as _sa_sensor  # noqa: E402
+
+_SA_CAP = _sa_NS(plan_writes_power=lambda: False)
+_sa_band1 = _sa_dr.solve_band(_sa_d, _SA_P, _SA_CAP, _sa_t).as_dict()
+_sa_band0 = _sa_dr.solve_band(_sa_none, _SA_P, _SA_CAP, 1e9).as_dict()
+R.check(
+    "the solve band stamps the learned entry energy above the floor and pump_min_power shows it; none learned "
+    "stamps None",
+    abs(_sa_band1["approach_kwh"] - round(_sa_a.entry_kwh(0.53), 3)) < 1e-9 and _sa_band0["approach_kwh"] is None
+    and _sa_sensor._pump_min_power(_sa_band1)["pump_min_power"]["approach_kwh"] == _sa_band1["approach_kwh"],
+    f"{_sa_band1['approach_kwh']} null {_sa_band0['approach_kwh']}",
+)
+
+# Under a priced stop the received draw passes through the stop's share after
+# the approach (design note s6): delivered_space of runs.received, never the
+# reverse. Null: with no approach it is delivered_space of the shipped plan.
+from heatpump_optimizer import duty_legs as _sa_legs  # noqa: E402
+
+_sa_opt._approach = _sa_a
+_sa_hw = np.array([0.0, 0.0, 1.0, 0.0])
+_sa_av = np.array([1.0, 0.5, 1.0, 1.0])
+_sa_st = _sa_om._shipped_and_received(_sa_opt, _sa_plan, _sa_hw, _sa_av)[2]
+_sa_want = _sa_legs.delivered_space(_sa_runs.received(_sa_plan, _sa_hw, _sa_a, dt=0.25, p_max=3.0), _sa_hw, _sa_av, _sa_om._duty_floor(_sa_opt))
+_sa_opt._approach = None
+_sa_st0 = _sa_om._shipped_and_received(_sa_opt, _sa_plan, _sa_hw, _sa_av)[2]
+R.check(
+    "under a priced stop the received draw is the stop's share of the approach's draw; with no approach, of "
+    "the shipped plan",
+    np.array_equal(_sa_st, _sa_want) and not np.array_equal(_sa_st, _sa_st0)
+    and np.array_equal(_sa_st0, _sa_legs.delivered_space(_sa_plan, _sa_hw, _sa_av, _sa_om._duty_floor(_sa_opt))),
+    f"{_sa_st} vs {_sa_st0}",
+)
+
+# 5. The generator: with no approach the masks are the base's; with one, a
+# run out of a pause books the entry's energy, so the committed plan runs
+# fewer floor steps for the same relaxed energy.
+_sa_q, _sa_pr = np.full(12, 0.3), np.linspace(0.1, 0.3, 12)
+_sa_m0 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25)
+_sa_m00 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25, entry_kwh=0.0)
+_sa_m1 = _sa_runs.candidates(_sa_q, _sa_pr, 0.53, 3.0, 0.05, dt=0.25, entry_kwh=_sa_a.entry_kwh(0.53))
+# Rule: a mask's energy is its floor steps at 0.53 kW x 0.25 h plus the entry's
+# energy per run begun out of a pause; the commit ends within half a floor step
+# of the relaxed plan's 0.9 kWh. Null: the same rule on the base masks with no entry.
+def _sa_energy(mask, entry):
+    begun = int(np.sum(mask & ~np.r_[False, mask[:-1]]))
+    return float(mask.sum()) * 0.53 * 0.25 + begun * entry
+
+
+R.check(
+    "runs.commit: no entry energy leaves the masks equal; with the learned entry the tightest mask's floor "
+    "steps plus one entry per run out of a pause meet the relaxed energy within half a floor step",
+    all(np.array_equal(a, b) for a, b in zip(_sa_m0, _sa_m00)) and len(_sa_m0) == len(_sa_m00)
+    and abs(_sa_energy(_sa_m1[0], _sa_a.entry_kwh(0.53)) - 0.9) <= 0.53 * 0.25 / 2
+    and abs(_sa_energy(_sa_m0[0], 0.0) - 0.9) <= 0.53 * 0.25 / 2 and int(_sa_m1[0].sum()) < int(_sa_m0[0].sum()),
+    f"{[int(m.sum()) for m in _sa_m0]} vs {[int(m.sum()) for m in _sa_m1]}, "
+    f"energy {_sa_energy(_sa_m1[0], _sa_a.entry_kwh(0.53))}",
+)
+
+# 7. The axis: the expected draw at an entry is the received total, which the
+# accuracy sample pairs with the meter; the COP judge refuses the interval; an
+# entry sample inside the profile adds no pair to the window. Null: no profile.
+_sa_e = _sa_dr.DrawRange.from_dict(_sa_d.as_dict())
+_sa_exp = _sa_dr.expect(_sa_e, (0.53, 0.0), _SA_P, _sa_t, 0.25)
+_sa_in = _sa_dr.inside_approach(_sa_e)
+_sa_n = _sa_dr.DrawRange.from_dict(_sa_none.as_dict())
+_sa_exp0 = _sa_dr.expect(_sa_n, (0.53, 0.0), _SA_P, 1e9, 0.25)
+_sa_pairs = len(_sa_e.samples)
+_sa_feed(_sa_e, [(1.25, 0.53, 0.0)], _sa_t)
+R.check(
+    "the expected draw of an entry step is the received total and flags the step inside the approach; the "
+    "COP judge refuses it as off its ask; its sample adds no window pair. Null: no profile expects the "
+    "shipped total, flags nothing, and the judge reads the floor as before",
+    abs(_sa_exp - float(np.mean(_sa_a.entry[:3]))) < 1e-9 and _sa_in == _sa_exp
+    and _SaCop.judge_floor(_sa_exp, 1.2, _sa_NS(flow_lift_power_floor_kw=0.2, min_electrical_power=0.53, max_electrical_power=3.0), None, False, True) == _SA_OFF_ASK
+    and _SaCop.judge_floor(_sa_exp, 1.2, _sa_NS(flow_lift_power_floor_kw=0.2, min_electrical_power=0.53, max_electrical_power=3.0), None, False, False) is None
+    and len(_sa_e.samples) == _sa_pairs
+    and _sa_exp0 == 0.53 and _sa_dr.inside_approach(_sa_n) is None,
+    f"expected {_sa_exp} null {_sa_exp0} pairs {_sa_pairs}->{len(_sa_e.samples)}",
+)
+
+# 8. The solve's wiring. Both coordinator roads into the optimizer are the
+# scheduled record and the what-if scratch solve. Each hands SolveInputs the
+# profile draw_range.solve_approach reads off the coordinator's own window,
+# for that road's params, at the solve's instant. The optimizer prices that
+# field (inputs.approach) and nothing else. Null: a coordinator that learned
+# no runs hands None on both roads.
+from heatpump_optimizer import whatif as _sa_whatif  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_start as _sa_pss  # noqa: E402
+
+
+def _sa_roads(c):
+    """The approach each solve road hands the optimizer, each beside
+    solve_approach's own answer for that road's params at that instant."""
+    now = _sa_pss(dt_util.now())
+    horizon = c._forecast_arrays(now)
+    rec = c._solve_record(now, horizon)
+    config, params, state = c._solve_hubs(len(horizon.prices), banded=False)
+    w_inputs = c._whatif_solve({}, config, params, state, horizon, now, False)[1]
+    w_params = _sa_whatif.scratch_copies(config, params, {})[1]
+    return (rec.inputs.approach, _sa_dr.solve_approach(c._accuracy.draw, rec.params, now.timestamp()),
+            w_inputs.approach, _sa_dr.solve_approach(c._accuracy.draw, w_params, now.timestamp()))
+
+
+def _sa_same(a, b):
+    """Two profiles agree field by field, neither absent."""
+    return (a is not None and b is not None and np.array_equal(a.entry, b.entry)
+            and np.array_equal(a.ramp, b.ramp) and a.age_h == b.age_h and a.bin_h == b.bin_h)
+
+
+_sa_w1, _sa_w0 = _sa_roads(_sa_c1), _sa_roads(_sa_c0)
+R.check(
+    "the scheduled solve record and the what-if scratch solve hand the optimizer the approach solve_approach "
+    "reads off the coordinator's window at the solve's instant, a profile with entry levels; null: the "
+    "coordinator that learned no runs hands None on both roads",
+    _sa_same(_sa_w1[0], _sa_w1[1]) and _sa_same(_sa_w1[2], _sa_w1[3]) and _sa_w1[0].entry.size > 0
+    and _sa_w0 == (None, None, None, None),
+    f"record {_sa_w1[0]} want {_sa_w1[1]}; what-if {_sa_w1[2]} want {_sa_w1[3]}; null {_sa_w0}",
 )
 
 # R11-SEAM-store-p2 (round-11 sweep P1, store loaders): a stored flag where a number is declared.

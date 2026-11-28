@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_combi_flux_exchange GUARD_OFF ba727eb5",
-  "killed_by": "tests/features.py",
-  "old": "        if np.allclose(plan.schedule, dhw_power, atol=1e-4):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

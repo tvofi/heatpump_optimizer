@@ -1,11 +1,24 @@
 """R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|defaults|gradient|stress|kernels|identity|stage
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|c1|descents|grid|defaults|gradient|stress|kernels|identity|stage|approach
 
 Synthetic throughout; no private data. The finding is outside pull request
 3529 (Bankaifan), which has no finder harness; this one reproduces the pull
 request body's figures.
+
+``approach`` (R11-OUTSIDE-START-APPROACH, Bankaifan's comment 6944433306 on
+pull request 3670, whose series are one install's): series D's shape as
+1.25 kW falling 12.6 W/min to a 0.53 kW floor, 5-minute means. Printed: the
+excess over the floor (sum of (kW - 0.53) x 5/60), and runs of 15, 30, 45 and
+60 minutes from off as metered over floor energy; the same shape folded five
+times through ``draw_range.fold`` and the entry energy the learner reads;
+then a clamped 0.53 to 3.0 kW house solved with no approach and with the
+learned one: off-to-on edges per day, shipped and received energy, received
+energy cost, lowest room temperature, and the steps whose received space draw
+passes a 1.0 kW cap the shipped plan keeps. Null controls: a run already at
+the floor has no excess, and the plan with no approach receives its shipped
+array (exits 1 otherwise).
 
 ``fixtures``: the two golden plan scenarios that set a cycling cost
 (``cycling_cost``, ``everything_on``), captured by ``tests/golden.py`` on the
@@ -786,7 +799,55 @@ def kernels() -> int:
     return 1 if bad else 0
 
 
+def approach() -> int:
+    import dataclasses
+    from types import SimpleNamespace
+    from heatpump_optimizer import draw_range, runs
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
+    from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
+    from profiles import solve_inputs
+
+    floor, bin_h = 0.53, 5 / 60
+    shape = [max(1.25 - 0.0126 * 5 * i, floor) for i in range(13)]
+    excess = sum(kw - floor for kw in shape) * bin_h
+    print(f"series D shape: excess over the floor {excess:.3f} kWh over {len(shape) * 5} min")
+    for minutes in (15, 30, 45, 60):
+        k = minutes // 5
+        print(f"  run of {minutes} min from off: metered / floor energy {sum(shape[:k]) / (floor * k):.2f}")
+    null = sum(kw - floor for kw in [floor] * 13) * bin_h
+    print(f"null, a run at the floor: excess {null:.3f} kWh")
+    params = SimpleNamespace(min_electrical_power=floor, max_electrical_power=3.0)
+    draw, t = draw_range.DrawRange(), 1.0e9
+    rows = [(0.02, 0.0)] + ([(kw, floor) for kw in shape[:12]] + [(floor, floor)] * 12 + [(0.785, 0.0)] + [(0.02, 0.0)] * 11) * 5
+    for drawn, ask in rows:
+        draw_range.fold(draw, drawn, (ask, 0.0), params, frozen=False, distorted=False, defrost=False, span=draw_range.Span(t, t + 300))
+        t += 300
+    learned = draw_range.solve_approach(draw, params, t)
+    print(f"learned after five runs: entry {learned.entry_kwh(floor):.3f} kWh over the floor, ramp {learned.ramp}")
+    bad = 0
+    for label, ap in (("no approach", None), ("learned", learned)):
+        opt = HeatPumpOptimizer(
+            ThermalModel(dataclasses.replace(ThermalParameters(), min_electrical_power=floor, max_electrical_power=3.0)),
+            dataclasses.replace(OptimizationConfig(), clamp_planned_levels=True))
+        n, dt = opt.config.n_steps, opt.config.dt_hours
+        prices = 0.2 + 0.1 * np.sin(np.arange(n) * 4 * np.pi / n)
+        state = ThermalState(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=5.0)
+        inputs = solve_inputs(initial_state=state, prices=prices, outdoor_temps=np.full(n, 5.0),
+                              start_time=datetime(2026, 1, 10, tzinfo=timezone.utc))
+        result = opt.optimize(inputs=dataclasses.replace(inputs, approach=ap))
+        shipped = np.asarray(result.power_schedule)
+        got = runs.received(shipped, 0.0, learned, dt=dt, p_max=3.0)
+        mine = runs.received(shipped, 0.0, ap, dt=dt, p_max=3.0)
+        if ap is None and mine is not shipped:
+            bad += 1
+        print(f"{label}: edges/day {edges(shipped) * 24 / (n * dt):.1f}, shipped {shipped.sum() * dt:.2f} kWh, "
+              f"received {got.sum() * dt:.2f} kWh, received cost {float(np.sum(got * prices)) * dt:.3f}, "
+              f"lowest room {min(result.room_temp_trajectory):.2f} C, steps over a 1.0 kW cap shipped "
+              f"{int(np.sum(shipped > 1.0))} received {int(np.sum(got > 1.0))}")
+    return 1 if bad else 0
+
+
 if __name__ == "__main__":
     sys.exit({"fixtures": fixtures, "c1": c1, "descents": descents, "grid": grid, "defaults": defaults, "gradient": gradient,
               "stress": stress_cost, "kernels": kernels,
-              "identity": identity, "stage": stage}[sys.argv[1]]())
+              "identity": identity, "stage": stage, "approach": approach}[sys.argv[1]]())

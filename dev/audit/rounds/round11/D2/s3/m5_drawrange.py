@@ -98,12 +98,12 @@ def run(cell, top):
         drawn = max(ask, 1.5) if cell == "uncensored" else 1.5
         drawn = min(drawn, top)
         draw_range.fold(d, drawn, (ask, 0.0), P, frozen=False, distorted=False, defrost=False,
-                        command=None, experiment_s=None)
+                        command=None)
         t += 1800.0
     for k in range(14):
         drawn = top if cell == "uncensored" else 1.5
         draw_range.fold(d, drawn, (6.0, 0.0), P, frozen=False, distorted=False, defrost=False,
-                        command=CEIL, experiment_s=t, **_ceiling_ask(d, drawn))
+                        command=CEIL, span=draw_range.Span(t, t, experiment=True), **_ceiling_ask(d, drawn))
         t += 1800.0
     band = draw_range.solve_band(d, P, CAP, t)
     pr = draw_range.planned_range(d, P, CAP)

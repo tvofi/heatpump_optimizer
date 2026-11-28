@@ -35,10 +35,12 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Deque
+from typing import Any, Deque, NamedTuple
 
 import numpy as np
 
+from . import runs
+from .approach import BIN_MIN, ApproachProfile, entry_levels, ramp_levels, stored_config
 from .thermal_model import InstallCapability, on_threshold_kw, planned_draw_runs
 
 #: A metered draw at or below this is standby, circulation and controller
@@ -340,6 +342,7 @@ class DrawRange:
     floor_since: int = 0
     #: The steady-run map rows: never read by the window or the latch.
     map: MapRows = field(default_factory=MapRows)
+    approach: ApproachProfile = field(default_factory=ApproachProfile)
 
     def idle_kw(self) -> float | None:
         """The learned idle draw, or ``None`` while too few readings."""
@@ -553,6 +556,7 @@ class DrawRange:
             **({} if self.floor_kw is None else {"floor_kw": self.floor_kw}),
             # Absent with no rows: a store that never kept one is unchanged.
             **({"map_rows": self.map.as_columns()} if self.map.rows else {}),
+            **({"approach": self.approach.as_dict()} if self.approach.config is not None else {}),
         }
 
     @classmethod
@@ -569,13 +573,11 @@ class DrawRange:
         out.ceiling.extend(_stored_ceiling(data))
         out.overdraws = _stored_overdraws(data)
         out.map = _stored_map(data)
-        try:
-            lo, hi = (float(v) for v in data["config"])
-        except (TypeError, ValueError, OverflowError, KeyError, IndexError):
+        out.approach = ApproachProfile.of_record(data)
+        config = stored_config(data)
+        if config is None:
             return out
-        if not (np.isfinite(lo) and np.isfinite(hi)):
-            return out
-        out.config = (lo, hi)
+        out.config = lo, _ = config
         out.engaged = data.get("engaged") is True
         raw = data.get("samples")
         rows = raw if isinstance(raw, list) else []
@@ -868,8 +870,8 @@ def fold(
     distorted: bool,
     defrost: bool,
     command: Any = None,
-    experiment_s: float | None = None,
     ceiling_frozen: bool = False,
+    span: Span | None = None,
 ) -> None:
     """Fold one interval into ``draw`` when it is a running sample.
 
@@ -880,10 +882,10 @@ def fold(
     ``ceiling_c``), or ``None`` where nothing commands the draw. An interval
     held at the gate with no hot water asked is an idle reading.
 
-    ``experiment_s`` is the interval's start, epoch seconds, where the
-    system-identification experiment commanded it -- the mode the interval's
-    own action carried, captured beside its split and command, never the
-    action adopted since -- else ``None``. Such an interval that
+    ``span.experiment``: the system-identification experiment commanded the
+    interval -- the mode the interval's own action carried, captured beside
+    its split and command, never the action adopted since; its start keys the
+    ceiling store's sample. Such an interval that
     ``takes_ceiling`` goes to the ceiling store and NOT to the window, so no
     experiment's draw can trip the window's latch; every other interval
     folds into the window as before. ``ceiling_frozen`` refuses that store
@@ -892,7 +894,42 @@ def fold(
 
     First, whatever this interval: the map runs closed since the last fold
     become rows (``MapRows.commit_runs``) unless ``frozen`` or ``distorted``;
-    they never reach the window.
+    they never reach the window. Then, given a ``span`` (the interval's start
+    and end, epoch seconds), the approach learner folds it
+    (:func:`note_approach`). A wind-down is no idle reading. A sample inside
+    the learned approach adds no pair to the window, where it would read as a
+    pump that ignores its ask. A ``span.charged`` interval (a dwell that
+    saw hot water) moves only the approach's run clock: a charge before a space
+    run leaves the run an entry.
+    """
+    if span is not None and span.charged:
+        note_approach(draw, None, split, params, span, sample=False)
+        return
+    experiment_s = span.start_s if span is not None and span.experiment else None
+    kind = None if span is None else note_approach(
+        draw, drawn_kw, split, params, span,
+        sample=is_running_space(drawn_kw, *split, frozen=frozen, distorted=distorted, defrost=defrost) or not (frozen or distorted or defrost))
+    _fold_window(
+        draw, None if kind else drawn_kw, split, params, frozen=frozen, distorted=distorted, defrost=defrost,
+        command=command, experiment_s=experiment_s, ceiling_frozen=ceiling_frozen)
+
+
+def _fold_window(
+    draw: DrawRange,
+    drawn_kw: float | None,
+    split: tuple[float, float],
+    params: Any,
+    *,
+    frozen: bool,
+    distorted: bool,
+    defrost: bool,
+    command: Any = None,
+    experiment_s: float | None = None,
+    ceiling_frozen: bool = False,
+) -> None:
+    """:func:`fold`'s window, idle and ceiling arms (``drawn_kw`` ``None``
+    after the approach took the interval): the interval as a running sample,
+    an idle reading, or a ceiling-store sample.
     """
     space, dhw = split
     draw.map.commit_runs(keep=not (frozen or distorted))
@@ -910,6 +947,86 @@ def fold(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,
             None if command is None else (command.written_c, command.ceiling_c),
         )
+
+
+class Span(NamedTuple):
+    """One settled interval for :func:`fold`: its start and end, epoch
+    seconds, and whether its dwell saw hot water."""
+
+    start_s: float
+    end_s: float
+    charged: bool = False
+    #: The system-identification experiment commanded it (``fold``'s ceiling arm).
+    experiment: bool = False
+
+
+def inside_approach(draw: DrawRange | None) -> float | None:
+    """The draw :func:`expect` expected of the interval in hand where it sits
+    inside a run's learned approach, kW, else ``None``."""
+    return None if draw is None else draw.approach.expected_kw
+
+
+def approach_floor_kw(draw: DrawRange, params: Any) -> float:
+    """The floor an approach is read against: the learned floor where set,
+    else the live configured minimum (the window may be keyed to none yet)."""
+    return float(params.min_electrical_power) if draw.floor_kw is None else draw.floor_kw
+
+
+def note_approach(
+    draw: DrawRange, drawn_kw: float | None, split: tuple[float, float], params: Any,
+    span: Span | tuple[float, float], *, sample: bool,
+) -> str | None:
+    """Fold one interval into the approach learner and move its run clock:
+    ``"ramp"`` for a wind-down sample, ``"inside"`` for an entry sample at an
+    age the learned profile still covers, else ``None``. Every paired interval
+    comes here, a hot-water one with ``drawn_kw`` ``None``, so a charge before
+    a space run leaves the run an entry."""
+    floor = approach_floor_kw(draw, params)
+    configured = (float(params.min_electrical_power), float(params.max_electrical_power))
+    return draw.approach.observe(
+        drawn_kw, split, floor, span[0], span[1], sample=sample, standby_kw=RUNNING_FLOOR_KW,
+        tolerance=AGREE_TOLERANCE, config=configured,
+    )
+
+
+def solve_approach(draw: DrawRange | None, params: Any, now_s: float) -> runs.Approach | None:
+    """The learned approach a solve at ``now_s`` reads (``runs.received``),
+    or ``None``: no evidence above the floor, or evidence keyed to another
+    configured range."""
+    if draw is None or draw.approach.config != (float(params.min_electrical_power), float(params.max_electrical_power)):
+        return None
+    floor = approach_floor_kw(draw, params)
+    entry = entry_levels(draw.approach, floor, AGREE_TOLERANCE)
+    ramp = ramp_levels(draw.approach, floor, AGREE_TOLERANCE)
+    if entry.size == 0 and ramp.size == 0:
+        return None
+    return runs.Approach(entry, ramp, draw.approach.age_h(now_s), BIN_MIN / 60.0)
+
+
+def expect(
+    draw: DrawRange, split: tuple[float, float], params: Any, now_s: float, dt_h: float,
+) -> float:
+    """The draw the plan expects of the meter over the live step, kW: the
+    shipped total plus the learned approach's excess at the live age
+    (``runs.received`` on that step); with none, the shipped total. Kept on
+    the profile while the step sits inside the approach, for the interval's
+    readers when it settles (:func:`inside_approach`)."""
+    space, dhw = split
+    got = runs.received(
+        np.array([float(space)]), dhw, solve_approach(draw, params, now_s),
+        dt=dt_h, p_max=params.max_electrical_power)
+    excess = float(got[0]) - float(space)
+    total = float(space) + float(dhw) + excess
+    return draw.approach.expect(total, inside=excess > 0.0)
+
+
+def received_schedule(draw: DrawRange | None, params: Any, space: Any, dhw: Any, now: Any, dt_h: float) -> Any:
+    """A published space schedule as the pump draws it (``runs.received``):
+    the array the objective costed, for a reader that prices or compares it.
+    ``now``: the solve's time, a timezone-aware datetime."""
+    if not space:
+        return space
+    return runs.received(np.asarray(space, dtype=float), np.asarray(dhw if dhw else 0.0, dtype=float), solve_approach(draw, params, now.timestamp()), dt=dt_h, p_max=params.max_electrical_power)
 
 
 def planned_range(
@@ -981,6 +1098,9 @@ class SolveBand:
     min_reason: str = "awaiting"
     learned_min_kw: float | None = None
     min_samples: int = 0
+    #: The learned approach's entry energy above the floor this solve booked
+    #: per run out of a pause, kWh (``solve_approach``), or ``None``.
+    approach_kwh: float | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -997,6 +1117,7 @@ class SolveBand:
             "min_reason": self.min_reason,
             "learned_min_kw": None if self.learned_min_kw is None else round(self.learned_min_kw, 3),
             "min_samples": self.min_samples,
+            "approach_kwh": None if self.approach_kwh is None else round(self.approach_kwh, 3),
         }
 
 
@@ -1025,6 +1146,8 @@ def solve_band(
     samples = len(draw.ceiling)
     bottom = _bottom_fields(draw, cfg_min, cfg_max, cap.plan_writes_power(), applies_floor)
     floor = bottom["learned_min_kw"] if bottom["min_source"] == "metered" else None
+    entry = solve_approach(draw, params, now_s)
+    bottom["approach_kwh"] = None if entry is None else entry.entry_kwh(approach_floor_kw(draw, params))
 
     def band(top: float, source: str, reason: str, learned: float | None = None) -> SolveBand:
         min_kw = cfg_min if floor is None and source == "configured" else min(floor or cfg_min, top)

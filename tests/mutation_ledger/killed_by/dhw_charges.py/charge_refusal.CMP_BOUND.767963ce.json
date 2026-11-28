@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_charges.py:charge_refusal CMP_BOUND 767963ce",
+  "killed_by": "tests/features.py",
+  "old": "    short = np.flatnonzero(temps_of(candidate)[1 : candidate.size + 1] < held - SHORTFALL_K)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`short = np.flatnonzero(temps_of(candidate)[1 : candidate.size + 1] <= held - SHORTFALL_K)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

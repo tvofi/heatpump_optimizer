@@ -351,6 +351,13 @@ _ACCURACY: dict[str, Domain | str] = {
     # unset or 0 (_stored_floor) and costs only itself, never the record.
     "draw/floor_kw": Domain("real", _POS),
     "draw/floor_since": _COUNT,
+    # R11-OUTSIDE-START-APPROACH: the draw by age bin after a space-run entry
+    # and after a run's end, the configuration it is keyed to, and the run's
+    # clock; a bad cell or key costs only itself (ApproachProfile.from_dict).
+    "draw/approach/entry/#/#": _Z, "draw/approach/ramp/#/#": _Z,
+    "draw/approach/config/#": Domain("real", whole="the configuration keys the profile: unreadable, its evidence and clock are dropped with it"),
+    "draw/approach/entered_s": _R, "draw/approach/ended_s": _R, "draw/approach/seen_s": _R,
+    "draw/approach/running": _FLAG,
 }
 
 #: The COP health watch's memory, keyed ``_measured``: a heat measurement

@@ -137,6 +137,7 @@ custom_components/heatpump_optimizer/
 │                         #   and the current step's "why now" for the card
 ├── dhw_planner.py        # The hot-water planner one solve builds: floors, LP, repairs
 ├── dhw_start.py          # The pump's hot-water start condition: which planned charges it starts
+├── dhw_charges.py        # The plan committed as charges that run at the pump's floor or above
 ├── batchmath.py          # The batched row reduction every batch twin owes its scalar
 ├── process_worker.py     # One-shot interpreter for GIL-bound solves
 ├── open_meteo.py         # Irradiance forecast and satellite observation client
@@ -184,6 +185,7 @@ custom_components/heatpump_optimizer/
 ├── learning_freeze.py    # The one freeze predicate: which interval a learner
 │                         #   may ingest, by the kind of sample it folds
 ├── draw_range.py         # The metered running draw, and the range it clamps a plan to
+├── approach.py           # The draw by age after a space run's entry and end (Bankaifan)
 ├── diagnosis.py          # One-input-at-a-time attribution of the last interval's error
 ├── drift.py              # The CUSUM primitive shared by every drift detector
 ├── snapshots.py          # Weekly learner snapshots and the rollback alarm

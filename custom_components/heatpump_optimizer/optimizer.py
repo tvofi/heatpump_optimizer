@@ -62,6 +62,7 @@ from .const import (
     WOOD_TANK_MAX_TEMP,
 )
 from .batchmath import row_sums
+from .dhw_charges import ChargeRuns
 from .dhw_planner import DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
@@ -200,6 +201,14 @@ def _engaged(opt: HeatPumpOptimizer) -> bool:
     return opt.config.start_price > 0 or opt.config.clamp_planned_levels
 
 
+def _charge_runs(opt: HeatPumpOptimizer, running: bool) -> ChargeRuns | None:
+    """What an engaged solve hands the hot-water planner so its charges ship
+    as runs too (``dhw_charges.commit_charges``); ``None`` unengaged."""
+    if not _engaged(opt):
+        return None
+    return ChargeRuns(opt.config.start_price, running, opt.config.clamp_planned_levels)
+
+
 #: The objectives a multi-start descends on in place of the true one
 #: (:func:`_descent_pair`): without the start term, and without the
 #: duty-switch term as well.
@@ -327,9 +336,11 @@ def _shipped_and_received(
 ) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """The level each circuit ships at, and the space draw the house receives.
 
-    The two differ only where a priced stop keeps the compressor off for part
-    of a step (``duty_legs.delivered_space``); with no availability vector the
-    received draw is the shipped array itself, the same object. Space is
+    The two differ where a run's first steps or a pause's draw the learned
+    approach (``runs.received``, true objective only). They differ too where a
+    priced stop then keeps the compressor off for part of a step
+    (``duty_legs.delivered_space``). With neither, the received draw is the
+    shipped array itself, the same object. Space is
     scored as it stands, and what stands is a committed plan
     (:func:`_commit_runs`); hot water is its planner's, so a clamped install's
     ships as its projection, which a descent leaves out.
@@ -337,9 +348,11 @@ def _shipped_and_received(
     if dhw is not None and opt.config.clamp_planned_levels and not descent:
         dhw = project_planned_levels(
             dhw, opt.model.params.min_electrical_power, opt.model.params.max_electrical_power)
+    received = space if descent else runs.received(space, 0.0 if dhw is None else dhw, opt._approach, dt=opt.config.dt_hours, p_max=opt.model.params.max_electrical_power)
     if avail is None or dhw is None:
-        return space, dhw, space
-    return space, dhw, duty_legs.delivered_space(space, dhw, avail, _duty_floor(opt))
+        return space, dhw, received
+    return space, dhw, duty_legs.delivered_space(received, dhw, avail, _duty_floor(opt))
+
 
 
 def _switch_cost_fn(
@@ -538,7 +551,7 @@ def _run_plans(
     heats = (hi >= floor) & ((other <= 0.0) | (space >= floor / 2.0))
     masks = runs.candidates(
         space + other, h.prices, floor, hi + other, opt.config.start_price,
-        dt=h.dt, running=h.compressor_running,
+        dt=h.dt, running=h.compressor_running, entry_kwh=0.0 if opt._approach is None else opt._approach.entry_kwh(floor),
         forced=np.where((other > 0.0) | (lo > 0.0), 1.0, np.where(hi + other <= 0.0, 0.0, np.nan)),
     )
     idle = np.where(cycled, space, lo)
@@ -2028,6 +2041,10 @@ def _combi_dhw_exo(
 #: (the `exchange` harness arm in dev/audit/harnesses/r10_combi_tank.py
 #: prints the rounds a plan takes).
 _COMBI_EXCHANGE_ROUNDS = 4
+#: How much further under the requirement the committed plan's store may
+#: fall than the exchange's own plan and still ship, K: the planners'
+#: shortfall tolerance.
+_COMBI_COMMIT_SLACK_K = 0.05
 
 
 def _combi_flux_exchange(
@@ -2043,23 +2060,51 @@ def _combi_flux_exchange(
     A feasibility repair, never a scored candidate: the first plan's store
     breaches the hot-water floor the space side drains, so its score bounds
     nothing, and a space re-solve would draw the repair straight back out.
+
+    The rounds exchange uncommitted plans, whose levels move with the flux,
+    from a planner handed no runs to commit. On a solve that plans runs, one
+    more build on the settled flux commits the charges
+    (``dhw_charges.commit_charges``), and is kept only where the
+    store, walked under the flux the committed plan itself leaves, falls no
+    further under the requirement than the last round's plan did.
     """
     model, store = opt.model, opt.model.params.dhw_store
     weather = WeatherSeries.from_horizon(h)
-    space_net = None
-    for _ in range(_COMBI_EXCHANGE_ROUNDS):
-        dhw_exo = _combi_dhw_exo(model, h, dhw_power, draw_rates, space_net)
+
+    def net_under(schedule: np.ndarray, prior: np.ndarray | None) -> np.ndarray:
+        """The space side's net flux into the store beside ``schedule``."""
+        dhw_exo = _combi_dhw_exo(model, h, schedule, draw_rates, prior)
         buffer_temps = model.simulate_trajectory(
             initial_state=h.initial_state, power_schedule=space_power,
             weather=_with_buffer_exo(weather, dhw_exo), dt_hours=h.dt,
             valve_targets=h.valve_targets, step_hours=h.step_hours)[4]
-        space_net = combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
-        plan, opt._dhw_requirement = _dhw_build(
-            planner, h, p_max, space_demand=space_power, tank_exo_kw=space_net)
-        if np.allclose(plan.schedule, dhw_power, atol=1e-4):
+        return combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
+
+    def build(by: DhwPlanner, space_net: np.ndarray) -> np.ndarray:
+        plan, opt._dhw_requirement = _dhw_build(by, h, p_max, space_demand=space_power, tank_exo_kw=space_net)
+        return np.asarray(plan.schedule)
+
+    levels = DhwPlanner(opt.model, opt.config, opt._pv_surplus, opt._price_known)
+    space_net = None
+    for _ in range(_COMBI_EXCHANGE_ROUNDS):
+        space_net = net_under(dhw_power, space_net)
+        plan = build(levels, space_net)
+        if np.allclose(plan, dhw_power, atol=1e-4):
             break
-        dhw_power = plan.schedule
-    return dhw_power
+        dhw_power = plan
+    if planner.charge_runs is None or space_net is None:
+        return dhw_power
+    committed = build(planner, space_net)
+
+    def short(schedule: np.ndarray, net: np.ndarray) -> float:
+        """How far the store falls under the requirement at worst, K."""
+        gaps = planner._dhw_shortfall(
+            None, schedule, float(h.initial_state.dhw_temperature), h.outdoor_temps, draw_rates,
+            h.dt, h.humidity, np.asarray(opt._dhw_requirement), set(), net)[1]
+        return float(np.max(gaps))
+
+    kept = short(committed, net_under(committed, space_net)) <= short(dhw_power, space_net) + _COMBI_COMMIT_SLACK_K
+    return committed if kept else dhw_power
 
 
 def _price_guess_weights(prices: np.ndarray) -> np.ndarray:
@@ -3138,6 +3183,7 @@ class SolveInputs:
     #: The compressor runs at solve time: a run that continues from it is no
     #: start, in the start term and in the published count alike.
     compressor_running: bool = False
+    approach: runs.Approach | None = None  # a run's learned first steps, read as received draw
 
 
 def _horizon_weather(series: ForecastSeries, n_steps: int) -> WeatherSeries:
@@ -3486,6 +3532,7 @@ class HeatPumpOptimizer:
         #: The ``duty_legs.availability`` vector the last space solve scored
         #: with, riding beside its plan; ``None`` when no stop is charged.
         self._space_avail: np.ndarray | None = None
+        self._approach: runs.Approach | None = None
         #: The solve's starting buffer temperature; floors the settlement
         #: value cap so pre-stored heat cannot be drained for free.
         self._initial_buffer_temp: float | None = None
@@ -4371,18 +4418,12 @@ class HeatPumpOptimizer:
         # Only reduce slab pre-heating, not immediate comfort heating
         solar_reduction = 1.0 - 0.4 * solar_fraction  # max 40% reduction
 
-        # --- Wind analysis ---
-        # Look at future wind speeds and compute anticipated heat loss increase
-        wind_weights = np.exp(-np.arange(n) * dt_hours / 12.0)  # decay over 12h
-        wind_weights /= wind_weights.sum()
-        avg_future_wind = float(np.sum(wind_speeds * wind_weights))
+        # --- Wind and rain: upcoming, weighted by a 12 h decay, raise heat loss ---
+        future_weights = np.exp(-np.arange(n) * dt_hours / 12.0)
+        future_weights /= future_weights.sum()
+        avg_future_wind = float(np.sum(wind_speeds * future_weights))
         wind_anticipation = 1.0 + self.model.params.wind_sensitivity * avg_future_wind
-
-        # --- Rain analysis ---
-        # Upcoming rain increases heat loss
-        rain_weights = np.exp(-np.arange(n) * dt_hours / 12.0)
-        rain_weights /= rain_weights.sum()
-        avg_future_precip = float(np.sum(precipitation * rain_weights))
+        avg_future_precip = float(np.sum(precipitation * future_weights))
         rain_anticipation = 1.0
         if avg_future_precip > 0.1:
             rain_intensity = min(avg_future_precip / 2.0, 1.0)
@@ -4486,8 +4527,7 @@ class HeatPumpOptimizer:
         )
         # One hot-water planner per solve, from this solve's inputs (#1743).
         planner = DhwPlanner(
-            self.model, self.config, self._pv_surplus, self._price_known
-        )
+            self.model, self.config, self._pv_surplus, self._price_known, _charge_runs(self, inputs.compressor_running))
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(
@@ -4611,6 +4651,7 @@ class HeatPumpOptimizer:
         # #1295: the plan the caller hands in -- the coordinator seeds it from
         # the last shipped plan -- is one extra candidate on the FIRST solve
         # only; ``_warm_start_starts`` says why later solves get none.
+        self._approach = inputs.approach
         result = _solve(self._warm_start_starts(n_steps))
 
         # A blocked channel is withheld from the release loop entirely. Its
@@ -5460,7 +5501,7 @@ class HeatPumpOptimizer:
 
             # Electricity cost, piecewise in PV surplus. ``float()`` is
             # identity on the 1-D branch's return and states it.
-            drawn = combined if heat_power is space_power else heat_power + dhw_plan_power
+            drawn = combined if heat_power is space_power else heat_power + (0.0 if dhw_plan_power is None else dhw_plan_power)
             energy_cost = (
                 float(energy_cost_of(drawn)) * self.config.price_weight
             )
@@ -5526,7 +5567,7 @@ class HeatPumpOptimizer:
             )
             return self._cost_terms_batch(
                 traj,
-                grid_power if heat_matrix is space_matrix else heat_matrix + dhw_plan_power,
+                grid_power if heat_matrix is space_matrix else heat_matrix + (0.0 if dhw_plan_power is None else dhw_plan_power),
                 level_cost=_with_switch_cost(
                     _with_switch_cost(capacity_batch(grid_power), start_cost(grid_power, descent)),
                     switch_cost(space_matrix, dhw_plan_power, descent)),
@@ -5657,7 +5698,7 @@ class HeatPumpOptimizer:
             optimal_power = initial_power
             status = f"failed ({e})"
 
-        # Simulate with optimal schedule
+        # Simulate with optimal schedule, as received (``_shipped_and_received``)
         (
             room_temps,
             slab_temps,
@@ -5666,7 +5707,7 @@ class HeatPumpOptimizer:
             buffer_temps,
             _,
             wood_temps,
-        ) = _space_traj(optimal_power)
+        ) = _space_traj(_shipped_and_received(self, optimal_power, None, None)[2])
         # The achieved objective, for candidate comparison across valve
         # schedules. One extra evaluation, robust on the failure path too.
         achieved_objective = float(objective(optimal_power))
@@ -5905,8 +5946,7 @@ class HeatPumpOptimizer:
         )
         # Received through the vector the adopted solve scored with, never a
         # rebuilt one; the schedule and the achieved objective keep the level.
-        heat_space = optimal_space if self._space_avail is None else duty_legs.delivered_space(
-            optimal_space, optimal_dhw, self._space_avail, _duty_floor(self))
+        heat_space = _shipped_and_received(self, optimal_space, optimal_dhw, self._space_avail)[2]
 
         # Simulate with optimal schedule
         published_end: list[ThermalState] = []
