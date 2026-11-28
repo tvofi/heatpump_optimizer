@@ -208,7 +208,7 @@ gantt
 | R11-D3-PINS-solver | CORE | 3 | not-started | #3755, #3920 | opus/opus | - | Tests-only pins for the solver seam: 131 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-ju... |  |
 | R11-D3-PINS-sysid | CORE | 2 | not-started | #3755, #3921 | opus/opus | - | Tests-only pins for the learners seam: 62 production mutants the full gate did not kill (class I1, issue #3755), judged in dev/audit/rounds/round11/D3/wave-j... |  |
 | R11-OWNER-LANGUAGES | CORE | 3 | not-started | - | opus/opus | - | Owner item (round-11 start plan, folded in 2026-11-27): add three languages, Finnish, Norwegian Bokmal and Danish, to the integration and the dashboard card. |  |
-| R11-OWNER-FEATURES-SPLIT | CORE | 1 | not-started | - | opus/opus | - | Owner order (2026-11-27, folded into round 11): split tests/features.py by feature seam into several scripts. |  |
+| R11-OWNER-FEATURES-SPLIT | CORE | 1 | in-progress | - | opus/opus | - | Owner order (2026-11-27, folded into round 11): split tests/features.py by feature seam into several scripts. |  |
 
 ## ETA
 
