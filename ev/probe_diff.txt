@@ -1,0 +1,10 @@
+30c30
+< everything_on k=3.0 t0=52.0: step0 0.000 step1 4.800 sum 26.023
+---
+> everything_on k=3.0 t0=52.0: step0 2.416 step1 4.199 sum 23.225
+35,36c35,36
+< everything_on k=5.0 t0=50.0: step0 0.000 step1 4.800 sum 27.498
+< everything_on k=5.0 t0=52.0: step0 0.000 step1 4.800 sum 26.003
+---
+> everything_on k=5.0 t0=50.0: step0 3.877 step1 4.199 sum 24.686
+> everything_on k=5.0 t0=52.0: step0 2.416 step1 4.199 sum 23.225

@@ -1,0 +1,7 @@
+$ python3 -I tools/audit/seat/mutant_run.py --spec ev/spec.json --cmd 'env PYTHONPATH=tests/hastub python3 tests/block_duty.py'   (at 375a0057b65a828edfaf7ffa7484d137bcae28e4, copy-tree)
+SURVIVED NULL
+SURVIVED P1_planner_drops_running
+SURVIVED P1b_planner_running_true
+SURVIVED NC1_refusal_call
+SURVIVED NC2_mask
+SURVIVED NC3_drop_unstartable
