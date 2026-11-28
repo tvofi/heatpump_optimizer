@@ -1,0 +1,115 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:267 RETURN_DEL: return sweep
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:300 BOOLOP: if self.open_kw is not None and at - self.last_s <= SWEEP_GAP_MIN * 60.0
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:300 CMP_BOUND: if self.open_kw is not None and at - self.last_s <= SWEEP_GAP_MIN * 60.0
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:300 GUARD_OFF: if self.open_kw is not None and at - self.last_s <= SWEEP_GAP_MIN * 60.0
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:302 CLAMP_DROP: self.kwh += self.open_kw * max(at - self.last_s, 0.0) / 3600.0
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:303 GUARD_OFF: if rec.origin != ORIGIN_SWEEP:
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:306 CLAMP_DROP: self.last_s, self.open_kw = max(at, self.last_s), rec.drawn_kw
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:308 BOOLOP: if level is not None and all(seen[0] != level[0] for seen in self.levels
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:308 GUARD_OFF: if level is not None and all(seen[0] != level[0] for seen in self.levels
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:319 GUARD_OFF: if rec.duty != "space" or rec.level_kw is None or rec.band_low_kw is Non
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:321 RETURN_DEL: return rec.level_kw, rec.band_low_kw, rec.band_high_kw, rec.written_c
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:327 BOOLOP: if rec.origin == ORIGIN_SWEEP and (run is None or rec.at.timestamp() - r
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:327 CMP_BOUND: if rec.origin == ORIGIN_SWEEP and (run is None or rec.at.timestamp() - r
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:327 GUARD_OFF: if rec.origin == ORIGIN_SWEEP and (run is None or rec.at.timestamp() - r
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:329 GUARD_OFF: if run is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:331 RETURN_DEL: return run
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:342 RETURN_DEL: return run if bool(np.isfinite(numbers).all()) else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:347 RETURN_DEL: return row[15] == ORIGIN_SWEEP and row[6] is not None and round(row[6], 
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:352 RETURN_DEL: return sum(1 for r in (() if draw is None else draw.map.rows) if _sweep_
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:366 GUARD_OFF: if run is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:370 BOOLOP: rows = [r for r in draw.map.rows if _sweep_row_at(r, level_kw) and r[0] 
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:370 CMP_BOUND: rows = [r for r in draw.map.rows if _sweep_row_at(r, level_kw) and r[0] 
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:375 RETURN_DEL: return round(sum(v * n for v, n in cells) / sum(n for _, n in cells), 3)
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:378 CMP_BOUND: "fraction": round((level_kw - low_kw) / (high_kw - low_kw), 3) if high_k
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:382 RETURN_DEL: return {"started_s": run.start_s, "metered_kwh": round(run.kwh, 3), "lev
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:495 RETURN_DEL: return max((t for _, t, source in self.ceiling if source == SOURCE_PROBE
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:803 CMP_BOUND: source = entry[2] if len(entry) > 2 else SOURCE_PROBE
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:804 CMP_BOUND: if np.isfinite(drawn) and np.isfinite(when) and drawn > RUNNING_FLOOR_KW
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:804 GUARD_OFF: if np.isfinite(drawn) and np.isfinite(when) and drawn > RUNNING_FLOOR_KW
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:1011 CMP_BOUND: and command.written_c <= command.gate_c + GATE_TOLERANCE_K
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:1061 GUARD_OFF: if drawn_kw is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:1063 BOOLOP: if not sweep and is_idle_reading(dhw, command, blocked=frozen or distort
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:1063 GUARD_OFF: if not sweep and is_idle_reading(dhw, command, blocked=frozen or distort
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:1065 GUARD_OFF: if not is_running_space(drawn_kw, space, dhw, frozen=frozen, distorted=d
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:1070 GUARD_OFF: elif not sweep:
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:652 RETURN_DEL: return _flow_target(inp, duty, now, boosted=boosted, sweep_floor_c=sweep
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1348 GUARD_OFF: if (kind := _experiment_kind(inp)) is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1364 GUARD_OFF: if action.get("mode") != "system_identification":
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1366 RETURN_DEL: return str(action.get("kind") or "")
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1379 GUARD_OFF: if _experiment_kind(inp) != KIND_SWEEP:
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1381 GUARD_OFF: elif held.sweep_floor_c is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1388 GUARD_OFF: if not flow_setpoint_driven(inp.config):
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1390 RETURN_DEL: return _heat_ceiling_c(inp.config) - _live_floor_c(inp)
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1491 GUARD_OFF: if _sweep_tank_cold(inp):
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1493 RETURN_DEL: return "space" if planned_draw_runs(experiment_kw) else "idle"
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1500 CMP_BOUND: return _experiment_kind(inp) == KIND_SWEEP and tank is not None and belo
+    ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1500 RETURN_DEL: return _experiment_kind(inp) == KIND_SWEEP and tank is not None and belo
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:120 CONST: SWEEP_MIN_LEVELS = 2
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:123 CONST: SWEEP_MIN_BAND_K = 8.0
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1338 BOOLOP: (t for t in (probe.probe_since(), probe_run and probe_run.timestamp()) i
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1341 CMP_BOUND: if since is None or (now_s - since) / 86400.0 >= wait:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1341 GUARD_OFF: if since is None or (now_s - since) / 86400.0 >= wait:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1344 RETURN_DEL: return f"the ceiling probe ran {days:.1f} days ago, waiting for the {wai
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1373 GUARD_OFF: if sweep is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1377 GUARD_OFF: if probe is not None and waits is None and probe.learned_max_kw(now_s) i
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1388 GUARD_OFF: if waits is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1396 GUARD_OFF: if probe is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1398 CMP_BOUND: if len(sweep) < SWEEP_MIN_LEVELS:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1398 GUARD_OFF: if len(sweep) < SWEEP_MIN_LEVELS:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1416 GUARD_OFF: if two_zone is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1418 RETURN_DEL: return cfg.max_excursion_c - TWO_ZONE_SIZING_HEADROOM_C, ThermalModel(tw
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1429 BOOLOP: return tuple(kw for i, kw in enumerate(levels) if planned_draw_runs(kw) 
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1429 RETURN_DEL: return tuple(kw for i, kw in enumerate(levels) if planned_draw_runs(kw) 
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1462 RETURN_DEL: return next((k for k in range(most, SWEEP_MIN_LEVELS - 1, -1) if fits(k)
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1467 CMP_BOUND*2: return cfg.start_hour <= hour < cfg.end_hour
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1469 CMP_BOUND*2: return hour >= cfg.start_hour or hour < cfg.end_hour
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1469 RETURN_DEL: return hour >= cfg.start_hour or hour < cfg.end_hour
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1474 GUARD_OFF: if price_horizon is None or not len(price_horizon):
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1476 RETURN_DEL: return float(np.percentile(price_horizon, cfg.max_price_percentile))
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1486 GUARD_OFF: if not _in_night(cfg, now.hour):
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1489 BOOLOP: if needs_spread and (cutoff is None or np.ptp(price_horizon) <= 0.0):
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1489 CMP_BOUND: if needs_spread and (cutoff is None or np.ptp(price_horizon) <= 0.0):
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1489 GUARD_OFF: if needs_spread and (cutoff is None or np.ptp(price_horizon) <= 0.0):
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1491 BOOLOP: return "electricity is not cheap enough" if cutoff is not None and price
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1491 CMP_BOUND: return "electricity is not cheap enough" if cutoff is not None and price
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1491 RETURN_DEL: return "electricity is not cheap enough" if cutoff is not None and price
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1506 BOOLOP: while count < 24.0 / CYCLE_HOURS and _in_night(cfg, (now + timedelta(hou
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1506 CMP_BOUND: while count < 24.0 / CYCLE_HOURS and _in_night(cfg, (now + timedelta(hou
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1508 BOOLOP: if cutoff is not None and (len(span) < steps or float(np.max(span)) > cu
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1508 CMP_BOUND*2: if cutoff is not None and (len(span) < steps or float(np.max(span)) > cu
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1508 GUARD_OFF: if cutoff is not None and (len(span) < steps or float(np.max(span)) > cu
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1511 RETURN_DEL: return count
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1526 GUARD_OFF: if experiment.kind != KIND_SWEEP or experiment.phase not in (PHASE_ARMED
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1529 GUARD_OFF: if band is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1531 CMP_BOUND: return SWEEP_WARM_REASON if band < SWEEP_MIN_BAND_K else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1531 RETURN_DEL: return SWEEP_WARM_REASON if band < SWEEP_MIN_BAND_K else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1543 CMP_BOUND: few = cheap_night_cycles(cfg, now, price_horizon, settle) < SWEEP_MIN_LE
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1544 RETURN_DEL: return "too few cheap night hours are left for a sweep" if few else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1559 GUARD_OFF: if experiment.kind != KIND_SWEEP:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1562 BOOLOP: return ok and experiment.held is None, experiment.held or reason
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1562 RETURN_DEL: return ok and experiment.held is None, experiment.held or reason
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1579 GUARD_OFF: if experiment.kind == KIND_PROBE:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1583 GUARD_OFF: if hours is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1589 CLAMP_DROP: most = min(len(levels), cheap_night_cycles(experiment.config, now, price
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1593 GUARD_OFF: if count is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1595 CMP_BOUND: "no sweep fits within the comfort bound" if most >= SWEEP_MIN_LEVELS
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1616 GUARD_OFF: if experiment.kind != KIND_SWEEP:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1618 CLAMP_DROP*2: index = min(max(round(elapsed / CYCLE_HOURS) - 1, 0), len(levels) - 1)
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1619 BOOLOP: if index and (price is None or _hour_price_refusal(experiment.config, no
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1619 GUARD_OFF: if index and (price is None or _hour_price_refusal(experiment.config, no
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1622 RETURN_DEL: return False
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1624 RETURN_DEL: return True
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1629 GUARD_OFF: if experiment.kind == KIND_PROBE:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1678 CLAMP_DROP: "power_normalized": float(override_kw / max(max_power_kw, 0.1)),
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1794 GUARD_OFF: if why:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1800 BOOLOP: if plant is not None and kind != KIND_FIT:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1800 GUARD_OFF: if plant is not None and kind != KIND_FIT:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1871 RETURN_DEL: return why is None, why or "ready"
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1963 GUARD_OFF: if self.kind != KIND_FIT:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:1964 CLAMP_DROP: _begin_bounded(self, now, outdoor_temp, max_power_kw, max(cop, 0.1), hou
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:2098 GUARD_OFF: if not _sweep_level(self, now, elapsed, price, price_horizon):
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:2114 GUARD_OFF: if self.kind != KIND_FIT:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:2121 GUARD_OFF: if self.kind != KIND_FIT:
+    ADDED UNPINNED custom_components/heatpump_optimizer/sysid.py:2811 GUARD_OFF: if arm_from_config(ident, now, config, plant, learner_samples, draw, swe
+MUTATION TABLE REFUSED -- 1504 unpinned site(s) against 1392 at the ratchet base a59a1b0d9ac782fabbe01eb84f4d4ff5a17aee43, 118 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
