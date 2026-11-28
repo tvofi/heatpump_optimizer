@@ -28180,6 +28180,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
     "set_thermal_params_house_field_two_zone": ({"field"}, "sve"),
+    "set_thermal_params_zone_field_one_zone": ({"field"}, "sve"),
     "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
@@ -42723,6 +42724,7 @@ _ET_KEYS = {
     "no_loaded_config_entry": set(),
     "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "set_thermal_params_house_field_two_zone": {"field"},
+    "set_thermal_params_zone_field_one_zone": {"field"},
     "assign_entity_missing": {"entity_id"},
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
@@ -94730,6 +94732,134 @@ R.check(
     f"{_pm_svc_one_out} mass={_pm_svc_one.runtime_data._thermal_params.room_thermal_mass}",
 )
 
+# R11-LATE-P2-ZONE-GATE: whether an install runs two zones has one answer,
+# thermal_model.two_zone_from_config, and every reader takes it. The set the
+# action refuses on one zone is that rule's own output: the service fields
+# whose presence alone turns an auto config two-zone (TWO_ZONE_FIELDS). The
+# census asserts its precondition (the set is non-empty and is exactly what
+# the rule reads), so a key the rule starts reading is driven the day it lands.
+# A key the rule stops reading is caught by the literal set below, written
+# independently of TWO_ZONE_FIELDS. The rule's output is compared with it and
+# the refusals drive it, so deleting a key from the constant fails both. A
+# census of the constant against itself would not. The literal encodes a
+# design choice: these four keys are the two-zone model's own parameters.
+from heatpump_optimizer import thermal_model as _zg_tm  # noqa: E402
+from heatpump_optimizer import coordinator as _zg_coord  # noqa: E402
+
+_zg_values = {"upper_floor_thermal_mass": 40.0, "lower_floor_thermal_mass": 40.0,
+              "inter_zone_heat_transfer": 1.5, "radiator_power_fraction": 0.9}
+_zg_rule_set = {
+    k for k in _zg_coord._THERMAL_PARAM_FIELDS
+    if _zg_tm.two_zone_from_config({k: 1.0})
+}
+R.check(
+    "R11-LATE-P2-ZONE-GATE census precondition: the refused set is the "
+    "presence rule's own output over the action's fields",
+    bool(_zg_rule_set) and _zg_rule_set == set(getattr(_zg_tm, "TWO_ZONE_FIELDS", ())),
+    f"rule={sorted(_zg_rule_set)} declared={sorted(getattr(_zg_tm, 'TWO_ZONE_FIELDS', ()))}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the presence rule turns an auto config two-zone "
+    "on each of the four zone keys, and on no other action field",
+    _zg_rule_set == set(_zg_values),
+    f"rule={sorted(_zg_rule_set)} pinned={sorted(_zg_values)}",
+)
+_zg_before = _pm_svc_one.runtime_data._thermal_params
+for _zg_field in sorted(_zg_values):
+    _zg_out = _svc_call(
+        _pm_svc1_hass, "set_thermal_parameters", {_zg_field: _zg_values[_zg_field]}
+    )
+    _svc_check(
+        f"R11-LATE-P2-ZONE-GATE: set_thermal_parameters refuses {_zg_field} "
+        "on a single-zone entry",
+        _zg_out,
+        "set_thermal_params_zone_field_one_zone",
+    )
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the refused calls wrote nothing",
+    all(
+        getattr(_pm_svc_one.runtime_data._thermal_params, a)
+        == getattr(_zg_before, a)
+        for k, a in _zg_coord._THERMAL_PARAM_FIELDS.items() if k in _zg_values
+    )
+    and not (set(_zg_values) & set(_pm_svc_one.options)),
+    f"options={sorted(_pm_svc_one.options)}",
+)
+_zg_two_out = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"upper_floor_thermal_mass": 41.0}
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: a two-zone entry still takes a "
+    "floor's mass",
+    _zg_two_out[0] == "returned"
+    and _pm_svc_two.runtime_data._thermal_params.upper_floor_thermal_mass == 41.0,
+    f"{_zg_two_out} upper={_pm_svc_two.runtime_data._thermal_params.upper_floor_thermal_mass}",
+)
+# An auto entry with no zone key runs one zone, and a floor's mass is the
+# presence that turns it two-zone: the call is the switch, not a no-op.
+_zg_auto_hass = FakeHass()
+_seed_prices(_zg_auto_hass)
+_asyncio.run(_ha_setup_component(_integ, _zg_auto_hass))
+_zg_auto = FakeEntry(
+    data={k: v for k, v in _LC_DATA.items() if k != "two_zone_mode"}, entry_id="zg_auto"
+)
+_asyncio.run(_ha_setup_entry(_integ, _zg_auto_hass, _zg_auto))
+_zg_auto_out = _svc_call(
+    _zg_auto_hass, "set_thermal_parameters", {"upper_floor_thermal_mass": 41.0}
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: an auto one-zone entry takes a "
+    "floor's mass, which makes its persisted config two-zone",
+    not _zg_tm.two_zone_from_config(_zg_auto.data)
+    and _zg_auto_out[0] == "returned"
+    and _zg_tm.two_zone_from_config({**_zg_auto.data, **_zg_auto.options}),
+    f"{_zg_auto_out} options={sorted(_zg_auto.options)}",
+)
+
+# The schedule rows publish a floor's temperature only when the model runs
+# two zones (OptimizationResult.zone_trajectories): a one-zone solve fills
+# both trajectories with the room's, which is no floor. Null control: the
+# two-zone entry's rows carry them.
+_zg_rows_one = (_pm_svc_one.runtime_data.data or {}).get("schedule") or []
+_zg_rows_two = (_pm_svc_two.runtime_data.data or {}).get("schedule") or []
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a single-zone plan's schedule rows publish no "
+    "zone temperature",
+    bool(_zg_rows_one)
+    and all(r.get("upper_temp") is None and r.get("lower_temp") is None
+            for r in _zg_rows_one),
+    f"rows={len(_zg_rows_one)} zoned="
+    f"{sum(1 for r in _zg_rows_one if r.get('upper_temp') is not None)}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: a two-zone plan's schedule rows "
+    "publish both floors",
+    bool(_zg_rows_two)
+    and all(isinstance(r.get("upper_temp"), float)
+            and isinstance(r.get("lower_temp"), float) for r in _zg_rows_two),
+    f"rows={len(_zg_rows_two)}",
+)
+from heatpump_optimizer.payload import ScheduleStep as _zg_Step  # noqa: E402
+
+_zg_res_two = _pm_svc_two.runtime_data._optimization_result
+_zg_up = [round(v, 9) for v in _zg_res_two.upper_temp_trajectory[1:]]
+_zg_lo = [round(v, 9) for v in _zg_res_two.lower_temp_trajectory[1:]]
+R.check(
+    "R11-LATE-P2-ZONE-GATE: each floor's column is that floor's trajectory "
+    "(precondition: the two floors differ somewhere)",
+    _zg_up != _zg_lo
+    and [round(r["upper_temp"], 9) for r in _zg_rows_two] == _zg_up
+    and [round(r["lower_temp"], 9) for r in _zg_rows_two] == _zg_lo,
+    f"up[:2]={_zg_up[:2]} lo[:2]={_zg_lo[:2]} "
+    f"rows[:2]={[(r['upper_temp'], r['lower_temp']) for r in _zg_rows_two[:2]]}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a schedule row publishes exactly the keys "
+    "ScheduleStep declares, on either topology",
+    all(set(r) == set(_zg_Step.__annotations__) for r in _zg_rows_one + _zg_rows_two),
+    f"declared={sorted(_zg_Step.__annotations__)} row={sorted(_zg_rows_one[0]) if _zg_rows_one else None}",
+)
+
 # D17-s2-03: quick setup's wood answers record the furnace and the tank; the
 # page says what else the plan needs, as buffer_tank's sentence does.
 import json as _pm_json  # noqa: E402
@@ -100590,6 +100720,7 @@ import heatpump_optimizer.dhw_charges as _hdr_dc  # noqa: E402
 import heatpump_optimizer.optimizer as _hdr_om  # noqa: E402
 from heatpump_optimizer import runs as _hdr_runs  # noqa: E402
 from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW as _HDR_RUNS_AT  # noqa: E402
+from dataclasses import replace as _hdr_with  # noqa: E402
 
 _HDR_N = 32
 
@@ -100803,6 +100934,39 @@ R.check(
     and set(_hdr_d0_seen[_hdr_d0_seen.index(("run", (True,))) + 1 :]) - {("run", ())}
     == {("refusal", (True,)), ("mask", (True,))},
     f"{_hdr_d0}, {sorted(set(_hdr_d0_seen))}",
+)
+
+# 2d, through the planner. The solve hands commit_charges the state's
+# dhw_charge_under_way. With the compressor running the store program
+# enters on a run and places step 0 as a continuation. So only that reading
+# refuses a charge the pump would not start. The case: everything_on,
+# engaged (a start priced), compressor running, tank at 52 degC over a 3 K
+# hysteresis. With no charge under way step 0 is off. The null, the same
+# solve under way, keeps the step-0 charge.
+def _hdr_p0_capture(under_way):
+    kept, kept_runs, runs = _hdr_om.HeatPumpOptimizer.optimize, _hdr_om._charge_runs, []
+
+    def solve(self, *, inputs):
+        state = _hdr_with(
+            inputs.state, dhw_charge_under_way=under_way, dhw_start_hysteresis_k=3.0, dhw_temperature=52.0)
+        return kept(self, inputs=_hdr_with(inputs, state=state, compressor_running=True))
+
+    _hdr_om.HeatPumpOptimizer.optimize = solve
+    _hdr_om._charge_runs = lambda opt, running: (runs.append(kept_runs(opt, running)), runs[-1])[1]
+    try:
+        got = _hdr_golden.capture("everything_on", _hdr_golden.SCENARIOS["everything_on"])
+    finally:
+        _hdr_om.HeatPumpOptimizer.optimize, _hdr_om._charge_runs = kept, kept_runs
+    return float(np.asarray(got["dhw_power_schedule"], dtype=float)[0]), runs
+
+
+_hdr_p0 = {under_way: _hdr_p0_capture(under_way) for under_way in (False, True)}
+R.check(
+    "an engaged solve with the compressor running and the tank at its start temperature ships no "
+    "hot-water charge at step 0 unless a charge is under way; under way, the same solve keeps it",
+    _hdr_p0[False][0] == 0.0 and _hdr_p0[True][0] > _HDR_RUNS_AT
+    and all(runs and all(r is not None and r.running for r in runs) for _p, runs in _hdr_p0.values()),
+    f"{ {k: (round(p, 3), runs) for k, (p, runs) in _hdr_p0.items()} }",
 )
 
 # 2d. The shortfall clause, cycling_cost's shape: two trickles fill the tank
