@@ -1,0 +1,27 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17218 + both deltas = 17200
+  max_class_loc: 7762 + both deltas = 7751
+  module_excess_loc: 21627 + both deltas = 21595
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+== 4800bc04e2 Merge remote-tracking branch 'origin/main' into handoff/r11-merge-3845
+
+diff --git a/custom_components/heatpump_optimizer/dhw_learning.py b/custom_components/heatpump_optimizer/dhw_learning.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/dhw_learning.py
+index 23cfff2e86..c4021ac988 100644
+--- a/custom_components/heatpump_optimizer/dhw_learning.py
++++ b/custom_components/heatpump_optimizer/dhw_learning.py
+@@ -383,13 +383,7 @@ class DhwProfileLearner:
+     async def async_save_draws(self) -> None:
+         async def save() -> None:
+             await self.draws_store.async_save(self.draw_stats.as_dict())
+-<<<<<<< 625226630d (Merge commit 'de356461aa6ddf579dde29274428684ffc8009b2' into fix/r11-seam-cycle-reporting-pr)
+-            self.draws_dirty = False
+         await save_held(self.draws_store, "DHW draw statistics", save)
+-=======
+-        except Exception as err:  # noqa: BLE001
+-            _LOGGER.debug("Could not persist DHW draw statistics: %s", err)
+->>>>>>> 43ec8e3273 (Merge pull request #3931 from tvofi/fix/r11-seam-dead-state)
+ 
+     def pattern_for(self, weekend: bool) -> list[float]:
+         """The #18 blended pattern for one day type, volume-preserving.
