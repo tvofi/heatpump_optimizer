@@ -257,18 +257,29 @@ def open_group_ids(roster_path: str) -> frozenset:
 def tip_ages(shas, now: float, git=subprocess.run) -> dict:
     """sha -> committer-date age in seconds, for the shas the local objects hold.
 
-    One `git log --no-walk` for all of them. A sha the checkout lacks is left
-    out, and `classify` then keeps its ref: an age is unknowable, never 0.
+    One `git log --no-walk` per batch of them. A sha the checkout lacks is left
+    out, and `classify` then keeps its ref: an age is unknowable, never 0. Git
+    exits 128 with no output when ANY sha of a batch is missing, so a batch that
+    fails is read again one sha per call: one unfetched tip leaves only itself
+    unread, not its whole batch.
     """
     shas = sorted(set(shas))
     out = {}
-    for i in range(0, len(shas), 500):
-        r = git(["git", "log", "--no-walk=unsorted", "--format=%H %ct",
-                 *shas[i:i + 500]], capture_output=True, text=True)
+
+    def read(batch):
+        r = git(["git", "log", "--no-walk=unsorted", "--format=%H %ct", *batch],
+                capture_output=True, text=True)
         for line in r.stdout.splitlines():
             h, _, ct = line.partition(" ")
             if ct.isdigit():
                 out[h] = max(0.0, now - int(ct))
+        return r.returncode
+
+    for i in range(0, len(shas), 500):
+        batch = shas[i:i + 500]
+        if read(batch) and len(batch) > 1:
+            for sha in batch:
+                read([sha])
     return out
 
 
@@ -871,6 +882,26 @@ def _refused(fn, needle: str, exc=ValueError) -> bool:
 
 def self_test() -> int:
     results: list = []
+    # tip_ages: one missing sha leaves only itself unread (carry 1cb52cd3); the
+    # fake git fails a batch holding the missing sha, as `git log --no-walk` does.
+    held = {"1" * 40: 1000, "2" * 40: 2000}
+    missing = "3" * 40
+
+    def fake_git(argv, **_kw):
+        asked = argv[argv.index("--format=%H %ct") + 1:]
+        if any(h not in held for h in asked):
+            return subprocess.CompletedProcess(argv, 128, "", "fatal: bad object")
+        return subprocess.CompletedProcess(
+            argv, 0, "".join(f"{h} {held[h]}\n" for h in asked), "")
+
+    _check("tip_ages: a batch with one missing sha still reads the others",
+           tip_ages([*held, missing], 5000.0, git=fake_git) == {"1" * 40: 4000.0, "2" * 40: 3000.0},
+           results)
+    _check("tip_ages: the missing sha is left out, never 0",
+           missing not in tip_ages([*held, missing], 5000.0, git=fake_git), results)
+    _check("null control: a batch with every sha present reads the same ages",
+           tip_ages(list(held), 5000.0, git=fake_git) == {"1" * 40: 4000.0, "2" * 40: 3000.0},
+           results)
     main_sha = "m" * 40
     merged_sha = "a" * 40          # reachable from main
     orphan_sha = "b" * 40          # parentless, not reachable from main

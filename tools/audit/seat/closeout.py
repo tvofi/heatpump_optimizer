@@ -24,8 +24,8 @@ nothing, local or remote (the self-test asserts the remote's refs, the working
 tree and the report directory are byte-equal after a dry run).
 
 `--apply` REFUSES FIRST, ON THE ROSTER. It reads `--roster-file` and refuses,
-naming each group, while any group other than R10-CLOSEOUT-CLEANUP (`--self-
-group`) is not done -- R10-ARCH-DOCS and R10-ROUND-PLAYBOOK included. The run is
+naming each group, while any group other than the round's own closeout group
+(`R<N>-CLOSEOUT-CLEANUP`, N read from `--roster-file`'s name) is not done. The run is
 the round's last act, so the instrument enforces that itself. The dry plan
 runs at any time and prints what the refusal would name.
 
@@ -84,7 +84,7 @@ sys.path.insert(0, str(HERE))
 import prune_refs  # noqa: E402
 import roster_lib  # noqa: E402
 
-SELF_GROUP = "R10-CLOSEOUT-CLEANUP"
+SELF_SUFFIX = "CLOSEOUT-CLEANUP"
 MAX_BRANCHES = 2
 ROOT = HERE.parents[2]
 #: Where a bare citation of a ref about to go would break a reader (fixtures under
@@ -99,7 +99,14 @@ CITED_GREP = ("(handoff|handoff-body|fix|design|design-verdict|review|probe|clai
 STEPS = ("in-main", "refs", "local", "issues", "report")   # the order is the gate
 
 
-def roster_blockers(roster: dict, self_group: str = SELF_GROUP) -> list:
+def self_group_for(roster_file: str) -> str:
+    """The round's own closeout group, `R<N>-CLOSEOUT-CLEANUP`, N the round
+    `roster_file` names: read from the roster's name, never held here as a
+    constant. Raises RosterNotFound for a file that is not a roster."""
+    return f"R{roster_lib.roster_round(roster_file)}-{SELF_SUFFIX}"
+
+
+def roster_blockers(roster: dict, self_group: str) -> list:
     """Every group other than `self_group` whose stage is not done, sorted, less
     the groups the roster exempts (`roster_lib.closeout_exempt`): the post-stamp
     owner step, which starts only after this run's stamp, and a ruled group."""
@@ -121,6 +128,7 @@ class Ctx:
     def __init__(self, a, roster: dict):
         self.repo, self.remote, self.main = a.repo, a.remote, a.main
         self.roster, self.roster_path = roster, a.roster_file
+        self.self_group = self_group_for(str(a.roster_file))
         self.seats = [Path(p).expanduser() for p in a.seats_root]
         self.orch = Path(a.orch_root).expanduser()
         self.keep_orch = tuple(a.keep_orch)
@@ -400,10 +408,10 @@ def render_report(before: dict, after: dict, p: dict, local: dict, status: str,
 
 def run(c: Ctx, apply: bool, out=print) -> int:
     """0 complete; 2 refused before writing; 3 stopped at a step (partial, reported)."""
-    blockers = roster_blockers(c.roster)
+    blockers = roster_blockers(c.roster, c.self_group)
     if blockers:
         out(("REFUSED" if apply else "DRY: --apply would REFUSE")
-            + f": {len(blockers)} group(s) other than {SELF_GROUP} not done: "
+            + f": {len(blockers)} group(s) other than {c.self_group} not done: "
             + ", ".join(blockers))
         if apply:
             return 2
@@ -457,9 +465,44 @@ def self_test() -> int:
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
     res: list = []
+    SELF_GROUP = self_group_for("wave-r10-groups.json")
 
     def check(tag, cond):
         res.append((tag, bool(cond)))
+
+    # The own closeout group is derived from the roster's round; a round-11
+    # roster exempts R11-CLOSEOUT-CLEANUP and blocks on R10's (null control).
+    import contextlib
+    import io
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        rc_no_root = main(["--roster-file", "wave-r10-groups.json"])
+    check("a run without --orch-root refuses (rc 2) naming it",
+          rc_no_root == 2 and "--orch-root is required" in err.getvalue())
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        try:
+            main(["--roster-file", "/nonexistent/wave-r10-groups.json",
+                  "--orch-root", "/nonexistent-orch"])
+        except OSError:
+            pass                      # past the refusal: the roster file is the next read
+    check("null control: a run naming the root passes that refusal",
+          "--orch-root is required" not in err.getvalue())
+    check("self_group_for names the round's own closeout group",
+          self_group_for("x/wave-r11-groups.json") == "R11-CLOSEOUT-CLEANUP"
+          and self_group_for("wave-r10-groups.json") == "R10-CLOSEOUT-CLEANUP")
+    r11 = {"groups": [{"group": "R11-CLOSEOUT-CLEANUP", "resume": {"stage": "not-started"}},
+                      {"group": "R10-CLOSEOUT-CLEANUP", "resume": {"stage": "not-started"}},
+                      {"group": "R11-A", "resume": {"stage": "done"}}]}
+    check("a round-11 roster proceeds past its own group and names R10's as a blocker",
+          roster_blockers(r11, self_group_for("wave-r11-groups.json"))
+          == ["R10-CLOSEOUT-CLEANUP"])
+    try:
+        self_group_for("notes.json")
+        refused = False
+    except roster_lib.RosterNotFound:
+        refused = True
+    check("a file that is not a roster names no self group (refuses)", refused)
 
     # The report directory is the roster's round's (owner ruling 2026-11-22: no
     # round named in a default); null control: another round's roster, its own.
@@ -593,7 +636,7 @@ def self_test() -> int:
         check("...and wrote nothing", remote_state() == before_r
               and not (tmp / "report").exists())
         check("roster_blockers names every other open group and skips this one",
-              roster_blockers(roster({"X": "not-started", "Y": "done", SELF_GROUP: "not-started"}))
+              roster_blockers(roster({"X": "not-started", "Y": "done", SELF_GROUP: "not-started"}), SELF_GROUP)
               == ["X"])
         # the exemption (roster_lib.closeout_exempt): a post-stamp owner step, its wired
         # issue, and a ruled group never block; an ordinary not-started group still does
@@ -604,30 +647,30 @@ def self_test() -> int:
         cat["resume"]["next_step"] = "after the v10.0.0 closeout stamp: open the catalog PR"
         post_only = {"groups": [gr("A", "done"), gr(SELF_GROUP, "not-started"), cat]}
         check("a fixture roster with only the post-stamp owner step open proceeds",
-              roster_blockers(post_only) == [])
+              roster_blockers(post_only, SELF_GROUP) == [])
         check("a refused group (no open host) is not a blocker",
-              roster_blockers({"groups": [gr("R", "refused"), gr(SELF_GROUP, "not-started")]}) == [])
+              roster_blockers({"groups": [gr("R", "refused"), gr(SELF_GROUP, "not-started")]}, SELF_GROUP) == [])
         hosted = gr("R", "refuted")
         hosted["resume"]["host"] = "H"
         check("a ruled group whose host is still open blocks",
               roster_blockers({"groups": [hosted, gr("H", "in-progress"),
-                                          gr(SELF_GROUP, "not-started")]}) == ["H", "R"])
+                                          gr(SELF_GROUP, "not-started")]}, SELF_GROUP) == ["H", "R"])
         for st in ("refused", "deferred"):
             hosted_st = gr("R", st)
             hosted_st["resume"]["host"] = "H"
             check(f"a {st} group whose host is still open blocks (roster_lib.CLOSED_STAGES "
                   "drops it from open_groups)",
                   roster_blockers({"groups": [hosted_st, gr("H", "in-progress"),
-                                              gr(SELF_GROUP, "not-started")]}) == ["H", "R"])
+                                              gr(SELF_GROUP, "not-started")]}, SELF_GROUP) == ["H", "R"])
         check("a deferred group with no host still blocks, as before CLOSED_STAGES grew",
               roster_blockers({"groups": [gr("D", "deferred"),
-                                          gr(SELF_GROUP, "not-started")]}) == ["D"])
+                                          gr(SELF_GROUP, "not-started")]}, SELF_GROUP) == ["D"])
         check("null control: an ordinary not-started group still refuses beside the exempt ones",
               roster_blockers({"groups": [cat, gr("N", "not-started"), gr("R", "refused"),
-                                          gr(SELF_GROUP, "not-started")]}) == ["N"])
+                                          gr(SELF_GROUP, "not-started")]}, SELF_GROUP) == ["N"])
         check("a group after the post-stamp step is post-stamp too",
               roster_blockers({"groups": [cat, gr("T", "queued", after=["CAT"]),
-                                          gr(SELF_GROUP, "not-started")]}) == [])
+                                          gr(SELF_GROUP, "not-started")]}, SELF_GROUP) == [])
         wired = mk(all_done, issues=[{"number": 7, "title": "s"}, {"number": 2965, "title": "c"}])
         wired.roster = post_only
         check("step 4 does not wait for an issue wired to a post-stamp group",
@@ -791,7 +834,9 @@ def main(argv=None) -> int:
     ap.add_argument("--roster-file", default="")
     ap.add_argument("--seats-root", action="append",
                     default=None, help="repeatable; default ~/hpo-seats and ~/.local/state/hpo/pr")
-    ap.add_argument("--orch-root", default="~/hpo-orch")
+    ap.add_argument("--orch-root", default="",
+                    help="REQUIRED: the orchestrator state directory this run may collect "
+                         "(no default: a default would act on another session's state)")
     ap.add_argument("--keep-orch", action="append", default=None,
                     help="name prefixes kept under --orch-root (default ledger, state)")
     ap.add_argument("--report-dir", default=None,
@@ -806,6 +851,10 @@ def main(argv=None) -> int:
         return self_test()
     if not a.roster_file:
         print("closeout: REFUSE: --roster-file is required (the gate reads it)", file=sys.stderr)
+        return 2
+    if not a.orch_root:
+        print("closeout: REFUSE: --orch-root is required (it names the state directory "
+              "this run may collect; there is no default)", file=sys.stderr)
         return 2
     a.seats_root = a.seats_root or ["~/hpo-seats", "~/.local/state/hpo/pr"]
     a.keep_orch = a.keep_orch or ["ledger", "state"]
