@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_with_minimums GUARD_OFF 463d143f",
+  "old": "        if not (whole.any() or lengthen.any()):",
+  "reason": "Equivalent (GUARD_OFF, the fixed-point `break` switched off). The guard breaks when a pass changes nothing; such a pass leaves first, last, two and first_min as they were, so every later pass recomputes the same runs and changes nothing either, and the loop returns the same arrays at its cap of 2n+1 passes. It is a cost on the objective's batch path, not a behaviour. Measured by the #3869 round-4 fixer: the mutant SURVIVED the R11-OWNER-MODE-LEGS block of tests/features.py (24 checks) beside five killed mutants of the same drive, and a differential probe of plan_legs and availability, original against mutant, over 3000 seeded random plans (1-8 steps, both leg orders, extra None/0.5/2/5, minimums 0-45 min, before IDLE/SPACE/DHW, lost 0/0.1/0.5) found 0 differing outputs.",
+  "verdict": "equivalent"
+}

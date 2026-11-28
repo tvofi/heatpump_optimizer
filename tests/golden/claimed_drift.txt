@@ -67,6 +67,7 @@
 # v10.1.7: Unread state deleted; round-11 mutant kills pinned. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow  # R11-OWNER-MODE-LEGS: two option rows on entities_pump, add-only
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -795,6 +796,15 @@
 # against the merge base, one environment). Claimed rather than re-recorded, as
 # R10-COP-GATE-D's keys were: the committed files were patched in those three
 # paths alone, each null because a coord fixture holds no plan.
+
+# R11-OWNER-MODE-LEGS (#3859): this branch claims config_flow and nothing else.
+# The entities_pump page gains two option rows, mode_leg_heat_min_minutes and
+# mode_leg_dhw_min_minutes: four leaves, each in the plain and the seeded
+# render, ADD-ONLY. config_flow is float-free, so it is recorded as well as
+# claimed (#547). No plan, schedule or solver fixture moves: OptimizationConfig
+# defaults both minimums to 0, and only the coordinator hands a solve the
+# options.
+
 # R11-SEAM-two-zone-slab (#3713): behind a two-zone valve that feeds the slab,
 # the curve counts the slab in series with the floor circuit, weighs the two
 # floors as the steady two-zone solution weighs them in the room the thermostat

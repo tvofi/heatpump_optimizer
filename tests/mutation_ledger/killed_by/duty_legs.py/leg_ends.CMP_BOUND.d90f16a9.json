@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_ends CMP_BOUND d90f16a9",
-  "killed_by": "tests/features.py",
-  "old": "    to_dhw = both & ~to_space & (step_minutes - dhw_min < SPLIT_MIN_MINUTES)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`to_dhw = both & ~to_space & (step_minutes - dhw_min <= SPLIT_MIN_MINUTES)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

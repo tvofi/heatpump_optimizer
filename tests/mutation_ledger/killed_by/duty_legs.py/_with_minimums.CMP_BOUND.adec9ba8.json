@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_with_minimums CMP_BOUND adec9ba8",
+  "killed_by": "tests/features.py",
+  "old": "        whole = (short & (step_minutes - longer < SPLIT_MIN_MINUTES)) | sandwich",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`whole = (short & (step_minutes - longer <= SPLIT_MIN_MINUTES)) | sandwich`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

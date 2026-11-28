@@ -2403,6 +2403,30 @@
     "required": "Optional",
     "selector": "EntitySelector"
    },
+   "mode_leg_dhw_min_minutes": {
+    "config": {
+     "max": "15",
+     "min": "0",
+     "mode": "'box'",
+     "step": "'any'",
+     "unit_of_measurement": "'min'"
+    },
+    "default": "10.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
+   "mode_leg_heat_min_minutes": {
+    "config": {
+     "max": "15",
+     "min": "0",
+     "mode": "'box'",
+     "step": "'any'",
+     "unit_of_measurement": "'min'"
+    },
+    "default": "10.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
    "pump_duty_mode": {
     "config": {
      "mode": "'dropdown'",
@@ -5157,6 +5181,30 @@
    "default": null,
    "required": "Optional",
    "selector": "EntitySelector"
+  },
+  "mode_leg_dhw_min_minutes": {
+   "config": {
+    "max": "15",
+    "min": "0",
+    "mode": "'box'",
+    "step": "'any'",
+    "unit_of_measurement": "'min'"
+   },
+   "default": "10.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "mode_leg_heat_min_minutes": {
+   "config": {
+    "max": "15",
+    "min": "0",
+    "mode": "'box'",
+    "step": "'any'",
+    "unit_of_measurement": "'min'"
+   },
+   "default": "10.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
   },
   "pump_duty_mode": {
    "config": {

@@ -141,6 +141,18 @@ def parse_month_range(token: str) -> frozenset[int]:
     return _parse_cyclic_range(token, _MONTHS, 1, 12, "month")
 
 
+def valid_months_spec(spec: Any) -> bool:
+    """Whether a #13 month-mask spec parses; empty means every month."""
+    text = str(spec or "").strip()
+    try:
+        for chunk in text.replace(";", ",").split(","):
+            if chunk.strip():
+                parse_month_range(chunk)
+    except GridFeeError:
+        return False
+    return True
+
+
 def parse_day_range(token: str) -> frozenset[int]:
     """``"Mon-Fri"`` or ``"Sat"`` as the set of ``datetime.weekday()`` values."""
     return _parse_cyclic_range(token, _DAYS, 0, 7, "weekday")
