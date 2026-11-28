@@ -44774,4 +44774,50 @@ R.check(
     (_csel_run.stdout + _csel_run.stderr)[-600:],
 )
 
+
+def _csel_routes() -> dict[tuple[str, str, str], str]:
+    """#3885 item 2: run.sh's own run/run_always/cases_sampled, sourced and driven
+    against a stub tree under each (HPO_CI_EVENT, GATE_SCOPE), for features.py,
+    entities.py and a third script: which file ran, with which arguments."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|cases_sampled|run|run_always|leased|skip)\(\) \{.*?^\}\n",
+                              text))
+    out = {}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        for name in ("features", "entities", "case_select"):
+            (td / f"tests/{name}.py").write_text(
+                f"import sys; from pathlib import Path; Path('{td}/ran').write_text('{name} ' + ' '.join(sys.argv[1:]))\n")
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        base = {k: v for k, v in _os.environ.items()
+                if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
+        base["HPO_GATE_LOCK_DIR"] = str(Path(tds) / "lock")
+        for event, scope in (("pull_request", "auto"), ("pull_request", "full"), ("push", "auto"),
+                             ("push", "full"), ("schedule", "full"), ("workflow_dispatch", "auto"),
+                             ("merge_group", "auto"), ("", "auto")):
+            for target in ("tests/features.py", "tests/entities.py", "tests/other.py"):
+                for marker in ("ran", "other.ran"):
+                    (td / marker).unlink(missing_ok=True)
+                env = {**base, "GATE_SCOPE": scope, **({"HPO_CI_EVENT": event} if event else {})}
+                _subprocess.run(["bash", str(script), "run", sys.executable, target], cwd=td, env=env,
+                                timeout=120, capture_output=True, text=True)
+                got = (td / "ran").read_text().strip() if (td / "ran").exists() else (
+                    "other" if (td / "other.ran").exists() else "nothing")
+                out[(event or "local", scope, target)] = got
+    return out
+
+
+_csel_r = _csel_routes()
+_csel_want = {k: (f"case_select run {k[2]} --sample" if k[:2] == ("pull_request", "auto") and k[2] != "tests/other.py"
+                  else (k[2].split("/")[1][:-3] if k[2] != "tests/other.py" else "other"))
+              for k in _csel_r}
+R.check(
+    "run.sh runs features.py and entities.py through the sampled span runner only on a pull request under a scoped "
+    "gate; a push, a full scope, the nightly, a dispatch, the merge queue and a local run run each script whole (#3885)",
+    _csel_r == _csel_want and len(_csel_r) == 24,
+    str({k: v for k, v in _csel_r.items() if _csel_want.get(k) != v} or len(_csel_r)),
+)
+
 sys.exit(R.close("ENTITY CHECKS"))

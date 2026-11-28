@@ -293,12 +293,27 @@ shard_of() {
 
 # The script a `run` line is actually running, for the scope lookup: the
 # first argument that names a file under tests/. Not the last argument --
-# env_drift.py takes a ref after its script path.
+# env_drift.py takes a ref after its script path. tests/case_select.py is the
+# span runner a sampled script runs under (run_cases), never the script.
 scope_script() {
   local a
   for a in "$@"; do
-    case "$a" in tests/*.py|tests/*.mjs) printf '%s' "$a"; return ;; esac
+    case "$a" in
+      tests/case_select.py) ;;
+      tests/*.py|tests/*.mjs) printf '%s' "$a"; return ;;
+    esac
   done
+}
+
+# #3885 item 2: on a pull request under a scoped gate, the two long flat
+# scripts run through tests/case_select.py's span runner, which keeps every
+# span the diff reaches and a seeded 30% of the rest (HPO_CASE_SEED, the PR
+# number and head tests.yml exports). Every other event and scope, and a
+# local run, runs the script whole, as `python3 <script>`.
+cases_sampled() {
+  [ "${HPO_CI_EVENT:-}" = pull_request ] && [ "$GATE_SCOPE" = auto ] && [ "$#" -eq 2 ] || return 1
+  case "$2" in tests/features.py|tests/entities.py) return 0 ;; esac
+  return 1
 }
 
 # Is this script in the scoped run set? True when scoping is off.
@@ -353,7 +368,11 @@ run() {
       "SKIP: $scoped_out (scoped out: $(scope_reason "$scoped_out"))"
     return 0
   fi
-  run_always "$@"
+  if cases_sampled "$@"; then
+    run_always "$1" tests/case_select.py run "$2" --sample
+  else
+    run_always "$@"
+  fi
 }
 
 # The lease `gate_lock.py needs-lease` names decides each run: `lease` for the

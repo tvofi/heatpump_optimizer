@@ -3,6 +3,8 @@
 
     python3 tests/case_select.py split <script>                   print the spans, one line each
     python3 tests/case_select.py run <script> [--plan FILE]       run the script span by span
+    python3 tests/case_select.py plan <script> [--seed S] [--base REF] [--files F]   a pull request's plan
+    python3 tests/case_select.py run <script> --sample [--seed S] [--base REF] [--files F]   plan, then run it
     python3 tests/case_select.py record <script> [--union] [--table T]
     python3 tests/case_select.py stats <script>                   selectivity figures from the table
     python3 tests/case_select.py scripts                          the scripts recorded per span
@@ -30,8 +32,11 @@ reads, into `tests/case_closures.json`:
   locale. Every span that draws both reads and moves `@random`, so each
   drawing span needs the previous one.
 
-Nothing here selects. `tests/run.sh` still runs each selected script whole;
-selection over this table is part P2 of the design (`design/R11-CI-CASE-SELECT`).
+On a pull request under `GATE_SCOPE=auto`, `tests/run.sh` runs the two
+scripts through `run --sample` (#3885 item 2): `plan` keeps every span the
+diff reaches and draws `FRACTION` of the rest, seeded by `HPO_CASE_SEED`
+(`<PR number>-<head sha>`); the same seed, base and table give the same plan
+on any machine. Any other event, or any fail-safe in `plan`, runs every span.
 `record` on Darwin only unions into an existing entry (`--union`); a full
 re-derivation replaces entries and runs on Linux (`tests/derive_closures.sh --cases`).
 """
@@ -43,6 +48,7 @@ import builtins
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -359,12 +365,14 @@ def _code(stmts: list, path: str, flags: int):
     return compile(ast.Module(body=stmts, type_ignores=[]), path, "exec", flags=flags, dont_inherit=True)
 
 
-def run(script: str, plan: set[str] | None = None, recorder: "Recorder | None" = None) -> int:
+def run(script: str, plan: set[str] | None = None, recorder: "Recorder | None" = None,
+        note: str = "") -> int:
     """Run `script` span by span in one namespace, as `python3 <script>` would.
 
     The header runs, then each span in order (all of them without a plan,
     only those named in `plan` with one), then the closing statement. Returns
-    the script's exit status.
+    the script's exit status. `note` is the plan's reason, printed in the
+    `CASES:` line with the count of spans executed.
     """
     path = os.path.abspath(script)
     source = open(path, encoding="utf-8").read()
@@ -392,7 +400,9 @@ def run(script: str, plan: set[str] | None = None, recorder: "Recorder | None" =
                 exec(_code(s.stmts, path, flags), ns)
             if recorder:
                 recorder.end(ns)
-            if plan is None:
+            if note:
+                print(f"CASES: {'FULL' if plan is None else 'SCOPED'} {rel} -- {len(ran)} of {len(spans)} spans ({note})")
+            elif plan is None:
                 print(f"CASES: FULL {rel} -- {'recording' if recorder else 'no plan'}, {len(spans)} spans")
             else:
                 print(f"CASES: SCOPED {rel} -- {len(ran)} of {len(spans)} spans")
@@ -865,6 +875,153 @@ def record(script: str, union: bool, table: Path = TABLE) -> int:
     return rc
 
 
+# ------------------------------------------------- the plan (#3885 item 2)
+
+#: The share of the spans the diff cannot reach that a pull request runs.
+FRACTION = 0.3
+#: `<PR number>-<head sha>`, which tests.yml exports on a pull request only.
+SEED_ENV = "HPO_CASE_SEED"
+_SEED_SHAPE = re.compile(r"\A[1-9][0-9]*-[0-9a-f]{40}\Z")
+#: What every span runs through: a change here can move any span's outcome.
+RUNNER_FILES = ("tests/harness.py", "tests/hastub/")
+
+
+def draw(ids, seed: str, fraction: float = FRACTION) -> set[str]:
+    """The ids a seed picks: sha256(seed NUL id) below the fraction's share of 2**64.
+
+    Keyed on the id, never the ordinal, so an inserted span moves no other draw.
+    """
+    cut = int(fraction * 2 ** 64)
+    return {i for i in ids
+            if int(hashlib.sha256(f"{seed}\0{i}".encode()).hexdigest()[:16], 16) < cut}
+
+
+def _closure_star(start: set[str], edges: dict[str, set[str]]) -> set[str]:
+    out, todo = set(start), list(start)
+    while todo:
+        for n in edges.get(todo.pop(), ()):
+            if n not in out:
+                out.add(n)
+                todo.append(n)
+    return out
+
+
+def plan(script: str, changed: list[str], seed: str | None, fraction: float = FRACTION,
+         table: Path = TABLE, scope: dict | None = None, closures: dict | None = None) -> dict:
+    """Which spans of `script` a pull request runs, each with the rule that chose it.
+
+    `{"mode": "full", "reason": ...}` when any fail-safe holds; else
+    `{"mode": "scoped", "rules": {id: rule}, ...}` where
+    run = back*(diff | edited | forward(diff | edited) | sample(rest)):
+    `diff` a span whose recorded files meet a changed unit, `edited` a span
+    the table lacks or whose text moved, `forward` a span needing one of
+    those, `sample` the seeded draw over every other span, and `needed` the
+    producers of anything selected. A span the diff reaches is never drawn.
+    `scope` and `closures` default to `tests/closure.py`'s plan for `changed`
+    and `tests/closures.json`'s read sets.
+    """
+    import closure  # noqa: PLC0415 - a sibling module, imported where the plan needs it
+
+    rel = os.path.relpath(os.path.realpath(script), ROOT)
+    full = lambda why: {"mode": "full", "reason": why, "script": rel}  # noqa: E731
+    if not seed or not _SEED_SHAPE.match(seed):
+        return full(f"no seed of shape <PR number>-<head sha> in {SEED_ENV}")
+    src = open(script, encoding="utf-8").read()
+    tree = ast.parse(src)
+    header, header_hash, spans, _ = split(src, tree)
+    if not spans:
+        return full("the splitter finds no span")
+    d = load(table)
+    e = entry(d, rel) if d else None
+    if e is None:
+        return full(f"{os.path.relpath(table, ROOT)} has no entry for {rel} at version {VERSION}")
+    if e["header_hash"] != header_hash:
+        return full("the header's text differs from the table's header_hash")
+    if not changed:
+        return full("no changed files could be determined")
+    units = {closure.unit_of(f) for f in changed}
+    gate = sorted(f for f in changed if closure.is_gate_file(f)
+                  or any(f == r or (r.endswith("/") and f.startswith(r)) for r in RUNNER_FILES))
+    if gate:
+        return full(f"{gate[0]} changes how every span runs")
+    scope = closure.select(sorted(changed)) if scope is None else scope
+    if scope.get("mode") != "scoped":
+        return full(f"the script-level scope is FULL: {scope.get('reason')}")
+    hit = sorted(units & set(e["header"]))
+    if hit:
+        return full(f"the header reads {hit[0]}, and a span may read what the header built from it")
+    recorded = set(e["header"]) | {f for v in e["spans"].values() for f in v["files"]}
+    if closures is None:
+        closures = json.loads(closure.CLOSURES.read_text())["closures"]
+    stray = sorted(units & set(closures.get(rel, ())) - recorded)
+    if stray:
+        return full(f"{stray[0]} is in the script's closure and in no span's recording")
+    titles: dict[str, list[Span]] = {}
+    for s in spans:
+        titles.setdefault(s.title, []).append(s)
+    for t, group in titles.items():
+        moved = [s for s in group if s.id not in e["spans"] or e["spans"][s.id]["hash"] != s.hash]
+        if len(group) > 1 and moved:
+            return full(f"the repeated title {t!r} has a moved instance, so its ids may not match the table")
+    ids = [s.id for s in spans]
+    sn = static_needs(spans, header, _aliases(tree))
+    needs = {s.id: (sn.get(s.id, set()) | set(e["spans"].get(s.id, {}).get("needs", ()))) & set(ids)
+             for s in spans}
+    feeds: dict[str, set[str]] = {}
+    for k, v in needs.items():
+        for n in v:
+            feeds.setdefault(n, set()).add(k)
+    rules: dict[str, str] = {}
+    for s in spans:
+        t = e["spans"].get(s.id)
+        if t is None or t["hash"] != s.hash:
+            rules[s.id] = "edited"
+        elif units & set(t["files"]):
+            rules[s.id] = "diff"
+    for i in _closure_star(set(rules), feeds) - set(rules):
+        rules[i] = "forward"
+    for i in draw([i for i in ids if i not in rules], seed, fraction):
+        rules[i] = "sample"
+    for i in _closure_star(set(rules), needs) - set(rules):
+        rules[i] = "needed"
+    count = {r: sum(1 for v in rules.values() if v == r)
+             for r in ("diff", "edited", "forward", "sample", "needed")}
+    return {"mode": "scoped", "script": rel, "seed": seed, "fraction": fraction, "n": len(ids),
+            "rules": {i: rules[i] for i in ids if i in rules}, "count": count}
+
+
+def plan_lines(p: dict, base: str) -> list[str]:
+    """The plan as the job log and its artifact carry it: the key line, then one line per span run."""
+    if p["mode"] != "scoped":
+        return [f"CASES: PLAN {p['script']} -- FULL ({p['reason']})"]
+    c = p["count"]
+    head = (f"CASES: PLAN {p['script']} -- {len(p['rules'])} of {p['n']} spans (seed {p['seed']}, "
+            f"fraction {p['fraction']}, base {base}, {c['diff']} diff, {c['edited']} edited, "
+            f"{c['forward']} forward, {c['sample']} sample, {c['needed']} needed)")
+    return [head] + [f"  case {r:<7} {i}" for i, r in p["rules"].items()]
+
+
+def _merge_base(ref: str) -> str:
+    r = subprocess.run(["git", "merge-base", ref, "HEAD"], cwd=ROOT, capture_output=True, text=True)
+    return r.stdout.strip() or ref
+
+
+def sampled(script: str, seed: str | None, base: str, files: list[str] | None = None) -> int:
+    """Plan `script` against the diff from `base` and run it: the pull request's entry point."""
+    import closure  # noqa: PLC0415 - a sibling module, imported where the plan needs it
+
+    mb = _merge_base(base)
+    p = plan(script, files if files is not None else closure.changed_files(base), seed)
+    print("\n".join(plan_lines(p, mb)))
+    sys.stdout.flush()
+    if p["mode"] != "scoped":
+        return run(script, None, note=p["reason"])
+    c = p["count"]
+    note = (f"seed {seed}, fraction {p['fraction']}, base {mb}, {c['diff']} diff, {c['edited']} edited, "
+            f"{c['forward']} forward, {c['sample']} sample, {c['needed']} needed")
+    return run(script, set(p["rules"]), note=note)
+
+
 # -------------------------------------------------------------- self-test
 
 _FIXTURE = '''\
@@ -935,6 +1092,91 @@ _HARNESS = ('class Results:\n    def __init__(self, t): self.bad = 0; self.n = 0
             '    def check(self, name, ok):\n        self.n += 1; self.bad += not ok\n'
             '        print(("  ok   " if ok else "  FAIL ") + name)\n'
             '    def close(self, label): print(self.n, label, self.bad); return 1 if self.bad else 0\n')
+
+
+def _plan_rows(check, spans: list[Span], hh: str) -> None:
+    """The plan over the fixture, against a synthetic table: each rule, each fail-safe, the draw."""
+    import tempfile
+    seed = "7-" + "a" * 40
+    ids = [s.id for s in spans]
+    check("draw: the same seed draws the same ids", draw(ids, seed) == draw(list(reversed(ids)), seed))
+    many = [f"case {k}" for k in range(4000)]
+    share = len(draw(many, seed)) / len(many)
+    check("draw: the drawn share of 4000 ids is within 0.03 of FRACTION", abs(share - FRACTION) < 0.03, share)
+    check("draw: another seed draws another set", draw(many, seed) != draw(many, "8-" + "a" * 40))
+    check("draw: an inserted id moves no other id's draw (keyed on the id, never the ordinal)",
+          draw(many, seed) == draw(["inserted"] + many, seed) - {"inserted"})
+    check("draw: fraction 0 draws nothing and fraction 1 draws every id",
+          draw(many, seed, 0.0) == set() and draw(many, seed, 1.0) == set(many))
+    tmp = os.path.realpath(tempfile.mkdtemp(prefix="case-plan-"))
+    try:
+        script = os.path.join(tmp, "fx.py")
+        open(script, "w").write(_FIXTURE)
+        rel = os.path.relpath(script, ROOT)
+        files = {s.id: ["m.py"] if s.id == "beta reads a constant of M" else ["h.py"] for s in spans}
+        table = {"version": VERSION, "files": [], "scripts": {}}
+
+        def make(spans_, header_hash=hh, header=("hdr.py",)):
+            e = {"blob": "b", "header_hash": header_hash, "header": list(header),
+                 "spans": {s.id: {"hash": s.hash, "files": files.get(s.id, []), "needs": [], "seconds": 1.0}
+                           for s in spans_}}
+            save({rel: e}, Path(tmp) / "t.json", keep_order=False)
+            return Path(tmp) / "t.json"
+
+        t = make(spans)
+        ok = {"mode": "scoped"}
+        cl = {rel: ["m.py", "h.py", "hdr.py", "stray.py"]}
+        P = lambda ch, sd=seed, tb=t, sc=ok, fr=FRACTION: plan(script, ch, sd, fr, tb, sc, cl)  # noqa: E731
+        p = P(["m.py"], fr=0.0)
+        check("rule (i): a span whose recorded files meet the diff runs as diff; at fraction 0 nothing else does",
+              p["mode"] == "scoped" and p["rules"] == {"beta reads a constant of M": "diff"}, p)
+        p = P(["m.py"], fr=1.0)
+        check("rule (iv): at fraction 1 every other span is drawn, and the diff span stays diff",
+              p["mode"] == "scoped" and p["rules"]["beta reads a constant of M"] == "diff"
+              and len(p["rules"]) == len(ids), p.get("count"))
+        p = P(["m.py"])
+        check("a seeded plan is byte-stable: the same inputs print the same lines",
+              plan_lines(p, "b") == plan_lines(P(["m.py"]), "b"))
+        drawn = {i for i, r in p["rules"].items() if r == "sample"}
+        check("rule (iv): the sample is exactly the draw over the spans the diff cannot reach",
+              drawn == draw([i for i in ids if i != "beta reads a constant of M"], seed)
+              and p["rules"]["beta reads a constant of M"] == "diff", (drawn, p["rules"]))
+        src = _FIXTURE.replace("L.append(1)\n", "L.append(1)  # edited\n")
+        open(script, "w").write(src)
+        p = P(["m.py"], fr=0.0)
+        check("rule (ii)+(iii): an edited span runs as edited and the span reading what it binds runs as forward",
+              p["rules"].get("eps appends") == "edited" and p["rules"].get("zeta reads L") == "forward", p["rules"])
+        open(script, "w").write(_FIXTURE)
+        only = {s.id: ["h.py"] if s.id == "alpha#2" else ["z.py"] for s in spans}
+        files.clear()
+        files.update(only)
+        t2 = make(spans)
+        p = plan(script, ["h.py"], seed, 0.0, t2, ok, cl)
+        check("rule (v): alpha#2 alone in the diff pulls in alpha as needed",
+              p["rules"] == {"alpha": "needed", "alpha#2": "diff"}, p["rules"])
+        full = lambda p_: p_["mode"] == "full"  # noqa: E731
+        check("fail-safe: no seed, or a seed of another shape, runs every span",
+              full(P(["m.py"], sd=None)) and full(P(["m.py"], sd="abc")) and full(P(["m.py"], sd="7-" + "a" * 39)))
+        check("fail-safe: a header edit runs every span", full(plan(script, ["m.py"], seed, FRACTION,
+                                                                     make(spans, header_hash="x"), ok, cl)))
+        check("fail-safe: a missing table runs every span",
+              full(plan(script, ["m.py"], seed, FRACTION, Path(tmp) / "none.json", ok, cl)))
+        check("fail-safe: a changed gate or runner file runs every span",
+              all(full(P([f])) for f in ("tests/harness.py", "tests/hastub/x.py", "tests/case_select.py",
+                                         "tests/case_closures.json", "tests/run.sh")))
+        check("fail-safe: a script-level FULL scope runs every span", full(P(["m.py"], sc={"mode": "full"})))
+        check("fail-safe: a changed file the header reads runs every span", full(P(["hdr.py"])))
+        check("fail-safe: a changed file in the script's closure and in no span's recording runs every span",
+              full(P(["stray.py"])))
+        check("fail-safe: no changed file runs every span", full(P([])))
+        dup = _FIXTURE.replace('R.section("seed")', 'R.section("alpha")')
+        open(script, "w").write(dup)
+        dsp = split(dup)[2]
+        p = plan(script, ["m.py"], seed, FRACTION, make(dsp[:9]), ok, cl)
+        check("fail-safe: a repeated title with a moved instance runs every span", full(p), p)
+    finally:
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def _self_test() -> int:
@@ -1051,6 +1293,7 @@ def _self_test() -> int:
               and un["spans"]["t"]["files"] == ["w"] and un["header"] == ["a", "b"], un)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+    _plan_rows(check, spans, hh)
     sp = lambda h, fs, ns=(): {"hash": h, "files": list(fs), "needs": list(ns), "seconds": 1.0}  # noqa: E731
     ent = lambda spans, blob="b0": {"tests/x.py": {"blob": blob, "header_hash": "h",  # noqa: E731
                                                    "header": ["a.py"], "spans": spans}}
@@ -1106,11 +1349,23 @@ def _main(argv: list[str]) -> int:
         for s in spans:
             print(f"{s.first}-{s.last} {s.hash[:12]} {s.id}")
         return 0
+    opt = lambda k, d=None: argv[argv.index(k) + 1] if k in argv else d  # noqa: E731
+    seed = opt("--seed", os.environ.get(SEED_ENV))
+    base = opt("--base", os.environ.get("GATE_SCOPE_BASE") or "origin/main")
+    files = opt("--files")
+    files = [ln.strip() for ln in open(files, encoding="utf-8") if ln.strip()] if files else None
+    if len(argv) >= 2 and argv[0] == "plan":
+        import closure  # noqa: PLC0415 - a sibling module, imported where the plan needs it
+        p = plan(argv[1], files if files is not None else closure.changed_files(base), seed)
+        print("\n".join(plan_lines(p, _merge_base(base))))
+        return 0
+    if len(argv) >= 2 and argv[0] == "run" and "--sample" in argv:
+        return sampled(argv[1], seed, base, files)
     if len(argv) >= 2 and argv[0] == "run":
-        plan = None
+        chosen = None
         if "--plan" in argv:
-            plan = {ln.rstrip("\n") for ln in open(argv[argv.index("--plan") + 1], encoding="utf-8") if ln.strip()}
-        return run(argv[1], plan)
+            chosen = {ln.rstrip("\n") for ln in open(argv[argv.index("--plan") + 1], encoding="utf-8") if ln.strip()}
+        return run(argv[1], chosen)
     if len(argv) >= 2 and argv[0] == "record":
         table = Path(argv[argv.index("--table") + 1]) if "--table" in argv else TABLE
         return record(argv[1], "--union" in argv, table)

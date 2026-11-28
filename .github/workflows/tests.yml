@@ -453,6 +453,12 @@ jobs:
           # #3885: on a pull request run.sh skips tests/stress.py; the push
           # to main and nightly.yml's `slow` job run it.
           HPO_CI_EVENT: ${{ github.event_name }}
+          # #3885 item 2: the seed of the pull request's 30% case sample in
+          # tests/features.py and tests/entities.py, `<PR number>-<head sha>`:
+          # never github.sha, the test merge, which moves with main, so a re-run
+          # attempt draws the same spans and a local run with this value
+          # replays them. Empty on every other event, which runs every span.
+          HPO_CASE_SEED: ${{ github.event_name == 'pull_request' && format('{0}-{1}', github.event.pull_request.number, github.event.pull_request.head.sha) || '' }}
           # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
           # budget cannot tell a slower solver from a busier runner, and on
           # shared runners it answered the second question. tests/stress.py
