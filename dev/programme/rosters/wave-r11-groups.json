@@ -7072,10 +7072,11 @@
    "source": "audit",
    "brief": "Class P7 residual (issue 3786), re-homed from R11-SEAM-money, which closed the class's verified finding D2-s3-07: ledger.month_hours counts the zone's real hours (743 for the spring-forward March) at origin/main 698eeeb2ab. Open: the sweep instances beyond the findings, dhw_schedule.hours_until_next_window and ThermalModel.simulate_trajectory and simulate_trajectory_batch, each reported by the issue body as exiting 1 on the spring and autumn transition days and 0 on a plain day, plus D15-s2-04 (unreproduced). The sweep probe the issue body names does not exist at any ref of the repository: the fixer's first step is a probe per instance that fails on the transition days and passes on a plain day, measured at its merge base, and an instance that does not reproduce is pinned and recorded, not edited. Each fix reads the one naive-instant zone definition R11-SEAM-kernel-step puts in const, hence the edge. Size S; class tag P7.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R11-SEAM-dead-state, R11-SEAM-inputs-freshness, R11-SEAM-learners, R11-SEAM-actuation-writes, R11-ARCH-fabric-learner, R11-SEAM-two-zone-slab): thermal_model.py: the edit is the trajectory's wall-clock step arithmetic only, which no not-started group's scope touches",
-    "pr": 3914
+    "pr": 3914,
+    "commit": "cb2026c3b563d6e78c8ca0c7c9491de372fbe2b3"
    },
    "carry": [
     "From r11-owner-features-split, body item 3d3d23cb: open-branch-port and seam-raise-path. Once the freeze PR merges, `tests/features.py` refuses new spans and line growth. Move each new span unchanged to the seam script `python3 dev/audit/harnesses/features_freeze.py --seam <file>` names, and re-pin its own rows with `mutation_table.py --pin-killed` (design revision 5, section 3). A new seam script raises `script_runs_per_push` and `script_runs_full_case_pr` in `tests/ci_budgets.json`. That raise merges only on the owner's approving review at its head, or under a mandate in force with `## Raise justification` and an `Architecture score: dS` line. Mandate 6893738184 ends 2026-12-15T12:00Z. (items 3d3d23cb)"
