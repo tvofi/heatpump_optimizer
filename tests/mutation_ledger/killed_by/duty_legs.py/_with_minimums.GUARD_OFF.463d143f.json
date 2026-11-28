@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:_with_minimums GUARD_OFF 463d143f",
+  "killed_by": "tests/features.py",
+  "old": "        if not (whole.any() or lengthen.any()):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
