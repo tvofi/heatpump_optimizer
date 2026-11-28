@@ -1,3 +1,24 @@
-RED 46cdd1f9191180fc1f420a0d5eedd0f758b947ad pending: gate red: none introduced: 2
-INTRODUCED Show a planted owner-only canary reaching no public path of the audit pipeline
-INTRODUCED Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+10:06:47Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:07:48Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:08:49Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:09:51Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:10:53Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:11:54Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:12:56Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:13:57Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:14:59Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:16:00Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:17:02Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:18:04Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:19:06Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:20:08Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:21:10Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:22:12Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:23:14Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:24:16Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:25:18Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:26:20Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:27:22Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:28:24Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:29:26Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
+10:30:28Z rc=3 WAIT 6ade1643e20a9518e7600703c348abe46feba4a1 pending: gate red: none
