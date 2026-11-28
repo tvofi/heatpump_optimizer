@@ -3023,12 +3023,13 @@
     "From r11-repair-3942, body item 94574098: Carry 4, re-measured at ac9045c223 by reading `tools/audit/seat/`: merge_pr.sh deferral read is answered (classify rc 3 is WAIT); TRAIN-ADD-START-TEXT (train.sh header and the started-train sentence) open; TRAIN-SKIP-RELEASES-WORKTREE (`Train.skip` never calls `release_worktrees`) open; TRAIN-WAIT-UNSTALE (`unstale` only on the land path, not `wait_ci`) open; skipped-entry re-admission in `already_held` open; rejoin-without-recarry answered for PREFLIGHT_PARK, open for other skip classes; stale gate red from an older run's check open. Builds are instrument work for a later part. Carry: R11-CLOSEOUT-CLEANUP (items 94574098)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "commit": null,
     "branch": "fix/r11-closeout-cleanup",
     "last_step": null,
     "next_step": "dispatch at round end, after every other round-11 group is closed",
-    "note": "created 2026-11-15 by the round-11 orchestrator on tvofi's ruling; supersedes R10-CLOSEOUT-CLEANUP"
+    "note": "created 2026-11-15 by the round-11 orchestrator on tvofi's ruling; supersedes R10-CLOSEOUT-CLEANUP",
+    "pr": 3942
    }
   },
   {
@@ -3355,12 +3356,13 @@
    ],
    "brief": "Stale product docstrings, a stray entry-data key in the config flow's device_prefill step, and corrected user text with no behavioural pin, carried below verbatim. Fix the docstrings, decide the stray key with a test, and pin the corrected sentences so that reverting them fails tests/entities.py. config_flow.py is shared with R11-OUTSIDE-ROOMS-P1: land after it or rebase onto it.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "commit": null,
     "branch": "fix/r11-product-text-pins",
     "last_step": null,
     "next_step": "dispatch fixer; config_flow.py is hot with R11-OUTSIDE-ROOMS-P1",
-    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-ROOMS-P1 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-DEARER-WORDING shares custom_components/heatpump_optimizer/narrative.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train"
+    "note": "split from R11-INTAKE-R10-RESIDUE by the round-11 INTAKE re-scope 2026-11-16 (an approved stop: split by seam, no re-cut); overlap admitted (R11-OUTSIDE-HONEST-STARTS-RUNS-P3, R11-OUTSIDE-DEARER-WORDING): R11-OUTSIDE-HONEST-STARTS-RUNS-P3 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-ROOMS-P1 shares custom_components/heatpump_optimizer/config_flow.py; R11-OUTSIDE-DEARER-WORDING shares custom_components/heatpump_optimizer/narrative.py; a file-level overlap the re-scope admits (split by seam), landings ordered by the merge train",
+    "pr": 3945
    },
    "source": "programme"
   },
@@ -6930,7 +6932,8 @@
     "commit": null,
     "last_step": "P3 plan approved by the owner 2026-11-18 (plan/r11 at 819aa2e354); landed from its draft roster",
     "next_step": "designer (ADR-007) in the first wave; design review; the fixer waits on R11-SEAM-learners and an approve",
-    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service, R11-SEAM-ratchets, R11-SEAM-ratchet-raise, R11-ARCH-cycle-surface): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json"
+    "note": "overlap admitted (R11-CARRY-DRAWMAP, R11-SEAM-kernel-step, R11-SEAM-dead-state, R11-SEAM-plant-model, R11-SEAM-inputs-freshness, R11-SEAM-store, R11-SEAM-money, R11-SEAM-learners, R11-SEAM-actuation-release, R11-SEAM-actuation-writes, R11-SEAM-cycle-solve, R11-SEAM-cycle-reporting, R11-SEAM-entity-service, R11-SEAM-ratchets, R11-SEAM-ratchet-raise, R11-ARCH-cycle-surface): planned at P3 (plan/r11 819aa2e354, owner-approved 2026-11-18); hot-file order in its PLAN.json",
+    "pr": 3947
    }
   },
   {
@@ -9159,11 +9162,12 @@
    "architect_note": "Owner order of 2026-11-27, folded into round 11. L, so design-first (decision 0014): designer.md, then design-review.md, then the fixer. No after-edge: it should land ahead of the late-round groups that append to tests/features.py, so dispatch it on the critical path.",
    "brief": "Owner order (2026-11-27, folded into round 11): split tests/features.py by feature seam into several scripts. Aims: (1) stop the end-of-file append conflicts, which hit eighteen pull requests in round 11; (2) keep each D5 finder seat's text units per scope under the ledger max_units that tools/audit/check_scopes.py enforces (the s7 seat held more than the 4500 cap); (3) preserve every test, every pin and every mutation kill, with the killed_by paths under tests/mutation_ledger re-keyed to the new scripts; (4) classify each new script deliberately, in a measured closure in tests/closures.json or on the INERT list in tests/closure.py, so tests/entities.py does not force the full suite; (5) no growth in tests/structure_budgets.json, or a raise only under CLAUDE.md rule 2 with the owner's confirmation. Design-first: the architect note must give the seam partition (which tests go to which script, by feature seam, not by size), the migration of the mutation ledger and of the closures, and the null control, which is that the set of killed mutants is identical before and after the split, compared mutant by mutant, plus the test count and the pin count equal. The fixer then executes that design with a failing test first and the finder's harness at both ends. Land before the late-round groups that append to tests/features.py.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r11-owner-features-split",
     "next_step": "designer after dispatch; owner item, dispatches above caps; design review before the fixer",
     "note": "owner order 2026-11-27; critical-path order, no after-edge",
-    "pr": 3940
+    "pr": 3940,
+    "commit": "a59a1b0d9ac782fabbe01eb84f4d4ff5a17aee43"
    },
    "issues": [],
    "fixes": [],
