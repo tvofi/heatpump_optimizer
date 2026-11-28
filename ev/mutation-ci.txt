@@ -1,0 +1,3 @@
+tests / mutation, job 140886168936 (run 46114054968) at head 7c18ebb5575b227393272567b6cc27d96311916f, closing line:
+MUTATION TABLE REFUSED -- 1506 unpinned site(s) against 1394 at the ratchet base 265e061f65e452f8dd217a872f1e639d729a8467, 118 of them added by this diff.
+(No stale-disposition refusal in the log tail; the previous head 6dc61566's three stale dispositions are gone: two by cb3915f98, one by main's #3939.)

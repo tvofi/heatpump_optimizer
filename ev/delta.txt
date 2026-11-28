@@ -1,0 +1,36 @@
+review_carry 2e97faf4c1d23d6ab0dd1013efa6d68d1a7dbf0d 7c18ebb5575b227393272567b6cc27d96311916f:
+review_carry: 2e97faf4c -> 7c18ebb55  main=origin/main
+  branch-only commits: 4
+  why: the branch's own commits cb3915f98 change its content: 7c18ebb5575b227393272567b6cc27d96311916f is not the reviewed head 2e97faf4c1d23d6ab0dd1013efa6d68d1a7dbf0d merged onto 265e061f65e452f8dd217a872f1e639d729a8467
+  6dc615668  Merge remote-tracking branch 'origin/main' into fix/r11-seam-learners-p2
+  cb3915f98  tests(mutation): drop two sysid.conditions_met dispositions whose sites this diff removed
+  1f676837e  Merge commit 'cb3915f98ecb057949aa87aeb8f5708fb411f2c4' into fix/r11-seam-learners-p2
+  7c18ebb55  Merge remote-tracking branch 'origin/main' into fix/r11-seam-learners-p2
+review_carry: FRESH-REVIEW
+
+branch-only delta commit cb3915f98:
+cb3915f98ecb057949aa87aeb8f5708fb411f2c4 tests(mutation): drop two sysid.conditions_met dispositions whose sites this diff removed
+
+ .../SystemIdentification.conditions_met.GUARD_OFF.fa6ac820.json     | 6 ------
+ .../SystemIdentification.conditions_met.RETURN_DEL.f2ae865e.json    | 6 ------
+ 2 files changed, 12 deletions(-)
+
+deleted dispositions' old lines in sysid.py at head (grep rc 1 = absent):
+rc=1
+same lines at origin/main 265e061:
+1562:            if price > cutoff:
+1564:        return True, "ready"
+
+main merges: auto merge-tree of parents vs actual tree
+6dc6156688 auto=337ca5478f2d5f7e97732d5616e79c6a33fee0f8 actual=337ca5478f2d5f7e97732d5616e79c6a33fee0f8
+7c18ebb557 auto=1d9bd84db912ec95d5540aff0a890529f847cb10 actual=1d9bd84db912ec95d5540aff0a890529f847cb10
+
+PR production diff (merge-base...head) at reviewed vs new head, +/- lines:
+identical
+
+merge-tree --write-tree origin/main head:
+1d9bd84db912ec95d5540aff0a890529f847cb10
+rc=0
+
+VERSION/manifest/RELEASE_NOTES/claim files diff vs merge base:
+(empty = untouched)
