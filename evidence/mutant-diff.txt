@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/frost_hold.py b/custom_components/heatpump_optimizer/frost_hold.py
+index cd234cb8a2..a8d5e31531 100644
+--- a/custom_components/heatpump_optimizer/frost_hold.py
++++ b/custom_components/heatpump_optimizer/frost_hold.py
+@@ -98,7 +98,7 @@ def _active(held: ArbiterState, inp: ArbiterInputs) -> bool:
+     there), it is never active, whatever the reading.
+     """
+     cfg, rec = EntryConfig.from_mapping(inp.config), _record(held)
+-    if not (cfg.frost_hold and cfg.heat_pump_switch_entity):
++    if not cfg.frost_hold:
+         rec.latched = None
+         return False
+     out = inp.outdoor_c

@@ -1,0 +1,4 @@
+2026-11-28T00:52:06.6709983Z   FAIL a5:pages_ok  [raised=['grid:InvalidData'] missing=[] extra=[] not-save-or-menu=['grid:raise']]
+2026-11-28T00:52:06.6837987Z   FAIL run:exit_status  [the container exited 1]
+2026-11-28T00:52:06.6886919Z   FAIL a5:pages_ok  [raised=['grid:InvalidData'] missing=[] extra=[] not-save-or-menu=['grid:raise']]
+2026-11-28T00:52:06.7199465Z FAILED: 2 of 66 checks: ['a5:pages_ok', 'run:exit_status']

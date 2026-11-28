@@ -1,0 +1,2 @@
+2026-11-28T05:53:36.5683209Z RESULT budget_raises=2 count
+2026-11-28T05:53:36.5683620Z REFUSED: tvofi's approval is on 1d027949b899, not this head 809ae0c7a82b: an approval covers only the commit it was given on

@@ -1,0 +1,5 @@
+  FAIL frost hold gate: no power switch configured: an OFF at -3 °C is not held  [[(None, True), (None, True)] != [(False, False), (False, False)]]
+  FAIL frost hold: no power switch configured: the cut-off cuts  [(True, True) != (False, False)]
+2 of 6367 FEATURE CHECKS FAILED
+real	24m18.784s
+rc=1
