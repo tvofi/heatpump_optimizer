@@ -275,6 +275,9 @@
   "target_temperature": "core",
   "weather_stale_hours": "fetch",
   "configured_quiet_windows": "dhw",
-  "async_request_refresh": "core"
+  "async_request_refresh": "core",
+  "_actuate_plan": "core",
+  "async_apply_held": "core",
+  "coordinator._publish_uncycled": "core"
  }
 }
