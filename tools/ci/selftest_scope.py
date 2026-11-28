@@ -108,6 +108,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -924,25 +925,46 @@ def touched_steps(changes: list[tuple[str, str]], table: dict | None, steps: lis
 SKIP_RC = 3     # prepr.sh's convention for a check this host cannot run
 
 
-def base_drift(root: Path, base: str, refuse: list[str], want: list[str]) -> set[str]:
-    """The refusals of `refuse` the merge base's own tree draws too, each
-    printed as a note: main's drift step reads them already, so they are the
-    selftest-absorb beat row's to absorb (tools/audit/seat/selftest_absorb.py),
-    never a branch's to pay (the step-replay rule
-    of tools/pr/ci_predict.py: a red at both ends is not the diff's). Only the
-    refused steps are traced again, at the merge base, against its table."""
+def base_trace(root: Path, base: str, want: list[str]):
+    """Start tracing the steps of `want` the merge base gates, in a scratch
+    clone of that commit, beside the head's own trace, and return the call
+    that waits for it: (merge base, its steps, its table, its measurement),
+    or None where there is no merge base or it is HEAD. A trace waits on
+    the step far more than it computes, so the two runs share the wall clock
+    a serial base trace would add after every refusal the head draws."""
     def git(*args: str) -> str | None:
         r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
         return r.stdout if r.returncode == 0 else None
     mb = (git("merge-base", base, "HEAD") or "").strip()
-    was = job_steps(git("show", f"{mb}:{WORKFLOW}") or "") if mb else []
-    hit = {i for i in gated_ids(was) if i in want and any(f" step {i}: " in r for r in refuse)}
-    if not hit or mb == (git("rev-parse", "HEAD") or "").strip():
+    if not mb or mb == (git("rev-parse", "HEAD") or "").strip():
+        return lambda: None
+    was = job_steps(git("show", f"{mb}:{WORKFLOW}") or "")
+    hit = {i for i in gated_ids(was) if i in want}
+    print(f"selftest_scope precheck: tracing {sorted(hit)} at the merge base {mb[:12]} beside the head",
+          flush=True)
+    got: dict = {}
+    worker = threading.Thread(target=lambda: got.update(m=trace_steps(root, was, hit, mb)[0]), daemon=True)
+    worker.start()
+
+    def wait():
+        worker.join()
+        return mb, was, parse_table(git("show", f"{mb}:{TABLE}")), got.get("m", {})
+    return wait
+
+
+def base_drift(refuse: list[str], pending) -> set[str]:
+    """The refusals of `refuse` the merge base's own tree draws too, each
+    printed as a note: main's drift step reads them already, so they are the
+    selftest-absorb beat row's to absorb (tools/audit/seat/selftest_absorb.py),
+    never a branch's to pay (the step-replay rule
+    of tools/pr/ci_predict.py: a red at both ends is not the diff's). Graded
+    over the merge base's trace `pending` (`base_trace`) and its own table."""
+    based = pending()
+    if based is None or not refuse:
         return set()
-    print(f"selftest_scope precheck: {len(refuse)} refusal(s) at the head; tracing {sorted(hit)} "
-          f"at the merge base {mb[:12]}", flush=True)
-    measured, _, _ = trace_steps(root, was, hit, mb)
-    shared = set(drift(parse_table(git("show", f"{mb}:{TABLE}")), measured, was, hit)[0]) & set(refuse)
+    mb, was, table, measured = based
+    hit = {i for i in gated_ids(was) if i in measured and any(f" step {i}: " in r for r in refuse)}
+    shared = set(drift(table, measured, was, hit)[0]) & set(refuse) if hit else set()
     for line in sorted(shared):
         print(f"  note: the merge base draws it too, main's to absorb: {line}")
     return shared
@@ -970,9 +992,10 @@ def precheck(root: Path, base: str) -> int:
         print(f"selftest_scope precheck: skip, {len(want)} step(s) untraced {want}: no strace here, "
               f"or this run is itself traced; main's drift step is the detector")
         return SKIP_RC
+    pending = base_trace(root, base, want)   # one trace of the merge base for all of them
     measured, broken, failed = trace_steps(root, steps, set(want))
     refuse = drift(table, measured, steps, set(want))[0]
-    shared = base_drift(root, base, refuse, want)   # one trace of the merge base for all of them
+    shared = base_drift(refuse, pending)
     refuse = broken + [r for r in refuse if r not in shared]
     for line in refuse:
         print(f"  {line}")
@@ -2250,7 +2273,7 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         asked: list = []
         real = {k: globals()[k] for k in ("drift", "base_drift")}
         globals()["drift"] = lambda *a, **k: (["UNDER-SCOPED step a: one", "UNDER-SCOPED step a: two"], [])
-        globals()["base_drift"] = lambda r, b, refuse, want: asked.append(list(refuse)) or {"UNDER-SCOPED step a: one"}
+        globals()["base_drift"] = lambda refuse, pending: asked.append(list(refuse)) or {"UNDER-SCOPED step a: one"}
         try:
             rc_o, out_o = under(scripted, "", "precheck", "--base", pbase)
         finally:
@@ -2277,6 +2300,40 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
            "unmeasured, a skip (rc 3) naming it, never a pass (the working tree's uncommitted script ran)",
            rc_f == SKIP_RC and "skip, 1 step(s) ['a'] exited non-zero" in out_f
            and "1 step(s) traced ['a'], 0 refusal(s)" in out_f)
+        # The merge base's trace runs beside the head's: each tree's step marks
+        # a rendezvous and waits for the other's mark, so a base traced after
+        # the head leaves the head's step alone at it (null control: the same
+        # step run once, alone, meets nobody).
+        rv = pr.parent / "rendezvous"
+        meet = ('mkdir -p "$RV"; : > "$RV/$(git rev-parse HEAD)"; n=0\n'
+                'while [ "$(ls "$RV" | wc -l)" -lt 2 ] && [ $n -lt 100 ]; do sleep 0.05; n=$((n+1)); done\n'
+                '[ "$(ls "$RV" | wc -l)" -lt 2 ] || : > "$RV.met.$(git rev-parse HEAD)"\n')
+        (pr / "tools/x/run.sh").write_text(meet)
+        pgit("commit", "-qam", "a step that waits to meet the other tree's")
+        rv_base = pgit("rev-parse", "HEAD")
+        (pr / "tools/x/run.sh").write_text(meet + "# touched\n")
+        pgit("commit", "-qam", "the waiting step's script changes")
+        os.environ["RV"] = str(rv)
+        try:
+            under(scripted, "", "precheck", "--base", rv_base)
+            met = sorted(x.name for x in pr.parent.glob("rendezvous.met.*"))
+            shutil.rmtree(rv, ignore_errors=True)
+            for x in pr.parent.glob("rendezvous.met.*"):
+                x.unlink()
+            was_bt = globals()["base_trace"]
+            globals()["base_trace"] = lambda r, b, w: (lambda: None)
+            try:
+                rc_alone, out_alone = under(scripted, "", "precheck", "--base", rv_base)
+            finally:
+                globals()["base_trace"] = was_bt
+            alone = sorted(x.name for x in pr.parent.glob("rendezvous.met.*"))
+        finally:
+            del os.environ["RV"]
+            shutil.rmtree(rv, ignore_errors=True)
+        ck("precheck: the merge base's trace runs beside the head's, both trees' steps meeting at a rendezvous "
+           f"(met {met}; null control: the head's step traced alone meets nobody, {alone})",
+           len(met) == 2 and alone == [] and "1 step(s) traced ['a']" in out_alone)
+        pgit("checkout", "-q", gained)
         (pr / TABLE).write_bytes(before)
         if shutil.which("strace") is None or _traced():
             print("  skip precheck under the real tracer: no strace here, or this run is itself traced")
