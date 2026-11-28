@@ -9151,10 +9151,11 @@
    "architect_note": "Owner order of 2026-11-27, folded into round 11. L, so design-first (decision 0014): designer.md, then design-review.md, then the fixer. No after-edge: it should land ahead of the late-round groups that append to tests/features.py, so dispatch it on the critical path.",
    "brief": "Owner order (2026-11-27, folded into round 11): split tests/features.py by feature seam into several scripts. Aims: (1) stop the end-of-file append conflicts, which hit eighteen pull requests in round 11; (2) keep each D5 finder seat's text units per scope under the ledger max_units that tools/audit/check_scopes.py enforces (the s7 seat held more than the 4500 cap); (3) preserve every test, every pin and every mutation kill, with the killed_by paths under tests/mutation_ledger re-keyed to the new scripts; (4) classify each new script deliberately, in a measured closure in tests/closures.json or on the INERT list in tests/closure.py, so tests/entities.py does not force the full suite; (5) no growth in tests/structure_budgets.json, or a raise only under CLAUDE.md rule 2 with the owner's confirmation. Design-first: the architect note must give the seam partition (which tests go to which script, by feature seam, not by size), the migration of the mutation ledger and of the closures, and the null control, which is that the set of killed mutants is identical before and after the split, compared mutant by mutant, plus the test count and the pin count equal. The fixer then executes that design with a failing test first and the finder's harness at both ends. Land before the late-round groups that append to tests/features.py.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r11-owner-features-split",
     "next_step": "designer after dispatch; owner item, dispatches above caps; design review before the fixer",
-    "note": "owner order 2026-11-27; critical-path order, no after-edge"
+    "note": "owner order 2026-11-27; critical-path order, no after-edge",
+    "pr": 3940
    },
    "issues": [],
    "fixes": [],
