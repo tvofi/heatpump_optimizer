@@ -56,10 +56,11 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Collection, Mapping
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from typing import Any, Final
 
 from . import const
+from .drift import utc_elapsed_seconds, utc_instant
 
 # (start_hour, end_hour) as floats in [0, 24); end may be <= start when the
 # window wraps past midnight.
@@ -551,22 +552,73 @@ def overlap_fraction(
 
 
 def hours_until_next_window(
-    hour: float, windows: list[Window], tomorrow: list[Window] | None = None
+    now: datetime, windows: list[Window], tomorrow: list[Window] | None = None
 ) -> float | None:
-    """Hours from ``hour`` until the next window starts (0.0 when inside one).
+    """Real hours from ``now`` until the next window starts (0.0 when inside one).
 
     ``windows`` are today's; a start already passed reads in ``tomorrow``'s,
     the next day's windows in force (``windows_in_force``), or today's again
     when ``None`` -- the every-day schedule. Returns None when neither day
     has a window.
+
+    A window start is a wall-clock time in ``now``'s zone, and the answer is
+    the time to the first instant the wall clock enters a window (P7, issue
+    3786). On a spring-forward day that is 2.5 h from 00:30 to a 04:00 window,
+    not the 3.5 h the wall times differ by. In an autumn repeated hour either
+    pass opens a start after ``now``. A naive ``now`` is UTC
+    (``drift.utc_instant``).
     """
-    if windows and hour_in_windows(hour, windows):
+    if windows and hour_in_windows(now.hour + now.minute / 60.0, windows):
         return 0.0
-    h = hour % 24.0
-    starts = [start - h for start, _ in windows if start > h] + [
-        start + 24.0 - h for start, _ in (windows if tomorrow is None else tomorrow)
+    zone = now.tzinfo or timezone.utc
+    day = now.date()
+    opens = [
+        t
+        for on, day_windows in ((day, windows), (day + timedelta(days=1), windows if tomorrow is None else tomorrow))
+        for t in _window_entries(zone, on, day_windows)
+        if t > utc_instant(now)
     ]
-    return min(starts, default=None)
+    return utc_elapsed_seconds(min(opens), now) / 3600.0 if opens else None
+
+
+def _window_entries(zone: tzinfo, on: date, windows: list[Window]) -> list[datetime]:
+    """The UTC instants on ``on`` at which ``zone``'s wall clock enters one of ``windows``.
+
+    The clock enters a window at its start, read at each instant that wall time
+    occurs: once, twice in an autumn repeated hour, never in a spring skipped
+    one. It also enters at a DST jump that lands inside a window it was outside.
+    """
+    out = []
+    for start, _ in windows:
+        day, minute = divmod(round(start * 60.0), 24 * 60)
+        for fold in (0, 1):
+            wall = datetime.combine(on + timedelta(days=day), time(minute // 60, minute % 60, fold=fold), zone)
+            instant = utc_instant(wall)
+            if instant.astimezone(zone).replace(tzinfo=None) == wall.replace(tzinfo=None):
+                out.append(instant)
+    jump = _offset_change(zone, on)
+    if jump is not None and _wall_inside(jump.astimezone(zone), on, windows) and not _wall_inside(
+        (jump - timedelta(seconds=1)).astimezone(zone), on, windows
+    ):
+        out.append(jump)
+    return out
+
+
+def _wall_inside(wall: datetime, on: date, windows: list[Window]) -> bool:
+    """Whether the wall time ``wall`` falls on ``on`` and inside one of ``windows``."""
+    return wall.date() == on and hour_in_windows(wall.hour + wall.minute / 60.0, windows)
+
+
+def _offset_change(zone: tzinfo, on: date) -> datetime | None:
+    """The UTC instant, to the second, in ``on``'s local day at which ``zone``'s offset changes."""
+    lo, hi = (utc_instant(datetime.combine(on + timedelta(days=d), time(), zone)) for d in (0, 1))
+    first = lo.astimezone(zone).utcoffset()
+    if hi.astimezone(zone).utcoffset() == first:
+        return None
+    while hi - lo > timedelta(seconds=1):
+        mid = lo + timedelta(seconds=(hi - lo).total_seconds() // 2)
+        lo, hi = (mid, hi) if mid.astimezone(zone).utcoffset() == first else (lo, mid)
+    return hi
 
 
 def is_valid_spec(spec: str) -> bool:
