@@ -44772,4 +44772,130 @@ R.check(
     (_csel_run.stdout + _csel_run.stderr)[-600:],
 )
 
+R.section("The tests/features.py freeze (R11-OWNER-FEATURES-SPLIT)")
+# tests/features.py is frozen in place: no new span, no line growth, and new
+# tests go to tests/features_<seam>.py, the seam its harness's module table
+# names (dev/audit/harnesses/features_freeze.py states the rule, the manifest
+# and the raise path). The live check is the harness's own `tree_refusals`;
+# the null controls drive its `refusals` over scratch copies of the live
+# text, each isolating one condition: span ids, lines, seam home.
+# The manifest is a `*_budgets.json`, so budget-raise-gate refuses a PR that
+# appends a span and re-records it in the same diff.
+import importlib.util as _ffz_util  # noqa: E402
+
+_FFZ_ROOT = Path(__file__).resolve().parents[1]
+
+_ffz_spec = _ffz_util.spec_from_file_location(
+    "hpo_features_freeze", _FFZ_ROOT / "dev" / "audit" / "harnesses" / "features_freeze.py")
+_ffz = _ffz_util.module_from_spec(_ffz_spec)
+_ffz_spec.loader.exec_module(_ffz)
+_FFZ_SRC = (_FFZ_ROOT / _ffz.FROZEN_SCRIPT).read_text()
+_FFZ_MAN_TEXT = (_FFZ_ROOT / _ffz.MANIFEST).read_text()
+_FFZ_MAN = json.loads(_FFZ_MAN_TEXT)
+_FFZ_LIVE = _ffz.tree_refusals(_FFZ_ROOT)
+_ffz_spans = _ffz.cs.split(_FFZ_SRC)[2]
+R.check(
+    "tests/features.py keeps the freeze: every span id is in tests/features_frozen_budgets.json, "
+    "its line count is at or below the manifest's, and every seam script's spans are at home",
+    _FFZ_LIVE == [],
+    "; ".join(_FFZ_LIVE)[:900],
+)
+R.check(
+    "the freeze manifest is its recorder's shape: an integer `lines`, a `seam_pins` map of span-id lists, "
+    "and unique span ids covering every span case_select.split yields from tests/features.py",
+    sorted(_FFZ_MAN) == ["lines", "seam_pins", "spans"]
+    and isinstance(_FFZ_MAN["lines"], int) and not isinstance(_FFZ_MAN["lines"], bool)
+    and isinstance(_FFZ_MAN["seam_pins"], dict)
+    and all(isinstance(v, list) for v in _FFZ_MAN["seam_pins"].values())
+    and len(set(_FFZ_MAN["spans"])) == len(_FFZ_MAN["spans"])
+    and {s.id for s in _ffz_spans} <= set(_FFZ_MAN["spans"]) and len(_ffz_spans) > 0,
+    f"keys {sorted(_FFZ_MAN)}, {len(_FFZ_MAN.get('spans', []))} listed, {len(_ffz_spans)} live",
+)
+
+_ffz_lines = _FFZ_SRC.splitlines(keepends=True)
+_ffz_close = max(i for i, ln in enumerate(_ffz_lines) if ln.startswith("sys.exit(R.close("))
+_ffz_mid = _ffz_spans[len(_ffz_spans) // 2].first - 1  # 0-based index of a mid-file span's first line
+_FFZ_PLANT = ['R.section("planted freeze probe")\n', 'R.check("planted", True)\n']
+_ffz_loose = dict(_FFZ_MAN, lines=_FFZ_MAN["lines"] + 50)  # room for growth: only the span condition can refuse
+_ffz_append = "".join(_ffz_lines[:_ffz_close] + _FFZ_PLANT + _ffz_lines[_ffz_close:])
+_ffz_insert = "".join(_ffz_lines[:_ffz_mid] + _FFZ_PLANT + _ffz_lines[_ffz_mid:])
+_ffz_dup = "".join(_ffz_lines[:_ffz_close] + [f"R.section({_ffz_spans[0].title!r})\n"] + _ffz_lines[_ffz_close:])
+_ffz_r_append = _ffz.refusals(_ffz_append, _ffz_loose, {})
+_ffz_r_insert = _ffz.refusals(_ffz_insert, _ffz_loose, {})
+_ffz_r_dup = _ffz.refusals(_ffz_dup, _ffz_loose, {})
+R.check(
+    "null control (span ids): a section appended, inserted mid-file, or repeating an existing title "
+    "is refused by name; the live text under the same manifest is not",
+    len(_ffz_r_append) == 1 and _ffz_r_append[0].startswith("span:") and "'planted freeze probe'" in _ffz_r_append[0]
+    and len(_ffz_r_insert) == 1 and "'planted freeze probe'" in _ffz_r_insert[0]
+    and len(_ffz_r_dup) == 1 and f"'{_ffz_spans[0].title}#" in _ffz_r_dup[0]
+    and _ffz.refusals(_FFZ_SRC, _ffz_loose, {}) == [],
+    f"{_ffz_r_append} {_ffz_r_insert} {_ffz_r_dup}",
+)
+
+_ffz_tight = dict(_FFZ_MAN, lines=_FFZ_SRC.count("\n"))
+_ffz_in = _ffz_spans[0].first  # 0-based index of the line after span 0's R.section line
+_ffz_grown = "".join(_ffz_lines[:_ffz_in] + ["# planted line\n"] + _ffz_lines[_ffz_in:])
+_ffz_comment = next(i for i in range(_ffz_in, _ffz_close) if _ffz_lines[i].lstrip().startswith("# "))
+_ffz_shrunk = "".join(_ffz_lines[:_ffz_comment] + _ffz_lines[_ffz_comment + 1:])
+_ffz_r_grown = _ffz.refusals(_ffz_grown, _ffz_tight, {})
+R.check(
+    "null control (lines): one line added inside an existing span is refused on `lines` alone; "
+    "one line removed passes, so the freeze never refuses a move down",
+    len(_ffz_r_grown) == 1 and _ffz_r_grown[0].startswith("lines:")
+    and _ffz.refusals(_ffz_shrunk, _ffz_tight, {}) == []
+    and _ffz.refusals(_FFZ_SRC, _ffz_tight, {}) == [],
+    f"{_ffz_r_grown} {_ffz.refusals(_ffz_shrunk, _ffz_tight, {})}",
+)
+
+_FFZ_SEAM = ("import sys\nfrom harness import Results\nR = Results()\n"
+             'R.section("planted dhw span")\n'
+             "from custom_components.heatpump_optimizer import dhw_planner as _p\n"
+             'R.check("planted", _p is not None)\n'
+             'sys.exit(R.close("SEAM"))\n')
+_ffz_r_wrong = _ffz.refusals(_FFZ_SRC, _FFZ_MAN, {"tests/features_model.py": _FFZ_SEAM})
+_ffz_pinned = dict(_FFZ_MAN, seam_pins={"tests/features_model.py": ["planted dhw span"]})
+_ffz_r_hdr = _ffz.refusals(_FFZ_SRC, _FFZ_MAN, {"tests/features_dhw.py": "import features\n" + _FFZ_SEAM})
+_ffz_r_name = _ffz.refusals(_FFZ_SRC, _FFZ_MAN, {"tests/features_misc.py": _FFZ_SEAM})
+R.check(
+    "null control (seam home): a dhw span in features_model.py is refused naming features_dhw.py; "
+    "in features_dhw.py, or pinned in seam_pins, it passes; a seam header importing features.py and "
+    "a script named for no seam are refused",
+    len(_ffz_r_wrong) == 1 and _ffz_r_wrong[0].startswith("seam:")
+    and "tests/features_dhw.py" in _ffz_r_wrong[0]
+    and _ffz.refusals(_FFZ_SRC, _FFZ_MAN, {"tests/features_dhw.py": _FFZ_SEAM}) == []
+    and _ffz.refusals(_FFZ_SRC, _ffz_pinned, {"tests/features_model.py": _FFZ_SEAM}) == []
+    and len(_ffz_r_hdr) == 1 and _ffz_r_hdr[0].startswith("header:")
+    and len(_ffz_r_name) == 1 and "named for no seam" in _ffz_r_name[0],
+    f"{_ffz_r_wrong} {_ffz_r_hdr} {_ffz_r_name}",
+)
+
+sys.path.insert(0, str(_FFZ_ROOT / "tools" / "policy"))
+import budget_raise_gate as _ffz_brg  # noqa: E402
+
+_ffz_relaunder = json.dumps(dict(_FFZ_MAN, lines=_ffz_append.count("\n"),
+                                 spans=_ffz.measure(_ffz_append)["spans"]), indent=1) + "\n"
+_ffz_raises = _ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_relaunder)
+_ffz_rules = _ffz_brg.SCHEMA.get(_ffz.MANIFEST)
+_ffz_down = json.dumps(dict(_FFZ_MAN, lines=_FFZ_MAN["lines"] - 1), indent=1) + "\n"
+_ffz_pin = json.dumps(dict(_FFZ_MAN, seam_pins={"tests/features_model.py": [_ffz_spans[0].id]}), indent=1) + "\n"
+_ffz_drop = json.dumps(dict(_FFZ_MAN, spans=_FFZ_MAN["spans"][1:]), indent=1) + "\n"
+R.check(
+    "null control (laundering): the manifest has its own budget-raise-gate SCHEMA entry, `lines` a cap "
+    "and `spans` and every `seam_pins` list frozen, so a span appended and the manifest re-recorded in the "
+    "same diff is a raise on both, a new pin and a dropped span id are raises, `lines` re-recorded down is "
+    "routine, and an unchanged manifest is none",
+    _ffz.MANIFEST.endswith(_ffz_brg.SUFFIX) and _ffz_rules is not None
+    and _ffz_brg.kind_of(_ffz_rules, ("lines",)) == _ffz_brg.MAX
+    and _ffz_brg.kind_of(_ffz_rules, ("spans",)) == _ffz_brg.FROZEN
+    and _ffz_brg.kind_of(_ffz_rules, ("seam_pins", "tests/features_model.py")) == _ffz_brg.FROZEN
+    and any(": lines:" in r for r in _ffz_raises)
+    and any(": spans:" in r for r in _ffz_raises)
+    and len(_ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_pin)) == 1
+    and len(_ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_drop)) == 1
+    and _ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_down) == []
+    and _ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _FFZ_MAN_TEXT) == [],
+    f"rules {_ffz_rules}; {str(_ffz_raises)[:500]}",
+)
+
 sys.exit(R.close("ENTITY CHECKS"))
