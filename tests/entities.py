@@ -28289,6 +28289,163 @@ R.check(
     f"untemplated: {sorted(_reason_values - set(narrative_mod.TEMPLATES['en']))}",
 )
 
+# R11-PRODUCT-TEXT-PINS: three corrected user sentences, each read from the
+# shipped artifact and held to the code that decides what it describes, so
+# reverting the text fails here rather than passing as prose.
+import numpy as _ptp_np  # noqa: E402
+from heatpump_optimizer import coordinator as _ptp_coord_mod  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _PtpModel,
+    ThermalParameters as _PtpParams,
+)
+
+# (1) The narrative's hot-water sentences (dabc6d30af). Witness: a plan whose
+# dearest step is a hot-water charge outside any window and whose window
+# charge is a later step, not the present one. classify_dhw_steps tags the
+# first dhw_preheat and the second dhw_window, so a dhw_preheat sentence that
+# claims cheap electricity, or a dhw_window one that claims "now", states
+# what the classifier never decided. The vocabulary is per language; the
+# texts the correction replaced are the detector's own control, and a
+# detector that misses them reads as a pass.
+_ptp_prices = _ptp_np.array([0.5, 3.0, 0.4])
+_ptp_codes = optimizer_mod.classify_dhw_steps(
+    _ptp_np.array([0.0, 2.0, 2.0]),
+    _ptp_np.array([False, False, True]),
+    _ptp_np.zeros(3),
+    None,
+    3,
+    idle=optimizer_mod.IdleContext(prices=_ptp_prices),
+)
+R.check(
+    "the hot-water witness: the dearest step is dhw_preheat, a later "
+    "in-window step is dhw_window",
+    _ptp_codes[1] == optimizer_mod.REASON_DHW_PREHEAT
+    and int(_ptp_np.argmax(_ptp_prices)) == 1
+    and _ptp_codes[2] == optimizer_mod.REASON_DHW_WINDOW,
+    f"codes={_ptp_codes}",
+)
+_PTP_PRICE_CLAIM = re.compile(r"(cheap|billig|günstig)", re.IGNORECASE)
+_PTP_NOW_CLAIM = re.compile(r"\b(now|nu|jetzt)\b", re.IGNORECASE)
+_ptp_replaced = {
+    "dhw_preheat": (
+        "charging the tank while electricity is cheap: {kwh} kWh ({cost} {currency})",
+        "tanken laddas medan elen är billig: {kwh} kWh ({cost} {currency})",
+        "Speicher laden, solange Strom günstig ist: {kwh} kWh ({cost} {currency})",
+    ),
+    "dhw_window": (
+        "hot water needed now: {kwh} kWh ({cost} {currency})",
+        "varmvatten behövs nu: {kwh} kWh ({cost} {currency})",
+        "Warmwasser jetzt benötigt: {kwh} kWh ({cost} {currency})",
+    ),
+}
+_ptp_claim = {"dhw_preheat": _PTP_PRICE_CLAIM, "dhw_window": _PTP_NOW_CLAIM}
+R.check(
+    "the hot-water claim detector reads every replaced sentence as a claim",
+    all(_ptp_claim[k].search(s) for k, ss in _ptp_replaced.items() for s in ss),
+    repr({k: [bool(_ptp_claim[k].search(s)) for s in ss] for k, ss in _ptp_replaced.items()}),
+)
+_ptp_claiming = sorted(
+    f"{lang}.{key}"
+    for lang, table in narrative_mod.TEMPLATES.items()
+    for key, rx in _ptp_claim.items()
+    if rx.search(table[key])
+)
+R.check(
+    "no dhw_preheat sentence claims a price and no dhw_window sentence "
+    "claims the present, in any language",
+    not _ptp_claiming and set(narrative_mod.TEMPLATES) >= {"en", "sv", "de"},
+    f"claiming: {_ptp_claiming}",
+)
+
+# (2) set_thermal_parameters' rain multiplier description names two rain
+# rates: the one from which the whole multiplier applies, then the one at or
+# below which none does. Both are read from every shipped text, in that
+# order, and effective_heat_loss_coefficient is driven at each and between.
+_ptp_texts = {
+    _p.name: json.loads(_p.read_text(encoding="utf-8"))["services"][
+        "set_thermal_parameters"]["fields"]["rain_heat_loss_multiplier"]["description"]
+    for _p in [ROOT / "strings.json", *sorted((ROOT / "translations").glob("*.json"))]
+}
+_ptp_rates = {
+    _n: tuple(float(_m.replace(",", ".")) for _m in re.findall(r"(\d+(?:[.,]\d+)?)\s*mm/h", _t))
+    for _n, _t in _ptp_texts.items()
+}
+_ptp_params = _PtpParams(rain_heat_loss_multiplier=1.15, wind_sensitivity=0.0)
+_ptp_model = _PtpModel(_ptp_params)
+_ptp_dry = _ptp_model.effective_heat_loss_coefficient(0.2, 0.0, 0.0)
+
+
+def _ptp_rain_factor(mm_h):
+    return _ptp_model.effective_heat_loss_coefficient(0.2, 0.0, mm_h) / _ptp_dry
+
+
+def _ptp_rain_agrees(rates):
+    if len(rates) != 2 or not rates[1] < rates[0]:
+        return False
+    full, none = rates
+    extra = _ptp_params.rain_heat_loss_multiplier - 1.0
+    half = (none + full) / 2.0
+    return (
+        abs(_ptp_rain_factor(full) - 1.15) < 1e-12
+        and abs(_ptp_rain_factor(2.0 * full) - 1.15) < 1e-12
+        and _ptp_rain_factor(none) == 1.0
+        and _ptp_rain_factor(none + 1e-6) > 1.0
+        and abs(_ptp_rain_factor(half) - (1.0 + extra * half / full)) < 1e-12
+    )
+
+
+R.check(
+    "every rain-multiplier description states the full and the zero rain "
+    "rate effective_heat_loss_coefficient applies, in proportion between",
+    len(_ptp_texts) >= 4 and all(_ptp_rain_agrees(r) for r in _ptp_rates.values()),
+    f"rates={_ptp_rates}",
+)
+R.check(
+    "the rain-rate check refuses a text that names other rates",
+    not _ptp_rain_agrees((1.0, 0.1)) and not _ptp_rain_agrees((2.0, 0.0))
+    and not _ptp_rain_agrees(()),
+)
+
+# (3) run_optimization's no-prices error says how many price steps the solve
+# needs. The number is read from the shipped English message and the
+# coordinator's own run is driven on a horizon cut one step short of it and
+# at it: short answers no_prices, at it does not. That the service handler
+# maps no_prices to this message is features.py's "run_optimization on a
+# stale list raises the same no-prices error".
+_PTP_WORDS = dict(zip(
+    ("two", "three", "four", "five", "six", "seven", "eight"), range(2, 9)))
+_ptp_msg = json.loads((ROOT / "strings.json").read_text(encoding="utf-8"))[
+    "exceptions"]["run_optimization_no_prices"]["message"]
+_ptp_word = re.search(r"fewer than (\w+) electricity price steps", _ptp_msg)
+_ptp_need = _PTP_WORDS.get(_ptp_word.group(1)) if _ptp_word else None
+
+
+def _ptp_run_on(steps):
+    _h, _e, coord = _d801_coordinator(_FLOW_CONFIG)
+    real = coord._forecast_arrays
+
+    def cut(now=None):
+        return _ptp_coord_mod.ForecastArrays(*(a[:steps] for a in real(now)))
+
+    coord._forecast_arrays = cut
+    try:
+        return asyncio.run(coord.async_run_optimization())
+    except Exception as err:  # noqa: BLE001 -- the check reads only "not no_prices"
+        return f"raised {type(err).__name__}"
+
+
+_ptp_runs = (
+    {n: _ptp_run_on(n) for n in (_ptp_need - 1, _ptp_need)} if _ptp_need else {}
+)
+R.check(
+    "the no-prices message's step count is the run's own minimum: one step "
+    "short answers no_prices, that many does not",
+    bool(_ptp_runs)
+    and _ptp_runs[_ptp_need - 1] == "no_prices"
+    and _ptp_runs[_ptp_need] != "no_prices",
+    f"need={_ptp_need} runs={_ptp_runs} message={_ptp_msg!r}",
+)
+
 # Home Assistant looks a state translation up by the state string itself, so
 # every option has to be a legal translation key. script/hassfest's
 # RE_TRANSLATION_KEY, transcribed from 2025.2.0: lowercase alphanumeric with

@@ -3492,7 +3492,8 @@ class ThermalModel:
         h_eff = h_base * (1 + wind_sensitivity * wind_speed)
 
         Rain effect: wet building envelope has higher U-value.
-        U_eff = U_wind_adjusted * rain_multiplier (when precipitation > 0)
+        U_eff = U_wind_adjusted * rain_factor: none of the multiplier at
+        0.1 mm/h or less, all of it from 2 mm/h, in proportion between.
         """
         p = self.params
         # The configured coefficient is a nameplate estimate; the learned scale
@@ -3504,9 +3505,7 @@ class ThermalModel:
 
         # Rain effect: apply multiplier when raining
         if precipitation > 0.1:  # threshold for "raining"
-            # Scale rain multiplier based on precipitation intensity
-            # Light rain (0.1-1 mm/h): partial multiplier
-            # Heavy rain (>2 mm/h): full multiplier
+            # Scaled by intensity: the full multiplier from 2 mm/h.
             rain_intensity = min(precipitation / 2.0, 1.0)
             rain_factor = 1.0 + (p.rain_heat_loss_multiplier - 1.0) * rain_intensity
             u_wind *= rain_factor

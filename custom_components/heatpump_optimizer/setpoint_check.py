@@ -3,7 +3,9 @@
 Consistency only — not an optimality advisory. The scoping judge refused
 Fix-to-argmin: the argmin moves 50→65 °C under a price roll and the cost
 surface's deterministic non-convexities (4.2080 SEK/day) exceed the median
-gain (2.72). Space set-point is never recommended.
+gain (2.72). The space set-point is only checked for readability here: under
+Control the pump-duty arbiter writes the plan's own value to it each step
+(``pump_arbiter``), so there is no configured space value to compare.
 """
 from __future__ import annotations
 

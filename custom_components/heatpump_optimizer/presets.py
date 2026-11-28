@@ -8,9 +8,10 @@ other house started from a wrong prior, and the learners then spent weeks
 walking away from it, rate-limited by guard thresholds that exist precisely
 because the prior might be bad.
 
-This module replaces two unanswerable questions with three answerable ones:
-what the building is made of, roughly when it was built, and what the heat is
-emitted through. Those map onto physics that is well characterised, especially
+This module replaces two unanswerable questions with answerable ones -- the
+questions ``preset_from_config`` reads: what the building is made of, what it
+stands on, roughly when it was built, how much of it is heated, and what the
+heat is emitted through on each floor. Those map onto physics that is well characterised, especially
 for Swedish era bands, which track the insulation standards of their time
 fairly closely.
 
