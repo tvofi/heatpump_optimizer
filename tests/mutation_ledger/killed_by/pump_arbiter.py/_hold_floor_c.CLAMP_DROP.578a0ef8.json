@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_hold_floor_c CLAMP_DROP 578a0ef8",
+  "killed_by": "tests/features.py",
+  "old": "    return _bounded(inp, \"space_setpoint\", low if limit is None else max(low, limit), rounding=\"up\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return _bounded(inp, \"space_setpoint\", low if limit is None else (low), rounding=\"up\")`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -208,6 +208,8 @@ custom_components/heatpump_optimizer/
 │                         #   over one step against the plan
 ├── supply_hold.py        # The supply switch's minimum run and pause, held
 │                         #   across a re-solve, a cycle or a restart
+├── frost_hold.py         # Below the frost threshold, or with no outdoor
+│                         #   reading, an idle step keeps the switch on
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
 │                         #   the running compressor; its estimate, shrunk
 │                         #   until a direction latches, is what the solve
@@ -305,7 +307,7 @@ These modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
+`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `frost_hold`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
 `store`, `supply_hold`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.

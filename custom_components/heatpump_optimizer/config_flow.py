@@ -216,6 +216,8 @@ from .const import (
     SPACE_SETPOINT_UNITS,
     SPACE_SETPOINT_WATER_UNITS,
     CONF_FLOW_HEAT_C,
+    CONF_FROST_HOLD,
+    CONF_FROST_HOLD_BELOW_C,
     DEFAULT_FLOW_HEAT_C,
     FLOW_HEAT_C_MAX,
     FLOW_LIMIT_C_MIN,
@@ -226,6 +228,8 @@ from .const import (
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     DEFAULT_FLOW_MIN_LIFT_K,
     DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK,
+    DEFAULT_FROST_HOLD,
+    DEFAULT_FROST_HOLD_BELOW_C,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -1510,12 +1514,9 @@ def _first_screen_schema(hass: HomeAssistant) -> vol.Schema:
 #
 # Two tables -- one of pages, one of fields -- and every option page is a
 # query over them: which fields does this step declare, and which menu does
-# this step appear in. Before this, each page hand-listed its own markers,
-# repeated ``default=current.get(KEY, DEFAULT_KEY)`` for each one, declared
-# the two-armed entity default as its own identical nested helper, and named
-# its clearable keys a third time in a clearing loop. Three hand-kept copies
-# of one fact is how a page came to null a key its schema never presented
-# (#542) and how the clearable roster came to name one no page offers.
+# this step appear in. No page hand-lists its markers, defaults or clearable
+# keys: three hand-kept copies of one fact let a page null a key its schema
+# never presented (#542).
 #
 # What is deliberately NOT in the tables: validation, error text and the
 # after-save routing. Those differ per page for reasons the page owns, and a
@@ -1684,6 +1685,11 @@ def _single_zone(config: Mapping[str, Any]) -> bool:
     return not two_zone_from_config(config)
 
 
+def _power_switch(config: Mapping[str, Any]) -> bool:
+    """A power switch is configured: the frost hold's one actuator (``frost_hold``)."""
+    return bool(config.get(CONF_HEAT_PUMP_SWITCH_ENTITY))
+
+
 def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
     """Whether the space set-point is declared a water temperature (a flow or
     a return target), the only unit the pump-duty arbiter writes a heating
@@ -1729,6 +1735,8 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
     _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _WATER_LIMIT_C, when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_FROST_HOLD, DEFAULT_FROST_HOLD, selector.BooleanSelector(), when=_power_switch, group="indoor"),
+    _F("entities", CONF_FROST_HOLD_BELOW_C, DEFAULT_FROST_HOLD_BELOW_C, _number(-15, 10, 0.5, '°C'), when=_power_switch, group="indoor"),
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
@@ -2727,9 +2735,7 @@ class HeatPumpOptimizerConfigFlow(
     ) -> ConfigFlowResult:
         """Handle a reconfigure flow initialized by the user (D10-14).
 
-        A rotated token, a renamed sensor, a second pump where the first
-        used to be: before this step existed the only way through was to
-        delete the entry and walk all of setup again. Home Assistant
+        Home Assistant
         (2024.4+) starts the step from the entry's own page -- the manager
         stamps ``context={"source": "reconfigure", "entry_id": ...}`` and
         the entry's ``supports_reconfigure`` is what offers the button --
@@ -3876,10 +3882,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
 
         One page for everything between the heat sources and the emitters —
         the mixing valve, the buffer tank as a store, and the wood-furnace
-        tank with its probes. These used to be spread across three pages
-        (building, mixing valve, and the wood block on the learning page),
-        which meant describing one physical system in three places.
-        The purely structural properties (windows, wind and rain) live on
+        tank with its probes. The purely structural properties (windows, wind and rain) live on
         *Building type and emitters* instead.
 
         The write-target kind (#398) is validated here rather than trusted:

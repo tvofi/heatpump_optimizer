@@ -6,8 +6,9 @@ water. Each step is ``delivered``, ``space-instead``, ``dhw-instead``,
 ``idle-instead``, ``not-startable`` (a hot-water step left idle on a tank at
 or above the pump's own start temperature, the step's target less
 ``dhw_hysteresis_entity``), ``unknown`` (no power meter and no tank rise) or
-``baseline``. A concurrent Heating + DHW run reads as hot water; a big draw
-can hide a tank rise. Pure: a row in, a verdict out.
+``baseline``. A step kept on by ``frost_hold`` is ``frost-hold``. A concurrent
+Heating + DHW run reads as hot water; a big draw can hide a tank rise. Pure:
+a row in, a verdict out.
 """
 from __future__ import annotations
 
@@ -43,7 +44,9 @@ def step_verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
     else:
         actual = "dhw" if rose else None
     planned = row["planned"]
-    if planned is None:
+    if row.get("frost"):
+        verdict = "frost-hold"  # held on against the plan's idle step (frost_hold)
+    elif planned is None:
         verdict = "baseline"
     elif actual is None:
         verdict = "unknown"

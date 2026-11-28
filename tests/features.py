@@ -28020,6 +28020,10 @@ _LC_DATA = {
     "price_source": "entity",
     "price_entity": "sensor.prices",
     "weather_entity": "weather.home",
+    # No outdoor sensor and no forecast: the frost hold would keep every OFF
+    # back, so the switch tests built on this entry opt out; the frost hold's
+    # own tests opt in (R11-OWNER-FROST-HOLD).
+    "frost_hold": False,
 }
 
 # The full lifecycle through the real handlers, driven the way Home
@@ -32003,6 +32007,9 @@ def _solve_coord() -> Coord:
                 # pin nothing about the guards.
                 "ecl110_displace_set_topic": "ecl_solve/set",
                 "ecl110_command_topic": "ecl_solve/command",
+                # Its switch write is one of the three: at -5 °C the frost
+                # hold would keep the plan's OFF back (R11-OWNER-FROST-HOLD).
+                "frost_hold": False,
             }
         ),
     )
@@ -40189,7 +40196,9 @@ _ac_entity = "switch.hp_supply"
 
 def _ac_calls(signals, heat_pump_on):
     c = _t2_coord()
-    with_config(c, {CONF_HEAT_PUMP_SWITCH_ENTITY: _ac_entity})
+    # The mode rule alone: with no outdoor reading the frost hold would keep
+    # every OFF back (R11-OWNER-FROST-HOLD), so it is opted out here.
+    with_config(c, {CONF_HEAT_PUMP_SWITCH_ENTITY: _ac_entity, "frost_hold": False})
     c._pump_signals = signals
     c._current_action = {"heat_pump_on": heat_pump_on, "power": 0.0}
     c._mode = "comfort"
@@ -66838,7 +66847,7 @@ _R11AR_BASE = {
 _R11AR_FOUR = ("switch.hp", "number.freq", "number.valve", "switch.vvc")
 
 
-def _r11ar_config(duty="control", windows="08:00-09:00"):
+def _r11ar_config(duty="control", windows="08:00-09:00", frost=False):
     return {
         **_r11ar_golden.coordinator_scenarios()["coord_all_features"],
         "dhw_setpoint": 50.0, "pump_duty_mode": duty,
@@ -66852,6 +66861,9 @@ def _r11ar_config(duty="control", windows="08:00-09:00"):
         "dhw_disinfection_switch_entity": "switch.dis", "dhw_disinfection_mode": "control",
         "dhw_windows": windows,  # the null arm's window covers the clock: the circulation pump stays on
         "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor",
+        # The harness reads no outdoor sensor, so the frost hold (on by default) would hold every idle
+        # step's supply on; these checks are about what an Off or an unload hands back, not the hold.
+        "frost_hold": frost,
     }
 
 
@@ -66988,11 +67000,11 @@ async def _r11ar_drive(c, null=False, duties="dd--dd--", disinfect=False, idle=T
     return written
 
 
-async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True):
+async def _r11ar_plant(null=False, modbus=False, disinfect=False, duty="control", idle=True, frost=False):
     """(hass, entry, coord, written) after the write phase."""
     base = {**_R11AR_BASE, "select.pump_mode": "Heat + DHW"} if modbus else _R11AR_BASE
     hass = _r11ar_hass(base, _R11AR_MODBUS if modbus else _R11AR_TUYA)
-    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00"),
+    entry = _r11ar_Entry(data=_r11ar_config(duty=duty, windows="05:00-09:00" if null else "08:00-09:00", frost=frost),
                          entry_id=f"r11ar_{next(_R11AR_IDS)}")
     c = _r11ar_coord(hass, entry)
     written = await _r11ar_drive(c, null, duties="ssssssss" if modbus else "dd--dd--", disinfect=disinfect, idle=idle)
@@ -67034,6 +67046,15 @@ async def _r11ar_off_scn(null=False, trigger="off"):
     return before, _r11ar_read(hass, _R11AR_FOUR), {e: _r11ar_n(calls, e) for e in _R11AR_FOUR}
 
 
+# The fixture's frost-hold opt-out is load-bearing: left on (the default) with no outdoor reading, the idle
+# step's off is held and the supply switch never leaves its baseline, which is what the checks below undo.
+_r11ar_fh = {f: _r11ar_aio.run(_r11ar_plant(frost=f))[0].states.get("switch.hp").state for f in (False, True)}
+R.check(
+    "D16-s3-02 fixture: opted out of the frost hold the idle step switches the supply off; null control: "
+    "left on with no outdoor reading, the hold keeps it on",
+    _r11ar_fh == {False: "off", True: "on"},
+    f"{_r11ar_fh}",
+)
 _r11ar_want = {e: _R11AR_BASE[e] for e in _R11AR_FOUR}
 for _r11ar_trig in ("off", "unload", "remove"):
     _r11ar_b, _r11ar_a, _r11ar_w = _r11ar_aio.run(_r11ar_off_scn(trigger=_r11ar_trig))
@@ -73936,7 +73957,7 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
 # and this block owes a recorded failing check there, not an ImportError.
 _f24_floor = getattr(_f24_tm, "MIN_RUNNING_DRAW_KW", None)
 _f24_meter_kw = getattr(_f24_tm, "on_threshold_kw", None)
-_f24_ran_kw = getattr(_f24_pa, "_ran_kw", None)
+_f24_ran_kw = getattr(_f24_pa, "ran_kw", None)
 
 
 def _f24_opt(min_kw: float, max_kw: float):
@@ -74118,7 +74139,7 @@ R.check(
     and _f24_meter_kw(_f24_meter.thermal.params) == 0.2
     and _f24_meter_kw(_f24_NS(min_electrical_power=0.1)) == 0.1
     and _f24_ran_kw(_f24_meter) > 0.15 > _f24_floor,
-    f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
+    f"ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
     f"plan_floor={_f24_floor}",
 )
 
@@ -75065,6 +75086,9 @@ def _r9egb9_make(entry_id, extra=None, anchor=None):
         "outdoor_temp_entity": "sensor.outdoor",
         "ecl110_displace_set_topic": "ecl_r9egb9/set",
         "ecl110_command_topic": "ecl_r9egb9/command",
+        # The plan's OFF is one of the actuations compared: at -5 °C the
+        # frost hold would keep it back (R11-OWNER-FROST-HOLD).
+        "frost_hold": False,
         **(extra or {}),
     }, entry_id=entry_id))
     hass.spawn_real = True
@@ -84034,9 +84058,12 @@ R.check(
 # line to the plan's raw value turns the first check red.
 def _ec_cycle_writes(minutes_since_cut):
     hass = FakeHass({"switch.hp": FakeState("off"), "sensor.indoor": FakeState("22.0")})
+    # No outdoor reading: the frost hold would switch the pump on through the
+    # cut's MIN_OFF, as a hold's switch-on waits on no minimum, so it is opted
+    # out to pin the cut-off's own hold (R11-OWNER-FROST-HOLD).
     coord = _Coord(hass, _FakeEntry(data={
         "tibber_token": "x", "heat_pump_switch_entity": "switch.hp",
-        "indoor_temp_entity": "sensor.indoor"}))
+        "indoor_temp_entity": "sensor.indoor", "frost_hold": False}))
     now = _ec_dt.now()
     coord._optimization_result = _ec_plan("ss")
     coord._current_action = {"heat_pump_on": True, "displace_value": 0.0}
@@ -90979,6 +91006,489 @@ import json  # noqa: E402
 from pathlib import Path as _DsPath  # noqa: E402
 from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  # noqa: E402
 
+R.section("R11-OWNER-FROST-HOLD: an idle step below the frost threshold keeps the power switch on")
+# The supply gate's last stage (``frost_hold.gate``): below the threshold
+# (+2 °C by default), or with no outdoor reading, an OFF the integration would
+# write becomes a hold. Every check carries its null control: the same input
+# with the option off, or on the warm side of the latch, gives today's OFF.
+from heatpump_optimizer import frost_hold as _fh  # noqa: E402
+from heatpump_optimizer import diagnostics as _fh_diag  # noqa: E402
+from heatpump_optimizer import early_cutoff as _fh_ec  # noqa: E402
+from heatpump_optimizer.inputs import InputHealth as _FhHealth, InputReading as _FhReading  # noqa: E402
+
+_FH_ON = {"frost_hold": True}
+
+
+def _fh_inp(out, *, state="on", enabled=True, below=None, power=None, mode="auto", switch="switch.hp"):
+    """One pass's inputs: the outdoor reading ``out``, the switch reading ``state``."""
+    hass = FakeHass({switch: FakeState(state, last_updated=_SA_T0 - timedelta(hours=1))} if switch else {})
+    cfg = {"heat_pump_switch_entity": switch, "frost_hold": enabled}
+    if below is not None:
+        cfg["frost_hold_below_c"] = below
+    return _sa_pa.ArbiterInputs(
+        hass=hass, config=cfg, mode=mode, plan=None, plan_stale=False, entry_released=False,
+        state=SimpleNamespace(outdoor_temperature=5.0), thermal=SimpleNamespace(params=SimpleNamespace(min_electrical_power=0.4)),
+        params=None, action={}, measured_power_kw=power, disinfecting=False, outdoor_c=out)
+
+
+def _fh_gate(seq, value=False, **kw):
+    """``gate``'s answer to ``value`` after each reading in ``seq``, and the hold flag."""
+    held, got = _sa_pa.ArbiterState(), []
+    for out in seq:
+        got.append((_fh.gate(held, lambda o=out: _fh_inp(o, **kw), value, _SA_T0), held.frost_holding))
+    return got
+
+
+for _fh_name, _fh_got, _fh_want in (
+    ("an OFF at -3 °C is held, the switch left on", _fh_gate([-3.0]), [(None, True)]),
+    ("null control: the same OFF with the option off is written", _fh_gate([-3.0], enabled=False), [(False, False)]),
+    ("an OFF at +3 °C (threshold + 1 K) is written", _fh_gate([3.0]), [(False, False)]),
+    ("an OFF at +1.9 °C, one hair below +2, is held", _fh_gate([1.9]), [(None, True)]),
+    ("inside [t, t+1): a held latch stays held at +2.9 °C", _fh_gate([-1.0, 2.9]), [(None, True), (None, True)]),
+    ("inside [t, t+1): an inactive latch stays inactive at +2.0 °C", _fh_gate([4.0, 2.0]), [(False, False), (False, False)]),
+    ("the latch clears exactly at threshold + 1 K", _fh_gate([-1.0, 3.0]), [(None, True), (False, False)]),
+    ("no reading sets the latch from inactive", _fh_gate([4.0, None]), [(False, False), (None, True)]),
+    ("null control: no reading with the option off writes the OFF", _fh_gate([None], enabled=False), [(False, False)]),
+    ("the threshold is the option's: at -5 °C, 0 °C is warm enough", _fh_gate([0.0], below=-5.0), [(False, False)]),
+    ("an ON passes and ends a hold", _fh_gate([-3.0, -3.0], value=True), [(True, False), (True, False)]),
+    ("a held write (None) passes unchanged", _fh_gate([-3.0], value=None), [(None, False)]),
+    ("a switch reading off is switched back on", _fh_gate([-3.0], state="off"), [(True, True)]),
+    ("null control: the switch reading off at +5 °C is left off", _fh_gate([5.0], state="off"), [(False, False)]),
+    ("no power switch configured: an OFF at -3 °C is not held", _fh_gate([-3.0, None], switch=None), [(False, False)] * 2),
+):
+    R.check(f"frost hold gate: {_fh_name}", _fh_got == _fh_want, f"{_fh_got} != {_fh_want}")
+
+
+# The reading: the outdoor sensor's InputHealth verdict, never the back-filled
+# state; with no sensor configured, the forecast's value for now.
+def _fh_health(value=None, problem=None):
+    health = _FhHealth()
+    health.record(_FhReading(key="outdoor_temp_entity", entity_id="sensor.out", value=value, problem=problem))
+    return health
+
+
+_fh_fc = lambda: -4.0  # noqa: E731
+_FH_SENSOR = {"outdoor_temp_entity": "sensor.out"}
+for _fh_name, _fh_got, _fh_want in (
+    ("a sensor reading ok is the reading", _fh.outdoor_reading(_fh_health(-1.5), _fh_fc, _FH_SENSOR), -1.5),
+    ("a stale sensor is no reading, not the forecast", _fh.outdoor_reading(_fh_health(-1.5, "stale"), _fh_fc, _FH_SENSOR), None),
+    ("an unavailable sensor is no reading", _fh.outdoor_reading(_fh_health(None, "unavailable"), _fh_fc, _FH_SENSOR), None),
+    ("no cycle read yet is no reading", _fh.outdoor_reading(None, _fh_fc, _FH_SENSOR), None),
+    ("no sensor configured: the forecast is the reading", _fh.outdoor_reading(None, _fh_fc, {}), -4.0),
+    ("no sensor and no forecast is no reading", _fh.outdoor_reading(None, lambda: None, {}), None),
+):
+    R.check(f"frost hold reading: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
+
+
+# The early cut-off asks before it cuts (``take_off``); the learners freeze
+# on a held run, or on any hold with no meter (``freeze_reason``).
+class _FhHost:
+    def __init__(self, inp):
+        self.inp = inp
+
+    def arbiter_inputs(self):
+        return self.inp
+
+
+class _FhBare:
+    """A host with no arbiter_inputs (as _SysIdHost): no hold on, nothing is read."""
+
+
+def _fh_take(out, enabled=True, switch="switch.hp"):
+    held = _sa_pa.ArbiterState()
+    return _fh.take_off(held, _fh_inp(out, enabled=enabled, switch=switch), _SA_T0), held.frost_holding
+
+
+def _fh_freeze(power, out=-3.0, at=10, later=None, mode="auto"):
+    """The freeze reason ``at`` minutes after a held OFF; ``later`` is the draw read then."""
+    host = _FhHost(_fh_inp(out, power=power, mode=mode))
+    _fh.gate(_sa_pa.state_for(host), host.arbiter_inputs, False, _SA_T0)
+    host.inp = _fh_inp(out, power=power if later is None else later, mode=mode)
+    return _fh.freeze_reason(host, _SA_T0 + timedelta(minutes=at))
+
+
+# The meter's run threshold for these inputs: a draw at it is a run (``>=``).
+_FH_RAN_KW = _sa_pa.ran_kw(_fh_inp(-3.0))
+
+
+def _fh_take_freeze(mode):
+    """The freeze reason 10 minutes after the cut-off asked at -3 °C, no meter, in ``mode``.
+
+    ``take_off`` sets the latch whatever the mode; ``holding`` is never true
+    while the optimizer is Off, so no run is noted and no learner freezes.
+    """
+    host = _FhHost(_fh_inp(-3.0, mode=mode))
+    _fh.take_off(_sa_pa.state_for(host), host.inp, _SA_T0)
+    return _fh.freeze_reason(host, _SA_T0 + timedelta(minutes=10))
+
+
+for _fh_name, _fh_got, _fh_want in (
+    ("the cut-off below the threshold is refused and the hold takes over", _fh_take(-3.0), (True, True)),
+    ("null control: above it the cut-off cuts", _fh_take(4.0), (False, False)),
+    ("null control: opted out the cut-off cuts", _fh_take(-3.0, enabled=False), (False, False)),
+    ("no power switch configured: the cut-off cuts", _fh_take(-3.0, switch=None), (False, False)),
+    ("a held pump the meter reads running freezes the learners", _fh_freeze(1.5), _fh.FREEZE_FROST),
+    ("a held pump with no meter freezes them (fail closed)", _fh_freeze(None), _fh.FREEZE_FROST),
+    ("null control: a held pump the meter reads idle does not", _fh_freeze(0.0), None),
+    # ``ran_kw`` is the run's bound, inclusive: a draw exactly on it is a run.
+    ("a held pump drawing exactly ran_kw freezes them", _fh_freeze(_sa_pa.ran_kw(_fh_inp(-3.0))), _fh.FREEZE_FROST),
+    ("null control: a held pump drawing just under ran_kw does not",
+     _fh_freeze(_sa_pa.ran_kw(_fh_inp(-3.0)) - 1e-6), None),
+    # The optimizer Off holds nothing (``holding``), so a latched OFF notes no run.
+    ("the optimizer Off: a latched OFF with no meter does not freeze them", _fh_freeze(None, mode="off"), None),
+    ("null control: a write passed above the threshold does not", _fh_freeze(None, out=4.0), None),
+    ("a run seen at 06:00 still freezes at 06:59, the meter idle since", _fh_freeze(1.5, at=59, later=0.0), _fh.FREEZE_FROST),
+    ("the freeze ends two intervals after the run was last seen", _fh_freeze(1.5, at=60, later=0.0), None),
+    ("a hold still running at 07:01 keeps the learners frozen", _fh_freeze(1.5, at=61), _fh.FREEZE_FROST),
+    ("no hold on, a host with no inputs builder is not frozen and is not read", _fh.freeze_reason(_FhBare(), _SA_T0), None),
+    ("a held pump drawing exactly the meter's run threshold (ran_kw) runs and freezes the learners",
+     _fh_freeze(_FH_RAN_KW), _fh.FREEZE_FROST),
+    ("null control: a held pump drawing just under ran_kw does not", _fh_freeze(_FH_RAN_KW - 1e-6), None),
+    ("the optimizer Off: a latch the cut-off asked about freezes no learner, unmetered", _fh_take_freeze("off"), None),
+    ("null control: the same latch with the optimizer in auto freezes them", _fh_take_freeze("auto"), _fh.FREEZE_FROST),
+):
+    R.check(f"frost hold: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
+
+
+# The cut-off's own path: a room reading past its threshold, with the hold
+# asked first. ``frost_off`` is ``take_off``'s answer; the switch write is the
+# task ``on_room_event`` creates.
+def _fh_cut(frost):
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_SA_T0 - timedelta(hours=1))})
+    tasks = []
+    hass.async_create_task = lambda coro: (tasks.append(coro), coro.close())
+    inp = _sa_pa.ArbiterInputs(
+        hass=hass, config={"heat_pump_switch_entity": "switch.hp", "indoor_temp_entity": "sensor.room"},
+        mode="auto", plan=None, plan_stale=False, entry_released=False,
+        state=SimpleNamespace(outdoor_temperature=0.0), thermal=None, params=None, action={},
+        measured_power_kw=None, disinfecting=False)
+    held = _fh_ec.CutoffState(cycle_end=_SA_T0 + timedelta(hours=1))
+    wiring = _fh_ec.CutoffInputs(lambda: inp, _sh_none, None, lambda: frost)
+    real_exempt, real_threshold = _fh_ec._exempt, _fh_ec.threshold
+    _fh_ec._exempt, _fh_ec.threshold = (lambda *_a: None), (lambda *_a: 21.0)
+    try:
+        _sa_dt.freeze(_SA_T0)
+        _fh_ec.on_room_event(held, wiring, SimpleNamespace(data={"new_state": FakeState("23.0")}))
+    finally:
+        _sa_dt.freeze(None)
+        _fh_ec._exempt, _fh_ec.threshold = real_exempt, real_threshold
+    return len(tasks), held.cut_this_cycle, held.last_held
+
+
+R.check(
+    "frost hold: the early cut-off writes no turn_off while the hold applies; null control: it cuts",
+    _fh_cut(True) == (0, False, "frost_hold") and _fh_cut(False) == (1, True, None),
+    f"{_fh_cut(True)} {_fh_cut(False)}",
+)
+
+
+# The real coordinator's gate, cycle and step tick (``_write_supply``), in
+# duty observe: switch writes by minute from 06:00. ``out`` is the outdoor
+# sensor's reading (``None`` stale), or a function of the minute; ``sensor=False``
+# configures none. ``latched`` collects the minutes the latch was set.
+async def _fh_run(duties, switch, events, out, *, until=20, extra=None, sensor=True, forecast=None, ledger=False,
+                  latched=None):
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
+    data = {**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe", **_FH_ON, **(extra or {})}
+    if sensor:
+        data["outdoor_temp_entity"] = "sensor.out"
+    coord = Coord(hass, FakeEntry(data=data))
+    coord._mode = "auto"
+    coord._input_health = None if callable(out) else _fh_health(out, None if out is not None else "stale")
+    coord._weather_forecast = forecast or []
+    coord._current_state.outdoor_temperature = 5.0  # the back-fill a stale sensor leaves
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties))
+    writes = []
+    try:
+        for m in range(until + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            coord._last_optimization = now
+            if callable(out):
+                coord._input_health = _fh_health(out(m), None if out(m) is not None else "stale")
+            if m in events:
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
+                coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
+                await coord._apply_action()
+            for tick in ([] if m in events else list(ticks)):
+                await tick(now)
+            for d, service, data in hass.services.calls:
+                if d == "switch":
+                    writes.append((m, service))
+                    new = "on" if service == "turn_on" else "off"
+                    if hass.states.get("switch.hp").state != new:
+                        hass.states.set("switch.hp", FakeState(new, last_updated=now))
+            hass.services.calls.clear()
+            if latched is not None and getattr(_sa_pa.state_for(coord).frost, "latched", None):
+                latched.add(m)
+        verdicts = [r["verdict"] for r in _sa_pa.diagnostics_view(coord)["ledger"]["steps"]]
+        diag = {**dict(_fh_diag._VIEWS)["frost_hold"](coord),
+                "tail_freeze": _sh_coord_mod._tail_freeze(coord),
+                "cutoff_holds": _fh_ec.state_for(coord).wiring.frost_off()}
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return (writes, verdicts, diag) if ledger else writes
+
+
+# A run at 06:00, an idle step from 06:15: the step tick's OFF at 06:15.
+_FH_IDLE = ("s--", ("off", -60), {0: True})
+for _fh_name, _fh_kw, _fh_want in (
+    ("an idle step at -3 °C leaves the switch on", {"out": -3.0}, [(0, "turn_on")]),
+    ("null control: the same step with the option off switches it off", {"out": -3.0, "extra": {"frost_hold": False}}, [(0, "turn_on"), (15, "turn_off")]),
+    ("null control: the same step at +4 °C switches it off", {"out": 4.0}, [(0, "turn_on"), (15, "turn_off")]),
+    ("a stale sensor holds, though the state reads a back-filled +5.0 °C", {"out": None}, [(0, "turn_on")]),
+    ("no sensor: a forecast of -2 °C holds", {"out": None, "sensor": False, "forecast": [{"datetime": _SA_T0.isoformat(), "temperature": -2.0}]}, [(0, "turn_on")]),
+    ("no sensor: null control: a forecast of +6 °C does not", {"out": None, "sensor": False, "forecast": [{"datetime": _SA_T0.isoformat(), "temperature": 6.0}]}, [(0, "turn_on"), (15, "turn_off")]),
+    ("no sensor and no forecast holds", {"out": None, "sensor": False}, [(0, "turn_on")]),
+):
+    _fh_got = _asyncio.run(_fh_run(*_FH_IDLE, until=40, **_fh_kw))
+    R.check(f"frost hold, real coordinator: {_fh_name}", _fh_got == _fh_want, f"{_fh_got}")
+
+# Entry from the warm side: a switch off since 05:57, a pause three minutes
+# old, on an idle step at -3 °C is switched on at once. MIN_PAUSE never
+# delays a hold. The null control at +4 °C writes main's OFF to it.
+_fh_cold_on = _asyncio.run(_fh_run("--", ("off", -3), {0: False}, -3.0, until=12))
+_fh_warm_off = _asyncio.run(_fh_run("--", ("off", -3), {0: False}, 4.0, until=12))
+R.check(
+    "frost hold, real coordinator: a switch read off on a cold idle step is switched on at once "
+    "(no MIN_PAUSE); null control: at +4 °C main's OFF is written",
+    _fh_cold_on == [(0, "turn_on")] and _fh_warm_off == [(0, "turn_off")],
+    f"{_fh_cold_on} {_fh_warm_off}",
+)
+# The observe ledger scores a held step ``frost-hold``; the diagnostics say why.
+_fh_lw, _fh_lv, _fh_ld = _asyncio.run(_fh_run(*_FH_IDLE, None, until=35, ledger=True))
+_fh_nw, _fh_nv, _fh_nd = _asyncio.run(_fh_run(*_FH_IDLE, 4.0, until=35, ledger=True))
+R.check(
+    "frost hold: the observe ledger scores the held step frost-hold and the diagnostics name "
+    "no reading as the cause; null control: at +4 °C neither",
+    "frost-hold" in _fh_lv and _fh_ld["holding"] and _fh_ld["cause"] == _fh.CAUSE_NO_READING
+    and _fh_ld["latched"] is True and "frost-hold" not in _fh_nv and not _fh_nd["holding"]
+    and _fh_nd["cause"] is None and _fh_nd["latched"] is False,
+    f"{_fh_lv} {_fh_ld} | {_fh_nv} {_fh_nd}",
+)
+R.check(
+    "frost hold, real coordinator: the learners freeze on the unmetered hold and the cycle's "
+    "cut-off wiring asks the hold; null control: at +4 °C neither",
+    _fh_ld["tail_freeze"] == _fh.FREEZE_FROST and _fh_ld["cutoff_holds"] is True
+    and _fh_nd["tail_freeze"] != _fh.FREEZE_FROST and _fh_nd["cutoff_holds"] is False,
+    f"{_fh_ld} | {_fh_nd}",
+)
+# The cut-off's wiring defaults to no hold: an arm with no frost answer cuts as before.
+_fh_arm_held = _fh_ec.CutoffState()
+_asyncio.run(_fh_ec.arm(_fh_arm_held, lambda: _fh_inp(-3.0), _sh_none, None, lambda _f: None, _SA_T0))
+R.check(
+    "frost hold: an early cut-off armed or wired with no frost answer never holds",
+    _fh_arm_held.wiring.frost_off() is False
+    and _fh_ec.CutoffInputs(lambda: _fh_inp(-3.0), _sh_none, None).frost_off() is False,
+    f"{_fh_arm_held.wiring}",
+)
+
+
+# The supply gate says why it wrote nothing: a held OFF logs the frost hold.
+class _FhLog(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+_fh_log, _fh_lvl = _FhLog(), _fh._LOGGER.level
+_fh._LOGGER.addHandler(_fh_log)
+_fh._LOGGER.setLevel(logging.DEBUG)
+try:
+    _asyncio.run(_fh_run(*_FH_IDLE, -3.0, until=16))
+    _fh_cold_log = list(_fh_log.seen)
+    _fh_log.seen.clear()
+    _asyncio.run(_fh_run(*_FH_IDLE, 4.0, until=16))
+    _fh_warm_log = list(_fh_log.seen)
+finally:
+    _fh._LOGGER.removeHandler(_fh_log)
+    _fh._LOGGER.setLevel(_fh_lvl)
+R.check(
+    "frost hold: a held OFF is logged as the frost hold; null control: at +4 °C nothing is",
+    any(m.endswith("frost hold") for m in _fh_cold_log) and _fh_warm_log == [],
+    f"{_fh_cold_log} | {_fh_warm_log}",
+)
+
+
+# Synthetic replay (no install data; design test 19): 24 h of an idle-heavy
+# plan ("s---", a run each hour), the cycle every 30 min, outdoors falling
+# from +6 °C to -6 °C by noon and back, the sensor stale 08:00-10:00. Rule:
+# the switch's turn_off writes at minutes the latch was set must be none; the
+# null control (option off) writes main's switch calls, main being the same
+# coordinator with the frost gate replaced by a pass-through.
+_FH_DAY = "s---" * 24
+_fh_out = lambda m: None if 480 <= m < 600 else 6.0 - 12.0 * (1 - abs(m - 720) / 720)  # noqa: E731
+_fh_events = {m: _FH_DAY[m // 15] == "s" for m in range(0, 1440, 30)}
+_fh_latched = set()
+_fh_day = _asyncio.run(_fh_run(_FH_DAY, ("off", -60), _fh_events, _fh_out, until=1439, latched=_fh_latched))
+_fh_day_null = _asyncio.run(_fh_run(_FH_DAY, ("off", -60), _fh_events, _fh_out, until=1439, extra={"frost_hold": False}))
+_fh_gate_real, _sh_coord_mod.frost_hold.gate = _sh_coord_mod.frost_hold.gate, (lambda _h, _i, value, now=None: value)
+try:
+    _fh_day_main = _asyncio.run(_fh_run(_FH_DAY, ("off", -60), _fh_events, _fh_out, until=1439))
+finally:
+    _sh_coord_mod.frost_hold.gate = _fh_gate_real
+_fh_off = lambda writes, keep=lambda _m: True: [m for m, sv in writes if sv == "turn_off" and keep(m)]  # noqa: E731
+_fh_off_latched = _fh_off(_fh_day, lambda m: m in _fh_latched)
+_fh_off_main_latched = _fh_off(_fh_day_main, lambda m: m in _fh_latched)
+R.check(
+    "frost hold replay: over 24 h no turn_off lands while the latch is set, where main writes some; "
+    "the latch was set for the cold and the stale stretches and not at a warm 00:00; null control: "
+    "opted out, the switch calls are main's",
+    _fh_off_latched == [] and _fh_off_main_latched and {500, 720} <= _fh_latched and 0 not in _fh_latched
+    and _fh_day_null == _fh_day_main,
+    f"off while latched {_fh_off_latched} (main {len(_fh_off_main_latched)}); latched minutes "
+    f"{len(_fh_latched)}; null == main {_fh_day_null == _fh_day_main}",
+)
+print(f"  figure: frost hold replay: turn_off while latched {len(_fh_off_latched)} (main "
+      f"{len(_fh_off_main_latched)}), latched minutes {len(_fh_latched)} of 1440, turn_off in all "
+      f"{len(_fh_off(_fh_day))} (main {len(_fh_off(_fh_day_main))}); opted out == main: {_fh_day_null == _fh_day_main}")
+
+
+# Duty control: the hold row. A pass with the hold on serves space at the
+# pump's own floor; the mode is the one ``_mode_for`` gives space.
+_FH_PA_CFG = {"pump_duty_mode": "control", "heat_pump_mode_entity": "select.pump_mode",
+              "dhw_setpoint_entity": "number.dhw_set", "space_setpoint_entity": "number.water_set"}
+
+
+def _fh_pass(options=_PA_TUYA, *, frost=True, flow=True, duties="----", minimum=25, limit=None, block=False):
+    coord = _PaCoord(options, duties=duties, flow=flow)
+    coord.hass.states.get("number.water_set").attributes = {} if minimum is None else {"min": minimum, "max": 63}
+    if limit is not None:
+        coord.hass.states.set("sensor.low", FakeState(str(limit), unit="°C", last_updated=_PA_T0))
+        coord._config = EntryConfig.from_mapping({**_FH_PA_CFG, "space_setpoint_unit": "flow" if flow else "indoor",
+                                                  "space_setpoint_low_limit_entity": "sensor.low"})
+    if block:
+        _sa_boost.held_for(coord).set(_sa_boost.CHANNEL_SPACE, True, _PA_T0, block=True)
+    _pa.state_for(coord).frost_holding = frost
+    _pa_run(coord, 0)
+    got = {data["entity_id"]: data.get("option", data.get("value")) for _d, _s, data in coord.hass.services.calls}
+    return got
+
+
+_fh_tuya = _fh_pass()
+_fh_tuya_null = _fh_pass(frost=False)
+R.check(
+    "frost hold, control on Tuya: an idle step held writes Heating and the space floor; "
+    "null control: the same idle step not held writes no mode",
+    _fh_tuya.get("select.pump_mode") == "Heating" and _fh_tuya.get("number.water_set") == 25.0
+    and "select.pump_mode" not in _fh_tuya_null,
+    f"{_fh_tuya} | {_fh_tuya_null}",
+)
+_fh_gchv = _fh_pass(_PA_MODBUS)
+R.check(
+    "frost hold, control on GCHV (no heating-only mode): Heat + DHW, hot water at the DHW gate, space at the floor",
+    _fh_gchv.get("select.pump_mode") == "Heat + DHW" and _fh_gchv.get("number.dhw_set") == 40.0
+    and _fh_gchv.get("number.water_set") == 25.0,
+    f"{_fh_gchv}",
+)
+
+
+# The pass a frost hold serves is recorded as ``idle`` (``pump_arbiter._note_pass``):
+# the hold protects the unit and heats nothing the plan priced, so the map
+# reads no space row from it, though the hold serves space. Null control: a
+# planned space step, not held, is recorded as the space it served.
+def _fh_pass_duty(frost, duties="----"):
+    coord = _PaCoord(_PA_TUYA, duties=duties, flow=True)
+    coord.hass.states.get("number.water_set").attributes = {"min": 25, "max": 63}
+    _pa.state_for(coord).frost_holding = frost
+    _pa_run(coord, 0)
+    rec = _pa.state_for(coord).last_pass
+    return "no record" if rec is None else rec.duty
+
+
+_fh_rec_held, _fh_rec_free = _fh_pass_duty(True), _fh_pass_duty(False, "ssss")
+R.check(
+    "frost hold, control: the held pass is recorded idle, not the space it serves; "
+    "null control: a planned space step not held is recorded space",
+    _fh_rec_held == "idle" and _fh_rec_free == "space",
+    f"held {_fh_rec_held!r} | not held {_fh_rec_free!r}",
+)
+for _fh_name, _fh_got, _fh_want in (
+    ("an entity minimum of 20 °C is written as is", _fh_pass(minimum=20).get("number.water_set"), 20.0),
+    ("the controller's lower limit of 28 °C raises it", _fh_pass(minimum=20, limit=28).get("number.water_set"), 28.0),
+    ("no stated minimum on a flow unit is the gate", _fh_pass(minimum=None).get("number.water_set"), _pa.FLOW_GATE_C),
+    ("an indoor unit is held at its own minimum", _fh_pass(flow=False, minimum=7).get("number.water_set"), 7.0),
+    ("a space block does not drop the hold row", [_fh_pass(block=True).get(k) for k in ("select.pump_mode", "number.water_set")], ["Heating", 25.0]),
+):
+    R.check(f"frost hold floor: {_fh_name}", _fh_got == _fh_want, f"{_fh_got!r} != {_fh_want!r}")
+_fh_blocked_null = _fh_pass(block=True, frost=False, duties="ssss")
+R.check(
+    "frost hold: null control: a space block on a heating step, no hold, writes no Heating",
+    _fh_blocked_null.get("select.pump_mode") != "Heating",
+    f"{_fh_blocked_null}",
+)
+
+
+# A switch-on into a hold leads with the hold's mode (``_lead_mode``): Heating
+# on Tuya, not the Heating + DHW an unresolved duty would give.
+def _fh_lead(frost):
+    coord = _PaCoord(_PA_TUYA, duties="----")
+    coord.hass.states.set("switch.hp", FakeState("off", last_updated=_PA_T0 - timedelta(hours=1)))
+    coord._config = EntryConfig.from_mapping({**_FH_PA_CFG, "space_setpoint_unit": "flow",
+                                              "heat_pump_switch_entity": "switch.hp"})
+    _pa.state_for(coord).frost_holding = frost
+    _sa_dt.freeze(_PA_T0)
+    try:
+        _pa_aio.run(_pa._lead_mode(coord, True))
+    finally:
+        _sa_dt.freeze(None)
+    return [data.get("option") for _d, _s, data in coord.hass.services.calls]
+
+
+R.check(
+    "frost hold: a switch-on into a hold writes Heating ahead of it on Tuya; null control: "
+    "an idle switch-on writes no mode",
+    _fh_lead(True) == ["Heating"] and _fh_lead(False) == [],
+    f"{_fh_lead(True)} {_fh_lead(False)}",
+)
+
+
+# The options (design test 18): both rows are on the entities page, shown only
+# where a power switch is configured. The threshold has its bounds and both
+# have the defaults the const module states. Each has a label and a
+# description in the strings file and each translation.
+import json as _fh_json  # noqa: E402
+
+from pathlib import Path as _fh_Path  # noqa: E402
+
+from heatpump_optimizer import config_flow as _fh_cf, const as _fh_const  # noqa: E402
+
+_fh_rows = {f.key: f for f in _fh_cf._OPTION_FIELDS if f.key in (_fh_const.CONF_FROST_HOLD, _fh_const.CONF_FROST_HOLD_BELOW_C)}
+_fh_bound = _fh_rows[_fh_const.CONF_FROST_HOLD_BELOW_C].widget.config if len(_fh_rows) == 2 else {}
+_fh_shown = [(r.when({"heat_pump_switch_entity": "switch.hp"}), r.when({})) for r in _fh_rows.values()]
+R.check(
+    "frost hold options: two rows on the entities page, shown with a power switch and not without one; "
+    "the threshold -15..10 °C; defaults on and +2 °C",
+    len(_fh_rows) == 2 and all(r.step == "entities" for r in _fh_rows.values())
+    and _fh_shown == [(True, False), (True, False)]
+    and (_fh_bound.get("min"), _fh_bound.get("max"), _fh_bound.get("unit_of_measurement")) == (-15, 10, "°C")
+    and _fh_rows[_fh_const.CONF_FROST_HOLD].default is _fh_const.DEFAULT_FROST_HOLD is True
+    and _fh_rows[_fh_const.CONF_FROST_HOLD_BELOW_C].default == _fh_const.DEFAULT_FROST_HOLD_BELOW_C == 2.0,
+    f"{sorted(_fh_rows)} {_fh_shown} {_fh_bound}",
+)
+_fh_root = _fh_Path(_fh_cf.__file__).parent
+_fh_missing = []
+for _fh_file in ("strings.json", "translations/en.json", "translations/sv.json", "translations/de.json"):
+    _fh_sec = _fh_json.loads((_fh_root / _fh_file).read_text())["options"]["step"]["entities"]["sections"]["indoor"]
+    _fh_missing += [f"{_fh_file}:{part}.{key}" for part in ("data", "data_description")
+                    for key in _fh_rows if not _fh_sec[part].get(key)]
+R.check(
+    "frost hold options: a label and a description in strings.json and the en, sv and de translations",
+    _fh_missing == [] and len(_fh_rows) == 2,
+    f"missing {_fh_missing}",
+)
+
+
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
 # pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists
@@ -96122,9 +96632,9 @@ R.check(
     and _fb_r.samples[0][0] == _FB_NOW - _fb_pa.FEEDBACK_WINDOW,
     f"kept {_fb_h.feedback is _fb_r}, samples {len(_fb_r.samples)}",
 )
-# The run's threshold is the meter's (``_ran_kw``): a draw exactly at it runs.
+# The run's threshold is the meter's (``ran_kw``): a draw exactly at it runs.
 _fb_c, _fb_h, _fb_i = _fb_unit()
-_fb_ran = _fb_pa._ran_kw(_fb_i)
+_fb_ran = _fb_pa.ran_kw(_fb_i)
 _fb_c.power = _fb_ran
 _fb_pa._feedback(_fb_h, _fb_c.arbiter_inputs(), _FB_NOW, 26.4, True)
 R.check(

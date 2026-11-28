@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_power_switch RETURN_DEL c7097a06",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return bool(config.get(CONF_HEAT_PUMP_SWITCH_ENTITY))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}
