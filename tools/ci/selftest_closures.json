@@ -10816,6 +10816,23 @@
    "objects": false,
    "git": []
   },
+  "session-yield": {
+   "run_sha": "0333450d811a39a292237ea8387e8970f589d4b77a4010ba2334986da21b7efd",
+   "files": [
+    "tools/audit/seat/session_yield.py",
+    "tools/audit/seat/token_ledger.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "stamp-round-close-mutation": {
    "run_sha": "cbebd8930d74d0d4b42e51386b58cf9d8cef34662c52b45463b62d5588a7da88",
    "files": [
