@@ -44865,15 +44865,26 @@ import budget_raise_gate as _ffz_brg  # noqa: E402
 _ffz_relaunder = json.dumps(dict(_FFZ_MAN, lines=_ffz_append.count("\n"),
                                  spans=_ffz.measure(_ffz_append)["spans"]), indent=1) + "\n"
 _ffz_raises = _ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_relaunder)
+_ffz_rules = _ffz_brg.SCHEMA.get(_ffz.MANIFEST)
+_ffz_down = json.dumps(dict(_FFZ_MAN, lines=_FFZ_MAN["lines"] - 1), indent=1) + "\n"
+_ffz_pin = json.dumps(dict(_FFZ_MAN, seam_pins={"tests/features_model.py": [_ffz_spans[0].id]}), indent=1) + "\n"
+_ffz_drop = json.dumps(dict(_FFZ_MAN, spans=_FFZ_MAN["spans"][1:]), indent=1) + "\n"
 R.check(
-    "null control (laundering): the manifest is a budget file, every leaf FROZEN, so a span appended and "
-    "the manifest re-recorded in the same diff is a raise budget-raise-gate refuses; an unchanged manifest is none",
-    _ffz.MANIFEST.endswith(_ffz_brg.SUFFIX)
-    and all(_ffz_brg.kind_of(_ffz_brg._schema(_ffz.MANIFEST), (k,)) == _ffz_brg.FROZEN for k in _FFZ_MAN)
+    "null control (laundering): the manifest has its own budget-raise-gate SCHEMA entry, `lines` a cap "
+    "and `spans` and every `seam_pins` list frozen, so a span appended and the manifest re-recorded in the "
+    "same diff is a raise on both, a new pin and a dropped span id are raises, `lines` re-recorded down is "
+    "routine, and an unchanged manifest is none",
+    _ffz.MANIFEST.endswith(_ffz_brg.SUFFIX) and _ffz_rules is not None
+    and _ffz_brg.kind_of(_ffz_rules, ("lines",)) == _ffz_brg.MAX
+    and _ffz_brg.kind_of(_ffz_rules, ("spans",)) == _ffz_brg.FROZEN
+    and _ffz_brg.kind_of(_ffz_rules, ("seam_pins", "tests/features_model.py")) == _ffz_brg.FROZEN
     and any(": lines:" in r for r in _ffz_raises)
     and any(": spans:" in r for r in _ffz_raises)
+    and len(_ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_pin)) == 1
+    and len(_ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_drop)) == 1
+    and _ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _ffz_down) == []
     and _ffz_brg.file_raises(_ffz.MANIFEST, _FFZ_MAN_TEXT, _FFZ_MAN_TEXT) == [],
-    str(_ffz_raises)[:600],
+    f"rules {_ffz_rules}; {str(_ffz_raises)[:500]}",
 )
 
 sys.exit(R.close("ENTITY CHECKS"))
