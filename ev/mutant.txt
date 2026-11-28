@@ -1,0 +1,8 @@
+Mutant at head 19d895a6665f02afb1c94cab7a63d2a704882dfe:
+custom_components/heatpump_optimizer/flow_anchor.py, settled_inlet_c last line
+  -    return space_c if space_c is not None else side_c
+  +    return live_c
+(the fix removed: the floor inside the settle span reads the live, tank-heated inlet again)
+tests/guard_pins.py: rc=0 (does not reach this line; the ledger pins it on anchor_c BOOLOP only)
+features_block from "# --- R11-OWNER-STEP-KICK: the step-start kick": 6 of 55 FAILED (T1, T4, T5, T8, end to end, T6b); restored: ALL 55 PASSED
+harness r11_owner_step_kick.py: hot_inlet_after 0 -> 40, leg_r_pass True -> False
