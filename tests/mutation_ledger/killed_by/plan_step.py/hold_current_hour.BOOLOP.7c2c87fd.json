@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/plan_step.py:hold_current_hour BOOLOP 7c2c87fd",
+  "killed_by": "tests/features.py",
+  "old": "    return [value if i < len(starts) and starts[i].timestamp() < end else v",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return [value if i < len(starts) or starts[i].timestamp() < end else v`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

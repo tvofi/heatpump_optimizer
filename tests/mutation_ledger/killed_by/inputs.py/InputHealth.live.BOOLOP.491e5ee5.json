@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:InputHealth.live BOOLOP 491e5ee5",
+  "killed_by": "tests/entities.py",
+  "old": "        return reading.value if reading is not None and reading.ok else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return reading.value if reading is not None or reading.ok else None`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
