@@ -9258,6 +9258,50 @@
     "next_step": "fixer per carries 10, 14 and 15; carry 13 needs a route the owner's D1/D2 ruling admits",
     "note": null
    }
+  },
+  {
+   "group": "R11-DX0-OWNER-ACTS",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/corpus_mirror.py",
+    "tools/audit/seat/owner_only.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "programme",
+   "brief": "The owner's acts R11-PRE-SECURITY-PRIVACY leaves open (design/R11-PRE-SECURITY-PRIVACY notes n4, n7, n8): the first real DX0 scan with the read credential and the choice of read identity, the seat account, and the private-fork ruleset test. No seat can do these; a seat may only prepare and read back what the owner runs. Carried below verbatim.",
+   "carry": [
+    "Moved from R11-PRE-SECURITY-PRIVACY carry 2 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Text verbatim:\n\nFrom r11-pre-security-privacy, body item 75234782: The first real scan confirms each endpoint's shape (design note n7) and records F3 to F7; it needs the read credential on the owner's machine. Which identity the mirror holds (a read-only App with `--own-identity`, or the shared token under the 60 % floor) is routed to the owner by the design. Carry: R11-PRE-SECURITY-PRIVACY (items 75234782)",
+    "Moved from R11-PRE-SECURITY-PRIVACY carry 3 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Text verbatim:\n\nFrom r11-pre-security-privacy, body item 1cdaadd6: The seat account (creating it, and making the identity directory and the deploy key unreadable to it) is the owner's act; without it `owner_only.py probe` refuses and no owner-only seat runs. The two-account run is proved once on the owner's machine and its probe line stays in the private root (design note n8). Carry: R11-PRE-SECURITY-PRIVACY (items 1cdaadd6)",
+    "Moved from R11-PRE-SECURITY-PRIVACY carry 4 (0-based at roster 8db83c0639) by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups). Text verbatim:\n\nFrom r11-pre-security-privacy, body item 2a416932: Whether a temporary private fork's merge honours the ruleset on `main` (design note n4) was not confirmed: it needs a scratch advisory, which this seat cannot open. Carry: R11-PRE-SECURITY-PRIVACY (items 2a416932)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r11-dx0-owner-acts",
+    "commit": null,
+    "last_step": "created by the orphan-carry rewire 2026-11-28 (owner ruling tvofi 2026-11-28: orphaned carries are wired to unstarted or new groups)",
+    "next_step": "owner's act; no fixer dispatch",
+    "note": null
+   }
   }
  ]
 }
