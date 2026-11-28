@@ -28422,7 +28422,15 @@ _ptp_need = _PTP_WORDS.get(_ptp_word.group(1)) if _ptp_word else None
 
 def _ptp_run_on(steps):
     _h, _e, coord = _d801_coordinator(_FLOW_CONFIG)
+    # Prices from this hour on, so the uncut horizon covers now; its length
+    # is the check's own precondition, read back below.
+    start = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    coord._prices = [
+        {**row, "starts_at": (start + timedelta(hours=h)).isoformat()}
+        for h, row in enumerate(coord._prices)
+    ]
     real = coord._forecast_arrays
+    _ptp_full.append(len(real().prices))
 
     def cut(now=None):
         return _ptp_coord_mod.ForecastArrays(*(a[:steps] for a in real(now)))
@@ -28434,6 +28442,7 @@ def _ptp_run_on(steps):
         return f"raised {type(err).__name__}"
 
 
+_ptp_full = []
 _ptp_runs = (
     {n: _ptp_run_on(n) for n in (_ptp_need - 1, _ptp_need)} if _ptp_need else {}
 )
@@ -28441,9 +28450,10 @@ R.check(
     "the no-prices message's step count is the run's own minimum: one step "
     "short answers no_prices, that many does not",
     bool(_ptp_runs)
+    and min(_ptp_full) > _ptp_need
     and _ptp_runs[_ptp_need - 1] == "no_prices"
     and _ptp_runs[_ptp_need] != "no_prices",
-    f"need={_ptp_need} runs={_ptp_runs} message={_ptp_msg!r}",
+    f"need={_ptp_need} uncut={_ptp_full} runs={_ptp_runs} message={_ptp_msg!r}",
 )
 
 # Home Assistant looks a state translation up by the state string itself, so
