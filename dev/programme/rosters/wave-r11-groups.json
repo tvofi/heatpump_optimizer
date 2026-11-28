@@ -8119,7 +8119,7 @@
     "commit": "d7065ccff86d97967358d684c896240e57b1ef9e",
     "branch": "handoff/ci-3885-dup-dispatch",
     "last_step": "merged off-roster before this group existed: #3887, #3888, #3893, #3894, #3895, #3899",
-    "next_step": "duplicate verified dispatch (carry-3885.json); merge-queue design; R11-CI-CASE-SELECT pull request 3896 in review",
+    "next_step": "R11-CI-3885-QUEUE (design/r11-ci-3885-queue 43ff5ae6c1): W1 and W2 built at PR 3935 (0ea8355ff5); the l3-timing and carry2 fixers (dispatch/fixer-r11-outside-ci-3885-l3-timing, -carry2) and the sampling fixer are in flight. R11-CI-CASE-SELECT (design/R11-CI-CASE-SELECT 25fa1f763e): P1 built at PR 3896 (658fcae30b); P2 (plan, selection and fail-safe, run.sh wiring, composition with case_sample) and P3 (closures-autofix and CASE UNDER-SCOPED, editing tests.yml and ci-autofix.md) remain. Neither design has a roster row of its own; this group is their owner (read 2026-11-28 against origin).",
     "note": "wired by the roster-wiring seat 2026-11-25: #3885 was open with no group although its work was running; outside item folds into round 11 (not deferred by the owner or the reporter)",
     "pr": 3896
    }
