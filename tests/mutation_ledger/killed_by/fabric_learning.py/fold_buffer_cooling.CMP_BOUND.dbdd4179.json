@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fabric_learning.py:fold_buffer_cooling CMP_BOUND dbdd4179",
+  "killed_by": "tests/features.py",
+  "old": "    if observed < low or observed > high:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if observed <= low or observed > high:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fabric_learning.py:fold_internal_gains CLAMP_DROP 4f4f9fef",
+  "killed_by": "tests/features.py",
+  "old": "        np.clip(g, 0.0, INTERNAL_GAINS_MAX_FACTOR * max(g0, 0.05))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`(g)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Each of the 2 sites under this anchor was killed."
+}

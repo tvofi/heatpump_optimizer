@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fabric_learning.py:house_loss_confidence RETURN_DEL 8a7e9396",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    return 1.0 - (1.0 - HOUSE_LOSS_ALPHA) ** max(0, int(samples))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}

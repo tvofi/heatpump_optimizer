@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fabric_learning.py:fold_buffer_cooling CMP_BOUND 43344f55",
+  "old": "        if observed < rate",
+  "reason": "Equivalent to one rounding (CMP_BOUND, `observed < rate` -> `<=`): the arms differ only at observed == rate, where the new rate is (1 - alpha) * rate + alpha * rate, which is `rate` in exact arithmetic for either alpha, so the choice moves only the last bit. Measured by dev/audit/harnesses/r11_fabric_alpha_tie.py (`PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r11_fabric_alpha_tie.py`), which drives this function against the operator's own mutant on 20000 seeded gated intervals at the exact tie: RESULT tie_max_ulps=1 (the ties that differ at all differ by at most one ulp of the new rate), RESULT nonties_differing=0 on the 40000 one-ulp non-ties. Controls: with the mutant replaced by the head's own comparison every tie agrees (tie_max_ulps=0); with the choice flipped to `observed > rate`, nonties_differing reads 15317 of 40000, so the non-tie arm detects a mutant that moves anything off the tie. A one-ulp move of the cooling-rate envelope is below every consumer's resolution, and a check pinning a rounding bit would not reproduce across libm/BLAS builds (CLAUDE.md rule 3), so no killing check is written.",
+  "verdict": "equivalent"
+}
