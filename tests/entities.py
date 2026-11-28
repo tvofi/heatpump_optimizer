@@ -41695,9 +41695,9 @@ R.check(
 # first K+1 pump_arbiter.py sites of the draw and every other one after, pinned to
 # one driver, drawn by the real sampled_pool at a cap of K+3. Dear, the draw
 # holds exactly COSTLY_PIN_DRAWS pinned sites, keeps the uncapped draw's order,
-# and passes over only pinned sites; cheap (at the threshold, not over it),
-# with no pins, or pinned to a script that is not one of the site's drivers,
-# it is the uncapped draw site for site -- the null control.
+# and passes over only pinned sites. Cheap (at the threshold, not over it),
+# with no pins, or pinned to a script none of the site's drivers is, it is the
+# uncapped draw site for site: the null control.
 _MUT_CP_D = "tests/features.py"
 _MUT_CP_F = [_mut.PRODUCTION / "pump_arbiter.py"]
 _MUT_CP_REL = str(_MUT_CP_F[0].relative_to(_mut.ROOT))

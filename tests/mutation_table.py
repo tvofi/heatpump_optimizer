@@ -3091,20 +3091,20 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
 
 # The PR lane's costly-pin cap (R11-HOTFIX-MUTATION-DRIVER-CAP, #3897). A
 # pinned site's own killer runs first (`order_pool_drivers`), so drawing it
-# costs that driver's run -- and, under --scope changed, the lazy baseline and
-# null control of that driver the first red run pays. #3897's draw held 9
-# features.py pins of 10 sites (1617 s recorded each, 11 runs on 3 workers),
-# and `tests / mutation` overran its 160 minutes on five pull requests in one
+# costs that driver's run. Under --scope changed the first red run of a driver
+# also pays its lazy baseline and null control. On #3897 the draw held 9
+# features.py pins of 10 sites: 11 runs of 1617 s recorded on 3 workers. The
+# `tests / mutation` job overran its 160 minutes on five pull requests that
 # day. So the PR lane draws at most COSTLY_PIN_DRAWS sites whose pinned killer
-# records over COSTLY_PIN_SECONDS, and fills its --max with the next sites of
+# records over COSTLY_PIN_SECONDS. It fills its --max with the next sites of
 # the same shuffled draw. Only a PINNED site is passed over: its kill is a
 # measured ledger row, which the nightly's --scope full draw re-drives
-# (`pin_reverification`), while an unpinned site's killer is the very thing
-# the lane exists to find, so it is never passed over. 900 s sits between the
-# two drivers over it (features.py, entities.py) and the next shared one by
-# `recorded_seconds` (boost_drift_replay.py); 2 keeps one dear lazy settle
-# (its first red run, baseline and null control, back to back on one worker)
-# as the drive's critical path, which `mutation_draw_cost.py` simulates.
+# (`pin_reverification`). An unpinned site's killer is what the lane exists
+# to find, so it is never passed over. 900 s sits between the two drivers
+# over it (features.py, entities.py) and the next shared one by
+# `recorded_seconds` (boost_drift_replay.py). 2 keeps one dear lazy settle as
+# the drive's critical path: its first red run, baseline and null control,
+# back to back on one worker. `mutation_draw_cost.py` simulates it.
 COSTLY_PIN_SECONDS = 900.0
 COSTLY_PIN_DRAWS = 2
 
@@ -3130,9 +3130,9 @@ def sampled_pool(files: list[Path], closures: dict, allow: list[str],
     A triaged site is still driven -- by every driver but `TRIAGE_JUDGE` -- so
     a driver that kills an "equivalent" mutant refutes its mark. A site whose
     only driver is that one is left out (R9-F10.13). Given `killed_by` and the
-    drivers' `seconds`, the first `cap` sites of the shuffled draw are taken
-    but for any past COSTLY_PIN_DRAWS that `costly_pin` names, each replaced
-    by the next site; with no such pin it is the draw's first `cap`, as before.
+    drivers' `seconds`, the draw's first `cap` sites are taken, but a site
+    `costly_pin` names past the COSTLY_PIN_DRAWS-th is replaced by the next
+    one. With no such pin it is the draw's first `cap`, as before.
     """
     pool: list[dict] = []
     held = 0
