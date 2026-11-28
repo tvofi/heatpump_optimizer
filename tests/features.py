@@ -21362,22 +21362,32 @@ def _cycle_actuation_paths() -> list[tuple[str, bool]]:
             if name in module_funcs
         )
 
+    def self_refs(node) -> list[str]:
+        names = []
+        for ref in _d102_ast.walk(node):
+            if isinstance(ref, _d102_ast.Call) and isinstance(
+                ref.func, _d102_ast.Attribute
+            ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
+                names.append(ref.func.attr)
+            elif isinstance(ref, _d102_ast.Attribute) and isinstance(
+                ref.value, _d102_ast.Name
+            ) and ref.value.id == "self":
+                names.append(ref.attr)  # a bound method handed to the fence, not called
+        return [n for n in names if n in methods]
+
+    # The cycle and the duty toggle (N-solve-recompute) share their write tail
+    # (``_actuate_plan``): a seam either root reaches directly, or through one
+    # method that writes nothing itself, is a seam the cycle reaches.
+    reached = []
+    for root in ("_async_update_data", "async_apply_held"):
+        for name in self_refs(methods[root]):
+            hop = [name] if writes(methods[name]) else self_refs(methods[name])
+            reached += [n for n in hop if writes(methods[n])]
     out = []
-    for ref in _d102_ast.walk(methods["_async_update_data"]):
-        if isinstance(ref, _d102_ast.Call) and isinstance(
-            ref.func, _d102_ast.Attribute
-        ) and isinstance(ref.func.value, _d102_ast.Name) and ref.func.value.id == "self":
-            name = ref.func.attr
-        elif isinstance(ref, _d102_ast.Attribute) and isinstance(
-            ref.value, _d102_ast.Name
-        ) and ref.value.id == "self":
-            name = ref.attr  # a bound method handed to the fence, not called
-        else:
-            continue
-        if name in methods and writes(methods[name]):
-            pair = (name, gated(methods[name]))
-            if pair not in out:
-                out.append(pair)
+    for name in reached:
+        pair = (name, gated(methods[name]))
+        if pair not in out:
+            out.append(pair)
     return out
 
 
@@ -21391,6 +21401,7 @@ R.check(
             ("_apply_action", True),
             ("_async_drive_pumps", True),
             ("_command_frequency", True),
+            ("_command_valve_target", True),  # through async_run_optimization, one hop
         ]
     ),
     f"the enumeration rule returned {_d102_paths}",
@@ -28184,6 +28195,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
     "set_thermal_params_house_field_two_zone": ({"field"}, "sve"),
+    "set_thermal_params_zone_field_one_zone": ({"field"}, "sve"),
     "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
@@ -42729,6 +42741,7 @@ _ET_KEYS = {
     "no_loaded_config_entry": set(),
     "set_thermal_params_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "set_thermal_params_house_field_two_zone": {"field"},
+    "set_thermal_params_zone_field_one_zone": {"field"},
     "assign_entity_missing": {"entity_id"},
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
@@ -52211,6 +52224,8 @@ _RC2_EXEMPT = {
 # The coordinator's own setters, which the services call with a refresh: each
 # is reached through a row above or says where its state lives.
 _RC2_SETTERS = {
+    "async_apply_held": "rows: the four duty switches; it writes no state, the boost store "
+        "holds what the press set",
     "async_set_mode": "rows: the switch and thermostat mode actions",
     "async_set_away": "rows: the away switch and the return time",
     "async_set_target_temperature": "row: the thermostat target, via entry options",
@@ -94738,6 +94753,134 @@ R.check(
     f"{_pm_svc_one_out} mass={_pm_svc_one.runtime_data._thermal_params.room_thermal_mass}",
 )
 
+# R11-LATE-P2-ZONE-GATE: whether an install runs two zones has one answer,
+# thermal_model.two_zone_from_config, and every reader takes it. The set the
+# action refuses on one zone is that rule's own output: the service fields
+# whose presence alone turns an auto config two-zone (TWO_ZONE_FIELDS). The
+# census asserts its precondition (the set is non-empty and is exactly what
+# the rule reads), so a key the rule starts reading is driven the day it lands.
+# A key the rule stops reading is caught by the literal set below, written
+# independently of TWO_ZONE_FIELDS. The rule's output is compared with it and
+# the refusals drive it, so deleting a key from the constant fails both. A
+# census of the constant against itself would not. The literal encodes a
+# design choice: these four keys are the two-zone model's own parameters.
+from heatpump_optimizer import thermal_model as _zg_tm  # noqa: E402
+from heatpump_optimizer import coordinator as _zg_coord  # noqa: E402
+
+_zg_values = {"upper_floor_thermal_mass": 40.0, "lower_floor_thermal_mass": 40.0,
+              "inter_zone_heat_transfer": 1.5, "radiator_power_fraction": 0.9}
+_zg_rule_set = {
+    k for k in _zg_coord._THERMAL_PARAM_FIELDS
+    if _zg_tm.two_zone_from_config({k: 1.0})
+}
+R.check(
+    "R11-LATE-P2-ZONE-GATE census precondition: the refused set is the "
+    "presence rule's own output over the action's fields",
+    bool(_zg_rule_set) and _zg_rule_set == set(getattr(_zg_tm, "TWO_ZONE_FIELDS", ())),
+    f"rule={sorted(_zg_rule_set)} declared={sorted(getattr(_zg_tm, 'TWO_ZONE_FIELDS', ()))}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the presence rule turns an auto config two-zone "
+    "on each of the four zone keys, and on no other action field",
+    _zg_rule_set == set(_zg_values),
+    f"rule={sorted(_zg_rule_set)} pinned={sorted(_zg_values)}",
+)
+_zg_before = _pm_svc_one.runtime_data._thermal_params
+for _zg_field in sorted(_zg_values):
+    _zg_out = _svc_call(
+        _pm_svc1_hass, "set_thermal_parameters", {_zg_field: _zg_values[_zg_field]}
+    )
+    _svc_check(
+        f"R11-LATE-P2-ZONE-GATE: set_thermal_parameters refuses {_zg_field} "
+        "on a single-zone entry",
+        _zg_out,
+        "set_thermal_params_zone_field_one_zone",
+    )
+R.check(
+    "R11-LATE-P2-ZONE-GATE: the refused calls wrote nothing",
+    all(
+        getattr(_pm_svc_one.runtime_data._thermal_params, a)
+        == getattr(_zg_before, a)
+        for k, a in _zg_coord._THERMAL_PARAM_FIELDS.items() if k in _zg_values
+    )
+    and not (set(_zg_values) & set(_pm_svc_one.options)),
+    f"options={sorted(_pm_svc_one.options)}",
+)
+_zg_two_out = _svc_call(
+    _pm_svc_hass, "set_thermal_parameters", {"upper_floor_thermal_mass": 41.0}
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: a two-zone entry still takes a "
+    "floor's mass",
+    _zg_two_out[0] == "returned"
+    and _pm_svc_two.runtime_data._thermal_params.upper_floor_thermal_mass == 41.0,
+    f"{_zg_two_out} upper={_pm_svc_two.runtime_data._thermal_params.upper_floor_thermal_mass}",
+)
+# An auto entry with no zone key runs one zone, and a floor's mass is the
+# presence that turns it two-zone: the call is the switch, not a no-op.
+_zg_auto_hass = FakeHass()
+_seed_prices(_zg_auto_hass)
+_asyncio.run(_ha_setup_component(_integ, _zg_auto_hass))
+_zg_auto = FakeEntry(
+    data={k: v for k, v in _LC_DATA.items() if k != "two_zone_mode"}, entry_id="zg_auto"
+)
+_asyncio.run(_ha_setup_entry(_integ, _zg_auto_hass, _zg_auto))
+_zg_auto_out = _svc_call(
+    _zg_auto_hass, "set_thermal_parameters", {"upper_floor_thermal_mass": 41.0}
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: an auto one-zone entry takes a "
+    "floor's mass, which makes its persisted config two-zone",
+    not _zg_tm.two_zone_from_config(_zg_auto.data)
+    and _zg_auto_out[0] == "returned"
+    and _zg_tm.two_zone_from_config({**_zg_auto.data, **_zg_auto.options}),
+    f"{_zg_auto_out} options={sorted(_zg_auto.options)}",
+)
+
+# The schedule rows publish a floor's temperature only when the model runs
+# two zones (OptimizationResult.zone_trajectories): a one-zone solve fills
+# both trajectories with the room's, which is no floor. Null control: the
+# two-zone entry's rows carry them.
+_zg_rows_one = (_pm_svc_one.runtime_data.data or {}).get("schedule") or []
+_zg_rows_two = (_pm_svc_two.runtime_data.data or {}).get("schedule") or []
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a single-zone plan's schedule rows publish no "
+    "zone temperature",
+    bool(_zg_rows_one)
+    and all(r.get("upper_temp") is None and r.get("lower_temp") is None
+            for r in _zg_rows_one),
+    f"rows={len(_zg_rows_one)} zoned="
+    f"{sum(1 for r in _zg_rows_one if r.get('upper_temp') is not None)}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE null control: a two-zone plan's schedule rows "
+    "publish both floors",
+    bool(_zg_rows_two)
+    and all(isinstance(r.get("upper_temp"), float)
+            and isinstance(r.get("lower_temp"), float) for r in _zg_rows_two),
+    f"rows={len(_zg_rows_two)}",
+)
+from heatpump_optimizer.payload import ScheduleStep as _zg_Step  # noqa: E402
+
+_zg_res_two = _pm_svc_two.runtime_data._optimization_result
+_zg_up = [round(v, 9) for v in _zg_res_two.upper_temp_trajectory[1:]]
+_zg_lo = [round(v, 9) for v in _zg_res_two.lower_temp_trajectory[1:]]
+R.check(
+    "R11-LATE-P2-ZONE-GATE: each floor's column is that floor's trajectory "
+    "(precondition: the two floors differ somewhere)",
+    _zg_up != _zg_lo
+    and [round(r["upper_temp"], 9) for r in _zg_rows_two] == _zg_up
+    and [round(r["lower_temp"], 9) for r in _zg_rows_two] == _zg_lo,
+    f"up[:2]={_zg_up[:2]} lo[:2]={_zg_lo[:2]} "
+    f"rows[:2]={[(r['upper_temp'], r['lower_temp']) for r in _zg_rows_two[:2]]}",
+)
+R.check(
+    "R11-LATE-P2-ZONE-GATE: a schedule row publishes exactly the keys "
+    "ScheduleStep declares, on either topology",
+    all(set(r) == set(_zg_Step.__annotations__) for r in _zg_rows_one + _zg_rows_two),
+    f"declared={sorted(_zg_Step.__annotations__)} row={sorted(_zg_rows_one[0]) if _zg_rows_one else None}",
+)
+
 # D17-s2-03: quick setup's wood answers record the furnace and the tank; the
 # page says what else the plan needs, as buffer_tank's sentence does.
 import json as _pm_json  # noqa: E402
@@ -101822,6 +101965,158 @@ R.check(
     "ends, run directly rather than through the debouncer, and the trailing mark is spent",
     _sg_trail == (0, 2, False),
     f"debouncer calls, refreshes, trailing: {_sg_trail}",
+)
+
+
+# N-solve-recompute (carry, R11-SEAM-cycle-solve): a timed duty switch's toggle is laid on the plan in
+# hand. Boost and block state is no solve input: the overlay is applied after the solve. So the toggle
+# actuates and publishes the adopted plan without a fetch or a solve. It requests a refresh only with no
+# plan base, or with a refresh or solve in flight, whose trailing refresh or re-run lays the overlay after.
+async def _sg_duty(based=True, refreshing=False, solving=False, released=False):
+    """One toggle through ``async_apply_held``: (solves, debouncer calls, actuations, published, action, gate)."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make(f"sg_duty_{based}_{refreshing}_{solving}")
+    n = {"solve": 0, "call": 0, "act": 0, "pub": 0}
+
+    async def _solve():
+        n["solve"] += 1
+
+    async def _call():
+        n["call"] += 1
+
+    async def _act():
+        n["act"] += 1
+
+    async def _none():
+        return None
+
+    coord.async_run_optimization, coord._debounced_refresh.async_call = _solve, _call
+    coord._apply_action, coord._command_frequency, coord._async_drive_pumps = _act, _none, _none
+    coord.async_update_listeners = lambda: n.__setitem__("pub", n["pub"] + 1)
+    if based:
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.25, "dhw_power": 1.0, "heat_pump_on": True})
+    boost_mod.held_for(coord).set(boost_mod.CHANNEL_SPACE, True, _R9F13_NOW, block=True)
+    gate = solve_gate.gate_for(coord)
+    coord._refresh_task = object() if refreshing else None
+    gate.solving, coord._entry_released = solving, released
+    before = coord.data
+    await coord.async_apply_held()
+    _r9f13_dt.freeze(None)
+    return (n["solve"], n["call"], n["act"], n["pub"] if coord.data is not before else -n["pub"],
+            dict(coord._current_action or {}), (gate.trailing, gate.rerun))
+
+
+_sg_held = _sg_aio.run(_sg_duty())
+R.check(
+    "N-solve-recompute: a duty toggle on a held plan actuates and publishes it with the overlay laid "
+    "on (a space block zeroes the space power, hot water untouched), and never solves or requests a refresh",
+    _sg_held[:4] == (0, 0, 1, 1)
+    and _sg_held[4].get("power_normalized") == 0.0 and _sg_held[4].get("dhw_power") == 1.0,
+    f"solves, calls, actuations, publishes, action: {_sg_held[:5]}",
+)
+_sg_unbased = _sg_aio.run(_sg_duty(based=False))
+_sg_inflight = (_sg_aio.run(_sg_duty(refreshing=True)), _sg_aio.run(_sg_duty(solving=True)))
+_sg_released = _sg_aio.run(_sg_duty(released=True))
+R.check(
+    "N-solve-recompute: with no plan base the toggle is an ordinary request; with a refresh in flight it "
+    "trails it, with a solve in flight it re-runs it; a released entry writes nothing (#237) -- and none "
+    "of the four actuates beside them",
+    _sg_unbased[:4] == (0, 1, 0, 0) and _sg_released[2:4] == (0, 0)
+    and _sg_inflight[0][:4] == (0, 0, 0, 0) and _sg_inflight[0][5] == (True, False)
+    and _sg_inflight[1][:4] == (0, 0, 0, 0) and _sg_inflight[1][5] == (False, True),
+    f"unbased {_sg_unbased[:4]}, refreshing {_sg_inflight[0][:4]} {_sg_inflight[0][5]}, "
+    f"solving {_sg_inflight[1][:4]} {_sg_inflight[1][5]}",
+)
+
+
+async def _sg_cycle_tail():
+    """One refresh on a stubbed solve: the order the cycle runs its writes and its bookkeeping."""
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _hass, _entry, coord = _r9f13_make("sg_cycle_tail")
+    ran = []
+
+    def _rec(name):
+        async def _step(*_a, **_k):
+            ran.append(name)
+        return _step
+
+    async def _solve():
+        boost_mod.adopt_plan(coord, {"power_normalized": 0.5})
+
+    coord.async_run_optimization = _solve
+    steps = ("_apply_action", "_command_frequency", "_async_drive_pumps", "_record_accuracy",
+             "_track_realised_peak", "_async_save_accuracy", "_async_save_energy_totals")
+    for name in steps:
+        setattr(coord, name, _rec(name))
+    coord._next_optimization = None
+    await coord._async_update_data()
+    _r9f13_dt.freeze(None)
+    due = _R9F13_NOW + timedelta(minutes=_r9f13_cmod._ctx_of(coord)._config.optimization_interval)
+    return ran == list(steps) and coord._next_optimization == due, ran, coord._next_optimization
+
+
+_sg_tail = _sg_aio.run(_sg_cycle_tail())
+R.check(
+    "N-solve-recompute: the cycle's write tail the toggle shares runs inside every refresh -- action, "
+    "frequency, pumps -- and is followed by the four bookkeeping steps, each once and in order, and "
+    "the next solve is stamped one configured interval on",
+    _sg_tail[0],
+    f"ran {_sg_tail[1]}, next {_sg_tail[2]}",
+)
+
+
+async def _sg_diagnose_publish():
+    """A diagnose press publishes the insight view without a cycle (D9-s1-01), through the shared publish."""
+    _hass, _entry, coord = _r9f13_make("sg_diagnose")
+    real, pubs = _r9f13_cmod._await_process, []
+
+    async def _no_report(*_a, **_k):
+        return None
+
+    _r9f13_cmod._await_process = _no_report
+    coord.data = {"plan": "held"}
+    coord.async_update_listeners = lambda: pubs.append(1)
+    try:
+        await coord.async_diagnose_interval()
+    finally:
+        _r9f13_cmod._await_process = real
+    return coord.data.get("plan"), "insight" in coord.data, len(pubs)
+
+
+_sg_diag = _sg_aio.run(_sg_diagnose_publish())
+R.check(
+    "N-solve-recompute: a diagnose press publishes the insight view on the held payload, once, without a cycle",
+    _sg_diag == ("held", True, 1),
+    f"{_sg_diag}",
+)
+
+
+def _sg_press(cls):
+    """Toggle a duty switch; the name of the coroutine its press hands the entry's background task."""
+    _hass, _entry, coord = _r9f13_make(f"sg_press_{cls.__name__}")
+    handed = []
+
+    class _Entry:
+        entry_id = "sg_press"
+
+        def async_create_background_task(self, _hass, coro, name=None):
+            handed.append(coro.cr_code.co_name)
+            coro.close()
+
+    ent = cls(coord, _Entry())
+    ent.async_write_ha_state = lambda: handed.append("published")
+    _sg_aio.run(ent.async_turn_on())
+    return handed
+
+
+from heatpump_optimizer import switch as _sg_switch  # noqa: E402
+
+_sg_presses = {c.__name__: _sg_press(c) for c in (_sg_switch.BoostSpaceSwitch, _sg_switch.BlockSpaceSwitch)}
+R.check(
+    "N-solve-recompute: a boost or block switch publishes its state, then hands the entry's background "
+    "task the held-plan toggle, not the publish-then-refresh helper's refresh",
+    all(v == ["published", "async_apply_held"] for v in _sg_presses.values()),
+    f"{_sg_presses}",
 )
 
 
