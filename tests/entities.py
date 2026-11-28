@@ -3897,6 +3897,9 @@ def _p2_proxies(sources):
     for n in ast.walk(ast.parse(sources["thermal_model.py"])):
         if isinstance(n, ast.FunctionDef) and n.name == "two_zone_from_config":
             out["two_zone_enabled"] |= names(n)
+        # The presence keys the rule reads by name (R11-LATE-P2-ZONE-GATE).
+        if (isinstance(n, ast.AnnAssign) and getattr(n.target, "id", None) == "TWO_ZONE_FIELDS"):
+            out["two_zone_enabled"] |= names(n)
         if isinstance(n, ast.FunctionDef) and n.name == "dhw_enabled_from_config":
             out["dhw_enabled"] |= names(n)
     for n in ast.walk(ast.parse(sources["wood_fuel.py"])):
@@ -4282,6 +4285,12 @@ def _p2_registry(sources):
              match=_p2_match_node(
                  ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
                  lambda n: isinstance(n.op, ast.And)),
+             # A floor list's truthiness standing in for the model's flag: a
+             # one-zone solve fills both with the room's (R11-LATE-P2-ZONE-GATE).
+             also=lambda n, parents: (
+                 isinstance(n, ast.Attribute)
+                 and n.attr in ("upper_temp_trajectory", "lower_temp_trajectory")
+                 and _p2_decides(n, parents)),
              owners=["optimizer.py::OptimizationResult.zone_trajectories"],
              dispositions={}),
         dict(fact="billed_window_pad", finding="R10-CLONE-2238",
@@ -12451,6 +12460,7 @@ for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platfo
                     _ent.__dict__.pop("ha_state_writes", None)
                 _ent.hass = EagerHass()
                 _ent.coordinator.refreshes.clear()
+                _ent.coordinator.held_applies.clear()
                 _ent.coordinator.on_refresh = lambda _e=_ent, _p=_prop: (
                     bool(getattr(_e, "ha_state_writes", None)),
                     getattr(_e, _p),
@@ -12463,13 +12473,15 @@ for _module in (sensor, binary_sensor, button, _climate_platform, _switch_platfo
                 if not (_ent.coordinator.data == _data
                         and getattr(_ent, "ha_state_writes", None)
                         and _got == _want
-                        and _ent.coordinator.refreshes == [(True, _want, _pressed)]
+                        and _ent.coordinator.refreshes + _ent.coordinator.held_applies
+                        == [(True, _want, _pressed)]
                         and len(_ent.coordinator.pressed)
                         == _pressed + ("climate" in _cls.__module__)):
                     _act_lag.append(
                         f"{_cls.__name__}.{_name}{_args!r}: {_prop}={_got!r} "
                         f"writes={getattr(_ent, 'ha_state_writes', None)} "
-                        f"refreshes={_ent.coordinator.refreshes}"
+                        f"refreshes={_ent.coordinator.refreshes} "
+                        f"held={_ent.coordinator.held_applies}"
                     )
 R.check(
     "every entity action has a row or a stated exemption",
@@ -12478,7 +12490,8 @@ R.check(
 )
 R.check(
     "every entity action publishes its own result at once, while the payload "
-    "still holds the old one, before the one refresh it asks for starts",
+    "still holds the old one, before the one refresh (or, for a duty switch, the "
+    "held-plan toggle) it asks for starts",
     _act_ran >= 12 and not _act_lag,
     f"ran={_act_ran}; " + "; ".join(_act_lag),
 )

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:plan_base RETURN_DEL 2e61f69f",
+  "killed_by": "tests/features.py",
+  "old": "    return _PLAN_BASES.get(coord)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
