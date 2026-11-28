@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/config_flow.py b/custom_components/heatpump_optimizer/config_flow.py
+index 48050b4a0a..43fe24eb51 100644
+--- a/custom_components/heatpump_optimizer/config_flow.py
++++ b/custom_components/heatpump_optimizer/config_flow.py
+@@ -2905,7 +2905,7 @@ class HeatPumpOptimizerConfigFlow(
+             }
+             self._device_prefill = (tuple(suggested), notes)
+             return self._device_prefill_form(
+-                vol.Schema(_prefill_fields(suggested, suggested, self._data)), notes, {}
++                _prefill_schema(suggested, suggested, self._data), notes, {}
+             )
+         keys, notes = self._device_prefill
+         saved = {

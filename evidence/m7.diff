@@ -1,0 +1,44 @@
+diff --git a/custom_components/heatpump_optimizer/translations/de.json b/custom_components/heatpump_optimizer/translations/de.json
+index c1df940cdb..92226ff142 100644
+--- a/custom_components/heatpump_optimizer/translations/de.json
++++ b/custom_components/heatpump_optimizer/translations/de.json
+@@ -448,7 +448,7 @@
+       "message": "{violations}"
+     },
+     "run_optimization_no_prices": {
+-      "message": "Die Optimierung wurde für {entry_ids} nicht ausgeführt: Es waren weniger als vier Strompreisintervalle verfügbar"
++      "message": "Die Optimierung wurde für {entry_ids} nicht ausgeführt: Es waren weniger als drei Strompreisintervalle verfügbar"
+     },
+     "factory_reset_not_applied": {
+       "message": "Das Zurücksetzen auf Werkseinstellungen von {entry_id} wurde nicht durchgeführt: Home Assistant hat das Entladen des Eintrags verweigert; Einstellungen und Gelerntes sind unverändert, gespeichert wurde nur der Rückgängig-Schnappschuss, den das Zurücksetzen zuerst anlegt"
+@@ -460,7 +460,7 @@
+       "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: Es existiert noch kein Plan, daher gibt es nichts zum Vergleichen; warte, bis die erste Optimierung abgeschlossen ist"
+     },
+     "simulate_plan_no_prices": {
+-      "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: Es waren weniger als vier Strompreisintervalle verfügbar"
++      "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: Es waren weniger als drei Strompreisintervalle verfügbar"
+     },
+     "simulate_plan_invalid_windows": {
+       "message": "Ungültige Warmwasser-Zeitfenster \"{windows}\": {error}"
+diff --git a/custom_components/heatpump_optimizer/translations/sv.json b/custom_components/heatpump_optimizer/translations/sv.json
+index 26f4104541..f27ec1f82e 100644
+--- a/custom_components/heatpump_optimizer/translations/sv.json
++++ b/custom_components/heatpump_optimizer/translations/sv.json
+@@ -448,7 +448,7 @@
+       "message": "{violations}"
+     },
+     "run_optimization_no_prices": {
+-      "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
++      "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än tre elprissteg tillgängliga"
+     },
+     "factory_reset_not_applied": {
+       "message": "Fabriksåterställningen av {entry_id} utfördes inte: Home Assistant vägrade avlasta posten; inställningar och inlärt tillstånd är oförändrade, och bara den ångra-ögonblicksbild som återställningen tar först sparades"
+@@ -460,7 +460,7 @@
+       "message": "Simuleringen kunde inte köras för {entry_ids}: det finns ingen plan än, så det finns inget att jämföra med; vänta tills den första optimeringen är klar"
+     },
+     "simulate_plan_no_prices": {
+-      "message": "Simuleringen kunde inte köras för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
++      "message": "Simuleringen kunde inte köras för {entry_ids}: det fanns färre än tre elprissteg tillgängliga"
+     },
+     "simulate_plan_invalid_windows": {
+       "message": "Ogiltiga varmvattentider \"{windows}\": {error}"

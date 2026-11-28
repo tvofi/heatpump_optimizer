@@ -1,0 +1,2 @@
+ALL 731 checks PASSED
+cfs rc=0
