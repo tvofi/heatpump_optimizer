@@ -41858,6 +41858,70 @@ R.check(
     f"marked, two drivers -> {_MUT_SP and _MUT_SP[0][:2]}; marked, only the "
     f"judge -> {_MUT_SP and _MUT_SP[1][:2]}; no mark -> {_MUT_SP and _MUT_SP[2][:2]}",
 )
+# The PR lane's costly-pin cap (R11-HOTFIX-MUTATION-DRIVER-CAP, #3897): the
+# first K+1 pump_arbiter.py sites of the draw and every other one after, pinned to
+# one driver, drawn by the real sampled_pool at a cap of K+3. Dear, the draw
+# holds exactly COSTLY_PIN_DRAWS pinned sites, keeps the uncapped draw's order,
+# and passes over only pinned sites. Cheap (at the threshold, not over it),
+# with no pins, or pinned to a script none of the site's drivers is, it is the
+# uncapped draw site for site: the null control.
+_MUT_CP_D = "tests/features.py"
+_MUT_CP_F = [_mut.PRODUCTION / "pump_arbiter.py"]
+_MUT_CP_REL = str(_MUT_CP_F[0].relative_to(_mut.ROOT))
+_MUT_CP_K = getattr(_mut, "COSTLY_PIN_DRAWS", None)
+
+
+def _mut_cp(cap, pins=None, secs=None):
+    with _pv_ctx.redirect_stdout(_mut_io.StringIO()):
+        pool, _ = _mut_spool(_MUT_CP_F, {_MUT_CP_D: [_MUT_CP_REL]},
+                             [_MUT_CP_D], None, {}, _pv_random.Random(7),
+                             10_000, cap,
+                             **({} if pins is None else
+                                {"killed_by": pins, "seconds": secs}))
+    return pool
+
+
+_MUT_CP = None
+if _mut_spool is not None and _MUT_CP_K is not None:
+    # A site is (line, kind, new): twins share an anchor, so one pin covers
+    # every twin and the pinned set is read through ledger_key.
+    _mut_cp_id = lambda m: (m["line"], m["kind"], m["new"])  # noqa: E731
+    _MUT_CP_SITES = _mut_cp(10_000)
+    _MUT_CP_ALL = [_mut_cp_id(m) for m in _MUT_CP_SITES]
+    _MUT_CP_KB = {_mut.ledger_key(m): {"killed_by": _MUT_CP_D, "old": m["old"]}
+                  for m in (_MUT_CP_SITES[:_MUT_CP_K + 1]
+                            + _MUT_CP_SITES[_MUT_CP_K + 1::2])}
+    _MUT_CP_PIN = {_mut_cp_id(m) for m in _MUT_CP_SITES
+                   if _mut.ledger_key(m) in _MUT_CP_KB}
+    _MUT_CP_T = _mut.COSTLY_PIN_SECONDS
+    _MUT_CP_N = _MUT_CP_K + 3
+    _MUT_CP = tuple([_mut_cp_id(m) for m in _mut_cp(_MUT_CP_N, *a)] for a in (
+        (_MUT_CP_KB, {_MUT_CP_D: _MUT_CP_T + 1.0}),
+        (_MUT_CP_KB, {_MUT_CP_D: _MUT_CP_T}),
+        ({}, {_MUT_CP_D: _MUT_CP_T + 1.0}), (),
+        ({k: dict(v, killed_by="tests/gone.py") for k, v in _MUT_CP_KB.items()},
+         {"tests/gone.py": _MUT_CP_T + 1.0})))
+    _MUT_CP_DEAR = _MUT_CP[0]
+    _MUT_CP_SKIPPED = ([] if not _MUT_CP_DEAR else
+                       [k for k in _MUT_CP_ALL[:_MUT_CP_ALL.index(_MUT_CP_DEAR[-1])]
+                        if k not in _MUT_CP_DEAR])
+R.check(
+    "the PR lane's draw holds at most COSTLY_PIN_DRAWS sites pinned to a "
+    "driver over COSTLY_PIN_SECONDS, fills its cap in draw order with the "
+    "rest, and passes over only those pinned sites; a pin at the threshold, "
+    "or no pin, draws exactly the uncapped pool (R11-HOTFIX-MUTATION-DRIVER-CAP)",
+    _MUT_CP is not None and len(_MUT_CP_ALL) >= 2 * _MUT_CP_N
+    and len(set(_MUT_CP_ALL)) == len(_MUT_CP_ALL)
+    and len(_MUT_CP[0]) == _MUT_CP_N
+    and sum(k in _MUT_CP_PIN for k in _MUT_CP[0]) == _MUT_CP_K
+    and [k for k in _MUT_CP_ALL if k in _MUT_CP[0]] == _MUT_CP[0]
+    and bool(_MUT_CP_SKIPPED) and all(k in _MUT_CP_PIN for k in _MUT_CP_SKIPPED)
+    and (_MUT_CP[1] == _MUT_CP[2] == _MUT_CP[3] == _MUT_CP[4]
+         == _MUT_CP_ALL[:_MUT_CP_N]),
+    f"K={_MUT_CP_K}; uncapped={_MUT_CP and _MUT_CP[3]}; dear={_MUT_CP and _MUT_CP[0]}; "
+    f"at threshold={_MUT_CP and _MUT_CP[1]}; no pins={_MUT_CP and _MUT_CP[2]}; "
+    f"pinned to a non-driver={_MUT_CP and _MUT_CP[4]}",
+)
 _mut_ordpool = getattr(_mut, "order_pool_drivers", None)
 _MUT_OP_SITE = _mut_pv_site("x.py:ord K 0")
 

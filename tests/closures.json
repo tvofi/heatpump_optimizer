@@ -218,6 +218,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -407,6 +408,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -535,6 +537,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -653,6 +656,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -785,6 +789,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -920,6 +925,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -1068,6 +1074,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -1187,6 +1194,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -1327,6 +1335,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -1479,6 +1488,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -1881,6 +1891,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -2440,6 +2451,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -2652,6 +2664,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -2822,6 +2835,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -2981,6 +2995,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -3186,6 +3201,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -3371,6 +3387,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -3782,6 +3799,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -3975,6 +3993,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -4094,6 +4113,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -4267,6 +4287,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -4378,6 +4399,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -4526,6 +4548,7 @@
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_anchor.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/flow_limit.py",
    "custom_components/heatpump_optimizer/flow_meter.py",
@@ -4769,6 +4792,7 @@
    "dev/audit/harnesses/merge_subject_guard_block.mjs",
    "dev/audit/harnesses/mutant_guard.py",
    "dev/audit/harnesses/mutant_run_diff_shards.py",
+   "dev/audit/harnesses/mutation_draw_cost.py",
    "dev/audit/harnesses/nightly_drain_breakdown.py",
    "dev/audit/harnesses/owner_only_channel.py",
    "dev/audit/harnesses/owner_only_mutants.py",
@@ -5030,6 +5054,7 @@
    "dev/audit/harnesses/r11_money_currency_precedence.py",
    "dev/audit/harnesses/r11_outside_3849_unlatched_price.py",
    "dev/audit/harnesses/r11_owner_criteria.py",
+   "dev/audit/harnesses/r11_owner_step_kick.py",
    "dev/audit/harnesses/r11_plan_page_inventory.py",
    "dev/audit/harnesses/r11_relay_3358_skip.py",
    "dev/audit/harnesses/r11_seam_config_silent_prefill.py",
@@ -6345,7 +6370,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 73.4
+   "seconds": 86.5
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -6353,7 +6378,7 @@
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 19.8
+   "seconds": 23.4
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
@@ -6405,7 +6430,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 1616.7
+   "seconds": 2235.0
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -6421,7 +6446,7 @@
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 18.2
+   "seconds": 20.9
   },
   "tests/ha_contract.py": {
    "rc": 0,
@@ -6429,7 +6454,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 320.0
+   "seconds": 407.7
   },
   "tests/layout.py": {
    "rc": 0,
@@ -6449,7 +6474,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 142.5
+   "seconds": 295.2
   },
   "tests/plan_view.py": {
    "rc": 0,
