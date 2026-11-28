@@ -902,6 +902,18 @@ def self_test() -> int:
     _check("null control: a batch with every sha present reads the same ages",
            tip_ages(list(held), 5000.0, git=fake_git) == {"1" * 40: 4000.0, "2" * 40: 3000.0},
            results)
+    calls: list = []
+
+    def counting_git(argv, **kw):
+        calls.append(argv)
+        return fake_git(argv, **kw)
+
+    _check("tip_ages: a lone missing sha costs one git call, never a re-read of itself",
+           tip_ages([missing], 5000.0, git=counting_git) == {} and len(calls) == 1, results)
+    calls.clear()
+    _check("null control: a failed two-sha batch is re-read per sha (1 + 2 calls)",
+           tip_ages(["1" * 40, missing], 5000.0, git=counting_git) == {"1" * 40: 4000.0}
+           and len(calls) == 3, results)
     main_sha = "m" * 40
     merged_sha = "a" * 40          # reachable from main
     orphan_sha = "b" * 40          # parentless, not reachable from main

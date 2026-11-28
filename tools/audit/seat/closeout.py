@@ -595,8 +595,8 @@ def self_test() -> int:
                 T.gc_calls += 1
                 return 0, ["gc ran"]
 
-        def mk(stages, **kw):
-            rj = tmp / "wave-r10-groups.json"
+        def mk(stages, name="wave-r10-groups.json", **kw):
+            rj = tmp / name
             rj.write_text(json.dumps(roster(stages)))
             a = A()
             a.roster_file = rj
@@ -628,6 +628,21 @@ def self_test() -> int:
         check("a dry run writes nothing (remote refs, tree, report dir)",
               remote_state() == before_r and tree_state() == before_t
               and not (tmp / "report").exists())
+        # run() on a round-11 roster: Ctx derives the self group from the file
+        # name, so R11-CLOSEOUT-CLEANUP not-started blocks nothing (an R10
+        # roster cannot tell the derived group from the R10 constant)
+        r11_done = {"A": "done", "B": "done", "R11-CLOSEOUT-CLEANUP": "not-started"}
+        lines = []
+        rc = run(mk(r11_done, name="wave-r11-groups.json"), False, lines.append)
+        check("a round-11 dry run with only its own closeout group open does not refuse",
+              rc == 0 and not any("would REFUSE" in x for x in lines))
+        lines = []
+        rc = run(mk(dict(r11_done, **{"R10-CLOSEOUT-CLEANUP": "not-started"}),
+                    name="wave-r11-groups.json"), False, lines.append)
+        check("null control: the same round-11 dry run names R10-CLOSEOUT-CLEANUP open",
+              rc == 0 and any("would REFUSE" in x
+                              and x.rsplit(": ", 1)[-1] == "R10-CLOSEOUT-CLEANUP"
+                              for x in lines))
         # --apply with a group open refuses, names the group, writes nothing
         lines = []
         rc = run(mk(open_one), True, lines.append)
