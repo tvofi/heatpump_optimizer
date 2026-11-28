@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:hours_until_next_window CMP_BOUND e2e8012d",
+  "old": "        if t > utc_instant(now)",
+  "reason": "Equivalent on every reachable input (CMP_BOUND, `t > utc_instant(now)` -> `>=`): the two differ only when a window entry falls exactly at `now`. An entry at a window's start, or at a DST jump landing inside a window, puts the wall clock at `now` inside that window, so `hour_in_windows` has already returned 0.0 at the top of hours_until_next_window; equality reaches the filter only for a zero-length window, and dhw_schedule._parse_one_range, the one parser of every window spec, raises DHWWindowError on `start == end` except `00:00-00:00`, which it returns as FULL_DAY. Measured by the R11-SEAM-wallclock-dst repair fixer: with the mutant applied, the features.py P7 block (`# P7, issue 3786: a wall-clock hour` to `def _p7_slips`) read ALL 3 PASSED, and dev/audit/harnesses/r11_wallclock_dst.py next_window_census read 0 cells off on spring, autumn and plain, where the same drive killed the fold-loop, jump and round-trip mutants.",
+  "verdict": "equivalent"
+}

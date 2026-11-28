@@ -235,6 +235,8 @@
     "tools/audit/seat/ci_predict_replay.sh",
     "tools/audit/seat/ci_priority.py",
     "tools/audit/seat/ci_probe.py",
+    "tools/audit/seat/ci_rerun.py",
+    "tools/audit/seat/ci_supersede.sh",
     "tools/audit/seat/closeout.py",
     "tools/audit/seat/cloud-setup.sh",
     "tools/audit/seat/cloud_dispatch.py",
@@ -320,6 +322,7 @@
     "tools/audit/seat/seat_gen.py",
     "tools/audit/seat/seat_gen_selftest.py",
     "tools/audit/seat/seat_venv.sh",
+    "tools/audit/seat/selftest_absorb.py",
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/shell_hazard.py",
     "tools/audit/seat/shims/**",
@@ -332,6 +335,7 @@
     "tools/audit/seat/sweep_template.md",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/token_ledger.py",
     "tools/audit/seat/toolchain.py",
     "tools/audit/seat/toolchain_selftest.py",
     "tools/audit/seat/topic_grammar.py",
@@ -432,6 +436,8 @@
     "tools/audit/seat/fixtures",
     "tools/audit/seat/fixtures/beat_jobs",
     "tools/audit/seat/fixtures/ci_critpath",
+    "tools/audit/seat/fixtures/ci_rerun",
+    "tools/audit/seat/fixtures/ci_rerun/pr3836",
     "tools/audit/seat/hooks",
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims",
@@ -2845,6 +2851,7 @@
     "dev/governance/config/policy_budgets.json",
     "tests/ci_budgets.json",
     "tests/coverage_budgets.json",
+    "tests/cycle_budgets.json",
     "tests/layout.json",
     "tests/layout.py",
     "tests/mutation_budgets.json",
@@ -2996,7 +3003,9 @@
    "run_sha": "493783248b75a0de7544a6396b62a2bc2021aee6f8aa2b790cbfc7183cf607f0",
    "files": [
     ".github/workflows/governance.yml",
+    ".github/workflows/hassfest.yml",
     ".github/workflows/tests.yml",
+    ".github/workflows/validate.yml",
     "tests/closures.json",
     "tools/ci/fixtures/gate_requeued_needs_runs.json",
     "tools/ci/ghapi.py",
@@ -3079,6 +3088,77 @@
     "rev-list"
    ]
   },
+  "ci-shards": {
+   "run_sha": "53c3c834532cba97f34ba0392acb0ce31b23bdb66e9bd30b80bc03f2087018ed",
+   "files": [
+    ".gitattributes",
+    ".github/**",
+    "tests/**",
+    "tools/**"
+   ],
+   "probes": [
+    ".",
+    ".github/.gitattributes",
+    ".github/ISSUE_TEMPLATE/.gitattributes",
+    ".github/actions/.gitattributes",
+    ".github/actions/nightly-ha/.gitattributes",
+    ".github/workflows/.gitattributes",
+    "tests",
+    "tools",
+    "tools/.gitattributes",
+    "tools/audit/.gitattributes",
+    "tools/audit/archscore/.gitattributes",
+    "tools/audit/archscore/calibration/.gitattributes",
+    "tools/audit/archscore/metrics/.gitattributes",
+    "tools/audit/archscore/planted/.gitattributes",
+    "tools/audit/archscore/planted/perturb/.gitattributes",
+    "tools/audit/archscore/planted/redteam/.gitattributes",
+    "tools/audit/round4/**",
+    "tools/audit/seat/.gitattributes",
+    "tools/audit/seat/beatd_shims/.gitattributes",
+    "tools/audit/seat/fixtures/.gitattributes",
+    "tools/audit/seat/fixtures/beat_jobs/.gitattributes",
+    "tools/audit/seat/fixtures/ci_critpath/.gitattributes",
+    "tools/audit/seat/fixtures/ci_rerun/.gitattributes",
+    "tools/audit/seat/fixtures/ci_rerun/pr3836/.gitattributes",
+    "tools/audit/seat/hooks/.gitattributes",
+    "tools/audit/seat/instruments/.gitattributes",
+    "tools/audit/seat/shims/.gitattributes",
+    "tools/ci",
+    "tools/coverage/.gitattributes",
+    "tools/devices/.gitattributes",
+    "tools/merge/.gitattributes",
+    "tools/plan/.gitattributes",
+    "tools/policy/.gitattributes",
+    "tools/policy/fixtures/.gitattributes",
+    "tools/policy/fixtures/figures/.gitattributes",
+    "tools/policy/fixtures/policy-loop/.gitattributes",
+    "tools/policy/fixtures/policy-rot/.gitattributes",
+    "tools/policy/fixtures/policy-rot/hooks/.gitattributes",
+    "tools/policy/fixtures/policy-rot/prepr/.gitattributes",
+    "tools/policy/fixtures/policy-rot/prepr/raise/.gitattributes",
+    "tools/policy/fixtures/policy-rot/prepr/raise/recorded/.gitattributes",
+    "tools/policy/fixtures/policy-rot/prepr/upstream/.gitattributes",
+    "tools/policy/fixtures/red-ancestry/.gitattributes",
+    "tools/policy/fixtures/red-ancestry/bare/.gitattributes",
+    "tools/policy/fixtures/red-ancestry/green/.gitattributes",
+    "tools/policy/fixtures/red-ancestry/red/.gitattributes",
+    "tools/policy/fixtures/roster-probe/.gitattributes",
+    "tools/policy/record-predicate/.gitattributes",
+    "tools/policy/vendor/.gitattributes",
+    "tools/pr/.gitattributes",
+    "tools/release/.gitattributes",
+    "tools/replay/.gitattributes",
+    "tools/site/.gitattributes"
+   ],
+   "dirs": [
+    "tests",
+    "tools/ci"
+   ],
+   "index": true,
+   "objects": false,
+   "git": []
+  },
   "ci-watcher": {
    "run_sha": "820b4913eacfeeee41bc39a41bfb2b5cf11e5d7350295ebc90b3b3dc65d18da7",
    "files": [
@@ -3118,6 +3198,7 @@
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/token_ledger.py",
     "tools/audit/seat/topic_grammar.py"
    ],
    "probes": [
@@ -7595,9 +7676,7 @@
     "dev/governance/dimensions",
     "dev/governance/rules/a-rule.md",
     "dev/programme/.gitattributes",
-    "dev/programme/carries/.gitattributes",
-    "dev/programme/carries/carry-1645.json",
-    "dev/programme/carries/carry-201.json",
+    "dev/programme/carries/**",
     "dev/programme/delivery",
     "dev/programme/register/.gitattributes",
     "dev/programme/rosters/.gitattributes",
@@ -9820,8 +9899,11 @@
     "tools/release"
    ],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "cat-file",
+    "ls-tree"
+   ]
   },
   "roster-ops-mutation-harness": {
    "run_sha": "ff64ecaef9c502f634ec498485bc646c76e67e625d81961b0ab116701e85812d",
@@ -11198,6 +11280,23 @@
     "maintenance",
     "rev-list"
    ]
+  },
+  "token-ledger": {
+   "run_sha": "2187606ddb988417845b538a2a014db8fc1fd2616f7bf42e304f706467d5d4a6",
+   "files": [
+    "tools/audit/seat/round_metrics.py",
+    "tools/audit/seat/token_ledger.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
   },
   "toolchain": {
    "run_sha": "58a9dcb43610f2fb8ff4466f1623dd23eff5bec9e8fdfd1cf4ca65cfa4bc6b54",

@@ -29,6 +29,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import functools
 import math
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone, tzinfo
@@ -226,23 +227,34 @@ def _number(value: Any, domain: Domain) -> bool:
     )
 
 
+def _declares_number(domain: Domain) -> bool:
+    """Whether a field so declared holds a number: a ``real``, an ``int``, or a
+    ``choice`` whose members are all numbers (``LEAD_BUCKETS``), a flag none."""
+    if domain.kind in ("real", "int"):
+        return True
+    real = Domain("real")
+    return domain.kind == "choice" and bool(domain.choices) and all(_number(m, real) for m in domain.choices)
+
+
 _KINDS: dict[str, Any] = {
     "real": _number,
     "int": lambda v, d: isinstance(v, int) and _number(v, d),
     "flag": lambda v, d: isinstance(v, bool),
     "text": lambda v, d: isinstance(v, str),
-    "choice": lambda v, d: v in d.choices,
+    "choice": lambda v, d: any(v == m and isinstance(v, bool) == isinstance(m, bool) for m in d.choices),
     "instant": lambda v, d: _parses(v, datetime.fromisoformat, 16) and v[10] in "T ",
     "day": lambda v, d: len(str(v)) == 10 and _parses(v, date.fromisoformat, 10),
     "month": lambda v, d: len(str(v)) == 7 and _parses(f"{v}-01", date.fromisoformat, 10),
 }
 
 
-def in_domain(domain: Domain, value: Any) -> bool:
-    """Whether ``value`` lies in ``domain`` (a key is read as the number it spells)."""
+def in_domain(domain: Domain, value: Any, key: bool = False) -> bool:
+    """Whether ``value`` lies in ``domain``. A map ``key`` is read as the number
+    it spells, since JSON keys are text; a stored value never is, as no loader
+    computes with text."""
     if value is None or value == "":
         return domain.null
-    if domain.kind in ("int", "real") and isinstance(value, str):
+    if key and domain.kind in ("int", "real") and isinstance(value, str):
         try:
             value = (int if domain.kind == "int" else float)(value)
         except ValueError:
@@ -295,10 +307,10 @@ _RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": _Z0,
+    # predicted_cost: None for an interval no price covered (#2229).
     **{f"samples/#/{k}": _N for k in (
-        "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
-        "humidity", "solar_radiation", "cop_residual")},
-    "samples/#/predicted_cost": _R,
+        "actual_power_kw", "predicted_temp", "actual_temp", "predicted_cost", "actual_cost",
+        "outdoor_temp", "humidity", "solar_radiation", "cop_residual")},
     # #1935: whether a boost overlay governed the interval -- the exclusion
     # tag a post-drift recommendation reads.
     "samples/#/boost_space": _FLAG,
@@ -341,6 +353,30 @@ _ACCURACY: dict[str, Domain | str] = {
     "draw/floor_since": _COUNT,
 }
 
+#: The COP health watch's memory, keyed ``_measured``: a heat measurement
+#: vouched for each sample. R10-HOTFIX-COP-UNMEASURED (85ee2bfb) moved it from
+#: the unsuffixed keys and kept its shape. A document an earlier release wrote,
+#: and the ring's snapshots of one for its eight weeks, holds the same fields
+#: under the old keys.
+_COP_WATCH: dict[str, Domain] = {
+    # The cap, as Cusum.as_dict rounds it.
+    "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
+    **{f"cop_health_cusum_measured/{f}": d for f, d in (
+        ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+    "cop_baseline_measured/~": _TEXT, "cop_baseline_measured/*/0": Domain("real", _POS),
+    "cop_baseline_measured/*/1": Domain("int", 1),
+}
+_UNMEASURED = "an earlier release's COP watch, no sample of it measured: the loader reads only the _measured keys"
+#: ``debugger._repair`` keeps a stored cycle row whole or drops it: one bad
+#: cell leaves a row no single cycle wrote.
+_CYCLE_ROW = "a row with a cell outside its domain is dropped whole (debugger._repair)"
+#: ``off_restore._entry_of``: a baseline is the entity beside its value.
+_ARMED = "an entity without its baseline value, or a value without its entity, reads as no baseline"
+#: The longest span two datetimes bound, in hours: a duration summed from runs
+#: between stored instants is no longer, and a timedelta holds it with room
+#: for the next run to be added (``timedelta.max`` is ~270 times as long).
+_SPAN_MAX_H = (datetime.max - datetime.min) // timedelta(hours=1)
+
 DOMAINS: dict[str, dict[str, Domain | str]] = {
     "thermal_learning": {
         "buffer_cooling_rate": Domain("real", _POS),  # tank-dependent clamp inside this
@@ -369,21 +405,21 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "measured_cop/scale_base": Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX, null=True),
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
-        "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
-        **{f"{k}/{f}": d for k in ("vent_cusum", "cop_health_cusum_measured") for f, d in (
-            ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+        **{f"vent_cusum/{f}": d for f, d in (("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
+        **_COP_WATCH,
+        **{k.replace("_measured", "", 1): d._replace(unread=_UNMEASURED) for k, d in _COP_WATCH.items()},
         # The open-window detector's fit (#2241, Cusum._departure): None
         # until seeded; a cell no fit can hold drops the whole fit, which
         # re-seeds at the next sample (Cusum.load).
         "vent_cusum/reference": _ABSENT, "vent_cusum/reference/#": Domain("real", whole=_REFIT),
         "vent_cusum/reference_cov": _ABSENT, "vent_cusum/reference_cov/#": Domain(
             "real", -REFERENCE_PRIOR_COV, REFERENCE_PRIOR_COV, whole=_REFIT),
-        "cop_baseline_measured/~": _TEXT, "cop_baseline_measured/*/0": Domain("real", _POS),
-        "cop_baseline_measured/*/1": Domain("int", 1),
         "immersion_events/#": _AT,
         "snow_accum_cm": _Z, "snow_accum_last": _AT0, "last_heavy_snow": _AT0,
         "capacity_envelope/~": Domain("int"), "capacity_envelope/*/0": Domain("real", _POS),
-        "capacity_envelope/*/1": Domain("int", 1),
+        # The capping samples: 0 for a bucket only a measured floor has
+        # raised (#1955 fold e), which never counts towards capping.
+        "capacity_envelope/*/1": _COUNT,
         "solar_aperture/n": _Z, "solar_aperture/mx": _Z, "solar_aperture/my": _R,
         "solar_aperture/cov": _R, "solar_aperture/var": _Z,
         "solar_aperture/scale": Domain("real", c.SOLAR_APERTURE_MIN, c.SOLAR_APERTURE_MAX),
@@ -499,12 +535,17 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "block_dhw/until": _AT, "block_space/until": _AT,
         # #1935: the settling tail runs past the overlay's own two hours.
         "space_settle/until": Domain("instant", ahead_h=c.BOOST_SPACE_SETTLE_TAIL_HOURS),
-        "space_settle/boosted_h": _Z0,
+        "space_settle/boosted_h": Domain("real", 0.0, _SPAN_MAX_H, null=True),
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     # off_restore.py: each armed consumer and the baseline its restore writes,
     # null for a consumer with a fixed neutral (the heat-curve offset: 0).
-    "off_restore": {"armed/~": _TEXT, "armed/*": Domain("real", null=True)},
+    # An armed entry is the entity beside its baseline (async_arm); a bare
+    # number is an earlier release's entry, which _entry_of still reads.
+    "off_restore": {
+        "armed/~": _TEXT, "armed/*": Domain("real", null=True),
+        "armed/*/entity_id": _TEXT._replace(whole=_ARMED), "armed/*/value": _R._replace(whole=_ARMED),
+    },
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
@@ -569,15 +610,17 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     # text: its plan instants lie ahead of the clock by design.
     "debug": {
         "started_at": _AT, "final": _FLAG,
-        "rows/#/t": _AT, "rows/#/mode": _TEXT, "rows/#/action_mode": _TEXT,
-        "rows/#/heat_pump_on": _FLAG,
-        **{f"rows/#/{k}": _R for k in (
-            "action_kw", "weather_stale_h", "indoor_temp", "outdoor_temp", "dhw_temp")},
-        **{f"rows/#/{k}": _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
-        **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
-        "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
-        # #2271: the release that wrote the row (#2209's forward-carry).
-        "rows/#/version": _TEXT,
+        **{f"rows/#/{k}": d._replace(whole=_CYCLE_ROW) for k, d in {
+            "t": _AT, "mode": _TEXT, "action_mode": _TEXT, "heat_pump_on": _FLAG,
+            **{k: _R for k in ("action_kw", "weather_stale_h", "indoor_temp", "outdoor_temp", "dhw_temp")},
+            **{k: _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
+            **{k: _COUNT for k in ("solve_failures", "prices_rows")},
+            # The accuracy tracker's own sample declarations.
+            **{f"accuracy_sample/{k[len('samples/#/'):]}": d
+               for k, d in _ACCURACY.items() if k.startswith("samples/#/") and isinstance(d, Domain)},
+            # #2271: the release that wrote the row (#2209's forward-carry).
+            "version": _TEXT,
+        }.items()},
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
         # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
         "self_tests": _TEXT,
@@ -587,8 +630,10 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
 }
 
 
+@functools.cache
 def _tries() -> dict[str, dict[str, Any]]:
-    """``DOMAINS`` as one path trie per store, aliases linked in place."""
+    """``DOMAINS`` as one path trie per store, aliases linked in place; built
+    once, as ``DOMAINS`` is fixed at import and no reader writes the trie."""
     tries: dict[str, dict[str, Any]] = {name: {} for name in DOMAINS}
     aliases = []
     for name, table in DOMAINS.items():
@@ -621,6 +666,27 @@ def _child(node: Mapping[str, Any], key: str, wildcard: str) -> dict[str, Any]:
     if not isinstance(child, dict):
         child = node.get(wildcard)
     return child if isinstance(child, dict) else {}
+
+
+def _unflag_numbers(value: Any, node: Mapping[str, Any]) -> Any:
+    """``value``, a store's document walked against its ``DOMAINS`` trie ``node``,
+    with each ``bool`` where a number is declared read as absent (``None``).
+
+    Python counts a flag as an ``int``, so a loader's ``isinstance(x, (int,
+    float))`` admits a stored ``true`` as 1.0 (round-11 sweep P1). No writer
+    stores a flag where ``_declares_number`` holds (a real, an int or a choice
+    of numbers), and ``in_domain`` refuses one there. Read
+    here, at the one load boundary, as the absent value each loader already
+    defaults, so no loader repeats the exclusion. A field the trie does not
+    declare passes untouched: the load never rewrites what it cannot name.
+    """
+    if isinstance(value, dict):
+        return {k: _unflag_numbers(v, _child(node, k, "*")) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_unflag_numbers(v, _child(node, str(i), "#")) for i, v in enumerate(value)]
+    domain = node.get("")
+    numeric = isinstance(domain, Domain) and _declares_number(domain)
+    return None if numeric and isinstance(value, bool) else value
 
 
 def _scalar_domain(node: dict[str, Any]) -> Domain | None:
@@ -658,9 +724,9 @@ def stored_fields(name: str, payload: Any) -> list[tuple[tuple[Any, ...], bool, 
     return out
 
 
-def _declared(domain: Domain | None, value: Any) -> bool:
+def _declared(domain: Domain | None, value: Any, key: bool) -> bool:
     """Whether a stored field is declared and inside its declaration: the one rule."""
-    return domain is not None and in_domain(domain, value)
+    return domain is not None and in_domain(domain, value, key)
 
 
 def admitted(name: str, payload: Any) -> bool:
@@ -670,7 +736,7 @@ def admitted(name: str, payload: Any) -> bool:
     For a loader whose stored record is opaque to it (a presentation dict
     it republishes whole) and that drops the record rather than repair it.
     """
-    return all(_declared(d, v) for _p, _k, d, v in stored_fields(name, payload))
+    return all(_declared(d, v, k) for _p, k, d, v in stored_fields(name, payload))
 
 
 def off_domain(key: str, payload: Any) -> list[str]:
@@ -680,8 +746,8 @@ def off_domain(key: str, payload: Any) -> list[str]:
     entry names declares nothing, so every field of its document is off.
     """
     return [
-        "/".join(map(str, path)) for path, _key, domain, value in stored_fields(store_name(key) or "", payload)
-        if not _declared(domain, value)
+        "/".join(map(str, path)) for path, is_key, domain, value in stored_fields(store_name(key) or "", payload)
+        if not _declared(domain, value, is_key)
     ]
 
 
@@ -779,12 +845,13 @@ class QuarantiningStore(Store[_StorePayload]):
                 _NEWER_ON_DISK.add(self._store_key)
                 self._surface_version("it was saved by a newer release than this one")
                 raise
+            where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
+            node = _tries().get(store_name(where) or "", {})
+            data = _unflag_numbers(data, node)
             if self._lead is not None:
                 bound = dt_util.as_utc(dt_util.now()) + self._lead
-                where = str(getattr(self, "key", None) or getattr(self, "_key", "store"))
                 hits: list[str] = []
                 self.bounded = hits
-                node = _tries().get(store_name(where) or "", {})
                 data = _bound_instants(data, bound, where, self._naive_zone, hits, (), node)
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)

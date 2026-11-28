@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Carry destination for the next #3885 group: the CI-cost levers the light-grading",
+    "pull request (handoff/ci-3885-nonprod-scope) measured and left open. Shape and",
+    "required fields: .claude/rules/finding-propagation.md. Linted by",
+    "tools/policy/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 3885,
+  "stage": "the next #3885 group: CI cost of grading a head twice, after light grading",
+  "carries": [
+    {
+      "from": "the #3885 light-grading pull request (handoff/ci-3885-nonprod-scope): its `## Figures` measured duplicate verified dispatches with dev/audit/harnesses/ci3885_light.py (at 7eb9b2fd81bbe71be048e730481470de62c0932c) dup",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. `python3 dev/audit/harnesses/ci3885_light.py (at 7eb9b2fd81bbe71be048e730481470de62c0932c) dup 2026-11-21` counted 28 of 38 PR-naming ci.yml workflow_dispatch runs (17,495 runner-min) created after a pull_request run at the same head had completed with a conclusion other than cancelled, action_required or skipped; the other 10 (5,666 runner-min) were their head's sole grader. Null control: the same arm on 2026-11-24 counts 0 of 0, and on 2026-11-23 2 of 6 (304 runner-min), so the arm does not read every dispatch as a duplicate. Unit sets were not compared: 17,495 is an upper bound on what reuse saves, against 5,189 runner-min the light stand-downs saved on that day's dispatches.",
+      "remeasure": "Do not trust the counts: they are 2026-11-21's, and that day predates CI-2 (verified dispatch scoped by the three-dot list, 2eea9dc559). Re-run `python3 dev/audit/harnesses/ci3885_light.py (at 7eb9b2fd81bbe71be048e730481470de62c0932c) dup DAY` for a busy day after your merge base, and compare each duplicate's unit set (tools/ci/prelude.py outputs) against its earlier pull_request run's before counting it.",
+      "brief": "First find why a verified dispatch was fired at a head a pull_request run had already graded (the dispatcher's own trigger, read from tools/audit/seat/ and tools/pr/), because stopping the redundant dispatch at its source may need no CI change at all. Only if the dispatch is needed, make a dispatch whose head carries a concluded pull_request run with the same unit set reuse that run's verdict: tools/ci/gate.py would then accept another run's job conclusions as this run's required contexts, which is a trust-model change and needs a design (decision 0014) before a fixer. Carry: #3885"
+    },
+    {
+      "from": "the #3885 light-grading pull request (handoff/ci-3885-nonprod-scope): its `## Forward-carry`, on the env_drift cache after a light push",
+      "effect": "narrows",
+      "control": "Measured by the #3885 L4 pull request (handoff/r11-ci-3885-queue-l4), GitHub MCP job listings and logs: light push fd93aa3e9b (CI run 45907525407, tests / fast 3/4, the shard owning tests/env_drift.py) scoped env_drift out (`SKIP  tests/env_drift.py`) and its warmed-cache save logged `Path(s) specified in the action for caching do(es) not exist, hence no cache is being saved`. The first pull request run forked at that commit (run 45907841043, PR 3845, tests / fast 3/4) logged `Cache not found for input keys: drift-baseline-fe12a5...` and ran `env_drift.py --all fd93aa3e9b` cold in 262 s. The cache is read by pull requests, not by the next push (a push restores no drift entry), so the remeasure clause's push-log reading cannot show it. Null control not separated: run 45818958831 (PR 3870), forked at full push 1d3077736d whose push run was still running, also saved a fresh entry (a miss, 326 s); a miss after a full push whose run had saved is still owed, and so is the hit duration that prices the miss.",
+      "remeasure": "Read the `fast` job logs of the first push run on main after this pull request merges whose range reaches tests/env_drift.py, and the one before it, and record hit or miss for the env_drift cache in each, with their run ids.",
+      "brief": "A light push never warms the drift-baseline cache, so each pull request whose run forks at it and reaches tests/env_drift.py pays a cold `--all` capture (262 s measured, before the hit duration is subtracted). Measure the hit duration and the count of such forks per day, and if the cold captures cost more than carrying the range base's entry forward on a light push, carry it forward the way tests.yml's coverage job carries its range base's per-script entry on a stood-down push; env_drift's in-entry key re-check refuses an entry restored under another commit's key, so the carry re-keys it rather than copies it. Carry: #3885"
+    }
+  ]
+}

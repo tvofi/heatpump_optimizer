@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_offset_change CMP_BOUND eaeb7f67",
+  "old": "    while hi - lo > timedelta(seconds=1):",
+  "reason": "Not equivalent, and no driver scores it: CMP_BOUND `>` -> `>=` makes the bisection loop forever once `hi - lo` reaches one second (`mid` is `lo + 0 s`, so neither bound moves), so the mutant run of tests/features.py, the only driver in play, hit its timeout and the table reads a timeout as neither killed nor survived (`MUTATION TABLE REFUSED -- 1 mutant(s) timed out`). A hang is a real difference in behaviour that any test calling _offset_change on a day with an offset change would meet, but --pin-killed will not record a timeout as a kill. Measured by the R11-SEAM-wallclock-dst repair seat on Darwin: `python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py` at 352a829c6a. Recorded as a gap, not an equivalent.",
+  "verdict": "gap"
+}

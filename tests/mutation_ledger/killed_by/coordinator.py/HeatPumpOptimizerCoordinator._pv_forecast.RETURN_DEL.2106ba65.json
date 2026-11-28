@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast RETURN_DEL 2106ba65",
+  "killed_by": "tests/env_drift.py",
+  "old": "            return np.zeros(n_steps, dtype=float), {}",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=8."
+}

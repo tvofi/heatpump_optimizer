@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
+from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -104,7 +104,7 @@ def _seed_prices(hass, entity_id="sensor.prices", hours=48, base=0.5):
     )
 
 
-from homeassistant.components.sensor import SensorStateClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 import heatpump_optimizer as integration
 from homeassistant import const as ha_const
@@ -1178,15 +1178,27 @@ _arch_anywhere = sorted(
     if any(_arch_ha_import(n) for n in ast.walk(ast.parse(p.read_text())))
 )
 
-_arch_open = _re.search(r"(\d+) modules, of which\s+(\d+) import", _arch)
+# FG-1 (2026-11-26): the prose states no module count. A count here moved
+# with every module-adding pull request. Two such branches each re-derived
+# it, and git merged their sentences as text. The counts are derived and
+# printed here instead, and doc_claims.py refuses a module count anywhere in
+# the reader corpus.
+print(
+    f"  derived: package modules={len(_arch_disk)}, importing homeassistant "
+    f"at module level={len(_arch_modlevel)}, touching it anywhere="
+    f"{len(_arch_anywhere)}, free of it={len(_arch_disk) - len(_arch_anywhere)}"
+)
+_arch_open = _re.search(
+    r"fewer than half of the modules import the\s+`homeassistant` package at "
+    r"module level", _arch)
 R.check(
-    "architecture.md's opening counts name the package it describes",
+    "architecture.md's opening share of homeassistant importers is the tree's",
     _arch_open is not None
-    and int(_arch_open.group(1)) == len(_arch_disk)
-    and int(_arch_open.group(2)) == len(_arch_modlevel),
-    f"architecture.md says {_arch_open.groups() if _arch_open else '?'}; the "
-    f"package holds {len(_arch_disk)} modules, {len(_arch_modlevel)} of them "
-    f"importing homeassistant at module level",
+    and 0 < len(_arch_modlevel)
+    and 2 * len(_arch_modlevel) < len(_arch_disk),
+    f"opening sentence found={_arch_open is not None}; the package holds "
+    f"{len(_arch_disk)} modules, {len(_arch_modlevel)} of them importing "
+    f"homeassistant at module level",
 )
 
 _arch_map = _re.search(r"## The module map\n+```text\n(.*?)\n```", _arch, _re.S)
@@ -1206,22 +1218,20 @@ R.check(
 # follows is about a different claim (the one function-level toucher, pinned
 # below), and sweeping it in would make 22 names out of 21 importers.
 _arch_bound = _re.search(
-    r"(\d+) of the (\d+) modules\s+import `homeassistant` at module level:\s+(.*?)\.",
+    r"These modules\s+import `homeassistant` at module level:\s+(.*?)\.",
     _arch, _re.S,
 )
 _arch_named = (
-    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(3))))
+    sorted(set(_re.findall(r"`([a-z_]+)`", _arch_bound.group(1))))
     if _arch_bound is not None
     else []
 )
 R.check(
     "architecture.md's HA boundary names exactly the module-level importers",
     _arch_bound is not None
-    and int(_arch_bound.group(1)) == len(_arch_modlevel)
-    and int(_arch_bound.group(2)) == len(_arch_disk)
+    and bool(_arch_modlevel)
     and _arch_named == _arch_modlevel,
-    f"documented {_arch_bound.group(1) if _arch_bound else '?'} of "
-    f"{_arch_bound.group(2) if _arch_bound else '?'}, named {_arch_named}; "
+    f"named {len(_arch_named)}: {_arch_named}; "
     f"the AST walk finds {len(_arch_modlevel)}: {_arch_modlevel}",
 )
 
@@ -1237,16 +1247,18 @@ R.check(
     f"{_arch_touchers}",
 )
 
-_arch_free = _re.search(
-    r"The other (\d+) modules are deliberately free", _arch
-)
+_arch_free = _re.search(r"Every other module is deliberately free", _arch)
 R.check(
-    "architecture.md's HA-free count is the tree's",
+    "architecture.md's HA-free remainder is the tree's: every module but the "
+    "named importers and the one toucher",
     _arch_free is not None
-    and int(_arch_free.group(1)) == len(_arch_disk) - len(_arch_anywhere),
-    f"architecture.md says {_arch_free.group(1) if _arch_free else '?'}; "
-    f"{len(_arch_disk)} modules less {len(_arch_anywhere)} that touch "
-    f"homeassistant anywhere leaves {len(_arch_disk) - len(_arch_anywhere)}",
+    and len(_arch_disk) - len(_arch_anywhere)
+    == len(_arch_disk) - len(_arch_modlevel) - 1 > 0,
+    f"sentence found={_arch_free is not None}; {len(_arch_disk)} modules less "
+    f"{len(_arch_anywhere)} that touch homeassistant anywhere leaves "
+    f"{len(_arch_disk) - len(_arch_anywhere)}, against "
+    f"{len(_arch_disk) - len(_arch_modlevel) - 1} outside the named set and "
+    "the toucher",
 )
 
 _arch_pages = _re.search(
@@ -3961,6 +3973,18 @@ def _p2_registry(sources):
                      "the explicit answer is stored and takes its verdict from "
                      "dhw_enabled_from_config",
              }),
+        # D1-s3-04: a killed worker's reap. The transport arm waited without a
+        # bound, holding the lock every peer's solve waits on, where its
+        # timeout sibling bounded the same wait.
+        dict(fact="killed_worker_reap", finding="D1-s3-04",
+             match=_p2_match_node(
+                 (ast.Call,), r"^worker\.wait\(",
+                 lambda n: getattr(n.func, "attr", None) == "wait"),
+             owners=["coordinator.py::_reap_killed"], dispositions={
+                 "coordinator.py::_shutdown_process_pool":
+                     "the stop's own reap, outside the lock: terminate's bounded "
+                     "wait, and at interpreter exit #533's kill and timeout-less "
+                     "wait, when no peer's solve is left to wait"}),
         # D1-s5-01: a state's age. inputs.state_stamp owns the stamp rule
         # (last_reported first, #775); age_of re-derived it.
         dict(fact="state_age", finding="D1-s5-01",
@@ -4227,13 +4251,19 @@ def _p2_registry(sources):
              match=_p2_match_defrost_decides,
              owners=["freq_control.py::defrost_interval"],
              dispositions={
-                 "coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen":
+                 # R11-SEAM-learners (ADR-008): the gate moved out of
+                 # ``_learning_frozen``; the coordinator reads the flag into
+                 # the facts, and the predicate module decides on it.
+                 "learning_freeze.py::_shared":
                      "the plant-wide gate: it decides whether ANY learner "
                      "ingests the interval and owns the reason string it "
                      "returns. The frequency map deliberately folds intervals "
                      "that gate freezes (external heat, #781), so the "
                      "frequency pair's own predicate decides the two "
                      "frequency questions the gate cannot express",
+                 "coordinator.py::_freeze_facts":
+                     "the gate's input: it copies the pump's defrost flag into "
+                     "the facts learning_freeze._shared decides on, deciding nothing",
              }),
         # R10-CLONE-2238 (#2238): the F5_clone instances, one fact per entry,
         # each routed through one owner in the module that held both copies.
@@ -4284,6 +4314,48 @@ def _p2_registry(sources):
                  ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
                  lambda n: isinstance(n.test, ast.Compare)),
              owners=["tariff.py::_window_starts"], dispositions={}),
+        # D17-s3-51 and the P2 sweep's F14 seams (R11-SEAM-entity-service):
+        # the hot-water window in force at an instant is windows_in_force's,
+        # the planner's per-step day chain for a reader holding a clock. A
+        # read of the flat every-day set elsewhere tests no instant.
+        dict(fact="dhw_window_in_force", finding="D17-s3-51",
+             match=_p2_match_node(
+                 ast.Attribute, r"\.dhw_(demand_)?windows$",
+                 lambda n: n.attr in ("dhw_windows", "dhw_demand_windows")),
+             owners=["dhw_schedule.py::windows_in_force"], dispositions={
+                 # The flat set itself, and whether a schedule is in force.
+                 "thermal_model.py::ThermalParameters.dhw_demand_windows":
+                     "defines the flat every-day set windows_in_force's chain ends in",
+                 "thermal_model.py::ThermalParameters.dhw_windows_active":
+                     "whether a schedule is configured at all; no instant",
+                 # The 24-hour draw profile, a day-agnostic mask.
+                 "thermal_model.py::ThermalParameters.effective_dhw_draw_pattern":
+                     "the draw mask's cache key; no instant",
+                 "thermal_model.py::ThermalParameters._windowed_draw_pattern":
+                     "masks the 24-hour draw profile by each hour's window coverage, "
+                     "the day-agnostic profile the weekday pattern multiplies; no instant",
+                 # The planner's own fallback, which its per-step chain resolves.
+                 "dhw_planner.py::DhwPlanner._effective_dhw_windows":
+                     "the fallback set the planner's per-step windows_for_day chain "
+                     "(_dhw_windows_at) resolves; windows_in_force is that chain for a clock; "
+                     "every consumer of its return is the flat-consumers census's",
+                 # Stats tables keyed by the flat windows' labels.
+                 "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats":
+                     "labels a draw with the flat window, the key the planner reads "
+                     "the stats by; whether it fell in a window is windows_in_force's",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_plan_fields":
+                     "keys the stats table by the flat labels; the clock picks the "
+                     "weekday pattern, and no instant is tested (sweep-P2.md F14)",
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep":
+                     "the heaviest window's ready energy over the flat labels' stats; no instant",
+                 # Published text.
+                 "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view":
+                     "publishes the spec text and the per-window stats; no instant",
+                 "coordinator.py::HeatPumpOptimizerCoordinator.configured_dhw_windows":
+                     "formats the configured spec for display; no instant",
+                 "optimizer.py::_dhw_resolved_publish":
+                     "formats the resolved day spec for the card; no instant",
+             }),
         # D7-s3-04 (R11-SEAM-kernel-step): the heat that warms a litre of
         # water by one kelvin is const.WATER_SPECIFIC_HEAT, and the per-kg
         # form is derived from it there (const.py is not scanned). Any
@@ -4345,6 +4417,19 @@ _P2_CENSUSES = {
     # D7-s2-52/53, D7-s2-60 (#2242): a published state's number is
     # payload_number's -- every number state driven with a bool and a text
     # payload publishes neither, nor reads either as a number.
+    # D8-s1-03 and the sweep's F18 family (R11-SEAM-entity-service): a
+    # waits-for-evidence sensor is available exactly when it has a value.
+    "waits_for_evidence_value": (
+        "tests/entities.py",
+        "waits_for_evidence census: every waits-for-evidence sensor is available only with a value"),
+    # D17-s3-51's other half: the flat set's consumers past the attribute
+    # load, and the planner's published countdown against windows_in_force.
+    "dhw_window_flat_consumers": (
+        "tests/entities.py",
+        "D17-s3-51: every consumer of the flat every-day hot-water windows, "),
+    "dhw_planner_next_window_day": (
+        "tests/features.py",
+        "the planner's published next window reads the day's windows, today's and "),
     "payload_number_published": (
         "tests/finite_boundary.py",
         "every number state publishes None, never the bool or the text, from a "),
@@ -4358,6 +4443,14 @@ _P2_CENSUSES = {
     "replay_numeric_domain": (
         "tests/debug_collect.py",
         "replay_doc.numeric answers exactly as const.finite_float on every probe"),
+    # R11-LATE-P2-REPLAY-FINITE: replay_doc's number shape and its coordinate
+    # cut keep exactly what numeric admits.
+    "replay_number_finite": (
+        "tests/debug_collect.py",
+        "replay_doc._number keeps a value exactly when it is a number replay_doc.numeric"),
+    "replay_coordinate_finite": (
+        "tests/debug_collect.py",
+        "replay_doc.clean_value nulls a coordinate replay_doc.numeric refuses"),
     # D7-s3-03: every reader of the plan step covering now takes plan_step's
     # index; the census drives the four on one plan, past its end included.
     "plan_step_covering": (
@@ -4379,6 +4472,15 @@ _P2_CENSUSES = {
     "zoned_store_credit_live": (
         "tests/features.py",
         "zoned store census: the terminal cost credits the tank in every zoning (#2500)"),
+    # R11-SEAM-store (D15-s1-04, D15-s1-05): a stored field's domain is
+    # store.DOMAINS's -- every field a saver writes lies in it, and every loader
+    # keeps what its saver wrote; Arm 6 drives every store's real saver and loader.
+    "store_domain_declares_writers": (
+        "tests/finite_boundary.py",
+        "every store the rich seed writes is seeded, and every field it writes is declared"),
+    "store_loader_keeps_writers": (
+        "tests/finite_boundary.py",
+        "the healthy rich seed round-trips unchanged through every loader and saver"),
 }
 
 
@@ -4522,6 +4624,10 @@ _P2_PLANTS["power_state_kw"] = (
 _P2_PLANTS["channel_active_kw"] = (
     "\n\ndef _p2_plant(dhw_power):\n    return dhw_power > CHANNEL_ACTIVE_KW\n"
 )
+_P2_PLANTS["dhw_window_in_force"] = (
+    "\n\ndef _p2_plant(params, hour):\n"
+    "    return hour_in_windows(hour, params.dhw_demand_windows)\n"
+)
 _P2_PLANTS["defrost_standoff"] = (
     "\n\ndef _p2_plant(signals):\n"
     "    if signals.defrosting:\n"
@@ -4557,11 +4663,7 @@ _p2_planted = {
         {**_P2_SOURCES, "topology.py": _P2_SOURCES["topology.py"] + plant}, _P2_REGISTRY))
     for fact, plant in _P2_PLANTS.items()
 }
-_P2_FENCE_RECORD = (
-    "await _best_effort_cycle_step(\n"
-    "                self._record_accuracy, \"Accuracy pairing skipped: %s\"\n"
-    "            )"
-)
+_P2_FENCE_RECORD = 'await _best_effort_cycle_step(self._record_accuracy, "Accuracy pairing skipped: %s")'
 _p2_unfenced = _p2_fails(_p2_scan(
     {**_P2_SOURCES, "coordinator.py": _P2_SOURCES["coordinator.py"].replace(
         _P2_FENCE_RECORD, "await self._record_accuracy()")}, _P2_REGISTRY))
@@ -4591,6 +4693,179 @@ R.check(
     == {"p2_dead", "p2_dead_proxy"}
     and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
     f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+# D17-s3-51's consumers census (R11-SEAM-entity-service). dhw_window_in_force's
+# rule matches the flat set's attribute loads, function by function. So a
+# value that leaves a dispositioned site -- a return (`_effective_dhw_windows`),
+# a local, a same-module parameter -- reached an instant test unread: the
+# planner's next window read the flat union on a weekend. This follows every
+# flat value from those loads to the call that consumes it. A resolver
+# (`_FW_RESOLVERS`, the windows_for_day chain) ends the walk; a same-module
+# function is entered at the parameter it binds; a function returning the
+# value becomes a source. Every other consumer is keyed
+# "file::site -> callee" against a disposition. Design choice: the key is the
+# callee, not the line, so a second read through a dispositioned callee in the
+# same site rides its disposition.
+_FW_ATTRS = ("dhw_windows", "dhw_demand_windows")
+_FW_WRAPS = ("list", "tuple", "sorted")
+_FW_RESOLVERS = ("windows_for_day", "_dhw_windows_at", "windows_in_force")
+_FW_DISPOSITIONS = {
+    "thermal_model.py::ThermalParameters.dhw_demand_windows -> <Return>":
+        "the flat set itself (a source)",
+    "thermal_model.py::ThermalParameters.dhw_windows_active -> <BoolOp>":
+        "whether a schedule is configured; no instant",
+    "thermal_model.py::ThermalParameters.effective_dhw_draw_pattern -> <BoolOp>":
+        "the draw mask's cache key; no instant",
+    "thermal_model.py::ThermalParameters._windowed_draw_pattern -> overlap_fraction":
+        "each hour's coverage of the day-agnostic 24-hour profile; no instant",
+    "dhw_planner.py::DhwPlanner._effective_dhw_windows -> <Return>":
+        "the planner's fallback set (a source)",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> _dhw_window_floors":
+        "entered: its per-step chain resolves the set",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> _dhw_next_window_hours":
+        "entered: today's and the next day's windows, resolved",
+    "dhw_planner.py::DhwPlanner._build_dhw_requirements -> format_windows":
+        "publishes the spec text windows_in_force's chain ends in; no instant",
+    "dhw_planner.py::DhwPlanner._dhw_window_floors -> draw_window_label":
+        "keys the stats table by the flat labels the learner writes; the step "
+        "is a resolved window start already",
+    "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats -> draw_window_label":
+        "the flat label the stats table is keyed by, taken only when the "
+        "day's windows (windows_in_force) hold the instant",
+    "dhw_learning.py::DhwProfileLearner.async_fold_draw_stats -> labels_for":
+        "prunes the stats table to the flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_plan_fields -> labels_for":
+        "the stats table's flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep -> labels_for":
+        "the heaviest window's stats over the flat labels; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_setpoint_sweep -> zip":
+        "pairs each flat window with its label for the profile overlap; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view -> format_windows":
+        "publishes the spec text; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator._dhw_view -> labels_for":
+        "publishes the per-window stats; no instant",
+    "coordinator.py::HeatPumpOptimizerCoordinator.configured_dhw_windows -> format_windows":
+        "formats the configured spec for display; no instant",
+    "optimizer.py::_dhw_resolved_publish -> format_resolved_day_spec":
+        "formats the resolved day spec for the card; no instant",
+}
+
+
+def _fw_consumers(sources):
+    """({"file::site -> callee": [line, ...]}, flat source function names)."""
+    idx, funcs = {}, {}
+    for name, text in sources.items():
+        if name == "const.py":
+            continue
+        tree = ast.parse(text)
+        parents, qual = _p2_index(tree)
+        idx[name] = parents
+        for n in ast.walk(tree):
+            if (isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and not isinstance(parents.get(n), (ast.FunctionDef, ast.AsyncFunctionDef))):
+                funcs.setdefault((name, n.name), (qual[n], n))
+
+    def callee(c):
+        return c.func.attr if isinstance(c.func, ast.Attribute) else getattr(c.func, "id", "?")
+
+    def flat(n, names, srcs):
+        return (isinstance(n, ast.Attribute) and n.attr in _FW_ATTRS and isinstance(n.ctx, ast.Load)
+                or isinstance(n, ast.Name) and n.id in names and isinstance(n.ctx, ast.Load)
+                or isinstance(n, ast.Call) and callee(n) in srcs)
+
+    def scan(file, site, fn, names, srcs, out, depth):
+        parents, names = idx[file], set(names)
+        grew = True
+        while grew:
+            grew = False
+            for n in ast.walk(fn):
+                if isinstance(n, ast.Assign) and len(n.targets) == 1:
+                    v, t = n.value, n.targets[0]
+                    while isinstance(v, ast.Call) and callee(v) in _FW_WRAPS and v.args:
+                        v = v.args[0]
+                    t = t.elts[0] if isinstance(t, ast.Tuple) and t.elts else t
+                    if flat(v, names, srcs) and isinstance(t, ast.Name) and t.id not in names:
+                        names.add(t.id)
+                        grew = True
+        for n in ast.walk(fn):
+            if not flat(n, names, srcs):
+                continue
+            node, up = n, parents.get(n)
+            while isinstance(up, ast.Call) and callee(up) in _FW_WRAPS and node in up.args:
+                node, up = up, parents.get(up)
+            if isinstance(up, ast.Assign):
+                continue
+            if isinstance(up, ast.Tuple) and isinstance(parents.get(up), ast.Return):
+                up = parents[up]
+            if isinstance(up, ast.Call) and (node in up.args or any(k.value is node for k in up.keywords)):
+                c = callee(up)
+                if c in _FW_RESOLVERS:
+                    continue
+                out.setdefault(f"{file}::{site} -> {c}", []).append(n.lineno)
+                if (file, c) in funcs and depth < 4:
+                    cq, cfn = funcs[(file, c)]
+                    params = [a.arg for a in cfn.args.args if a.arg != "self"]
+                    i = up.args.index(node) if node in up.args else None
+                    p = (params[i] if i is not None and i < len(params)
+                         else next((k.arg for k in up.keywords if k.value is node), None))
+                    if p:
+                        scan(file, cq, cfn, [p], srcs, out, depth + 1)
+                continue
+            out.setdefault(f"{file}::{site} -> <{type(up).__name__}>", []).append(n.lineno)
+
+    srcs = set()
+    while True:
+        out = {}
+        for (file, _), (site, fn) in sorted(funcs.items()):
+            if site.rsplit(".", 1)[-1] not in _FW_RESOLVERS:
+                scan(file, site, fn, (), srcs, out, 0)
+        grown = srcs | {k.split(" -> ")[0].rsplit(".", 1)[-1].split("::")[-1]
+                        for k in out if k.endswith("<Return>")}
+        if grown == srcs:
+            return out, srcs
+        srcs = grown
+
+
+_fw_out, _fw_srcs = _fw_consumers(_P2_SOURCES)
+_fw_stray = sorted(k for k in _fw_out if k not in _FW_DISPOSITIONS)
+_fw_stale = sorted(k for k in _FW_DISPOSITIONS if k not in _fw_out)
+R.check(
+    "D17-s3-51: every consumer of the flat every-day hot-water windows, "
+    "followed from each attribute load through locals, returns and same-module "
+    "parameters, is a resolver or a dispositioned no-instant read; none stale, "
+    "and the walk found its two sources (its own precondition)",
+    not _fw_stray and not _fw_stale
+    and {"_effective_dhw_windows", "dhw_demand_windows"} <= _fw_srcs,
+    f"SEAM {[(k, _fw_out[k]) for k in _fw_stray]} STALE {_fw_stale} sources={sorted(_fw_srcs)}",
+)
+# Null controls: the pre-fix countdown, a flat set returned and tested by a
+# caller, and a parameter carrying it into an instant test each fail alone.
+_FW_FIXED = "next_window = _dhw_next_window_hours(h.start_time, hours_mod, step_weekdays, windows, params, holiday_flags)"
+_fw_plants = {
+    "pre-fix countdown": _P2_SOURCES["dhw_planner.py"].replace(
+        _FW_FIXED, "next_window = hours_until_next_window(\n"
+        "            float(hours_mod[0]) if n_steps else 0.0, windows\n        )"),
+    "returned then tested": _P2_SOURCES["dhw_planner.py"]
+    + "\n\ndef _fw_src(p):\n    return list(p.dhw_windows)\n"
+      "\n\ndef _fw_use(p, h):\n    return hour_in_windows(h, _fw_src(p))\n",
+    "parameter then tested": _P2_SOURCES["dhw_planner.py"]
+    + "\n\ndef _fw_inner(ws, h):\n    return hour_in_windows(h, ws)\n"
+      "\n\ndef _fw_outer(p, h):\n    ws = p.dhw_demand_windows\n    return _fw_inner(ws, h)\n",
+}
+_fw_planted = {
+    k: sorted(set(_fw_consumers({**_P2_SOURCES, "dhw_planner.py": v})[0]) - set(_FW_DISPOSITIONS))
+    for k, v in _fw_plants.items()
+}
+R.check(
+    "and the consumers census fails on each planted flat read: the pre-fix "
+    "countdown, a returned set, a parameter (null controls)",
+    _P2_SOURCES["dhw_planner.py"].count(_FW_FIXED) == 1
+    and _fw_planted["pre-fix countdown"]
+    == ["dhw_planner.py::DhwPlanner._build_dhw_requirements -> hours_until_next_window"]
+    and "dhw_planner.py::_fw_use -> hour_in_windows" in _fw_planted["returned then tested"]
+    and "dhw_planner.py::_fw_inner -> hour_in_windows" in _fw_planted["parameter then tested"],
+    f"{_fw_planted}",
 )
 
 
@@ -5025,6 +5300,8 @@ P6_UPSTREAM_PROBES = {
     "async_start_reauth", "last_update_success", "async_items",
     "register_static_path", "async_update_item", "last_updated", "last_changed",
     "last_reported", "isoformat", "temperature_unit",
+    # SensorDeviceClass member since 2025.11.0, read above the hacs.json floor (D10-s2-04).
+    "TEMPERATURE_DELTA",
 }
 #: Home Assistant's own climate presets (climate/const.py PRESET_*), which the
 #: climate component translates and icons itself.
@@ -6775,18 +7052,31 @@ R.check(
     "; ".join(_impossible),
 )
 
-# Two the audit brief flagged and this PR deliberately leaves alone, pinned so
-# a future "consistency" pass does not add a device class to either.
-R.check(
-    "Heat-Curve Displace stays bare: it is a parallel shift, not a temperature",
-    getattr(by_name["Heat-Curve Displace"], "_attr_device_class", None) is None
-    and by_name["Heat-Curve Displace"]._attr_native_unit_of_measurement == "°C",
-    "a TEMPERATURE device class would have HA convert a delta as an absolute",
+# A temperature DIFFERENCE never takes TEMPERATURE, which converts a delta as
+# an absolute for a Fahrenheit user; it takes TEMPERATURE_DELTA where the
+# running core has it (2025.11.0, above the hacs.json floor: None there).
+# D10-s2-04 found these readouts left bare after the class existed.
+_DELTA_DC = getattr(SensorDeviceClass, "TEMPERATURE_DELTA", None)
+for _delta_name in ("Heat-Curve Displace", "Heat-Curve Effective Displace", "Prediction Accuracy"):
+    R.check(
+        f"{_delta_name} is a temperature difference: TEMPERATURE_DELTA, never TEMPERATURE (D10-s2-04)",
+        _DELTA_DC is not None
+        and getattr(by_name[_delta_name], "_attr_device_class", None) == _DELTA_DC
+        and by_name[_delta_name]._attr_native_unit_of_measurement == "°C",
+        f"{getattr(by_name[_delta_name], '_attr_device_class', None)!r} -- TEMPERATURE "
+        "would have HA convert a delta as an absolute",
+    )
+# The census the rule needs (D10-s2-04's metric): no sensor publishing in °C
+# or K is left classless where the class exists.
+_delta_bare = sorted(
+    type(_e).__name__ for _e in by_name.values()
+    if getattr(_e, "_attr_native_unit_of_measurement", None) in ("°C", "K")
+    and getattr(_e, "_attr_device_class", None) is None
 )
 R.check(
-    "Prediction Accuracy stays bare for the same reason: it is a mean error",
-    getattr(by_name["Prediction Accuracy"], "_attr_device_class", None) is None
-    and by_name["Prediction Accuracy"]._attr_native_unit_of_measurement == "°C",
+    "no sensor in degC or K is published without a device class (D10-s2-04 census)",
+    len(by_name) > 40 and not _delta_bare,
+    f"bare: {_delta_bare} of {len(by_name)} sensors",
 )
 R.check(
     "a device class with no state class is legal, so the valve target is fine",
@@ -7099,6 +7389,27 @@ R.check(
 R.check(
     "suppression is reported separately from detection",
     heat.extra_state_attributes["suppressing_electric_dhw"] is True,
+)
+R.check(
+    "with the override switch off the sensor publishes no block_ignored key (#3862)",
+    "block_ignored" not in heat.extra_state_attributes,
+    str(sorted(heat.extra_state_attributes)),
+)
+# #3862: the switch on lifts the block; detection stays on and says so.
+_xh_ignored = next(
+    b for b in collect(binary_sensor, data={
+        **DATA,
+        "external_heat_suppressing": False,
+        "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if display_name("binary_sensor", b) == "External Heat Source"
+)
+R.check(
+    "with the override effective the sensor stays on, block_ignored true, nothing suppressed (#3862)",
+    _xh_ignored.is_on
+    and _xh_ignored.extra_state_attributes["block_ignored"] is True
+    and _xh_ignored.extra_state_attributes["suppressing_electric_dhw"] is False,
+    str(_xh_ignored.extra_state_attributes),
 )
 
 away = b_by_name["Away Mode"]
@@ -11764,7 +12075,50 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
+R.check(
+    "the switch platform adds the optimizer, away, boost, block and external-heat override switches",
+    len(switches) == 7,
+    str(len(switches)),
+)
+# #3862: the owner's external-heat block override; identity pinned, and its
+# state is boost's held flag, not a payload field.
+_xh_sw = next(
+    s for s in switches if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch keeps its unique id and object id (#3862)",
+    _xh_sw._attr_unique_id == f"{ENTRY.entry_id}_external_heat_ignore_block"
+    and _xh_sw.entity_id == "switch.heat_pump_optimizer_external_heat_ignore_block"
+    and display_name("switch", _xh_sw) == "External Heat Block Override",
+    f"{_xh_sw._attr_unique_id} {getattr(_xh_sw, 'entity_id', None)} {display_name('switch', _xh_sw)}",
+)
+R.check(
+    "the external-heat override switch is off and not effective on a fresh coordinator (#3862)",
+    _xh_sw.is_on is False
+    and _xh_sw.extra_state_attributes == {"block_ignored": False},
+    str(_xh_sw.extra_state_attributes),
+)
+asyncio.run(_xh_sw.async_turn_on())
+_xh_sw_on = _xh_sw.is_on
+asyncio.run(_xh_sw.async_turn_off())
+R.check(
+    "turning the external-heat override on and off moves boost's held flag (#3862)",
+    _xh_sw_on is True and _xh_sw.is_on is False
+    and _boost_mod.extheat_block_ignored(_xh_sw.coordinator) is False,
+    f"on={_xh_sw_on} off={_xh_sw.is_on}",
+)
+# The attribute reads the published flag, so an effective override reads True.
+_xh_sw_eff = next(
+    s for s in collect(switch_mod, data={
+        **DATA, "external_heat": {**DATA["external_heat"], "block_ignored": True},
+    })
+    if isinstance(s, switch_mod.ExternalHeatIgnoreBlockSwitch)
+)
+R.check(
+    "the external-heat override switch reports block_ignored true once the payload publishes it (#3862)",
+    _xh_sw_eff.extra_state_attributes == {"block_ignored": True},
+    str(_xh_sw_eff.extra_state_attributes),
+)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -11993,10 +12347,12 @@ _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
                 switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
-                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch,
+                switch_mod.ExternalHeatIgnoreBlockSwitch)
 }
 for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
-                 "BlockDhwSwitch", "BlockSpaceSwitch"):
+                 "BlockDhwSwitch", "BlockSpaceSwitch",
+                 "ExternalHeatIgnoreBlockSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -13059,6 +13415,49 @@ R.check(
     == _ATTR_RICH["savings_months"],
     repr(_ready_sav.native_value),
 )
+# D8-s1-03: availability and state read the same row. At a month rollover
+# (only the settled month booked) and on an open row whose saving the ledger
+# withholds (old_basis, below_meter_floor: savings_sek None) the sensor was
+# available with state unknown.
+for _sav_label, _sav_rows in (
+    ("rollover: only the settled month", [{"month": "2026-01", "estimated": False, "savings_sek": 80.0}]),
+    ("open row withheld", [{"month": "2026-01", "estimated": False, "savings_sek": 80.0},
+                           {"month": "2026-02", "estimated": True, "savings_sek": None}]),
+):
+    _sav_w = sensor.MonthlySavingsSensor(FakeCoordinator({**DATA, "savings_months": _sav_rows}), ENTRY)
+    R.check(
+        f"MonthlySavingsSensor is unavailable, never unknown, with no open saving ({_sav_label}; D8-s1-03)",
+        not _sav_w.available and _sav_w.native_value is None
+        and _sav_w.extra_state_attributes.get("waiting_for") == "open_month_coverage",
+        f"available {_sav_w.available} value {_sav_w.native_value!r} "
+        f"waiting_for {_sav_w.extra_state_attributes.get('waiting_for')!r}",
+    )
+
+# The census the fact needs (sweep-P2 F18). Every waits-for-evidence sensor
+# the platform builds is available exactly when it has a value, on the empty,
+# the default and the rich payload. That is the mixin's contract: "not
+# measured yet" is unavailable, never unknown. The census asserts its reach:
+# every subclass the module defines is built here.
+_wfe_classes = {
+    _c for _c in vars(sensor).values()
+    if isinstance(_c, type) and issubclass(_c, sensor._WaitsForEvidenceMixin)
+    and _c is not sensor._WaitsForEvidenceMixin
+}
+_wfe_seen, _wfe_bad = set(), []
+_wfe_runtime = getattr(ENTRY, "runtime_data", None)
+for _wfe_data in ({}, DATA, _ATTR_RICH):
+    for _wfe in collect(sensor, _wfe_data):
+        if isinstance(_wfe, sensor._WaitsForEvidenceMixin):
+            _wfe_seen.add(type(_wfe))
+            if _wfe.available and _wfe.native_value is None:
+                _wfe_bad.append(f"{type(_wfe).__name__}@{len(_wfe_data)} keys")
+ENTRY.runtime_data = _wfe_runtime
+R.check(
+    "waits_for_evidence census: every waits-for-evidence sensor is available only with a value",
+    _wfe_classes and _wfe_seen == _wfe_classes and not _wfe_bad,
+    f"available and unknown: {_wfe_bad}; not built: "
+    f"{sorted(c.__name__ for c in _wfe_classes - _wfe_seen)}",
+)
 # R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so on
 # a house with wood configured the entity's saving says it includes wood's heat
 # and not firewood's cost, by the receipt event's one definition. The null
@@ -13318,6 +13717,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "weather_forecast_available"
     }),
     "OptimizerEnableSwitch": frozenset({"mode", "optimization_status"}),
+    "ExternalHeatIgnoreBlockSwitch": frozenset({"block_ignored"}),
     "OutdoorTempSensor": frozenset({"source"}),
     "PVSurplusSensor": frozenset({
         "forecast_production_kwh", "forecast_surplus_kwh",
@@ -13959,13 +14359,43 @@ _bad_ids = sorted(
     e._attr_unique_id
     for _platform, e in _named_entities
     if _platform != "climate"
-    and getattr(e, "entity_id", None)
-    != f"{_platform}.heat_pump_optimizer_{e._attr_translation_key}"
+    and not (
+        str(getattr(e, "entity_id", "")).startswith(f"{_platform}.heat_pump_optimizer_")
+        and str(getattr(e, "entity_id", "")).endswith(f"_{e._attr_translation_key}")
+    )
 )
 R.check(
     "every entity pre-assigns its suggested object id",
     not _bad_ids,
     ", ".join(_bad_ids),
+)
+
+
+# D8-s2-02: a declared family (_fam_token: override, else lead token) is ONE
+# run in each platform's suggested entity-id sort, as it is in each language's
+# name sort above. The four lifetime meters sorted as three id runs while
+# their names led with "Lifetime". The null control sorts the same entities
+# by the bare translation-key id the scheme used before, which must split.
+def _fam_id_splits(_id_of):
+    _out = []
+    for _plat in sorted({_p for _p, _ in _named_entities}):
+        _order = [_fam_token(_e._attr_translation_key) for _, _e in sorted(
+            ((_id_of(_p, _e), _e) for _p, _e in _named_entities if _p == _plat),
+            key=lambda _r: _r[0])]
+        for _fam in sorted(set(_order)):
+            _runs = sum(1 for _i, _f in enumerate(_order) if _f == _fam and (_i == 0 or _order[_i - 1] != _fam))
+            if _runs > 1:
+                _out.append(f"{_plat}:{_fam}:{_runs} runs")
+    return _out
+
+
+_fam_id_split = _fam_id_splits(lambda _p, _e: str(_e.entity_id))
+_fam_id_split_bare = _fam_id_splits(
+    lambda _p, _e: f"{_p}.heat_pump_optimizer_{_e._attr_translation_key}")
+R.check(
+    "every declared family is one run in each platform's entity-id sort (D8-s2-02)",
+    not _fam_id_split and bool(_fam_id_split_bare),
+    f"split: {_fam_id_split}; null control (bare translation-key ids) split: {_fam_id_split_bare}",
 )
 # Spot-pins against the pre-v5.0.0 slugs, written out literally so a renamed
 # translation key cannot silently move the goalposts of the check above.
@@ -14065,7 +14495,8 @@ for _display, _new_id, _uid in (
     ("Cost Monthly Peak Power", "sensor.heat_pump_optimizer_cost_monthly_peak_power", "monthly_peak"),
     ("Cost Power Headroom", "sensor.heat_pump_optimizer_cost_power_headroom", "power_headroom"),
     ("Cost Predicted", "sensor.heat_pump_optimizer_cost_predicted", "predicted_cost"),
-    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_cost_total_heating", "total_cost"),
+    # D8-s2-02 then led the lifetime meters' ids with their declared family.
+    ("Lifetime Total Heating Cost", "sensor.heat_pump_optimizer_lifetime_cost_total_heating", "total_cost"),
     ("Learning Comfort Weight", "sensor.heat_pump_optimizer_learning_comfort_weight", "comfort_weight"),
     ("Learning Estimated COP", "sensor.heat_pump_optimizer_learning_estimated_cop", "current_cop"),
     ("Learning Observed COP", "sensor.heat_pump_optimizer_learning_observed_cop", "observed_cop"),
@@ -15846,10 +16277,15 @@ def _mig_raw_reads(entry):
 
 _mig_raw_before = _mig_raw_reads(_mig_raw)
 _mig_raw_ok, _ = _mig_warnings(_mig_raw)
+# Before R11-LATE-P1-OPTIONS the comfort band raised on the text hour until the
+# migration repaired it, and this check required that raise as its control.
+# The band now reads a non-number as the key's default (``comfort_band.effective``
+# through ``finite_float``). So the unmigrated read is required clean, and the
+# migration is still required to repair what is stored.
 R.check(
-    "an old entry's text hour and null tank volume no longer raise in the thermal table or the "
-    "comfort band once migrated",
-    _mig_raw_before is not None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
+    "an old entry's text hour and null tank volume raise in neither the thermal table nor the "
+    "comfort band, before or after the migration, and the migration repairs what is stored",
+    _mig_raw_before is None and _mig_raw_ok is True and _mig_raw_reads(_mig_raw) is None
     and {**_mig_raw.data, **_mig_raw.options}
     == {"day_start_hour": const.DEFAULT_DAY_START_HOUR, "ecl110_mqtt_qos": 1},
     f"before={_mig_raw_before} after={_mig_raw_reads(_mig_raw)} "
@@ -16424,6 +16860,43 @@ R.check(
 # Later checks on this entry treat an absent target as "never written".
 _svc_entry.options.pop(const.CONF_DHW_SETPOINT, None)
 _svc_entry.options.pop(const.CONF_TARGET_TEMP, None)
+
+# R11-LATE-P1-OPTIONS: the deadband check reads the stored half of its pair the
+# way the entry's parse does. A wrong-typed stored setpoint or minimum (written
+# past the migration's repair) reads as its default, never a TypeError out of
+# the service; a well-typed stored one is still judged (the null control).
+def _p1_apply(stored, payload):
+    saved = dict(_svc_entry.options)
+    _svc_entry.options.update(stored)
+    try:
+        _svc_call(const.SERVICE_APPLY_SCHEDULE, payload)
+        outcome = "applied"
+    except ServiceValidationError:
+        outcome = "refused"
+    except (TypeError, ValueError) as err:
+        outcome = f"raised {type(err).__name__}"
+    _svc_entry.options.clear()
+    _svc_entry.options.update(saved)
+    return outcome
+
+
+_p1_outcomes = {
+    f"{key}={value!r}": _p1_apply({key: value}, payload)
+    for key, payload in (
+        (const.CONF_DHW_SETPOINT, {"dhw_min_temperature": 40.0}),
+        (const.CONF_DHW_MIN_TEMP, {"dhw_setpoint": 60.0}),
+    )
+    for value in ("abc", None, {"x": 1}, [1.0])
+}
+R.check(
+    "R11-LATE-P1-OPTIONS: apply_schedule reads a wrong-typed stored DHW setpoint or minimum as its default",
+    set(_p1_outcomes.values()) == {"applied"},
+    str(_p1_outcomes),
+)
+R.check(
+    "R11-LATE-P1-OPTIONS: null -- apply_schedule still refuses against a well-typed stored setpoint",
+    _p1_apply({const.CONF_DHW_SETPOINT: 46.0}, {"dhw_min_temperature": 44.0}) == "refused",
+)
 
 # v5.1.7 — the comfort band, on every path that writes it.
 #
@@ -17276,7 +17749,10 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
         script = td / "drive.sh"
         script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=${JOBS:-1}; LANE=x; step=0\n%s\n\"$@\"\n"
                           % (sys.executable, fns))
-        env = {k: v for k, v in _os.environ.items() if not k.startswith("HPO_GATE")}
+        # Not the CI job's event or scope: on a pull request lane_stress skips
+        # stress.py (#3885), and this pin is about the lease, not the skip.
+        env = {k: v for k, v in _os.environ.items()
+               if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
         env["HPO_GATE_LOCK_DIR"] = str(lock)
         drive = lambda jobs, *cmd: _subprocess.Popen(
             ["bash", str(script), *cmd], cwd=td, env={**env, "JOBS": jobs},
@@ -17305,6 +17781,37 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_stress_off_pull_requests() -> dict[tuple[str, str], tuple[bool, bool]]:
+    """#3885: run.sh's own lane_stress, sourced and driven against the stub
+    tree under each (HPO_CI_EVENT, GATE_SCOPE): (stress.py ran, the SKIP line
+    was printed). Only a pull request under a scoped gate skips it."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|in_scope|run|run_always|leased|skip|lane_stress)\(\) \{.*?^\}\n", text))
+    out = {}
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; WORKDIR=$(mktemp -d); SCOPE_RUN=; JOBS=1; LANE=x; step=0\n%s\n\"$@\"\n"
+                          % (sys.executable, fns))
+        base = {k: v for k, v in _os.environ.items()
+                if not k.startswith("HPO_GATE") and k not in ("HPO_CI_EVENT", "GATE_SCOPE")}
+        base["HPO_GATE_LOCK_DIR"] = str(Path(tds) / "lock")
+        for event, scope in (("pull_request", "auto"), ("pull_request", "full"), ("push", "auto"), ("", "auto")):
+            (td / "stress.ran").unlink(missing_ok=True)
+            env = {**base, "GATE_SCOPE": scope, **({"HPO_CI_EVENT": event} if event else {})}
+            r = _subprocess.run(["bash", str(script), "lane_stress"], cwd=td, env=env, timeout=120,
+                                capture_output=True, text=True)
+            out[(event or "local", scope)] = ((td / "stress.ran").exists(), "SKIP: tests/stress.py" in r.stdout)
+    return out
+
+
+_gl_off = _gl_stress_off_pull_requests()
+R.check("run.sh's lane_stress skips stress.py on a pull request under a scoped gate, and runs it under "
+        "GATE_SCOPE=full, on a push and locally (#3885)",
+        _gl_off == {("pull_request", "auto"): (False, True), ("pull_request", "full"): (True, False),
+                    ("push", "auto"): (True, False), ("local", "auto"): (True, False)}, str(_gl_off))
 
 
 def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
@@ -17717,12 +18224,12 @@ R.check(
 # #1218 (D3-08): the deployment-shape lane's measured closure is the whole
 # tracked package -- it materialises the package file by file, and the
 # gate's tracer records every read -- so every diff touching any production
-# file selects the lane. The same recording pairs 53 of the 276 scripts at
-# 0.80 or more of shared production-module closure. The numbers are
-# re-derived here exactly as dev/audit/rounds/round5/D3/resource_r5.py derived
-# them (Jaccard over the closure files under
-# custom_components/heatpump_optimizer/, empty sets skipped), and the lane's
-# docstring records them as this repository's selection-cost note. A
+# file selects the lane. The same recording pairs scripts at 0.80 or more of
+# shared production-module closure. The numbers are derived here exactly as
+# dev/audit/rounds/round5/D3/resource_r5.py derived them (Jaccard over the
+# closure files under custom_components/heatpump_optimizer/, empty sets
+# skipped) and printed below; the lane's docstring is this repository's
+# selection-cost note and names this block as their source. A
 # SELECTION cost only: which mutants each script kills was never measured
 # (the pre-screen stops at the first killer), so nothing claims two
 # overlapping scripts are redundant.
@@ -17785,25 +18292,73 @@ R.check(
     f"it={_D308_SELECTED} -- this is the cost the note beside the lane "
     "records",
 )
-# The note carries the derived numbers, so a re-record that moves them fails
-# HERE instead of leaving stale prose behind. The text is whitespace-
-# normalised first so a future re-wrap of the paragraph cannot flip these.
+# The numbers are derived and printed HERE, never carried in the note
+# (FG-1, 2026-11-26). The pair count is a threshold function of the whole
+# recording, so it does not add across a merge. Two branches each re-derived
+# it, and git merged the two sentences as text. The merged tree derived a
+# third number (#3838, #3866, #3870). The note names the cost and this block;
+# a count written back into it is refused. The text is whitespace-normalised
+# first so a re-wrap of the paragraph cannot flip these.
+_D308_SAME = sorted(
+    (_a, _b, _n) for _jac, _a, _b, _n in _D308_PAIRS if _jac == 1.0)
+_D308_DERIVED = (
+    f"  derived (#1218): the lane reaches all {len(_D308_PROD)} production "
+    f"files; {len(_D308_PAIRS)} of the {_D308_TOTAL} script pairs share >= 0.80 "
+    f"of their production closure, among {_D308_COMPARABLE} comparable pairs; "
+    f"{len(_D308_SAME)} at exactly 1.00: "
+    + ", ".join(f"{_a}/{_b} ({_n})" for _a, _b, _n in _D308_SAME)
+)
+print(_D308_DERIVED)
 _D308_DS_TEXT = " ".join((_closure.ROOT / _D308_DS).read_text().split())
+# A count is a number, in digits or spelled out, up to three words before
+# "file(s)" or "pair(s)", or directly before "until". The derived line's own
+# wording ("reaches all 124 production files"), a bare "190 script pairs" and
+# "Eighteen of the pairs" all match; the planted corpus below pins each.
+_D308_NUM = (
+    r"(?:\d[\d,]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven"
+    r"|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen"
+    r"|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)"
+)
+_D308_COUNT_RE = _re.compile(
+    rf"\b{_D308_NUM}(?:[\s-]+[\w./-]+){{0,3}}?\s+(?:files?|pairs?)\b"
+    rf"|\b{_D308_NUM}\s+until\b",
+    _re.IGNORECASE,
+)
+_D308_CARRIED = _D308_COUNT_RE.findall(_D308_DS_TEXT)
 R.check(
-    "and the lane's docstring records those measured numbers as the "
-    "selection-cost note (#1218)",
+    "and the lane's docstring is the selection-cost note, naming this block "
+    "as the source of its numbers and carrying none of them (#1218, FG-1)",
     all(_s in _D308_DS_TEXT for _s in (
-        "D3-08", "#1218", "selection cost",
-        f"all {len(_D308_PROD)} files",
-        f"{len(_D308_PAIRS)} of the {_D308_TOTAL}",
-        f"{_D308_COMPARABLE} pairs",
+        "D3-08", "#1218", "selection cost", "tests/entities.py",
     ))
-    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY),
-    "the note cites numbers this tree derives: "
-    f"{len(_D308_PROD)} production files; {len(_D308_PAIRS)} of "
-    f"{_D308_TOTAL} pairs at >= 0.80; {_D308_COMPARABLE} pairs comparable; "
-    f"no production closure in {_D308_EMPTY}; missing markers -> "
-    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'all %d files' % len(_D308_PROD), '%d of the %d' % (len(_D308_PAIRS), _D308_TOTAL), '%d pairs' % _D308_COMPARABLE) if s not in _D308_DS_TEXT]}",
+    and all(_e in _D308_DS_TEXT for _e in _D308_EMPTY)
+    and not _D308_CARRIED,
+    "missing markers -> "
+    f"{[s for s in ('D3-08', '#1218', 'selection cost', 'tests/entities.py') if s not in _D308_DS_TEXT]}; "
+    f"no production closure in {_D308_EMPTY}; hand-kept counts -> {_D308_CARRIED}",
+)
+# The refusal's own null control: every count wording, the derived line
+# printed above included, is matched. Narrowed back to the old phrasings, the
+# pattern lets the derived line be written into the note unrefused.
+_D308_PLANTED = (
+    _D308_DERIVED,
+    "the lane reaches all 124 production files",
+    "all 124 files",
+    "190 script pairs",
+    "190 of the 561 script pairs",
+    "Eighteen of the pairs",
+    "EIGHTEEN PAIRS",
+    "twenty-one shared production files",
+    "1,204 files",
+    "96 until R9 F2.2",
+    "eleven until",
+)
+_D308_MISSED = [_t for _t in _D308_PLANTED if not _D308_COUNT_RE.search(_t)]
+R.check(
+    "the #1218 note's count refusal matches the derived line's wording, a "
+    "bare pair count and a spelled-out one (planted corpus, FG-1)",
+    not _D308_MISSED,
+    f"not refused -> {_D308_MISSED}",
 )
 # The predicate itself, on synthetic closures built from real production
 # names: equal sets count, disjoint and below-boundary do not, an exactly
@@ -21033,8 +21588,8 @@ R.check(
 # `gate_required` is the list the ruleset and the seat readers will key on. The
 # check reads the module itself (loaded by path, as stamp.py is above), never a
 # copy, and pins its sorted union equal to the fixture list, which must hold no
-# duplicate; `contexts` stays the 17 until P2b's cut-over. A load failure is a
-# red check, not a truncated run.
+# duplicate; `contexts` is `gate` alone since P2b's cut-over. A load failure
+# is a red check, not a truncated run.
 _CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
 import importlib.util as _cig_util
 try:
@@ -21179,7 +21734,9 @@ R.check(
 #     for every modelled event (on `merge_group` with `pr=- base=-`, which no
 #     expression can cut from the queue ref), so a past run's kind, PR, base
 #     and `sha=` read back as the prelude derived them;
-#   - one run per concurrency group, cancelling nothing (rev2, N1);
+#   - one run per concurrency group (rev2, N1), a push to main's included (no
+#     CI-main), but a non-bot `synchronize`'s first attempt (CI-pr-<number>,
+#     #3885 L1, cancelling the PR's older one);
 #   - the callers are gate.py's UNITS plus kernel-points, each `uses:` its
 #     own stem (the naming rule), all inside the `# >>> units` block the
 #     coordinator cuts a probe from, each run exactly when the prelude's
@@ -21269,8 +21826,9 @@ _CI_EVENTS = {
 
 def _ci_ctx(ev: str, payload: dict, outputs=None, actor="hpo-author[bot]") -> "tuple[dict, dict]":
     """(the expression context, prelude.context's) for one modelled event;
-    `outputs` are the prelude's: a failed prelude's read as empty strings."""
-    flat = _ghx_flat("github.event", payload, {})
+    `outputs` are the prelude's: a failed prelude's read as empty strings.
+    The event's sender is `actor` unless the payload names one."""
+    flat = _ghx_flat("github.event", {"sender": {"login": actor}, **payload}, {})
     flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
                  "github.repository": "o/r", "github.actor": actor})
     flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
@@ -21347,18 +21905,28 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
                 out.append(f"`on:` lists {ev}/{a}, which no model here renders")
     if doc.get("permissions") != {}:
         out.append(f"workflow permissions {doc.get('permissions')!r}")
-    # CI-5 (owner 2026-11-21): a push's first attempt joins the one CI-main group, so a pending
-    # push run is replaced by the newest and none in progress is cancelled; every other run and
-    # every re-run keeps its run-id group (N1). Rendered per event and attempt, not matched as text.
+    # #3885 L1: a `synchronize` run's first attempt, sent by anyone but github-actions[bot], joins
+    # its pull request's CI-pr-<number> group and cancels the older run there at creation. Every
+    # other run and every re-run keeps its run-id group (N1: a re-run never cancels a pending
+    # run), a push to main's included: no group serialises main push runs (owner 2026-11-25,
+    # retiring CI-5's `CI-main` group); main-cancel.yml cancels the superseded ones. A bot-sent
+    # run never cancels the run doing the other autofix jobs (cancel_superseded.BOT). Rendered per
+    # event, attempt and sender, not matched as text.
     cc = doc.get("concurrency") or {}
-    if cc.get("cancel-in-progress") is not False:
-        out.append(f"concurrency {cc} cancels in progress")
     for (ev, a), payload in _CI_EVENTS.items():
         for attempt in ("1", "2"):
-            want = "CI-main" if ev == "push" and attempt == "1" else "CI-99"
-            got = _ghx(cc.get("group", ""), {**_ci_ctx(ev, payload)[0], "github.run_attempt": attempt})
-            if got != want:
-                out.append(f"concurrency group under {ev}/{a} attempt {attempt} renders {got!r}, want {want!r}")
+            for sender in ("hpo-author[bot]", "tvofi", _SELF_ACTOR):
+                ctx = {**_ci_ctx(ev, payload, actor=sender)[0], "github.run_attempt": attempt}
+                pr_group = (ev, a, attempt) == ("pull_request", "synchronize", "1") and sender != _SELF_ACTOR
+                want = "CI-pr-7" if pr_group else "CI-99"
+                got = _ghx(cc.get("group", ""), ctx)
+                if got != want:
+                    out.append(f"concurrency group under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"renders {got!r}, want {want!r}")
+                cancels = _ghx(cc.get("cancel-in-progress", False), ctx)
+                if cancels is not pr_group:
+                    out.append(f"concurrency under {ev}/{a} attempt {attempt} sender {sender} "
+                               f"cancel-in-progress reads {cancels!r}, want {pr_group}")
     jobs = doc.get("jobs") or {}
     callers = {j for j, b in jobs.items() if "uses" in (b or {})}
     if callers != set(_cig.UNITS) | {_cip.KP}:
@@ -21467,11 +22035,27 @@ _CI_PLANTS = {
     "labeled dropped": _CI_TEXT.replace("edited, labeled]", "edited]", 1),
     "a group per PR": _CI_TEXT.replace("format('CI-{0}', github.run_id)",
                                        "format('CI-{0}', github.event.pull_request.number)", 1),
-    "push re-runs in the main group": _CI_TEXT.replace(" && github.run_attempt == '1' && 'CI-main'", " && 'CI-main'", 1),
-    "every push in its own group": _CI_TEXT.replace(" && 'CI-main' ||", " && format('CI-{0}', github.run_id) ||", 1),
-    "the main group cancelling in progress": _CI_TEXT.replace(
-        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: false",
-        "'CI-main' || format('CI-{0}', github.run_id) }}\n  cancel-in-progress: true", 1),
+    # #3885 L1's own plants: each widens or narrows the CI-pr-<number> arm by one condition.
+    "the PR group on every pull_request action": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize'", "", 2),
+    "the PR group's cancel on every pull_request action": _CI_TEXT.replace(
+        "cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action == 'synchronize'",
+        "cancel-in-progress: ${{ github.event_name == 'pull_request'", 1),
+    "PR re-runs in the PR group": _CI_TEXT.replace(
+        " && github.event.action == 'synchronize' && github.run_attempt == '1'",
+        " && github.event.action == 'synchronize'", 2),
+    "bot-sent pushes in the PR group": _CI_TEXT.replace(
+        " && github.event.sender.login != 'github-actions[bot]' && format('CI-pr-{0}'", " && format('CI-pr-{0}'", 1),
+    "the PR group cancelling nothing": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: false", _CI_TEXT, count=1),
+    "no PR group": _CI_TEXT.replace(
+        "format('CI-pr-{0}', github.event.pull_request.number)", "format('CI-{0}', github.run_id)", 1),
+    "push runs serialised in one main group (CI-5)": _CI_TEXT.replace(
+        "group: ${{ github.event_name == 'pull_request'",
+        "group: ${{ github.event_name == 'push' && github.run_attempt == '1' && 'CI-main'"
+        " || github.event_name == 'pull_request'", 1),
+    "a run-id group cancelling in progress": re.sub(
+        r"(?m)^  cancel-in-progress: .*$", "  cancel-in-progress: true", _CI_TEXT, count=1),
     "gate skippable on merge_group": _CI_TEXT.replace(
         "    if: ${{ !cancelled() }}\n", "    if: ${{ !cancelled() && github.event_name != 'merge_group' }}\n", 1),
     "gate skipped when the prelude fails": _CI_TEXT.replace(
@@ -21517,7 +22101,8 @@ _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
 R.check(
     "the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a "
-    "run-name equal to prelude.title, one run per group but a push's first attempt (CI-main, CI-5), "
+    "run-name equal to prelude.title, one run per group but a non-bot synchronize's first attempt "
+    "(CI-pr-<number>, cancelling in progress, #3885 L1), a push to main's included (no CI-main), "
     "every unit called "
     "by its stem exactly when the prelude's workset names it, and a `gate` "
     "no event can skip, judging on the prelude's outputs (U0c)",
@@ -21539,6 +22124,13 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
+# #3885 closeout audit U3: ci.yml pushes run on main alone and a merge-queue run heads no pull
+# request, so sweep.py's first read (`SKIP run N: no pull request ...`) ends every such sweep; the
+# job's own `if:` decides it without a runner. The 48 h to 2026-11-25T10:20Z: 179 sweeps, 85.9
+# runner-minutes, 21 of a 24-log sample doing nothing.
+_GS_SKIP_IF = "github.event.workflow_run.event != 'push' && github.event.workflow_run.event != 'merge_group'"
+
+
 def _gs_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get("on", doc.get(True)) or {}
@@ -21554,6 +22146,8 @@ def _gs_defects(text: str) -> "list[str]":
     if doc.get("permissions") != {} or job.get("permissions") != {
             "actions": "write", "contents": "read", "pull-requests": "read"}:
         out.append(f"permissions {doc.get('permissions')} / {job.get('permissions')}")
+    if job.get("if") != _GS_SKIP_IF:
+        out.append(f"if {job.get('if')!r} (want {_GS_SKIP_IF!r}: a completion with no pull request holds no runner)")
     steps = job.get("steps") or []
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
     if len(co) != 1 or (co[0].get("with") or {}).get("ref") != "${{ github.sha }}" \
@@ -21589,10 +22183,11 @@ _GS_PLANTS = {
         "permissions: {}\n", "permissions: {}\n\nconcurrency:\n  group: sweep-${{ github.event.workflow_run.id }}\n", 1),
     "the PR's head checked out": _GS_TEXT.replace(
         "ref: ${{ github.sha }}", "ref: ${{ github.event.workflow_run.head_sha }}", 1),
+    "a runner for a push completion": _GS_TEXT.replace(f"    if: {_GS_SKIP_IF}\n", "", 1),
 }
 _GS_PLANT_MISSED = sorted(k for k, t in _GS_PLANTS.items() if t == _GS_TEXT or not _gs_defects(t))
 R.check(
-    "gate-sweep.yml: on CI's completion, no concurrency, main's program on "
+    "gate-sweep.yml: on CI's completion but a push's or a merge queue's (#3885 U3), no concurrency, main's program on "
     "the trigger's run id alone, its outcome read from the output's word "
     "(SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), "
     "never from the exit code (U0c)",
@@ -21605,6 +22200,57 @@ R.check(
     "leaves a stale red `gate` unannounced",
 )
 
+
+# #3885 closeout audit U2: pages.yml's build reads no history (the site lists `git ls-files`; the
+# release step fetches its one tag), so it checks out one commit. Full history was 139.8 of the
+# build's 181.8 runner-minutes over the 171 plan-page dispatches in the 48 h to 2026-11-25T10:20Z.
+def _pages_defects(text: str) -> "list[str]":
+    job = ((_yaml.safe_load(text) or {}).get("jobs") or {}).get("pages-build") or {}
+    steps = job.get("steps") or []
+    co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
+    out = []
+    if len(co) != 1 or (co[0].get("with") or {}).get("fetch-depth") != 1 or (co[0].get("with") or {}).get("fetch-tags"):
+        out.append(f"checkout {[s.get('with') for s in co]} (want fetch-depth 1, no tags)")
+    rel = next((str(s.get("run", "")) for s in steps if s.get("name") == "Check out the release"), "")
+    if "git ls-remote --tags" not in rel or "--depth 1" not in rel:
+        out.append("the release step does not fetch its one tag at depth 1")
+    return out
+
+
+_PAGES_TEXT = Path(".github/workflows/pages.yml").read_text()
+_PAGES_PLANT = _PAGES_TEXT.replace("          fetch-depth: 1\n", "          fetch-depth: 0\n          fetch-tags: true\n", 1)
+R.check(
+    "pages.yml: the build checks out one commit and the release step fetches its one tag (#3885 U2)",
+    not _pages_defects(_PAGES_TEXT) and _PAGES_PLANT != _PAGES_TEXT and bool(_pages_defects(_PAGES_PLANT)),
+    f"defects={_pages_defects(_PAGES_TEXT)} plant caught={bool(_pages_defects(_PAGES_PLANT))}",
+)
+
+
+# Run 45663211757: the release step's tag pipeline ended `| head -n 1`, which closes the pipe
+# after one line; once the tag listing outgrew the pipe buffer, `git ls-remote` took SIGPIPE and
+# pipefail failed the step with exit 141. The step's own `tag=` line runs here against a stand-in
+# `git` listing 20000 tags; the plant restores the truncating `head` and must fail.
+def _pages_tag_run(text: str) -> "tuple[int, str]":
+    steps = (((_yaml.safe_load(text) or {}).get("jobs") or {}).get("pages-build") or {}).get("steps") or []
+    rel = next((str(s.get("run", "")) for s in steps if s.get("name") == "Check out the release"), "")
+    line = next((ln.strip() for ln in rel.splitlines() if ln.strip().startswith("tag=$(")), "")
+    if not line:
+        return -1, "no tag= line"
+    script = ("set -euo pipefail\n"
+              "git() { for ((i = 20000; i > 0; i--)); do printf '%040d\\trefs/tags/v%d.0.0\\n' 0 \"$i\"; done; }\n"
+              f"{line}\nprintf '%s' \"$tag\"\n")
+    r = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=60)
+    return r.returncode, r.stdout
+
+
+_PAGES_TAG_PLANT = _PAGES_TEXT.replace("| awk 'NR == 1 { sub(/.*refs\\/tags\\//, \"\"); print }')",
+                                       "| head -n 1 | sed 's#.*refs/tags/##')", 1)
+_PAGES_TAG_GOT, _PAGES_TAG_PLANT_GOT = _pages_tag_run(_PAGES_TEXT), _pages_tag_run(_PAGES_TAG_PLANT)
+R.check(
+    "pages.yml: the release step's tag pipeline reads its listing to the end under pipefail (run 45663211757)",
+    _PAGES_TAG_GOT == (0, "v20000.0.0") and _PAGES_TAG_PLANT != _PAGES_TEXT and _PAGES_TAG_PLANT_GOT[0] != 0,
+    f"got={_PAGES_TAG_GOT} plant={_PAGES_TAG_PLANT_GOT}",
+)
 
 # The stand-ins hold under a BASH_ENV that re-prepends a toolchain (#2835): a
 # cloud seat's profile there failed U0c and the delivery_status check at every
@@ -23001,7 +23647,8 @@ _D5 = [st for st in _CODEQL_STEPS
        if "codeql_scope.py extracted" in str(st.get("run"))]
 R.check(
     "codeql.yml carries the D-5 extracted-files check, on push, after the analysis",
-    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push'"
+    # A light push's skipped leg uploads main's stand-in (#3885): it extracted nothing to check.
+    len(_D5) == 1 and _D5[0].get("if") == "github.event_name == 'push' && steps.standin.outputs.ok != 'true'"
     and _CODEQL_STEPS.index(_D5[0]) > max(
         i for i, st in enumerate(_CODEQL_STEPS)
         if str(st.get("uses", "")).startswith("github/codeql-action/analyze@")),
@@ -27065,6 +27712,26 @@ R.check(
                   "tibber_reauth_started", "cop_samples")
     }),
 )
+# The mode is handed to the view by the coordinator (ADR-005), so a
+# coordinator that stopped handing it would report None behind a present key.
+# A real coordinator is told two modes through ``async_set_mode`` in turn: the
+# second is the null control, so a constant or stale value fails one of them.
+_diag_coord = _diag_entry.runtime_data
+_diag_modes = {}
+for _m in (const.MODE_BOOST, const.MODE_COMFORT):
+    asyncio.run(_diag_coord.async_set_mode(_m, refresh=False))
+    _diag_modes[_m] = (
+        _diag_coord.diagnostics_state().mode,
+        asyncio.run(_diag_mod.async_get_config_entry_diagnostics(
+            _diag_hass, _diag_entry))["coordinator"]["mode"],
+    )
+asyncio.run(_diag_coord.async_set_mode(const.MODE_AUTO, refresh=False))
+R.check(
+    "the diagnostics view and the download report the mode a real coordinator was "
+    "set to, for each of two modes",
+    all(got == (m, m) for m, got in _diag_modes.items()),
+    repr(_diag_modes),
+)
 
 # The view's tolerance, both ends: a coordinator that cannot produce the
 # view reports None fields and no learner keys, and a learner whose
@@ -29989,7 +30656,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery", "selftests"],
+    == ["base", "light", "machinery", "selftests", "stand_down"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -32423,7 +33090,7 @@ R.check(
                       # no source. Listed in full: a new job here is named.
                       "ci.yml": ["arch-score", "budget-raise-gate", "cancel-superseded",
                                  "codeql", "gate", "governance", "hassfest",
-                                 "kernel-points", "pr-contract", "prelude", "refresh",
+                                 "kernel-points", "pr-contract", "prelude",
                                  "sweep-self", "tests", "validate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
@@ -32594,11 +33261,10 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 _CC_TWIN_ROUTE = {
                   # The umbrella (U0c): every run in a run-id group (rev2, N1).
                   "ci.yml": "per-run"}
-# The (file, event) pairs whose first attempts share one group that cancels
-# nothing in progress, so GitHub replaces a pending run with the newest: CI-5's
-# push-to-main coalescing (owner 2026-11-21). A re-run keeps its run-id group
-# (the umbrella check above renders that per attempt).
-_CC_COALESCED = {("ci.yml", "push")}
+# No (file, event) pair shares a group across runs: CI-5's push-to-main
+# `CI-main` group is retired (owner 2026-11-25), so every main push run starts
+# at once and main-cancel.yml cancels the superseded ones.
+_CC_COALESCED: "set[tuple[str, str]]" = set()
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -32685,23 +33351,97 @@ _CC_UMB_RUNS = [{"id": 11, "head_sha": _CC_OLD_SHA, "event": "pull_request", "st
                 {"id": 12, "head_sha": _CC_NEW_SHA, "event": "pull_request", "status": "in_progress",
                  "head_branch": "b"}]
 _CC_UMB_CANCELS = _CS.candidates(_CC_UMB_RUNS, live_sha=_CC_NEW_SHA, branch="b", run_id=13)
+# #3885 L5: the job also carries the refresh step (formerly its own `refresh`
+# job): one allocation per event. The cancel condition is the cancel STEP's;
+# the job admits the review events the refresh step serves.
+_CC_UMB_STEPS = _CC_UMB_JOB.get("steps") or []
+
+
+def _cc_step(needle: str) -> "tuple[int, dict]":
+    hit = [(i, st) for i, st in enumerate(_CC_UMB_STEPS) if needle in str(st.get("run") or "")]
+    return hit[0] if len(hit) == 1 else (-1, {})
+
+
+_CC_CANCEL_AT, _CC_CANCEL = _cc_step("python3 -I tools/pr/cancel_superseded.py run")
+_CC_REFRESH_AT, _CC_REFRESH = _cc_step("python3 -I tools/ci/gate.py --refresh")
+_CC_RESTORE_AT, _CC_RESTORE = _cc_step('git checkout "$PINNED" --')
+
+
+def _cc_cancel_if(ctx: dict) -> "bool | None":
+    return _if_under(_CC_UMB_JOB.get("if"), ctx) is True and _if_under(_CC_CANCEL.get("if"), ctx)
+
+
 R.check(
     "ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, "
     "on a non-bot same-repo pull_request run only",
-    "python3 -I tools/pr/cancel_superseded.py run" in str(_CC_UMB_JOB)
-    and "--workflow ci.yml" in str(_CC_UMB_JOB)
+    "--workflow ci.yml" in str(_CC_CANCEL.get("run"))
     and (_CC_UMB_JOB.get("permissions") or {}).get("actions") == "write"
-    and _if_under(_CC_UMB_JOB.get("if"), _CC_UMB_IF) is True
-    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"}) is False
-    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": "push"}) is False
+    and _cc_cancel_if(_CC_UMB_IF) is True
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event.sender.login": "github-actions[bot]"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event_name": "push"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event_name": "pull_request_review"})
+    and not _cc_cancel_if({**_CC_UMB_IF, "github.event.pull_request.head.repo.full_name": "fork/r"})
     and _CC_UMB_CANCELS == [11],
-    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)}",
+    f"cancels={_CC_UMB_CANCELS} job={sorted(_CC_UMB_JOB)} cancel step at {_CC_CANCEL_AT}",
+)
+_CC_REFRESH_IF = str(_CC_REFRESH.get("if") or "")
+R.check(
+    "#3885 L5: the same job re-runs the stale green gates on pull_request and review events, "
+    "fork heads included, after the base's tools/ci restore and whatever the cancel step concluded, "
+    "and never past a failed restore (null: push and dispatch run no housekeeping)",
+    "refresh" not in (_RC_DOCS["ci.yml"].get("jobs") or {})
+    and 0 <= _CC_RESTORE_AT < _CC_CANCEL_AT < _CC_REFRESH_AT
+    and "tools/ci/*.py" in str(_CC_RESTORE.get("run"))
+    and "tools/pr/cancel_superseded.py" in str(_CC_RESTORE.get("run"))
+    and all(_if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": e}) is True
+            for e in ("pull_request", "pull_request_review"))
+    and _if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event.pull_request.head.repo.full_name": "fork/r"}) is True
+    and all(_if_under(_CC_UMB_JOB.get("if"), {**_CC_UMB_IF, "github.event_name": e}) is False
+            for e in ("push", "workflow_dispatch"))
+    and "!cancelled()" in _CC_REFRESH_IF
+    and f"steps.{_CC_RESTORE.get('id')}.outcome == 'success'" in _CC_REFRESH_IF
+    and "GH_TOKEN" in (_CC_REFRESH.get("env") or {}),
+    f"steps at restore={_CC_RESTORE_AT} cancel={_CC_CANCEL_AT} refresh={_CC_REFRESH_AT} "
+    f"refresh if={_CC_REFRESH_IF!r} jobs={sorted(_RC_DOCS['ci.yml'].get('jobs') or {})}",
 )
 R.check(
     "and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)",
     _CS.candidates([{**_CC_UMB_RUNS[0], "head_sha": _CC_NEW_SHA}], live_sha=_CC_NEW_SHA,
                    branch="b", run_id=13) == [],
     "a same-SHA twin must survive",
+)
+# #3885: a superseded MAIN push run is cancelled from main-cancel.yml, never from
+# ci.yml: a job of the newer run would need that run to start, and no main push
+# run waits on another (no `CI-main` group since 2026-11-25). The job reads the push's prelude `scope` and hands it
+# to `cancel_superseded.py main --scope`, which cancels only for `full`, within
+# the three-run bound and while GitHub grants runners (its self-test).
+def _mc_shape(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    job = (doc.get("jobs") or {}).get("main-cancel") or {}
+    run = " ".join(str(s.get("run") or "") for s in job.get("steps") or [])
+    return (list(on) == ["push"] and (on["push"] or {}).get("branches") == ["main"]
+            and "concurrency" not in doc and "concurrency" not in job
+            and (job.get("permissions") or {}).get("actions") == "write"
+            and "python3 -I tools/ci/prelude.py" in run
+            and "cancel_superseded.py main --repo" in run and '--scope "${scope:-unknown}"' in run
+            and '--head-sha "$HEAD_SHA"' in run)
+
+
+_MC_PATH = Path(".github/workflows/main-cancel.yml")
+_MC_TEXT = _MC_PATH.read_text() if _MC_PATH.exists() else ""
+_MC_DOC = _RC_DOCS.get("main-cancel.yml") or {}
+R.check(
+    "#3885: main-cancel.yml cancels superseded main runs on a push to main only, outside any "
+    "concurrency group, passing the push's prelude scope and head",
+    _mc_shape(_MC_DOC) and "main-cancel" not in (_RC_DOCS["ci.yml"].get("jobs") or {}),
+    f"on={list(_MC_DOC.get('on', _MC_DOC.get(True)) or [])} jobs={sorted(_MC_DOC.get('jobs') or {})}",
+)
+R.check(
+    "and a main-cancel.yml in a concurrency group, on pull_request, or not passing the scope is refused (null control)",
+    not _mc_shape({**_MC_DOC, "concurrency": {"group": "CI-main"}})
+    and not _mc_shape({**_MC_DOC, "on": {"push": {"branches": ["main"]}, "pull_request": None}})
+    and not _mc_shape(_yaml.safe_load(_MC_TEXT.replace('--scope "${scope:-unknown}"', "")) or {}),
+    "the predicate over three shapes the workflow must not take",
 )
 # pr-contract.yml is a callee since U6: it lists `workflow_call` alone and no
 # `concurrency`, so no event can start it and no group can cancel its run. The
@@ -33236,8 +33976,8 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
     "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
     "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
-    "workflow) and on ci.yml's cancel-superseded, refresh and sweep-self jobs (null control)",
-    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "ci.yml:sweep-self", "tests.yml:claims-autofix",
+    "workflow) and on ci.yml's cancel-superseded and sweep-self jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:sweep-self", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
@@ -33380,7 +34120,8 @@ R.check(
 # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
 _PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
 _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
-_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+# A chained read, ROOT / "tests" / "run.sh", is the one file tests/run.sh, never the directory.
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT((?:\s*/\s*\"[^\"]+\")+)", re.M)
 
 
 def _pcr_spawned(mjs: str) -> "list[str]":
@@ -33401,7 +34142,7 @@ def _pcr_closure(roots) -> "list[str]":
         text = Path(f).read_text()
         todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
                  if Path(q).is_file()]
-        todo += _PCR_READ.findall(text)
+        todo += ["/".join(re.findall(r'"([^"]+)"', m)) for m in _PCR_READ.findall(text)]
     return sorted(seen)
 
 
@@ -42346,6 +43087,8 @@ _egb3_resolve = {
     "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
     "rooms.published(rooms.readings_of(self), rooms.lift_of(self))": ("rooms", "published"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
+    # #3862: a producer that returns its owner's view whole (a listed source only).
+    "extheat.view(self._external_heat, boost.extheat_block_ignored(self))": ("external_heat", "view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}
 
@@ -42360,6 +43103,8 @@ def _egb3_energy():
 
 def _egb3_enumerate(fn, unresolved):
     keys, merges = _egb3_top(fn)
+    merges += [n.value for n in ast.walk(fn) if isinstance(n, ast.Return)
+               and isinstance(n.value, ast.Call) and ast.unparse(n.value) in _egb3_resolve]
     for m in merges:
         src = ast.unparse(m)
         if src in _egb3_resolve:
@@ -42729,15 +43474,19 @@ def _pg_plan_defects(text: str) -> "list[str]":
     if "ref_type != 'tag'" not in str(co.get("if", "")):
         out.append("the release checkout is not skipped on a tag push")
     with tempfile.TemporaryDirectory() as tmp:
-        repo = Path(tmp) / "repo"
-        repo.mkdir()
+        # The runner's shape (#3885): the tags live on a bare `origin`, and the
+        # working repository is a one-commit `--no-tags` clone of it, so the
+        # step must find and fetch the newest tag from the remote itself.
+        src, origin, repo = (Path(tmp) / n for n in ("src", "origin.git", "repo"))
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
-        env = throwaway_git_init(repo, "-q")
+        env = throwaway_git_init(src, "-q")
         for tag in ("v1.9.0", "v1.10.0", "x9"):
-            (repo / "f").write_text(tag)
-            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
-            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
-            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+            (src / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=src, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=src, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=src, check=True, env=env)
+        throwaway_git_clone(src, origin, "-q", "--bare", cwd=tmp)
+        throwaway_git_clone(origin.as_uri(), repo, "-q", "--depth", "1", "--no-tags", cwd=tmp)
         rc = _pg_run(str(co.get("run", "")), repo)
         if rc != 0 or (repo / "f").read_text() != "v1.10.0":
             out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
@@ -42774,6 +43523,15 @@ R.check(
     "and adds it under plan/ only when one was staged",
     not _PG_PLAN_GOT,
     "; ".join(_PG_PLAN_GOT[:4]),
+)
+# Null control: the release step with its version sort turned into a string
+# sort must take v1.9.0 and be refused, or the fixture above orders nothing.
+_PG_PLAN_TEXT = _PG_WF.read_text() if _PG_WF.is_file() else ""
+_PG_PLAN_NULL = _pg_plan_defects(_PG_PLAN_TEXT.replace("--sort=-v:refname", "--sort=-refname", 1))
+R.check(
+    "and a release step that sorts tags as strings is refused (null control)",
+    "--sort=-v:refname" in _PG_PLAN_TEXT and any("took 'v1.9.0'" in d for d in _PG_PLAN_NULL),
+    f"string sort: {_PG_PLAN_NULL}",
 )
 
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
@@ -43315,6 +44073,10 @@ _R10_LOG_ALLOWED_BY_REASON = {
         # R11 D14-s2-03: a fit that raises ends the experiment in the same
         # call (phase done, a refusal published), so it logs once per night armed.
         ("sysid.py", "_finish"): 1,
+        # R11-OWNER-COOLING-GUARD: the warning raises ``ISSUE_COOLING`` and
+        # sets ``cooling_asked`` in the same call; it logs again only after
+        # the mode has left cooling and the flag cleared.
+        ("supply_hold.py", "note_cooling"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -43979,5 +44741,22 @@ R.check(
     f"rows: {_BR('dev/audit/README.md') + _BR('tools/audit/README.md') + _BR('tests/README.md')}",
 )
 
+
+R.section("The case runner and recorder (R11-CI-CASE-SELECT)")
+# tests/case_select.py cuts features.py and this script into spans, runs them
+# span by span, and records per span what it reads and which earlier spans it
+# needs, into tests/case_closures.json. Its self-test checks the splitter
+# against the R.section line count of both scripts, and that a span-wise run
+# prints what python3 prints. It also checks the recorder's static and dynamic
+# reads, the needs rules (in-place binding, RNG draws, module moves) and the
+# table's merge arm.
+_csel_run = subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("case_select.py")), "--self-test"],
+                           capture_output=True, text=True, timeout=600)
+R.check(
+    "the case runner's self-test passes: spans match the R.section count, a span-wise run equals the script's "
+    "own output, the recorder sees reads no code runs and moves no store shows, and the table merges per span",
+    _csel_run.returncode == 0 and "CASE-SELECT SELF-TEST: PASSED" in _csel_run.stdout,
+    (_csel_run.stdout + _csel_run.stderr)[-600:],
+)
 
 sys.exit(R.close("ENTITY CHECKS"))

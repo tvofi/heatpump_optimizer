@@ -1,3 +1,124 @@
+## v10.1.7
+
+**Patch stamp: 2 merges since v10.1.6 (`git log --first-parent --merges --format=%h v10.1.6..HEAD | wc -l`): state that production stored and never read is deleted, with no behaviour change, and the round-11 mutant kills are recorded in the mutation ledger.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes.
+
+### #3931 Unread state deleted (R11-SEAM-dead-state)
+
+Imports, parameters, locals and stored fields that no production code reads are removed from the modules that held them and from their callers. The integration behaves as before.
+
+### Tooling, tests and CI
+
+- #3938: the mutant kills the round-11 test-gap finders measured are pinned in the mutation ledger, so later rounds do not screen them again.
+
+## v10.1.6
+
+**Patch stamp: 13 merges since v10.1.5 (`git log --first-parent --merges --format=%h v10.1.5..HEAD | wc -l`): a stored option of the wrong type now reads as its default instead of raising, a stored boolean in the persisted store reads as absent where a number is declared, and the rest is test pins, review and CI tooling.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes.
+
+### #3913 Stored options of the wrong type read as their default (R11-LATE-P1-OPTIONS)
+
+A configuration option stored as something other than a number (for example an empty string left by an older version) no longer raises out of the readers that convert it; each reader treats it as unset and uses its default, as it does for a missing option.
+
+### #3932 Stored booleans read as absent at the store's load boundary (R11-SEAM-store part 2)
+
+When the persisted store holds `true` or `false` where a number is declared, loading now treats the value as absent instead of reading it as 1 or 0. Follows part 1, #3875.
+
+### Tooling, tests and CI
+
+- #3928, #3927: tests-only pins for the plant-model and money seams' mutants the full gate did not kill.
+- #3936: review verdicts carry automatically to a head whose own diff is unchanged.
+- #3935, #3929, #3926, #3923: CI queue changes from #3885 (a run that would wait on another run's sources defers at once; scheduling and cancellation steps).
+- #3937: the D6 claim register merges row by row by claim id.
+- #3924: the instrument self-tests run in shards.
+- #3912, #3911: flow-metrics replay timeout and merge counts.
+
+## v10.1.5
+
+**Patch stamp: 24 merges since v10.1.4 (`git log --first-parent --merges --format=%h v10.1.4..HEAD | wc -l`): set-point writes stay inside the range the entity accepts, with an optional manual high limit; a switch lets the plan run while external heat is detected; a hot-water run the pump would not start is no longer kept on the first step; a two-zone valve-fed slab is priced in the flow set; the room lift is named in the plan and narrative; one predicate decides which intervals the learners may ingest; the rest is entity metadata, refactors, tooling, CI, audit records and the round-11 roster.**
+
+### Action needed
+
+Nothing asks you to act: no entity id of an existing install changes and no option default changes. Changes you may notice without acting: a new optional option, `space_setpoint_high_limit_c` (entities page, indoor group, shown for a water set-point only), caps the space flow set-point where the pump advertises no limit (#3866); a new switch, External Heat Block Override, lets the plan run while external heat is detected (#3874); plan steps held up by the room lift now read `room_floor`, with a `room_lift` driver row (#3838); the system-identification and diagnose buttons now report why nothing ran (#3841).
+
+### #3866 Set-point writes clamped to the entity range; manual high flow limit (R11-OWNER-FLOWCAP)
+
+Every set-point write is clamped to the minimum and maximum the target entity states, rounded onto its step. The new optional option `space_setpoint_high_limit_c` (30–70 °C, no default) sets a high limit for the space water set-point; where the pump also advertises one, the lower of the two binds, and a limit below the lowest heating write is dropped and logged once.
+
+### #3874 External Heat Block Override switch (R11-OWNER-EXTHEAT-OVERRIDE)
+
+While the switch is on and external-heat detection is enabled, a detected fire no longer holds back hot water or the space plan. Detection, the External Heat Source sensor and the learning freeze keep running. Strings in en, sv and de.
+
+### #3863 A hot-water run the pump would not start is dropped (R11-OUTSIDE-3848)
+
+Reported and first fixed by outside contributor Bankaifan in #3848. On a re-plan the first step was always treated as a charge under way, so a hot-water run the pump would never start was kept and heating was locked out. The first step is now exempt only while the compressor runs in a mode serving hot water.
+
+### #3879 Two-zone valve-fed slab priced in the flow set (R11-SEAM-two-zone-slab)
+
+Behind a two-zone valve that feeds the slab, the flow set now includes the slab between the floor circuit and the lower floor, and the house's internal gains, so the curve holds the room the thermostat reads.
+
+### #3838 The room lift named in the plan (R11-OUTSIDE-ROOMS-3B)
+
+Part of #3616. Steps the room lift holds up read `room_floor`, and the why-now drivers show a `room_lift` row beside `comfort_floor`, in the card and narrative in en, sv and de. The plan itself does not change.
+
+### #3841 Entity metadata and service outcomes (R11-SEAM-entity-service)
+
+The arm and diagnose buttons raise a translated error naming why nothing ran. Three temperature-difference sensors take the temperature-delta device class on Home Assistant 2025.11 and later. The thermal-parameter service fields accept any value on their range. New installs get object ids led by their entity family; existing ids are unchanged.
+
+### #3835 One learning-freeze predicate (R11-SEAM-learners)
+
+One predicate decides which intervals each learner may ingest: away periods, unplanned charges, an open hot-water charge and a ceiling at the running floor are refused uniformly. Refs #3760, which stays open.
+
+### #3873, #3910 Refactors and replay
+
+Boost and diagnostics read the mode from their own state (#3873); the replay document drops non-finite numbers (#3910).
+
+### Tooling, CI and records
+
+#3908, #3902, #3909, #3905, #3906, #3904, #3901, #3900, #3896, #3899, #3890, #3894, #3895, #3891, #3892.
+
+## v10.1.4
+
+**Patch stamp: 19 merges since v10.1.3 (`git log --first-parent --merges --format=%h v10.1.3..HEAD | wc -l`): a pump whose mode reads cooling is left alone; the card's status pill names external heat and what is heating; an unlatched duty switch is priced before the learner latches; the cycle owns when a solve runs; the store's schema is one declaration; every written entity is returned to its baseline on Off, stale plans and unload; the rest is tooling, CI, audit records and the round-11 roster.**
+
+### Action needed
+
+Nothing asks you to act: no option is added, no entity id changes and no option default changes. Changes you may notice without acting: a new repair, `pump_mode_cooling`, appears while the pump's mode reads cooling and a plan or boost asks for heat (#3864); the card's heating pill reads `Heating space`, `Heating DHW` or `Heating space+DHW` and shows `External heat detected` while that sensor is on (#3871); in Off and on a stale plan, the circulation pumps, compressor frequency and valve target the integration wrote are restored to their readings before its first write, as the supply switch and set-points already were (#3812).
+
+### #3864 A pump in cooling is left alone (R11-OWNER-COOLING-GUARD)
+
+While the pump's mode reads Cooling or Cooling + DHW, no writer touches the power switch in either direction: neither a plan, a boost nor the early cut-off switches it. A request for heat in that state raises the `pump_mode_cooling` repair once per episode; it clears when the mode leaves cooling. A live mode select reading Heating outranks a stale Cooling reading. Nothing writes Heating back over a device-side Cooling. Strings in en, sv and de.
+
+### #3871 Card status pill: external heat and what is heating (R11-OWNER-CARD-EXTERNAL-HEAT)
+
+The card's header pill reads `External heat detected` while the plan's External Heat Source binary sensor is on, after manual, fallback and stale in precedence, and the heating state names space, DHW or both.
+
+### #3877 Honest duty-switch price before the learner latches (R11-OUTSIDE-3849)
+
+Reported and diagnosed by outside contributor Bankaifan in #3849. The planner priced a switch between hot water and heating at zero until the duty-switch learner latched; it now prices an unlatched direction at its shrunk estimate `k / (n + N_ON)`. The legs and the off time still move only on a latch.
+
+### #3738 The cycle owns when a solve runs (R11-SEAM-cycle-solve)
+
+A new `solve_gate.py` holds the in-flight guard, a trailing refresh, the background what-if budget and the user what-if slot. Every refresh request reaches one router, so a request made during a refresh is no longer dropped; the Optimize Now button and the `run_optimization` action run one refresh that fetches, solves, actuates and publishes, and report why a run did not happen; one background what-if runs per main solve, and a user what-if overtaken while waiting gets the held answer marked `rate_limited`.
+
+### #3875 The store's schema is one declaration, part 1 of 2 (R11-SEAM-store)
+
+`store.DOMAINS` declares what the writers write, and a restored value is checked against it before it is applied: debug rows with an unpriced accuracy sample are kept, a capacity-envelope bucket raised only by a measured floor is kept, an out-of-range boosted span reads as unknown instead of failing the restore, and the snapshot restore refuses a snapshot that carries no bias.
+
+### #3812 Actuation release (R11-SEAM-actuation-release)
+
+Every entity the integration writes is returned to its baseline once on Off, on a stale plan and at unload, through one registry: supply switch, the arbiter's row, both circulation pumps (new `circulation.py`), compressor frequency and valve target. The stored document and store version are unchanged.
+
+### Development process
+
+Developer tooling, CI, audit machinery, tests and records only, no change to the integration: #3893, #3888 and #3887 (#3885 CI: `tests/stress.py` skipped on pull requests, light grading for non-production diffs, self-test job caps), #3868 (corpus mirror paces GraphQL batches by query cost), #3880 (replan, roster queue and closeout read the live roster), #3825 (R11-SEAM-tests), #3867 (first outside contributor allowlisted, decision 0017), #3876 (root-cause record: mutation-vacuous review blocks), #3834 (self-test table drift absorbed by a standing beat), #3889 (round-11 roster), #3886, #3884 and #3878 (delivery rows, autofix).
+
 ## v10.1.3
 
 **Patch stamp: 25 merges since v10.1.2 (`git log --first-parent --merges --format=%h v10.1.2..HEAD | wc -l`): the dashboard card's hit targets, type and spacing scales, status colours, failure text and history retention are reworked; values entering the integration are tested finite and in domain, and numeric options an earlier release stored as non-numbers are repaired on the first start; one plan-step kernel and one value each for water's heat capacity, a naive timestamp's zone and a finite number; the draw map records its part A (pass record and map rows); the rest is tooling, audit records and dependency bumps.**

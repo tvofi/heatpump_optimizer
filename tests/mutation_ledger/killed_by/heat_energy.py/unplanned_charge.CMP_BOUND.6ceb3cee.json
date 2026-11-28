@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:unplanned_charge CMP_BOUND 6ceb3cee",
+  "killed_by": "tests/features.py",
+  "old": "        not a.observed and a.dhw <= 0.0 < a.space",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`not a.observed and a.dhw < 0.0 < a.space`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13. Each of the 2 sites under this anchor was killed."
+}

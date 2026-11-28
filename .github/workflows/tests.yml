@@ -44,12 +44,16 @@ name: Tests
 #   are run, decided from the measured dependency closures in
 #   tests/closures.json, and so does every workflow_dispatch of this file
 #   (an autofix retrigger or the batch proof, against main's merge base).
-#   On a PUSH TO MAIN GATE_SCOPE is forced to full and every script
-#   runs regardless of what changed. That asymmetry is the whole safety
-#   argument: if a closure is ever wrong, the scoped PR gate may miss it,
-#   but the very next gate, the unscoped one on main, does not. main goes
-#   red within one merge instead of never. Every scoped-out script is
-#   printed with its reason in the run log, twice.
+#   A PUSH TO MAIN whose range touches production (custom_components/ or
+#   a root file HACS reads; tools/ci/prelude.py's `light` and `push_range`,
+#   #3885) runs GATE_SCOPE=full, every script regardless of what changed.
+#   That asymmetry is the whole safety argument: if a closure is ever
+#   wrong, the scoped PR gate may miss it, but the next production push,
+#   unscoped on main, does not: main goes red at that push instead of
+#   never. A LIGHT push -- a range since the last graded push run that
+#   touches no production file -- is graded as a pull request over that
+#   range is: GATE_SCOPE=auto against the range base. Every scoped-out
+#   script is printed with its reason in the run log, twice.
 #
 # * closures — push to main, and on any pull request that can
 #   move a closure. Re-records closures by running the suite under
@@ -58,7 +62,9 @@ name: Tests
 #   wall clock. This is what stops the closures rotting the way a
 #   hand-written dependency table would.
 #
-#   On a push it re-records EVERYTHING. On a pull request
+#   On a push it re-records EVERYTHING, but a light push (#3885), whose
+#   pull requests each re-derived what their own diff intersects, stands
+#   the re-record down. On a pull request
 #   `closure-scope` decides, from the diff and the same table:
 #   full when a gate file or a file in no recorded closure is touched,
 #   and otherwise re-derive only the closures the diff intersects. A
@@ -142,6 +148,26 @@ on:
         description: "The prelude's machinery decision with the pull request's own delivery row ignored, for a machinery lane that reads no row (arch-instrument; R10-CI-OWN-DELIVERY-ROW); anything but 'false' runs it"
         type: string
         default: ""
+      light:
+        description: "The prelude's: 'true' on a run whose changed list holds no production file (#3885); on a push, the scope is auto against range_base"
+        type: string
+        default: ""
+      stand_down:
+        description: "The prelude's light-run stand-downs (#3885): each lane it names (browser, typing, closures) skips its steps and reports success"
+        type: string
+        default: ""
+      range_base:
+        description: "The prelude's push range base (prelude.push_range): the head of the newest earlier push run on main whose units ran; empty on every other event or when unread"
+        type: string
+        default: ""
+      fast_shards:
+        description: "The prelude's fast-lane shards, a JSON list of K/N (tools/ci/shards.py); empty runs one unsharded `fast (3.14)` job"
+        type: string
+        default: ""
+      fast_plan:
+        description: "The prelude's plan assigning every run.sh script to one shard (tools/ci/shards.py)"
+        type: string
+        default: ""
     # The autofix jobs' push token and the run-approver App, until M-3.
     secrets:
       CLOSURES_PUSH_TOKEN:
@@ -184,6 +210,14 @@ jobs:
         || github.event_name == 'merge_group'
         || github.event_name == 'workflow_dispatch'
       )
+    # R11-CI-CASE-SELECT P2 (#3885): one job per shard the prelude planned (tools/ci/shards.py),
+    # each `fast (3.14, K/N)`, each running only the scripts the plan assigns it; with no plan
+    # (an empty `fast_shards`, e.g. a base whose prelude predates the planner) the one job keeps
+    # its old name and runs everything. `gate` owes every shard the prelude named
+    # (gate.fast_names): a shard missing, skipped or red is a red gate, never a smaller suite.
+    # The literal `fast (` ... `)` keeps the name from rendering any other job's (a name that is
+    # one expression matches every context: entities.py's forgery and producer readers).
+    name: fast (${{ matrix.python-version }}${{ matrix.shard && format(', {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     # The only job that runs the production suite. It was matrixed over both
     # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
@@ -202,15 +236,13 @@ jobs:
     # derived from this matrix alone, so retiring a leg without saying so in
     # the README fails there.
     #
-    # fail-fast is now on, which costs nothing while the matrix is one entry
-    # and is the right default if a second is ever added back: the reason it
-    # was off -- a 3.14 break must not cancel the 3.13 leg, because knowing
-    # which of the two broke was the whole signal -- is a reason that only
-    # exists while there are two.
+    # fail-fast is off for the shards: each runs a disjoint part of the suite, so a red in one
+    # cancelling the rest would hide their failures behind a second push.
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         python-version: ["3.14"]
+        shard: ${{ fromJSON(inputs.fast_shards || '[""]') }}
     # Drift mode captures all 53 scenarios twice (tree + merge-base); the
     # first main run proved 45 min is not enough on GitHub's runners — the
     # step was cancelled mid-suite by its own timeout.
@@ -271,8 +303,28 @@ jobs:
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: python3 tests/host_probe.py
 
+      # The drift baseline's cache steps below serve tests/env_drift.py, which runs in one shard
+      # only: the others neither restore nor save it. The owner is read off the same plan run.sh
+      # routes by (a script the plan does not name runs in shard 1); unsharded, this job owns it.
+      - name: Does this shard run the drift capture
+        id: drift
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        env:
+          HPO_FAST_PLAN: ${{ inputs.fast_plan }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SHARD" ]; then echo "owns=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          python3 -I tools/ci/shards.py route --shard "$SHARD" > "$RUNNER_TEMP/shard.tsv"
+          owner=$(awk -F'\t' '$1 == "tests/env_drift.py" { print $2; f = 1 } END { if (!f) print 1 }' "$RUNNER_TEMP/shard.tsv")
+          echo "tests/env_drift.py runs in shard $owner; this is shard $SHARD"
+          echo "owns=$([ "$owner" = "${SHARD%/*}" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Resolve the golden comparison ref
         if: needs.closure-scope.outputs.fast_skip != 'skip'
+        env:
+          LIGHT: ${{ inputs.light }}
+          RANGE_BASE: ${{ inputs.range_base }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             # The PR's merge-base with its target: exactly the code this
@@ -301,6 +353,10 @@ jobs:
             # parent), so leftover drift vs main cannot hide.
             git fetch --no-tags origin main
             REF=$(git merge-base origin/main HEAD)
+          elif [ "$LIGHT" = "true" ] && [ -n "$RANGE_BASE" ]; then
+            # A light push (#3885): scoped against its range base, so the drift
+            # comparison spans every commit the scope does.
+            REF=$(git rev-parse --verify --quiet "${RANGE_BASE}^{commit}") || REF=""
           else
             # Push to main: compare against the state before this push.
             REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
@@ -326,20 +382,22 @@ jobs:
       - name: Key the drift baseline cache
         id: driftkey
         if: >-
-          github.event_name == 'pull_request'
+          (github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || github.event_name == 'workflow_dispatch'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         env:
           PYTHONPATH: tests/hastub
         run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
 
       - name: Restore the drift baseline
         if: >-
-          github.event_name == 'pull_request'
+          (github.event_name == 'pull_request'
           || github.event_name == 'merge_group'
           || github.event_name == 'workflow_dispatch'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -357,9 +415,10 @@ jobs:
       - name: Key the warmed drift baseline
         id: warmkey
         if: >-
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          ((github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         env:
           PYTHONPATH: tests/hastub
         run: |
@@ -371,18 +430,29 @@ jobs:
         env:
           # CI-cost metrics (tests/ci_ratchet.py): run.sh appends this run's
           # scope decision here when the variable is set; local runs never
-          # set it and emit nothing.
-          HPO_CI_METRICS: ${{ runner.temp }}/ci-metrics-fast.tsv
+          # set it and emit nothing. Every shard takes the same scope decision,
+          # so shard 1 (or the unsharded job) alone writes the run's one row
+          # and uploads the run's one `ci-metrics-fast` artifact.
+          HPO_CI_METRICS: ${{ (matrix.shard == '' || startsWith(matrix.shard, '1/')) && format('{0}/ci-metrics-fast.tsv', runner.temp) || '' }}
+          # This job's shard and the prelude's plan (tools/ci/shards.py); run.sh
+          # runs only the scripts the plan assigns this shard and refuses a plan
+          # it cannot route. Both empty: every script, as before.
+          HPO_FAST_SHARD: ${{ matrix.shard }}
+          HPO_FAST_PLAN: ${{ inputs.fast_plan }}
           GOLDEN_MODE: drift
           # The scope is the prelude's (its "Decide" step moved there, U5):
-          # `auto` on a pull request, the merge queue and a dispatch, against
-          # the comparison ref resolved above; anything else -- a push to main
-          # above all, or an empty input -- runs the whole suite.
+          # `auto` on a pull request, the merge queue, a dispatch and a light
+          # push (#3885), against the comparison ref resolved above; anything
+          # else -- a push touching production above all, or an empty input --
+          # runs the whole suite.
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
           GATE_SCOPE_BASE: ${{ env.GOLDEN_REF }}
           # The architecture-score pair is `arch-instrument`'s, below (U5b):
           # run.sh skips it here by name.
           RUN_PART: fast
+          # #3885: on a pull request run.sh skips tests/stress.py; the push
+          # to main and nightly.yml's `slow` job run it.
+          HPO_CI_EVENT: ${{ github.event_name }}
           # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
           # budget cannot tell a slower solver from a busier runner, and on
           # shared runners it answered the second question. tests/stress.py
@@ -407,7 +477,9 @@ jobs:
       # however the suite ended -- a red run's cost is still cost -- and
       # empty on a run whose lane never executed a line.
       - name: Upload the fast lane's CI metrics
-        if: always() && needs.closure-scope.outputs.fast_skip != 'skip'
+        if: >-
+          always() && needs.closure-scope.outputs.fast_skip != 'skip'
+          && (matrix.shard == '' || startsWith(matrix.shard, '1/'))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-fast
@@ -421,9 +493,10 @@ jobs:
       # is computed for a different ref than anything restored here.
       - name: Save the warmed drift baseline
         if: >-
-          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          ((github.event_name == 'push' && github.ref == 'refs/heads/main')
           || github.event_name == 'schedule'
-            && needs.closure-scope.outputs.fast_skip != 'skip'
+            && needs.closure-scope.outputs.fast_skip != 'skip')
+          && steps.drift.outputs.owns == 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
@@ -459,7 +532,7 @@ jobs:
             echo "stands in for this rerun; every step below is skipped and this job reports success."
           fi
           if [ "${{ inputs.machinery_rowblind }}" = "false" ]; then
-            echo "Every changed file but its own delivery row is product (prelude.machinery_rowblind, R10-CI-SLIM C7(a)): this"
+            echo "Every changed file is product or a delivery row (prelude.machinery_rowblind, R10-CI-SLIM C7(a), #3885 L4): this"
             echo "machinery lane stands down, every step below is skipped and this job reports success."
           fi
 
@@ -489,13 +562,14 @@ jobs:
         run: python3 tests/host_probe.py
 
       # The scope `fast` takes: the prelude's, diffed from the merge base with
-      # the PR's base (origin/main on a dispatch naming none); full on push.
+      # the PR's base (origin/main on a dispatch naming none), or from a light
+      # push's range base (#3885); full on every other push.
       - name: Run the architecture-score pair
         if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         env:
           RUN_PART: arch
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
-          GATE_SCOPE_BASE: origin/${{ inputs.base || 'main' }}
+          GATE_SCOPE_BASE: ${{ inputs.range_base || format('origin/{0}', inputs.base || 'main') }}
         run: ./tests/run.sh
 
   # The real-browser layout lane (issue #96): positions, sizes and
@@ -519,6 +593,10 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # One decision every step below reads: the lane-skip's, or a light run's
+    # stand-down (prelude.stand_down, #3885).
+    env:
+      STAND_DOWN: ${{ needs.closure-scope.outputs.browser_skip == 'skip' || contains(format(' {0} ', inputs.stand_down), ' browser ') }}
     steps:
       # Unconditional (DESIGN-P2 4.2: no required job ever skips): a required
       # `tests / browser` skipped at the job level FAILs the gate as SKIPPED,
@@ -531,31 +609,35 @@ jobs:
             echo "A recorded green run at this exact base and diff stands in for this"
             echo "rerun; every step below is skipped and this job reports success."
           fi
+          if [ "${{ contains(format(' {0} ', inputs.stand_down), ' browser ') }}" = "true" ]; then
+            echo "No production file changed and none this lane reads (prelude.stand_down, #3885):"
+            echo "every step below is skipped and this job reports success."
+          fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         with:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: tests/requirements-*.txt
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         with:
           node-version: "22"
 
       - name: Install pinned test dependencies
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
       - name: Cache the lane's Chromium
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pw-browsers
@@ -565,7 +647,7 @@ jobs:
           key: pw-chromium-${{ hashFiles('tests/pwlane/package-lock.json') }}
 
       - name: Install playwright and Chromium
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/pwlane"
           cp tests/pwlane/package.json tests/pwlane/package-lock.json \
@@ -575,13 +657,13 @@ jobs:
             "$RUNNER_TEMP/pwlane/node_modules/.bin/playwright" install chromium
 
       - name: Write the plan payload
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         env:
           PYTHONPATH: tests/hastub
         run: python tests/plan_view.py
 
       - name: Run the layout lane
-        if: needs.closure-scope.outputs.browser_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         # PLAYWRIGHT_BROWSERS_PATH in the run command, not the step env:
         # a `~` in a workflow env var is a literal tilde, which Playwright
         # resolves relative to the repository -- the shell expands $HOME.
@@ -689,6 +771,10 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # One decision every step below reads: the lane-skip's, or a light run's
+    # stand-down (prelude.stand_down, #3885).
+    env:
+      STAND_DOWN: ${{ needs.closure-scope.outputs.typing_skip == 'skip' || contains(format(' {0} ', inputs.stand_down), ' typing ') }}
     steps:
       # Unconditional (DESIGN-P2 4.2: no required job ever skips): a required
       # `tests / typing` skipped at the job level FAILs the gate as SKIPPED,
@@ -701,9 +787,13 @@ jobs:
             echo "A recorded green run at this exact base and diff stands in for this"
             echo "rerun; every step below is skipped and this job reports success."
           fi
+          if [ "${{ contains(format(' {0} ', inputs.stand_down), ' typing ') }}" = "true" ]; then
+            echo "No production file changed and none this lane reads (prelude.stand_down, #3885):"
+            echo "every step below is skipped and this job reports success."
+          fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
 
       # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
       # the two halves constrain each other: homeassistant-stubs 2026.9.3
@@ -712,7 +802,7 @@ jobs:
       # would either fail to install or measure something else and call it
       # the same number.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         with:
           python-version: "3.14"
           cache: pip
@@ -727,7 +817,7 @@ jobs:
       # --no-deps: the lock overrides homeassistant's cryptography pin (see
       # its header), and it is already the complete resolution.
       - name: Install the pinned toolchain
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: |
           python3 -m venv .venv-typing
           .venv-typing/bin/python -m pip install --require-hashes --no-deps \
@@ -737,7 +827,7 @@ jobs:
       # Run BY the pinned interpreter, so the ruler introspects the
       # environment it is measuring in rather than being told about it.
       - name: Run the ruler and ratchet its three numbers
-        if: needs.closure-scope.outputs.typing_skip != 'skip'
+        if: env.STAND_DOWN != 'true'
         run: |
           .venv-typing/bin/python tests/typing_ruler.py --mypy \
             --emit "$RUNNER_TEMP/typing-census.json"
@@ -745,7 +835,7 @@ jobs:
       # Kept on a failure too: the run that refuses because the census is not
       # yet recorded is exactly the run whose numbers are wanted.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && needs.closure-scope.outputs.typing_skip != 'skip'
+        if: always() && env.STAND_DOWN != 'true'
         with:
           name: typing-census
           path: ${{ runner.temp }}/typing-census.json
@@ -777,7 +867,17 @@ jobs:
     # The instrumented `fast` stage is the whole default gate minus the four
     # end-to-end scripts, run under a tracer that costs roughly a third again.
     timeout-minutes: 90
+    # A light diff that reaches no script, the tracer or its tools (#3885,
+    # tools/ci/prelude.py) measures nothing: a push carries its range base's
+    # trusted entry forward under this commit's key instead, so the next
+    # push still reuses. A miss carries nothing, and the next push measures.
+    env:
+      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' coverage ') }}
     steps:
+      - name: Say whether this lane stands down
+        run: |
+          echo "coverage stand-down: $STAND_DOWN (prelude: '${{ inputs.stand_down }}')"
+
       # Full history: the scope below diffs against the merge base and reads
       # that base's tests/closures.json, as `fast`'s does.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -803,10 +903,15 @@ jobs:
       # since the tracer's data is the platform's (#1822 review, R9-F10.9c).
       - name: Key the per-script coverage
         id: covkey
+        env:
+          RANGE_BASE: ${{ inputs.range_base }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             BASE=$(git rev-parse HEAD)
-            RESTORE_BASE=$(git rev-parse HEAD^1)
+            # The range base (#3885) where the prelude read one: the head of the
+            # last push run whose units ran, so the entry it saved. HEAD^1's run
+            # may have been cancelled as superseded (main-cancel.yml) and saved none.
+            RESTORE_BASE=$(git rev-parse "${RANGE_BASE:-HEAD^1}")
           else
             BASE=$(git merge-base origin/main HEAD)
             RESTORE_BASE=$BASE
@@ -856,6 +961,7 @@ jobs:
           fi
 
       - name: Install pinned test dependencies
+        if: env.STAND_DOWN != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -863,6 +969,7 @@ jobs:
 
       # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.13)
+        if: env.STAND_DOWN != 'true'
         run: python3 tests/host_probe.py
 
       # Deliberately NOT added to tests/requirements-ci.txt. env_drift's cache
@@ -873,6 +980,7 @@ jobs:
       # pattern is what decides whether an exempted line leaves the
       # denominator, and tests/coverage_ratchet.py counts against that pattern.
       - name: Install the tracer
+        if: env.STAND_DOWN != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -888,6 +996,7 @@ jobs:
       # `fast`'s to judge, on an uninstrumented run, where it is honest. What
       # this job judges is the JSON.
       - name: Measure the tree
+        if: env.STAND_DOWN != 'true'
         env:
           # CI-cost metrics (tests/ci_ratchet.py): coverage_tree.sh appends
           # one line per instrumented script execution here.
@@ -931,7 +1040,7 @@ jobs:
       # measurements this run copied from the base instead of re-measuring,
       # with the bounded loss stated in the same line.
       - name: Summarize the per-script reuse
-        if: always()
+        if: always() && env.STAND_DOWN != 'true'
         run: |
           if test -s "$W5P_WORK/out/scripts.tsv"; then
             python tests/closure.py coverage-summary "$W5P_WORK/out/scripts.tsv" \
@@ -944,14 +1053,14 @@ jobs:
       # Kept on a failure too: the run that refuses because the floor moved is
       # exactly the run whose per-module numbers are wanted.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
+        if: always() && env.STAND_DOWN != 'true'
         with:
           name: coverage-json
           path: ${{ env.W5P_WORK }}/out/coverage.json
           if-no-files-found: ignore
 
       - name: Upload the coverage lane's CI metrics
-        if: always()
+        if: always() && env.STAND_DOWN != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-metrics-coverage
@@ -965,14 +1074,26 @@ jobs:
       # names, because a cache entry's version hashes its path: saved from
       # the mktemp directory, no restore would ever hit.
       - name: Stage this commit's per-script coverage
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.STAND_DOWN != 'true'
         run: |
           cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
           printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
             > "$RUNNER_TEMP/coverage-base/.measured-by"
 
+      # The stand-down's carry (#3885): no script's closure moved, so the
+      # range base's trusted data is this commit's, re-marked at this commit.
+      - name: Carry the range base's per-script coverage forward
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && env.STAND_DOWN == 'true' && steps.covtrust.outputs.trusted == 'true'
+        run: |
+          printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
+            > "$RUNNER_TEMP/coverage-base/.measured-by"
+
       - name: Save this commit's per-script coverage
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && (env.STAND_DOWN != 'true' || steps.covtrust.outputs.trusted == 'true')
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/coverage-base
@@ -999,7 +1120,14 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Nothing to grade when `coverage` stood down (#3885): it measured nothing.
+    env:
+      STAND_DOWN: ${{ contains(format(' {0} ', inputs.stand_down), ' coverage ') }}
     steps:
+      - name: Say whether this lane stands down
+        run: |
+          echo "coverage-ratchet stand-down: $STAND_DOWN (prelude: '${{ inputs.stand_down }}')"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -1009,6 +1137,7 @@ jobs:
       # A missing artifact fails this step, so a measurement that never
       # happened is a red here, never a green.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: env.STAND_DOWN != 'true'
         with:
           name: coverage-json
           path: ${{ runner.temp }}/coverage
@@ -1023,6 +1152,7 @@ jobs:
       # a lint that refuses the forms known to break it. The pull
       # request's own copy runs in `graders-head-copy`, which is not required.
       - name: Ratchet the floor and the pragma count with the base's grader
+        if: env.STAND_DOWN != 'true'
         env:
           PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
@@ -1358,7 +1488,12 @@ jobs:
   # `replay_reach`. Never on every pull request: a blanket per-PR lane is
   # refused for good. Unrequired, and its verdict is about the pull request's
   # own code: it grades nothing (codeowners_gap.py's rule). tests/entities.py
-  # pins the reach and the wiring.
+  # pins the reach and the wiring. The cap is sized from the lane's own cost
+  # budget: the owner fixture's `cpu_ratio` budget (tests/replay.py
+  # COST_BUDGETS) on the slowest runner on record (REPLAY_SIZING_DRAW) is
+  # about 46.1 min of lane (`budget_wall_s`), and 60 leaves the check's
+  # headroom over it. tests/replay.py reads this value and goes red when the
+  # lane's wall time leaves too little of it (`headroom_offenders`).
   replay:
     needs: [closure-scope]
     if: >-
@@ -1366,7 +1501,7 @@ jobs:
       && github.event_name == 'pull_request'
       && needs.closure-scope.outputs.replay == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       HPO_JOB_GRADES: nothing
     steps:
@@ -1765,7 +1900,7 @@ jobs:
       # moved, and Level 1's byte-identical argument must not ride on that.
       # Pull requests and the recheck dispatch only -- the events whose
       # re-runs a recorded green can stand in for. A push to main (CLAUDE.md
-      # rule 1: forced full), the merge queue, the nightly and every other
+      # rule 1: full, or a light push's own scope), the merge queue, the nightly and every other
       # dispatch leave these outputs unset and every lane runs.
       - name: Identify the diff and base the heavy lanes would judge
         id: laneskip
@@ -2009,8 +2144,10 @@ jobs:
       # R10-CI-SLIM C7(a): 'true' on a pull request whose every changed file is
       # product (prelude.machinery): the recording and its check stand down and
       # the job reports success; the push the merge makes records in full
-      # (CLAUDE.md rule 1). The no-copies scan below still runs.
-      MACHINERY_IDLE: ${{ github.event_name == 'pull_request' && inputs.machinery == 'false' }}
+      # (CLAUDE.md rule 1). And on a light push (prelude.stand_down, #3885): no
+      # production file moved, and each pull request in its range re-derived
+      # the closures its own diff intersects. The no-copies scan below still runs.
+      MACHINERY_IDLE: ${{ (github.event_name == 'pull_request' && inputs.machinery == 'false') || contains(format(' {0} ', inputs.stand_down), ' closures ') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

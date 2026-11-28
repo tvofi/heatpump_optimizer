@@ -37,6 +37,9 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, "custom_components")
 import harness  # noqa: F401,E402
 from heatpump_optimizer import sysid  # noqa: E402
+#: The switch: a config field before R11-SEAM-learners (ADR-003), arm's argument (default on)
+#: after it; so the same file runs at both ends.
+_SID_ON = {"enabled": True} if "enabled" in sysid.SysIdConfig.__dataclass_fields__ else {}
 from heatpump_optimizer.thermal_model import ThermalParameters  # noqa: E402
 
 ap = argparse.ArgumentParser()
@@ -89,13 +92,13 @@ def noisy(rows, kind, rng):
 
 
 def fit(samples):
-    si = sysid.SystemIdentification(sysid.SysIdConfig(enabled=True))
+    si = sysid.SystemIdentification(sysid.SysIdConfig(**_SID_ON))
     si._slab_pair = (CS, KS)
     si._slab_prior = (UA0, CR0)
     si.config.gains_prior_kw = 0.3
     si.samples = samples
     res = si.identify_slab()
-    dec = sysid.adoption_decision(res, declared, si.config)
+    dec = sysid.adoption_decision(res, declared)
     hw = sysid.slab_ua_adoption_halfwidth(res.ua_profile_halfwidth, res.ua_prior_halfwidth,
                                           res.ua_told_halfwidth) if res.completed else None
     return res, dec, hw

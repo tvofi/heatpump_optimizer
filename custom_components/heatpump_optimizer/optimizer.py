@@ -67,6 +67,7 @@ from .dhw_planner import DhwPlanner
 from .drift import utc_step_starts
 from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
+from .comfort_floor import mark_room_floor, raised_floor
 from .payload import (
     CurrentAction,
     IDLE_REASONS,
@@ -92,7 +93,6 @@ from .payload import (
 from .thermal_model import (
     CHANNEL_ACTIVE_KW,
     TANK_ROOM_AMBIENT_TEMP,
-    MIN_RUNNING_DRAW_KW,
     ThermalModel,
     ThermalParameters,
     ThermalState,
@@ -101,7 +101,6 @@ from .thermal_model import (
     _step_humidity,
     channel_heating_draw,
     refill_power_kwh,
-    channel_heating_steps,
     combi_dhw_net_series,
     combi_space_net_kw,
     levels_clamped,
@@ -264,7 +263,7 @@ def _relaxed_plans(
 
 
 def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
-    """The learned stop probability per switch direction, ``None`` when no direction stops.
+    """The learned stop probability per switch direction, latched or not, ``None`` when none stops.
 
     The lost running time is charged on this alone; the price is this times
     ``start_price``, so an install that prices no start prices no switch.
@@ -274,11 +273,10 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
 
 
 def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
-    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    """The leg rule the arbiter serves a both step by: the latched of the pairs this solve prices."""
     return duty_legs.leg_rule(
-        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
-        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
-    )
+        _priced_stops(opt) or (0.0, 0.0), duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+        opt.config.duty_switch_unlatched)
 
 
 def _stop_availability(
@@ -873,7 +871,6 @@ def _baseline_targets(
 
 def _floor_demand_terms(
     model: ThermalModel,
-    outdoor_temp: float,
     wind_speed: float,
     precipitation: float,
     solar_radiation: float,
@@ -907,9 +904,7 @@ def _floor_demand_at_target(
     exchange is zero with both floors at ``target`` (the two-zone demand adds
     the exchange at the actual temperatures).
     """
-    u, a, b = _floor_demand_terms(
-        model, outdoor_temp, wind_speed, precipitation, solar_radiation
-    )
+    u, a, b = _floor_demand_terms(model, wind_speed, precipitation, solar_radiation)
     return u * (target - outdoor_temp) - a - b
 
 
@@ -1012,7 +1007,7 @@ def _settlement_schedule(
         prec = precs[i]
         sun = suns[i]
         delivered = 0.5 * (zone[i] + zone[j])
-        u, ga, gb = _floor_demand_terms(model, out, wind, prec, sun)
+        u, ga, gb = _floor_demand_terms(model, wind, prec, sun)
         d_t = u * (targets[i] - out) - ga - gb
         d_d = u * (delivered - out) - ga - gb
         step: CurrentAction = {
@@ -1216,7 +1211,7 @@ def _held_unreachable(
     ``buffer_max_temp`` caps the curve's top.
     """
     p = model.params
-    outdoor, wind, rain, solar = weather0
+    outdoor, wind, rain, _ = weather0
     if mixing_valve.is_throttling(p.mixing_valve_mode) and need_kw > valve_top_draw(
             model, held, outdoor, wind, rain):
         return True
@@ -2078,7 +2073,7 @@ def _combi_flux_exchange(
         buffer_temps = model.simulate_trajectory(
             initial_state=h.initial_state, power_schedule=space_power,
             weather=_with_buffer_exo(weather, dhw_exo), dt_hours=h.dt,
-            valve_targets=h.valve_targets, start_hour=float(h.step_hours[0]))[4]
+            valve_targets=h.valve_targets, step_hours=h.step_hours)[4]
         return combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
 
     def build(by: DhwPlanner, space_net: np.ndarray) -> np.ndarray:
@@ -2816,11 +2811,12 @@ class OptimizationConfig:
     #: measuring a slightly different optimizer from the integration.
     cycling_cost: float = DEFAULT_CYCLING_COST
     #: Per direction (hot water to heating, heating to hot water): the learned
-    #: probability that a duty switch stops the compressor, and the seconds it
-    #: then stays off. Zeros price nothing and leave every plan as it was;
-    #: ``duty_legs`` owns what they mean.
+    #: probability that a duty switch stops the compressor, the seconds it then
+    #: stays off, and whether its latch is off (priced, moving no leg). Zeros
+    #: price nothing and leave every plan as it was; ``duty_legs`` owns them.
     duty_switch_stop_probability: tuple[float, float] = (0.0, 0.0)
     duty_switch_off_seconds: tuple[float, float] = (0.0, 0.0)
+    duty_switch_unlatched: tuple[bool, bool] = (False, False)
 
     # --- Capacity tariff (item 8) --------------------------------------
     #: Currency per kW of new monthly peak, already divided by the number of
@@ -3093,9 +3089,11 @@ class _Horizon:
     #: What ``slot_drivers`` reads and the solve does not (R10-WHY-NOW-WIDGET):
     #: the comfort floor before the mold guard, the mold floor padded to the
     #: horizon, and the floor the away setback and holiday profile took off.
+    #: ``room_lifts`` is the part of ``temp_min_bounds`` the room lift raised (#3616).
     comfort_floors: np.ndarray | None = None
     mold_floors: np.ndarray | None = None
     away_floor_drops: np.ndarray | None = None
+    room_lifts: np.ndarray | None = None
     #: The input prices before the risk premium, what a bill pays (D2-s3-01).
     #: ``None`` means ``prices`` carries no premium.
     raw_prices: np.ndarray | None = None
@@ -3159,6 +3157,10 @@ class SolveLimits:
     #: None when away is inactive or recovering. Read by the why-now drivers
     #: only: the setback itself is already in the configuration's bounds.
     away_floor_drop_c: float | None = None
+    #: The room lift per step, °C (``rooms.floor_limits``); None when no step
+    #: is lifted. Read for attribution only: the lift is already in
+    #: ``min_temp_margins``.
+    room_lifts: np.ndarray | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -4030,9 +4032,7 @@ class HeatPumpOptimizer:
             predicted_savings=savings,
             savings_percentage=_savings_percentage(savings, baseline_cost),
             deferred_energy_cost=deferred_cost,
-            optimal_setpoints=self._power_to_setpoints(
-                space_power, room_temps[:-1], h.outdoor_temps
-            ),
+            optimal_setpoints=self._power_to_setpoints(space_power, room_temps[:-1]),
             status=status,
             solve_time_ms=(time.monotonic() - h.t_start) * 1000,
             displace_schedule=self._power_to_displace_schedule(
@@ -4059,7 +4059,7 @@ class HeatPumpOptimizer:
             dhw_heating_cost=dhw_cost,
             space_reasons=_mark_blocked_reasons(
                 _mark_manual_reasons(
-                    classify_space_steps(
+                    mark_room_floor(classify_space_steps(
                         space_power,
                         h.prices,
                         room,
@@ -4069,7 +4069,7 @@ class HeatPumpOptimizer:
                         h.n_steps,
                         other=dhw_power,
                         caps=h.power_caps_extra,
-                    ),
+                    ), room, h.temp_min_bounds, h.room_lifts),
                     h.space_pins,
                 ),
                 h.space_blocked,
@@ -4309,7 +4309,7 @@ class HeatPumpOptimizer:
             offpeak_factor=float(cfg.peak_offpeak_factor),
         )
         n_windows = self._n_peak_windows(n_steps, dt, offset_steps)
-        return window_factors(mask, start_time, n_windows, dt)
+        return window_factors(mask, start_time, n_windows)
 
     def _n_peak_windows(self, n_steps: int, dt: float, offset_steps: int) -> int:
         """How many metering windows a plan of ``n_steps`` spans.
@@ -4546,9 +4546,8 @@ class HeatPumpOptimizer:
 
         dhw_enabled = self.model.params.dhw_enabled
 
-        # Hour of day at each step. Computed once: the comfort target, both
-        # temperature bounds and the DHW draw pattern all key off it, and it
-        # was previously rebuilt from scratch for each of the four.
+        # Hour of day at each step, computed once: the comfort target, both
+        # temperature bounds and the DHW draw pattern all key off it.
         step_datetimes, step_hours = _step_clock(start_time, n_steps, dt)
         # Weekday per step, for weekly DHW windows (#3) and the per-weekday
         # overrides (#1260); the helper returns None unless either is
@@ -4563,7 +4562,7 @@ class HeatPumpOptimizer:
         comfort_targets, temp_min_bounds, temp_max_bounds, floors = (
             self._build_comfort_bounds(
                 step_hours, n_steps, min_temp_margins, min_temp_floors,
-                step_datetimes,
+                step_datetimes, limits.room_lifts,
             )
         )
         away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
@@ -4641,6 +4640,7 @@ class HeatPumpOptimizer:
                 comfort_floors=floors[0],
                 mold_floors=floors[1],
                 away_floor_drops=away_drops,
+                room_lifts=floors[2],
                 raw_prices=raw_prices,
                 compressor_running=inputs.compressor_running,
             )
@@ -4885,9 +4885,11 @@ class HeatPumpOptimizer:
         min_temp_margins: np.ndarray | None,
         min_temp_floors: np.ndarray | None,
         step_times: list[datetime] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray | None]]:
+        room_lifts: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray | None, np.ndarray | None]]:
         """The per-step comfort target and the band the solve must stay in,
-        then the comfort floor before the mold guard and the padded mold floor."""
+        then the comfort floor before the mold guard, the padded mold floor
+        and the part of the floor ``room_lifts`` raised (None without it)."""
         times = list(step_times) if step_times is not None else []
         comfort_targets = np.array(
             [
@@ -4903,36 +4905,17 @@ class HeatPumpOptimizer:
             )
             for i, hour in enumerate(step_hours)
         ]
-        temp_min_bounds = np.array([low for low, _ in bounds])
+        low = np.array([lo for lo, _ in bounds])
         temp_max_bounds = np.array([high for _, high in bounds])
-        comfort_floors, mold_floors = temp_min_bounds, None
-
-        # T5 (#16 #54): the comfort floor's two adjustments, both optional
-        # and both applied HERE — the single site where the bounds are
-        # built — so every consumer (objectives, safety releases, pin
-        # repair) sees the same effective floor. ``min_temp_margins`` is a
-        # per-step raise (the model's own expected error at that lead);
-        # ``min_temp_floors`` an absolute per-step floor (the mold guard).
-        # None for both is byte-for-byte the previous bounds.
-        if min_temp_margins is not None or min_temp_floors is not None:
-            if min_temp_margins is not None:
-                temp_min_bounds = temp_min_bounds + _padded_nonneg(min_temp_margins, n_steps)
-                comfort_floors = temp_min_bounds
-            if min_temp_floors is not None:
-                f = np.asarray(min_temp_floors, dtype=float)
-                if f.size < n_steps:
-                    f = np.concatenate(
-                        [f, np.full(n_steps - f.size, -np.inf)]
-                    )
-                mold_floors = f[:n_steps]
-                temp_min_bounds = np.maximum(temp_min_bounds, mold_floors)
-            # Whatever raised the floor, the band never squeezes shut: a
-            # floor at or above the ceiling makes the solve infeasible and
-            # the comfort penalty unbounded.
-            temp_min_bounds = np.minimum(
-                temp_min_bounds, temp_max_bounds - 0.5
-            )
-        return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors)
+        margins = None if min_temp_margins is None else _padded_nonneg(min_temp_margins, n_steps)
+        temp_min_bounds, comfort_floors, mold_floors = raised_floor(
+            low, temp_max_bounds, margins, min_temp_floors, n_steps)
+        lifts = None
+        if room_lifts is not None:  # the same arithmetic on the margins less the lift, clipped at 0
+            lifts = temp_min_bounds - raised_floor(low, temp_max_bounds, _padded_nonneg(
+                (0.0 if margins is None else margins) - _padded_nonneg(room_lifts, n_steps), n_steps),
+                min_temp_floors, n_steps)[0]  # >= 0: each step is monotone in the margins
+        return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors, lifts)
 
     def _build_space_power_caps(
         self,
@@ -5083,7 +5066,6 @@ class HeatPumpOptimizer:
         warm_start: np.ndarray | None,
         h: _Horizon,
         p_max: float,
-        n_steps: int,
         dt: float,
         prices: np.ndarray,
         init_base: np.ndarray,
@@ -5248,7 +5230,7 @@ class HeatPumpOptimizer:
         dt: float,
         *,
         valve_targets: np.ndarray | None = None,
-        start_hour: float | None = None,
+        step_hours: np.ndarray | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
 
@@ -5273,7 +5255,7 @@ class HeatPumpOptimizer:
             # objective did — with #53's profile active, flat internal
             # gains would judge the caps on a trajectory the solve does
             # not believe.
-            start_hour=start_hour,
+            step_hours=step_hours,
         )
         if refused is None:
             return False
@@ -5322,7 +5304,7 @@ class HeatPumpOptimizer:
             if not self._tighten_buffer_caps(
                 weather, initial_state, result, power_caps, dt,
                 valve_targets=valve_targets,
-                start_hour=float(step_hours[0]),
+                step_hours=step_hours,
             ):
                 break
             extras = _cap_tighten_starts(
@@ -5490,7 +5472,7 @@ class HeatPumpOptimizer:
                 weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
-                start_hour=float(h.step_hours[0]),
+                step_hours=h.step_hours,
             )
 
         def objective(
@@ -5575,7 +5557,7 @@ class HeatPumpOptimizer:
                 weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
-                start_hour=float(h.step_hours[0]),
+                step_hours=h.step_hours,
             )
             # The grid sees the combined draw: space plus the fixed DHW plan.
             grid_power = (
@@ -5857,14 +5839,12 @@ class HeatPumpOptimizer:
         comfort_targets = h.comfort_targets
         step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
         forecast_heat_loss_factors = h.heat_loss_factors
-        start_time, t_start = h.start_time, h.t_start
+        t_start = h.t_start
 
         p_min = self.model.params.min_electrical_power
         p_max = self.model.params.max_electrical_power
         dhw_min_temp = self.model.params.dhw_min_temp
         dhw_setpoint = self.model.params.dhw_setpoint
-
-        start_hour = start_time.hour + start_time.minute / 60.0
 
         anticipatory_weights = self._anticipatory_weights(
             n_steps, dt, solar_gains_per_step, forecast_heat_loss_factors
@@ -5929,7 +5909,6 @@ class HeatPumpOptimizer:
                 warm_start,
                 h,
                 p_max,
-                n_steps,
                 dt,
                 prices,
                 init_base,
@@ -5984,7 +5963,7 @@ class HeatPumpOptimizer:
             space_power_schedule=heat_space,
             dhw_power_schedule=optimal_dhw,
             weather=WeatherSeries.from_horizon(h),
-            start_hour=start_hour,
+            step_hours=step_hours,
             dt_hours=dt,
             dhw_draw_rates=dhw_draw_rates,
             valve_targets=h.valve_targets,
@@ -6007,7 +5986,7 @@ class HeatPumpOptimizer:
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             planner._baseline_dhw_economics(
-                initial_state, outdoor_temps, n_steps, dhw_setpoint,
+                outdoor_temps, n_steps, dhw_setpoint,
                 paid_cost_of, baseline_power, heat_space, optimal_dhw, h.humidity,
             )
         )
@@ -6587,7 +6566,6 @@ class HeatPumpOptimizer:
         self,
         power_schedule: np.ndarray,
         room_temps: np.ndarray,
-        outdoor_temps: np.ndarray,
     ) -> list[float]:
         """Convert power schedule to equivalent temperature setpoints."""
         setpoints: list[float] = []

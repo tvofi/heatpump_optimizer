@@ -54,7 +54,9 @@
   open PR whose head is in the bus dispatch record, which no approver verdict
   names, and whose `dispatch/reviewer-rev-<N>` tip is over 90 minutes old (git
   only: an ls-remote, a fetch and a commit time; never a cloud run log, P280);
-  re-fire the reviewer, same nonce, same head. A verdict at a stale head prints none; comments it cannot read print UNREADABLE. One comments read per
+  re-fire the reviewer, same nonce, same head. `CARRIED: #N <head8> from <verdict8>`
+  (unflagged) when `bus.sh confirm`'s newest automatic carry for the PR
+  (`$HPO_BUS_STATE/carried`) names its current head: the carried verdict holds it. A verdict at a stale head prints none; comments it cannot read print UNREADABLE. One comments read per
   open PR per pass. A queue entry is unmerged only when its PR is in the open
   set (one `gh pr list --state open` per pass, TRAIN and REPLAN alike), never
   from a `pulls/<n>` `.state`, which reads `closed` for a merged PR: a queue

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:classify_space_steps BOOLOP ac8bdc86",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if i < len(heat_loss_factors) and heat_loss_factors[i] > 1.1:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if i < len(heat_loss_factors) or heat_loss_factors[i] > 1.1:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=32."
+}

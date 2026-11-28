@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.update_ecl110_displace_state CLAMP_DROP c141a98b",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        alpha = float(np.clip(dt_hours / tau, 0.0, 1.0))",
+  "reason": "Recorded by the R11-D3-PINS-plant fixer (tests/guard_pins.py, whole script): CLAMP_DROP (`alpha = float((dt_hours / tau))`) took it from rc=0 failed=0 to rc=1 failed=1 (D3-wave 9362d5efbe6808c2)."
+}

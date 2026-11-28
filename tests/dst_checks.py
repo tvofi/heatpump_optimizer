@@ -305,7 +305,7 @@ mask = CapacityTariff(
     offpeak_factor=0.5,
 )
 factors = window_factors(
-    mask, datetime(2026, 10, 25, 13, 30, tzinfo=STHLM), 3, 0.25
+    mask, datetime(2026, 10, 25, 13, 30, tzinfo=STHLM), 3
 )
 R.check(
     "window_factors samples 12:00/14:00/16:00, not 13:00/15:00/17:00",
@@ -603,7 +603,7 @@ for _label, _start in _DAYS777:
     for _wm in (60, 15):
         _t777 = CapacityTariff(window_minutes=_wm, **_M777)
         _n777 = int(round(24 * 60 / _wm))
-        _planned = window_factors(_t777, _start, _n777, _wm / 60.0)
+        _planned = window_factors(_t777, _start, _n777)
         _metered = _metered_factors(_t777, _start, _n777)
         _f777[(_label, _wm)] = {
             "produced": _planned is not None,
@@ -2045,7 +2045,7 @@ R.check(
 )
 
 # sysid: the 30-day arm gap and the phase clock
-_si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+_si = _sysid.SystemIdentification(_sysid.SysIdConfig())
 _si.last_run = datetime(
     2026, 9, 25, 5, 0, tzinfo=STHLM
 )  # 30 true days and 30 min, 29 d 23 h 30 min wall
@@ -2057,7 +2057,7 @@ R.check(
 
 
 def _sysid_phase(started, now, phase):
-    si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+    si = _sysid.SystemIdentification(_sysid.SysIdConfig())
     si.phase, si.phase_started, si._baseline_temp = phase, started, 20.0
     si.step(
         now=now,
@@ -2285,7 +2285,7 @@ def _sid_samples(label):
 
 
 def _sid_with(label):
-    si = _sysid.SystemIdentification(_sysid.SysIdConfig(enabled=True))
+    si = _sysid.SystemIdentification(_sysid.SysIdConfig())
     si.samples = _sid_samples(label)
     return si
 
@@ -2523,7 +2523,7 @@ with _c2238_mock.patch.object(
     _c2238_tmod, "_window_starts", create=True,
     side_effect=lambda _s, _w, n: [_c2238_noon] * int(n),
 ):
-    _c2238_p9_f = window_factors(_c2238_mask, _c2238_autumn, 6, 0.25)
+    _c2238_p9_f = window_factors(_c2238_mask, _c2238_autumn, 6)
     _c2238_p9_d = _c2238_tmod.plan_window_days(6, 60, _c2238_autumn)
 R.check(
     "R10-CLONE-2238 P9: window_factors and plan_window_days both walk the "

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_temp_bounds GUARD_OFF 5b24a953",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if start <= hour < end:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=15."
+}

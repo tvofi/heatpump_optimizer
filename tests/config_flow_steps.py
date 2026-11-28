@@ -467,12 +467,116 @@ async def submit_reconfigure(flow, answers):
     return result
 
 
+GOOD_TOKEN = TIBBER_VIEWER_OK
+
+
+def use_good_token():
+    """Tibber answers 200 from here on: the user has fixed the token."""
+    install_session(config_flow, FakeSession([GOOD_TOKEN]))
+
+
+# The tail a credentials-screen recovery walks, and an options page's save-and-close.
+USER_FINISH = (("user_sensors", USER_SENSORS), ("setup_overview", {}))
+SETUP_FINISH = (("setup_overview", {}),)
+DHW_FINISH = (("weather_sensitivity", WEATHER_ANSWERS), ("setup_overview", {}))
+SAVE_CLOSE = {const.CONF_AFTER_SAVE: const.AFTER_SAVE_CLOSE}
+
+
+async def recover(flow, step, fixed, rest=()):
+    """The user fixes the cause of an error shown by ``flow`` and finishes THE SAME flow.
+
+    ``fixed`` is resubmitted to ``step`` on the instance that rendered the error,
+    then ``rest`` -- (step, answers) pairs -- is walked; the last result is returned.
+    """
+    result = await submit(flow, step, fixed)
+    for next_step, answers in rest:
+        result = await submit(flow, next_step, answers)
+    check(
+        "_recovery",
+        "error",
+        f"after its {step} error the same flow finishes",
+        result.get("type") == "create_entry"
+        or (result.get("type") == "abort" and result.get("reason") in Ledger._OK_ABORTS),
+        str(result)[:160],
+    )
+    return result
+
+
+async def recover_reconfigure(flow, answers):
+    """``recover`` for a reconfigure flow: the credentials screen, then the sensors."""
+    creds = {k: v for k, v in answers.items() if k in FIRST_SCREEN}
+    sensors = {k: v for k, v in answers.items() if k not in FIRST_SCREEN}
+    return await recover(flow, "reconfigure", creds, (("user_sensors", sensors),))
+
+
 # ---------------------------------------------------------------------------
 # The coverage ledger: one row per step, happy checks and error branches.
 # ---------------------------------------------------------------------------
 class Ledger:
+    _OK_ABORTS = ("reauth_successful", "reconfigure_successful")
+
     def __init__(self):
         self.rows = {}
+
+    def install_tracker(self):
+        """Record, per flow instance, every error form it renders and whether it finished.
+
+        Installed once on the two production classes, so every flow the script
+        builds registers -- the construction sites and async_get_options_flow alike.
+        """
+        ledger = self
+
+        def rec(flow):
+            kind = "options" if isinstance(flow, config_flow.HeatPumpOptimizerOptionsFlow) else "config"
+            if kind == "config":
+                if getattr(flow, "_reauth_entry", None) is not None:
+                    kind = "reauth"
+                elif getattr(flow, "_reconfigure_entry", None) is not None:
+                    kind = "reconfigure"
+            r = flow.__dict__.setdefault("_ledger_track", {"kind": "config", "errors": set(), "done": False})
+            if kind != "config":
+                r["kind"] = kind
+            if flow not in ledger.flows:
+                ledger.flows.append(flow)
+            return r
+
+        def wrap(cls):
+            show, create, abort = cls.async_show_form, cls.async_create_entry, cls.async_abort
+
+            def async_show_form(self, *a, **k):
+                r = rec(self)
+                for code in (k.get("errors") or {}).values():
+                    r["errors"].add((k.get("step_id"), code))
+                return show(self, *a, **k)
+
+            def async_create_entry(self, *a, **k):
+                rec(self)["done"] = True
+                return create(self, *a, **k)
+
+            def async_abort(self, *a, **k):
+                reason = k.get("reason") if "reason" in k else (a[0] if a else None)
+                r = rec(self)
+                if reason in ledger._OK_ABORTS:
+                    r["done"] = True
+                return abort(self, *a, **k)
+
+            cls.async_show_form, cls.async_create_entry, cls.async_abort = (
+                async_show_form, async_create_entry, async_abort)
+
+        self.flows = []
+        wrap(config_flow.HeatPumpOptimizerConfigFlow)
+        wrap(config_flow.HeatPumpOptimizerOptionsFlow)
+
+    def error_triples(self):
+        """(rendered, recovered): (kind, step, code) triples, recovered = some instance finished."""
+        rendered, recovered = set(), set()
+        for flow in self.flows:
+            r = flow.__dict__["_ledger_track"]
+            for step, code in r["errors"]:
+                rendered.add((r["kind"], step, code))
+                if r["done"]:
+                    recovered.add((r["kind"], step, code))
+        return rendered, recovered
 
     def record(self, step, kind, name, ok):
         row = self.rows.setdefault(
@@ -634,6 +738,8 @@ async def user_error_branches():
         not refused._data,
         str(sorted(refused._data)),
     )
+    use_good_token()
+    await recover(refused, "user", FIRST_SCREEN, USER_FINISH)
 
     # cannot_connect: the POST raises. A network failure must NOT call the
     # token invalid -- that message sends the user to retype a correct
@@ -652,6 +758,8 @@ async def user_error_branches():
         == "cannot_connect",
         str(result.get("errors")),
     )
+    use_good_token()
+    await recover(unreachable, "user", FIRST_SCREEN, USER_FINISH)
 
     # The fourth status class (#304): neither 200 nor 401/403. A server
     # fault is the API failing, not the token being wrong, so it belongs
@@ -677,6 +785,8 @@ async def user_error_branches():
         not server_fault._data,
         str(sorted(server_fault._data)),
     )
+    use_good_token()
+    await recover(server_fault, "user", FIRST_SCREEN, USER_FINISH)
 
     # The errors payload Tibber answers a bad token with, on HTTP 200.
     errors_payload = fresh_flow()
@@ -693,6 +803,8 @@ async def user_error_branches():
         == "invalid_tibber_token",
         str(result.get("errors")),
     )
+    use_good_token()
+    await recover(errors_payload, "user", FIRST_SCREEN, USER_FINISH)
 
     # Weather stays Required. The token is Optional in the schema: Tibber
     # still needs one, but that is a handler error so an entity price
@@ -715,8 +827,9 @@ async def user_error_branches():
         (not token_schema_rejected) and weather_rejected,
         f"token={token_schema_rejected} weather={weather_rejected}",
     )
+    missing_token_flow = fresh_flow()
     missing_token = await submit(
-        fresh_flow(),
+        missing_token_flow,
         "user",
         {"name": "x", "weather_entity": "weather.home"},
     )
@@ -729,8 +842,11 @@ async def user_error_branches():
         == "tibber_token_required",
         str(missing_token.get("errors")),
     )
+    use_good_token()
+    await recover(missing_token_flow, "user", FIRST_SCREEN, USER_FINISH)
+    missing_entity_flow = fresh_flow()
     missing_entity = await submit(
-        fresh_flow(),
+        missing_entity_flow,
         "user",
         {
             "name": "x",
@@ -746,6 +862,17 @@ async def user_error_branches():
         and missing_entity.get("errors", {}).get(const.CONF_PRICE_ENTITY)
         == "price_entity_required",
         str(missing_entity.get("errors")),
+    )
+    await recover(
+        missing_entity_flow,
+        "user",
+        {
+            "name": "x",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.nordpool",
+        },
+        USER_FINISH,
     )
     entity_ok = await submit(
         fresh_flow(),
@@ -990,7 +1117,8 @@ async def walk_questionnaire():
     # seeded exactly as the walk had it, each still standing on dhw.
     seeded = lambda: fresh_flow(data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS, **EXTRAS_ANSWERS, **derived_into(flow)})  # noqa: E731
 
-    bad_spec = await submit(seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"})
+    bad_spec_flow = seeded()
+    bad_spec = await submit(bad_spec_flow, "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "garbage"})
     check(
         "dhw",
         "error",
@@ -1000,8 +1128,10 @@ async def walk_questionnaire():
         == "invalid_dhw_windows",
         str(bad_spec.get("errors")),
     )
+    await recover(bad_spec_flow, "dhw", DHW_ANSWERS, DHW_FINISH)
+    too_short_flow = seeded()
     too_short = await submit(
-        seeded(), "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "06:05-06:10"}
+        too_short_flow, "dhw", {**DHW_ANSWERS, const.CONF_DHW_WINDOWS: "06:05-06:10"}
     )
     check(
         "dhw",
@@ -1012,8 +1142,10 @@ async def walk_questionnaire():
         == "dhw_window_too_short",
         str(too_short.get("errors")),
     )
+    await recover(too_short_flow, "dhw", DHW_ANSWERS, DHW_FINISH)
+    too_close_flow = seeded()
     too_close = await submit(
-        seeded(),
+        too_close_flow,
         "dhw",
         {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_SETPOINT: 48.0, const.CONF_DHW_MIN_TEMP: 46.0},
     )
@@ -1026,6 +1158,7 @@ async def walk_questionnaire():
         == "dhw_min_too_close",
         str(too_close.get("errors")),
     )
+    await recover(too_close_flow, "dhw", DHW_ANSWERS, DHW_FINISH)
 
     # The legionella pair is a WARNING: 60 over 52 proceeds, and says so.
     warnings: list[str] = []
@@ -1225,8 +1358,9 @@ async def walk_expert():
     extras_seeded = lambda: fresh_flow(  # noqa: E731
         data={**FULL_FIRST_SCREEN, **TEMPERATURE_ANSWERS, **QUESTIONNAIRE_ANSWERS}
     )
+    extras_flow = extras_seeded()
     inverted = await submit(
-        extras_seeded(),
+        extras_flow,
         "building_extras",
         {**EXTRAS_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 3.0, const.CONF_HEAT_PUMP_MIN_POWER: 6.0},
     )
@@ -1239,9 +1373,11 @@ async def walk_expert():
         == "min_power_above_max",
         str(inverted.get("errors")),
     )
+    await recover(extras_flow, "building_extras", EXTRAS_ANSWERS, DHW_FINISH)
 
+    inverted_flow = seeded()
     inverted = await submit(
-        seeded(), "thermal", {**THERMAL_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0}
+        inverted_flow, "thermal", {**THERMAL_ANSWERS, const.CONF_HEAT_PUMP_MAX_POWER: 4.0, const.CONF_HEAT_PUMP_MIN_POWER: 8.0}
     )
     check(
         "thermal",
@@ -1252,6 +1388,7 @@ async def walk_expert():
         == "min_power_above_max",
         str(inverted.get("errors")),
     )
+    await recover(inverted_flow, "thermal", THERMAL_ANSWERS, SETUP_FINISH)
 
     flow = seeded()
     result = await submit(flow, "thermal", THERMAL_ANSWERS)
@@ -1379,6 +1516,7 @@ async def temperature_error_branches():
             const.CONF_TARGET_TEMP not in flow._data,
             str(sorted(flow._data)),
         )
+        await recover(flow, "temperature", TEMPERATURE_ANSWERS, SETUP_FINISH)
 
 
 # ---------------------------------------------------------------------------
@@ -1587,6 +1725,7 @@ async def options_room_list():
         and entry4.options.get(key) == too_many[:32],
         f"errors={refused.get('errors')!r}",
     )
+    await recover(flow4, "rooms", {key: too_many[:32], **SAVE_CLOSE})
     # R11-OUTSIDE-ROOMS-P2: the page's opt-in toggle for the floor lift.
     lift = const.CONF_ROOM_LIFT_ENABLED
     lift_default = next(k for k in shown["data_schema"].schema if str(k) == lift).default()
@@ -1925,6 +2064,12 @@ async def options_advanced_pages():
 
     # entities: the token verdicts, the clearing, and the roster scope.
     real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
+    # The fixed page keeps the stored token: unchanged, so it is never probed.
+    ENTITIES_FIXED = {
+        const.CONF_TIBBER_TOKEN: BASE_ENTRY_DATA[const.CONF_TIBBER_TOKEN],
+        const.CONF_WEATHER_ENTITY: "weather.home",
+        **SAVE_CLOSE,
+    }
     refused = fresh_options()
     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession([(401, None)])
     result = await submit(
@@ -1941,6 +2086,7 @@ async def options_advanced_pages():
         and not refused[1].options,
         str(result.get("errors")),
     )
+    await recover(refused[0], "entities", ENTITIES_FIXED)
     unreachable = fresh_options()
     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
         [OSError("router rebooting")]
@@ -1959,6 +2105,7 @@ async def options_advanced_pages():
         and not unreachable[1].options,
         str(result.get("errors")),
     )
+    await recover(unreachable[0], "entities", ENTITIES_FIXED)
 
     # An UNCHANGED token skips the probe entirely (the session counts zero
     # POSTs); cleared slots stick as None; and the entities this page does
@@ -2175,6 +2322,7 @@ async def options_advanced_pages():
         and not entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
 
     # With the two-zone model present, the same choice saves.
     flow, entry, _ = fresh_options(
@@ -2236,6 +2384,7 @@ async def options_advanced_pages():
         and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
 
     # Null control: an explicit two_zone_mode="on" is two-zone to the model
     # even without the mass keys, so "flow" saves cleanly under it -- the fix
@@ -2333,6 +2482,7 @@ async def options_advanced_pages():
         and not entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
     # #3225 (R10-COMBI-TANK): the combi switch is judged by the model's own
     # predicate over what would be stored, so a switch the model would ignore
     # (here: no throttling valve) is refused rather than saved.
@@ -2352,6 +2502,7 @@ async def options_advanced_pages():
         and const.CONF_DHW_COMBI_TANK_ENABLED not in entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
     # Null control: the same switch over a store (a throttling valve, 504 l)
     # is saved, and a changed type writes its preset's two numbers.
     flow, entry, _ = fresh_options({const.CONF_DHW_ENABLED: True})
@@ -2630,6 +2781,9 @@ async def options_advanced_pages():
             _got == _want and (shows_menu(result, "advanced") == (_want is None)),
             f"errors={result.get('errors')!r} type={result.get('type')!r}",
         )
+        if _want:
+            hass.states.set(_offset, _ghc_fs("0", unit="K", attributes={"min": -20.0, "max": 20.0}))
+            await recover(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset, **SAVE_CLOSE})
     # The check's own return value, not the page's: the page reads a None
     # from a deleted fall-through as "no errors", so only an equality with {}
     # on the check itself tells "no error" from "no answer". The refusal row
@@ -2662,6 +2816,7 @@ async def options_advanced_pages():
         (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
         repr(result.get("errors")),
     )
+    await recover(flow, "heat_curve", SAVE_CLOSE)
     flow, entry, hass = fresh_options({const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
     await flow.async_step_building(None)
     result = await submit(flow, "building", {const.CONF_MIXING_VALVE_WRITE_ENTITY: _offset})
@@ -2671,6 +2826,7 @@ async def options_advanced_pages():
         (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
         repr(result.get("errors")),
     )
+    await recover(flow, "building", {**BUILDING_PAGE_ANSWERS, **SAVE_CLOSE})
     # R10-GENERIC-HEAT-CURVE-PERSISTENT: kind persistent, its three rows and P7.
     _persistent = {const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT}
     _rows = (const.CONF_HEAT_CURVE_PERSISTENT_BAND_K, const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
@@ -2770,6 +2926,8 @@ async def options_advanced_pages():
         and const.CONF_HEAT_CURVE_DISPLACE_ENTITY not in entry.options,
         f"errors={result.get('errors')!r}",
     )
+    hass.states.set(_stored, _ghc_fs("22", unit="°C", attributes={"min": 5.0, "max": 35.0}))
+    await recover(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _stored, **SAVE_CLOSE})
 
 
 #: Distinguishable from every value a field could legitimately default to,
@@ -2791,8 +2949,9 @@ NO_DEFAULT = object()
 STORED_ARM_PAGES = ("entities", "comfort", "hot_water", "building")
 
 
-def entity_field_defaults(result):
-    """Every entity picker on a form, mapped to the value it presents.
+def entity_field_defaults(result, kinds=("EntitySelector",)):
+    """Every entity picker on a form (every field of a selector in ``kinds``),
+    mapped to the value it presents.
 
     A picker is pre-filled either from ``default`` or from
     ``description["suggested_value"]``, and the frontend shows and posts both
@@ -2807,7 +2966,7 @@ def entity_field_defaults(result):
     schema = result.get("data_schema")
     out = {}
     for key, value in _presented_fields(schema):
-        if type(value).__name__ != "EntitySelector":
+        if type(value).__name__ not in kinds:
             continue
         name = str(getattr(key, "schema", key))
         try:
@@ -2930,7 +3089,7 @@ async def entity_clear_survives_the_flow_manager():
     not_presented: dict[str, list[str]] = {}
     for step in pages:
         keys = [row.key for row in rows if row.step == step]
-        seed = {key: f"sensor.stored_{key}" for key in keys}
+        seed = {row.key: _stored_seed(row, row.key) for row in rows if row.step == step}
         # The wood block renders only with its gate on, and the gate is a
         # field of the same page: seeding it drives the gated slots too.
         seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
@@ -3171,6 +3330,7 @@ async def options_error_branches():
         and result.get("errors") == {const.CONF_MIN_TEMP: "min_above_target"},
         str(result.get("errors")),
     )
+    await recover(flow, "comfort", {**COMFORT_PAGE_ANSWERS, **SAVE_CLOSE})
     check(
         "opt_comfort",
         "error",
@@ -3192,6 +3352,7 @@ async def options_error_branches():
         and result.get("errors", {}).get(const.CONF_DHW_WINDOWS) == "invalid_dhw_windows",
         str(result.get("errors")),
     )
+    await recover(flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, **SAVE_CLOSE})
     flow, entry, _ = fresh_options()
     result = await submit(
         flow,
@@ -3207,6 +3368,7 @@ async def options_error_branches():
         and not entry.options,
         str(result.get("errors")),
     )
+    await recover(flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, **SAVE_CLOSE})
 
     # thermal_model: the power pair, whole and half (the effective-pair rule).
     flow, entry, _ = fresh_options()
@@ -3223,6 +3385,7 @@ async def options_error_branches():
         and result.get("errors") == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"},
         str(result.get("errors")),
     )
+    await recover(flow, "thermal_model", {const.CONF_HEAT_PUMP_MAX_POWER: 8.0, const.CONF_HEAT_PUMP_MIN_POWER: 4.0, **SAVE_CLOSE})
     flow, entry, _ = fresh_options()
     result = await submit(flow, "thermal_model", {const.CONF_HEAT_PUMP_MIN_POWER: 6.0})
     check(
@@ -3234,6 +3397,7 @@ async def options_error_branches():
         and not entry.options,
         str(result.get("errors")),
     )
+    await recover(flow, "thermal_model", {const.CONF_HEAT_PUMP_MIN_POWER: 1.0, **SAVE_CLOSE})
 
     # grid: three validators, each pinned on its own field.
     probes = [
@@ -3274,6 +3438,7 @@ async def options_error_branches():
             and not entry.options,
             f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
         )
+        await recover(flow, "grid", {**GRID_PEAK_ANSWERS, **SAVE_CLOSE})
     for name, override, field, expected in probes[2:]:
         flow, entry, _ = fresh_options()
         result = await submit(flow, "grid_fees", {**GRID_FEES_ANSWERS, **override})
@@ -3286,6 +3451,7 @@ async def options_error_branches():
             and not entry.options,
             f"got {result.get('errors')}, want {{{field!r}: {expected!r}}}",
         )
+        await recover(flow, "grid_fees", {**GRID_FEES_ANSWERS, **SAVE_CLOSE})
 
     # grid: the documented peak-hours form, saved through the page and then
     # READ BACK through the coordinator (#327, see the note above
@@ -3656,6 +3822,8 @@ async def residual_statement_branches():
         and not tokenless_entry.options,
         f"errors={result.get('errors')} options={sorted(tokenless_entry.options)}",
     )
+    use_good_token()
+    await recover(tokenless, "entities", {const.CONF_TIBBER_TOKEN: "tok-new", const.CONF_WEATHER_ENTITY: "weather.home", **SAVE_CLOSE})
     entityless_entry = FakeEntry(data={})
     entityless = options_over(entityless_entry, FakeHass())
     await entityless.async_step_entities(None)
@@ -3676,6 +3844,16 @@ async def residual_statement_branches():
         == "price_entity_required"
         and not entityless_entry.options,
         f"errors={result.get('errors')} options={sorted(entityless_entry.options)}",
+    )
+    await recover(
+        entityless,
+        "entities",
+        {
+            const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_ENTITY,
+            const.CONF_PRICE_ENTITY: "sensor.nordpool",
+            const.CONF_WEATHER_ENTITY: "weather.home",
+            **SAVE_CLOSE,
+        },
     )
     stored_price_entry = FakeEntry(
         data={},
@@ -3730,6 +3908,7 @@ async def residual_statement_branches():
         and not entry.options,
         f"errors={result.get('errors')}",
     )
+    await recover(flow, "hot_water", {**HOT_WATER_PAGE_ANSWERS, **SAVE_CLOSE})
     flow, entry, _ = fresh_options()
     await flow.async_step_hot_water(None)
     result = await submit(
@@ -3826,6 +4005,11 @@ async def residual_statement_branches():
             ),
             f"errors={result.get('errors')}",
         )
+        await recover(
+            flow,
+            "hot_water",
+            {**HOT_WATER_PAGE_ANSWERS, const.CONF_DHW_WINDOWS_BY_DAY: True, key: "06:00-08:30", **SAVE_CLOSE},
+        )
     flow, entry, _ = fresh_options()
     await flow.async_step_hot_water(None)
     result = await submit(flow, "hot_water", {
@@ -3896,6 +4080,7 @@ async def residual_statement_branches():
             and not entry.options,
             f"errors={result.get('errors')}",
         )
+        await recover(flow, "grid_connection", {**GRID_CONNECTION_ANSWERS, **SAVE_CLOSE})
     flow, entry, _ = fresh_options()
     await flow.async_step_grid_connection(None)
     result = await submit(
@@ -3953,6 +4138,16 @@ async def residual_statement_branches():
         and not entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    await recover(
+        flow,
+        "hot_water_tank",
+        {
+            **HOT_WATER_TANK_ANSWERS,
+            const.CONF_DHW_DISINFECTION_SWITCH_ENTITY: "switch.pump_disinfection",
+            const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_CONTROL,
+            **SAVE_CLOSE,
+        },
+    )
     flow, entry, _ = fresh_options()
     await flow.async_step_hot_water_tank(None)
     result = await submit(
@@ -4006,6 +4201,11 @@ async def residual_statement_branches():
         and entry.options.get(const.CONF_DHW_DISINFECTION_MODE) == FREQ_MODE_OBSERVE,
         f"errors={result.get('errors')} options={dict(entry.options)}",
     )
+    await recover(
+        flow,
+        "hot_water_tank",
+        {**HOT_WATER_TANK_ANSWERS, const.CONF_DHW_DISINFECTION_MODE: FREQ_MODE_OBSERVE, **SAVE_CLOSE},
+    )
 
     # #1067 W1067-G6: a compressor-frequency SENSOR alone observes, but only
     # a number entity can be written, so choosing control without one is
@@ -4030,6 +4230,11 @@ async def residual_statement_branches():
         == "freq_control_needs_number"
         and not entry.options,
         f"type={result.get('type')} errors={result.get('errors')} options={entry.options!r}",
+    )
+    await recover(
+        flow,
+        "entities_metering",
+        {const.CONF_COMPRESSOR_FREQ_ENTITY: "number.freq", const.CONF_FREQ_CONTROL_MODE: "control", **SAVE_CLOSE},
     )
     flow, entry, _ = fresh_options()
     await flow.async_step_entities_metering(None)
@@ -4374,6 +4579,13 @@ def offered_entity_fields(result):
     return entity_field_defaults(result)
 
 
+def offered_clearable_fields(result):
+    """:func:`offered_entity_fields` and every number field too: the one
+    offered undefaulted (``space_setpoint_high_limit_c``) is a ``_STORED`` row
+    and clears the same way; a number with a default is never ``NO_DEFAULT``."""
+    return entity_field_defaults(result, ("EntitySelector", "NumberSelector"))
+
+
 def rendered_keys(result):
     """Every option key a rendered page presents, section nesting included."""
     schema = result.get("data_schema")
@@ -4500,12 +4712,16 @@ async def registry_drives_every_page():
     # named ``away_return_entity`` -- a key no option page has ever offered --
     # and nothing failed, because its only reader is a seven-key hand list
     # that does not mention it.
+    # The one number on the roster (``space_setpoint_high_limit_c``) is read
+    # with the pickers; the other undefaulted numbers are model parameters a
+    # page suggests from the learned model, not ``_STORED`` rows.
     two_armed = {}
     for page in pages:
         flow = bare_options(REGISTRY_SEED)
-        offered = offered_entity_fields(await getattr(flow, f"async_step_{page}")(None))
-        for key, default in offered.items():
-            if default is NO_DEFAULT:
+        shown = await getattr(flow, f"async_step_{page}")(None)
+        pickers = offered_entity_fields(shown)
+        for key, default in offered_clearable_fields(shown).items():
+            if default is NO_DEFAULT and (key in pickers or key == const.CONF_SPACE_SETPOINT_HIGH_LIMIT_C):
                 two_armed.setdefault(key, []).append(page)
     roster = set(Flow._OPTIONAL_ENTITY_KEYS)
     check(
@@ -4523,11 +4739,12 @@ async def registry_drives_every_page():
     per_page = {}
     for key, owners in two_armed.items():
         for page in owners:
-            per_page.setdefault(page, {})[key] = f"sensor.registry_{key}"
+            per_page.setdefault(page, {})[key] = (
+                51.0 if key == const.CONF_SPACE_SETPOINT_HIGH_LIMIT_C else f"sensor.registry_{key}")
     not_carried = {}
     for page, stored in sorted(per_page.items()):
         flow = bare_options({**REGISTRY_SEED, **stored})
-        rendered = offered_entity_fields(
+        rendered = offered_clearable_fields(
             await getattr(flow, f"async_step_{page}")(None)
         )
         wrong = {k: rendered.get(k) for k, v in stored.items() if rendered.get(k) != v}
@@ -4809,6 +5026,77 @@ async def widening_refusals():
         repr(None if widened is None else dict(widened.config)),
     )
 
+    # D14-s1-01: a slider's grid starts at its min. A min widened to a stored
+    # 14.7 on a 0.5 grid put the field's default 21.0 off the reachable set.
+    # The widened bound now moves outward onto the grid. A step "any" field
+    # has no grid and widens to exactly the value.
+    def _on_grid(cfg, value):
+        steps = (value - cfg["min"]) / cfg["step"]
+        return abs(steps - round(steps)) < 1e-9
+
+    slider = selector.NumberSelector(selector.NumberSelectorConfig(
+        min=15.0, max=25.0, step=0.5, mode=selector.NumberSelectorMode.SLIDER))
+    low_w = config_flow._widen_to_fit(slider, [14.7])
+    high_w = config_flow._widen_to_fit(slider, [25.3])
+    any_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(
+        min=15.0, max=25.0, step="any", mode=selector.NumberSelectorMode.BOX)), [14.7])
+    check(
+        "schema_widening",
+        "happy",
+        "a widened slider keeps its grid: the default and the far bound stay reachable (D14-s1-01)",
+        low_w is not None and low_w.config["min"] == 14.5 and low_w.config["max"] == 25.0
+        and _on_grid(low_w.config, 21.0) and _on_grid(low_w.config, 25.0)
+        and high_w is not None and high_w.config["max"] == 25.5 and high_w.config["min"] == 15.0
+        and any_w is not None and any_w.config["min"] == 14.7,
+        f"low {None if low_w is None else dict(low_w.config)} high "
+        f"{None if high_w is None else dict(high_w.config)} any "
+        f"{None if any_w is None else dict(any_w.config)}",
+    )
+    # The grid's two edges. A step of 0 is no grid: the bound is the value, never
+    # a division by it. A stored value within float noise of a grid point
+    # (14.4999999998, a round-trip's residue) widens to that point, not one step past.
+    try:
+        zero_w = config_flow._widen_to_fit(selector.NumberSelector(selector.NumberSelectorConfig(
+            min=15.0, max=25.0, step=0, mode=selector.NumberSelectorMode.BOX)), [14.7])
+        zero_min = None if zero_w is None else zero_w.config["min"]
+    except ZeroDivisionError as err:
+        zero_min = repr(err)
+    noise_w = config_flow._widen_to_fit(slider, [14.4999999998])
+    check(
+        "schema_widening",
+        "happy",
+        "a step-0 field widens to exactly the value; float noise below a grid point widens to that point (D14-s1-01)",
+        zero_min == 14.7 and noise_w is not None and noise_w.config["min"] == 14.5,
+        f"step 0 -> min {zero_min!r}; 14.4999999998 on 15/0.5 -> "
+        f"{None if noise_w is None else noise_w.config['min']!r}",
+    )
+    # The service surface (D14-s1-01's twelve seams): every number selector
+    # services.yaml declares reaches its own max and example, or has no grid.
+    import yaml as _svc_yaml
+    from pathlib import Path
+    _svc = _svc_yaml.safe_load(
+        (Path(config_flow.__file__).parent / "services.yaml").read_text(encoding="utf-8"))
+    _svc_fields, _svc_off = 0, []
+    for _svc_name, _svc_def in (_svc or {}).items():
+        for _f_name, _f in ((_svc_def or {}).get("fields") or {}).items():
+            _num = ((_f or {}).get("selector") or {}).get("number")
+            if not isinstance(_num, dict):
+                continue
+            _svc_fields += 1
+            if not isinstance(_num.get("step", 1), (int, float)) or _num.get("min") is None:
+                continue
+            _grid = {"min": float(_num["min"]), "step": float(_num.get("step", 1))}
+            for _what, _v in (("max", _num.get("max")), ("example", _f.get("example"))):
+                if isinstance(_v, (int, float)) and not _on_grid(_grid, float(_v)):
+                    _svc_off.append(f"{_svc_name}.{_f_name} {_what} {_v}")
+    check(
+        "schema_widening",
+        "error",
+        "every services.yaml number selector reaches its own max and example (D14-s1-01)",
+        _svc_fields > 20 and not _svc_off,
+        f"{_svc_fields} number fields; off grid: {_svc_off}",
+    )
+
     # The whole-schema entry point: nothing to walk is not an error. The
     # mixin applies it to every form result, including the menus and aborts
     # that carry no schema at all.
@@ -5016,6 +5304,8 @@ async def reconfigure_flow():
         and not hass.config_entries.updated,
         f"{result.get('errors')} updated={hass.config_entries.updated}",
     )
+    use_good_token()
+    await recover_reconfigure(flow, RC_SAME)
     config_flow.async_get_clientsession = lambda hass, verify_ssl=True: FakeSession(
         [OSError("router rebooting")]
     )
@@ -5030,6 +5320,8 @@ async def reconfigure_flow():
         and not hass.config_entries.updated,
         str(result.get("errors")),
     )
+    use_good_token()
+    await recover_reconfigure(flow, RC_SAME)
 
     # Re-submitting this entry's OWN identity is the case the plain duplicate
     # guard would get wrong: the registry finds THIS entry, and the guard's
@@ -5235,15 +5527,20 @@ async def self_check():
     # REAL identity before delegating, which is exactly what deleting the
     # ``self._reconfigure_entry is None or ...`` condition does to the
     # reconfigure path (the production-edit proof is in the PR body).
-    real_user = config_flow.HeatPumpOptimizerConfigFlow.async_step_user
+    # The guard sits on the sensors screen since the credentials/sensors
+    # split (#198): wrapping async_step_user ran it on the credentials
+    # alone, whose identity is not the entry's, and the mutation survived.
+    real_sensors = config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors
 
     async def guard_before_exemption(self, user_input=None):
         if user_input is not None and self._reconfigure_entry is not None:
-            await self.async_set_unique_id(config_flow.entry_identity(user_input))
+            await self.async_set_unique_id(
+                config_flow.entry_identity({**self._data, **user_input})
+            )
             self._abort_if_unique_id_configured()
-        return await real_user(self, user_input)
+        return await real_sensors(self, user_input)
 
-    config_flow.HeatPumpOptimizerConfigFlow.async_step_user = guard_before_exemption
+    config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors = guard_before_exemption
     try:
         real = install_session(config_flow, FakeSession([TIBBER_VIEWER_OK]))
         flow, _, _, _ = rc_setup()
@@ -5259,7 +5556,7 @@ async def self_check():
         )
         config_flow.async_get_clientsession = real
     finally:
-        config_flow.HeatPumpOptimizerConfigFlow.async_step_user = real_user
+        config_flow.HeatPumpOptimizerConfigFlow.async_step_user_sensors = real_sensors
 
     # Mutation 5: the peak-hours field validated with the fee-RULES grammar
     # instead of the window one -- the defect #327 reported, which did not
@@ -6355,6 +6652,7 @@ async def options_modbus_prefill():
         and entry.options == {},
         f"errors={unreadable.get('errors')}",
     )
+    await recover(flow, step, {const.CONF_DHW_SETPOINT: 52.0, **SAVE_CLOSE})
     flow_low, entry_low, _ = _g7_flow(_g7_states(), options={const.CONF_HEAT_PUMP_MIN_POWER: 2.0})
     await submit(flow_low, step, {prefix_key: "hp"})
     power = await submit(flow_low, step, {const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
@@ -6364,6 +6662,7 @@ async def options_modbus_prefill():
         and entry_low.options == {const.CONF_HEAT_PUMP_MIN_POWER: 2.0},
         f"errors={power.get('errors')} options={entry_low.options}",
     )
+    await recover(flow_low, step, {const.CONF_HEAT_PUMP_MAX_POWER: 5.0, **SAVE_CLOSE})
 
     # D12-01: the pre-fill save path must carry the same two-zone rule as the
     # building page. A GCHV pump under water control (register 4109 == 0)
@@ -6414,6 +6713,7 @@ async def options_modbus_prefill():
         and const.CONF_MIXING_VALVE_WRITE_TARGET_KIND not in entry.options,
         f"errors={refused.get('errors')} options={sorted(entry.options)}",
     )
+    await recover(flow, step, {const.CONF_DHW_SETPOINT: 52.0, **SAVE_CLOSE})
 
     # Null control: an explicit two_zone_mode=on is two-zone to the model, so
     # the same pre-fill save of a flow target is accepted, not refused.
@@ -6659,6 +6959,8 @@ async def options_device_prefill():
         and entry.options == {},
         f"errors={nothing.get('errors')} options={entry.options}",
     )
+    # The user types the package's prefix instead, and keeps one suggestion.
+    await recover(flow, step, {const.CONF_MODBUS_PREFILL_PREFIX: "hp"}, ((step, {const.CONF_DHW_SETPOINT: 52.0, **SAVE_CLOSE}),))
 
     # A picked device wins over a prefix typed beside it, and the prefix is
     # not written when the device route answered.
@@ -7259,6 +7561,7 @@ async def config_flow_device_prefill_offer():
         and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
         f"errors={refused_pair.get('errors')} data={sorted(flow._data)}",
     )
+    await recover(flow, "device_prefill", {}, (("finish_now", {}), ("setup_overview", {})))
 
     # A device that fills too few roles is refused on the page rather than
     # opened empty -- the offer is a prompt, not an empty form.
@@ -7276,6 +7579,7 @@ async def config_flow_device_prefill_offer():
         and flow._data == {**FIRST_SCREEN, **USER_SENSORS},
         f"errors={refused.get('errors')} data={sorted(flow._data)}",
     )
+    await recover(flow, "device_prefill", {}, (("finish_now", {}), ("setup_overview", {})))
     # …and an install whose devices all resolve nothing is never offered the
     # page in the first place, whatever it has in the registry.
     hass = FakeHass(states={})
@@ -7843,6 +8147,18 @@ PAGE_REJECTIONS = {
     "grid_connection": ({}, {const.CONF_SILENT_MODE_WINDOWS: "nonsense"}),
     "grid_fees": ({}, {const.CONF_GRID_FEE_RULES: "nonsense"}),
 }
+#: page -> the answers that clear that page's rejection above.
+PAGE_FIXES = {
+    "entities": {const.CONF_PRICE_SOURCE: const.PRICE_SOURCE_TIBBER, const.CONF_TIBBER_TOKEN: "tok-new"},
+    "entities_metering": {const.CONF_FREQ_CONTROL_MODE: "observe"},
+    "comfort": COMFORT_PAGE_ANSWERS,
+    "hot_water": HOT_WATER_PAGE_ANSWERS,
+    "hot_water_tank": {const.CONF_DHW_DISINFECTION_MODE: "observe"},
+    "building": {const.CONF_WOOD_FURNACE_ENABLED: True},
+    "grid": GRID_PEAK_ANSWERS,
+    "grid_connection": {const.CONF_SILENT_MODE_WINDOWS: ""},
+    "grid_fees": GRID_FEES_ANSWERS,
+}
 
 
 def _page_stored_entities(step, base):
@@ -7855,7 +8171,16 @@ def _page_stored_entities(step, base):
         )
         if row.default is config_flow._STORED
     ]
-    return {row.key: f"sensor.stored_{i}" for i, row in enumerate(rows)}
+    return {row.key: _stored_seed(row, i) for i, row in enumerate(rows)}
+
+
+def _stored_seed(row, tag):
+    """A distinct stored value for a ``_STORED`` row: an entity id for a
+    picker, an in-range number for the one optional number
+    (``space_setpoint_high_limit_c``), which clears the same way."""
+    if isinstance(row.widget, selector.NumberSelector):
+        return float(row.widget.config["min"]) + 1.0
+    return f"sensor.stored_{tag}"
 
 
 async def options_rejected_page_rerenders_the_clear():
@@ -7875,6 +8200,8 @@ async def options_rejected_page_rerenders_the_clear():
             shows(result, step) and bool(result.get("errors")) and not stale,
             f"errors={result.get('errors')} rows={len(stored)} still_stored={stale}",
         )
+        use_good_token()
+        await recover(flow, step, {**PAGE_FIXES[step], **SAVE_CLOSE})
         # Null control: the same rejection with nothing cleared shows every
         # stored entity as stored, so the empty fields above are the clear's.
         flow = options_over(FakeEntry(data={**base, **stored}), FakeHass())
@@ -7888,6 +8215,8 @@ async def options_rejected_page_rerenders_the_clear():
                 kept == sorted(stored),
                 f"shown_stored={len(kept)}/{len(stored)}",
             )
+            use_good_token()
+            await recover(flow, step, {**stored, **PAGE_FIXES[step], **SAVE_CLOSE})
     # The census asserts its own reach: a page whose _STORED rows vanished
     # would pass the loop above vacuously.
     check(
@@ -8205,6 +8534,9 @@ async def seam_config_one_place():
           f"errors={cleared.get('errors')} "
           f"fraction={suggested_value(cleared, const.CONF_SILENT_MODE_FRACTION)!r} "
           f"windows={suggested_value(cleared, const.CONF_SILENT_MODE_WINDOWS)!r}")
+    await recover(cleared_flow, "device_prefill", {
+        const.CONF_SILENT_MODE_WINDOWS: "06:00-10:00", const.CONF_SILENT_MODE_FRACTION: 0.6},
+        (("finish_now", {}), ("setup_overview", {})))
     check("device_prefill", "happy",
           "the setup pre-fill page posts no after_save: its navigation is always finish_setup",
           const.CONF_AFTER_SAVE not in schema_keys(refused),
@@ -8218,6 +8550,179 @@ async def seam_config_one_place():
           and flow._data.get(const.CONF_SILENT_MODE_FRACTION) == 0.6
           and const.CONF_AFTER_SAVE not in flow._data,
           f"result={accepted.get('type')}/{accepted.get('step_id')} data={flow._data}")
+    await recover(flow, "finish_now", {}, (("setup_overview", {}),))
+
+
+def stored_options_of_the_wrong_type() -> None:
+    """R11-LATE-P1-OPTIONS: a stored option of the wrong type reads as its default.
+
+    The migration repairs a non-number stored under a declared numeric option
+    (``entry_config.number_repairs``) only when it stamps the version, so a value
+    written past it -- a hand edit, a restored backup -- still reaches the raw
+    readers. Each reader below is driven through its own production symbol with
+    the spellings ``float()`` refuses; each must return what it returns for the
+    absent key, and a well-typed value (the null control) must still be read.
+    """
+    from heatpump_optimizer import quiet_windows
+
+    bad = ("abc", None, {"x": 1}, [1.0], True, float("nan"))
+
+    def same(call, absent, label):
+        ok, got = True, []
+        for value in bad:
+            try:
+                result = call(value)
+            except (TypeError, ValueError) as err:
+                ok, result = False, f"raised {type(err).__name__}"
+            if result != absent:
+                ok = False
+                got.append(f"{value!r}->{result!r}")
+        R.check(f"R11-LATE-P1-OPTIONS: {label} reads a wrong-typed stored option as its default",
+                ok, "; ".join(got))
+
+    # The options flow's effective-value reader, through its two cross-field checks.
+    # Each pair is a check and a key it reads: _power_errors never reads the derate.
+    for check_fn, key in (
+        (config_flow._power_errors, const.CONF_HEAT_PUMP_MIN_POWER),
+        (config_flow._power_errors, const.CONF_HEAT_PUMP_MAX_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_MIN_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_MAX_POWER),
+        (config_flow._partload_errors, const.CONF_HEAT_PUMP_COP_PARTLOAD_DERATE),
+    ):
+        same(lambda v: check_fn({}, {key: v}), check_fn({}, {}),
+             f"config_flow.{check_fn.__name__} on stored {key}")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored floor above the ceiling is still refused",
+            config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 99.0,
+                                           const.CONF_HEAT_PUMP_MAX_POWER: 1.0})
+            == {const.CONF_HEAT_PUMP_MIN_POWER: "min_power_above_max"})
+    # The bound is strict, a design choice: a floor equal to the ceiling is a
+    # fixed-output pump, which the solver's bounds admit.
+    R.check("R11-LATE-P1-OPTIONS: a stored floor equal to the ceiling is not refused",
+            config_flow._power_errors({}, {const.CONF_HEAT_PUMP_MIN_POWER: 5.0,
+                                           const.CONF_HEAT_PUMP_MAX_POWER: 5.0}) == {})
+
+    # The setup description's wood-tank volume.
+    def volume(v):
+        return topology.describe_setup({const.CONF_WOOD_TANK_VOLUME: v})["wood"]["volume_l"]
+    same(volume, topology.describe_setup({})["wood"]["volume_l"], "topology.describe_setup")
+    R.check("R11-LATE-P1-OPTIONS: null -- describe_setup reads a well-typed tank volume",
+            volume(321.0) == 321.0, f"{volume(321.0)!r}")
+
+    # The mixing-valve slot's manual setpoint.
+    def setpoint(v):
+        return topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY,
+                                     {const.CONF_MIXING_VALVE_TARGET: v})
+    same(setpoint, topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {}),
+         "topology._slot_extras")
+    R.check("R11-LATE-P1-OPTIONS: null -- _slot_extras reads a well-typed setpoint",
+            setpoint(21.5) == {"manual_setpoint": 21.5}, f"{setpoint(21.5)!r}")
+    R.check("R11-LATE-P1-OPTIONS: an unset mixing-valve target publishes a 0.0 setpoint",
+            topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {})
+            == {"manual_setpoint": 0.0},
+            f"{topology._slot_extras(const.CONF_MIXING_VALVE_TARGET_ENTITY, {})!r}")
+
+    # The measured quiet-window ceiling, off a compressor-frequency reading.
+    def states(entity_id):
+        return FakeState("60") if entity_id == "sensor.hz" else None
+    for key in (const.CONF_COMPRESSOR_FREQ_MIN_HZ, const.CONF_COMPRESSOR_FREQ_MAX_HZ):
+        def ceiling(v, key=key):
+            return quiet_windows.measured_ceiling_kw(
+                {key: v, const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, states, 9.0)
+        same(ceiling, quiet_windows.measured_ceiling_kw(
+            {const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, states, 9.0),
+             f"quiet_windows.measured_ceiling_kw on stored {key}")
+    hz = quiet_windows.measured_ceiling_kw(
+        {const.CONF_COMPRESSOR_FREQ_MAX_HZ: 120.0, const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"},
+        states, 9.0)
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored max Hz scales the ceiling",
+            hz is not None and abs(hz - 4.5) < 1e-9, f"{hz!r}")
+
+    # The thermal table's two raw reads (D1-s2-05's judged sites, past the migration).
+    from heatpump_optimizer import thermal_model
+
+    def tank(v):
+        return thermal_model.ThermalParameters.from_config(
+            {const.CONF_WOOD_FURNACE_ENABLED: True, const.CONF_WOOD_TANK_VOLUME: v}).wood_tank_volume
+    same(tank, thermal_model.ThermalParameters.from_config(
+        {const.CONF_WOOD_FURNACE_ENABLED: True}).wood_tank_volume,
+         "thermal_model.ThermalParameters.from_config")
+    R.check("R11-LATE-P1-OPTIONS: null -- from_config reads a well-typed tank volume",
+            tank(321.0) == 321.0, f"{tank(321.0)!r}")
+
+    def indoor(v):
+        return thermal_model._flow_curve_values({const.CONF_TARGET_TEMP: v}, False)
+    same(indoor, thermal_model._flow_curve_values({}, False), "thermal_model._flow_curve_values")
+    R.check("R11-LATE-P1-OPTIONS: null -- _flow_curve_values reads a well-typed target",
+            indoor(19.5)["flow_curve_indoor_target"] == 19.5, f"{indoor(19.5)!r}")
+
+    # The thermal table's other raw reads.
+    for key, field in ((const.CONF_MIXING_VALVE_TARGET, "mixing_valve_target"),
+                       (const.CONF_BUFFER_MAX_TEMP, "buffer_max_temp"),
+                       (const.CONF_MAX_TEMP, "comfort_ceiling")):
+        def param(v, key=key, field=field):
+            return getattr(thermal_model.ThermalParameters.from_config({key: v}), field)
+        same(param, getattr(thermal_model.ThermalParameters.from_config({}), field),
+             f"thermal_model.ThermalParameters.from_config on stored {key}")
+        R.check(f"R11-LATE-P1-OPTIONS: null -- from_config reads a well-typed {key}",
+                param(31.5) == 31.5, f"{param(31.5)!r}")
+
+    # The questionnaire's stored upper-floor share.
+    from heatpump_optimizer import modbus_prefill, presets
+
+    def ratio(v):
+        return presets.preset_from_config({}, {const.CONF_UPPER_FLOOR_AREA_RATIO: v}).upper_area_ratio
+    same(ratio, presets.preset_from_config({}, {}).upper_area_ratio, "presets.preset_from_config")
+    R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed ratio",
+            ratio(0.3) == 0.3, f"{ratio(0.3)!r}")
+
+    # The heated area: presets.grade passes the stored configuration as the answers.
+    def area(v):
+        return presets.preset_from_config({const.CONF_HEATED_AREA: v}, {}).heated_area_m2
+    same(area, presets.preset_from_config({}, {}).heated_area_m2,
+         "presets.preset_from_config on stored heated_area")
+    R.check("R11-LATE-P1-OPTIONS: null -- preset_from_config reads a well-typed area",
+            area(140.0) == 140.0, f"{area(140.0)!r}")
+
+    # The quick-setup derive: the options page's baseline copies the stored
+    # questionnaire keys, so a bare post hands it the stored heated area.
+    def derived(v):
+        return quick_setup.derive({const.CONF_HEATED_AREA: v})
+    same(derived, quick_setup.derive({}), "quick_setup.derive on stored heated_area")
+    # The quick-setup page's stored answers: a stored buffer volume.
+    def buffer_answer(v):
+        return quick_setup.suggested_answers({const.CONF_BUFFER_TANK_VOLUME: v})
+    same(buffer_answer, quick_setup.suggested_answers({}), "quick_setup.suggested_answers")
+    R.check("R11-LATE-P1-OPTIONS: null -- suggested_answers reads a well-typed volume",
+            buffer_answer(300.0)[quick_setup.FIELD_BUFFER_TANK] is True, f"{buffer_answer(300.0)!r}")
+
+    # The hot-water page's deadband rule, on the stored half of its pair.
+    for key in (const.CONF_DHW_SETPOINT, const.CONF_DHW_MIN_TEMP):
+        same(lambda v, key=key: config_flow._dhw_min_too_close({}, {key: v}),
+             config_flow._dhw_min_too_close({}, {}), f"config_flow._dhw_min_too_close on stored {key}")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored setpoint still closes the deadband",
+            config_flow._dhw_min_too_close({}, {const.CONF_DHW_SETPOINT: 46.0}) is True)
+
+    # The pre-fill page's uncapped-schedule rule, on the stored fraction.
+    windows = {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00"}
+    same(lambda v: config_flow._uncapped_schedule_errors(windows, {const.CONF_SILENT_MODE_FRACTION: v}),
+         config_flow._uncapped_schedule_errors(windows, {}), "config_flow._uncapped_schedule_errors")
+    R.check("R11-LATE-P1-OPTIONS: null -- a well-typed stored fraction of 1.0 is still refused",
+            config_flow._uncapped_schedule_errors(windows, {const.CONF_SILENT_MODE_FRACTION: 1.0})
+            == {const.CONF_SILENT_MODE_FRACTION: "silent_mode_fraction_uncapped"})
+
+    R.check("R11-LATE-P1-OPTIONS: null -- derive reads a well-typed area",
+            derived(95.0)[const.CONF_HEATED_AREA] == 95.0, f"{derived(95.0).get(const.CONF_HEATED_AREA)!r}")
+
+    # The Modbus prefill's ceiling, scaled by the stored nominal COP.
+    snap = {"unit_capacity": ("sensor.capacity", "7.0", 1.0)}
+
+    def ceiling_kw(v):
+        return modbus_prefill._plant(snap, {const.CONF_HEAT_PUMP_COP_NOMINAL: v})[
+            const.CONF_HEAT_PUMP_MAX_POWER]
+    same(ceiling_kw, modbus_prefill._plant(snap, {})[const.CONF_HEAT_PUMP_MAX_POWER],
+         "modbus_prefill._plant")
+    R.check("R11-LATE-P1-OPTIONS: null -- _plant scales by a well-typed nominal COP",
+            ceiling_kw(2.0) == 3.5, f"{ceiling_kw(2.0)!r}")
 
 
 async def main() -> int:
@@ -8230,6 +8735,7 @@ async def main() -> int:
     sink.emit = lambda record: None
     logging.getLogger().addHandler(sink)
 
+    LEDGER.install_tracker()
     pin_number_selector_convention()
     await token_surfaces_agree()
     await seed_base_entry()
@@ -8271,6 +8777,16 @@ async def main() -> int:
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
     await options_room_list()
+    stored_options_of_the_wrong_type()
+
+    rendered, recovered = LEDGER.error_triples()
+    residual = sorted(f"{k}/{s}/{c}" for k, s, c in rendered - recovered)
+    check("_recovery", "error", "every rendered flow error is recovered on the flow that rendered it",
+          not residual, "; ".join(residual))
+    print(f"RESULT flow_error_triples={len(rendered)}")
+    print(f"RESULT unrecovered_flow_error_triples={len(residual)}")
+    for triple in residual:
+        print(f"UNRECOVERED {triple}")
 
     print()
     LEDGER.print_result_lines()

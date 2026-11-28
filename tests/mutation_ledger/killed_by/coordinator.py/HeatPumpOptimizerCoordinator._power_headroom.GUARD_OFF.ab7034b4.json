@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom GUARD_OFF ab7034b4",
+  "killed_by": "tests/env_drift.py",
+  "old": "        elif tariff.enabled and tariff.sample_factor(dt_util.now()) > 0.0:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
+}

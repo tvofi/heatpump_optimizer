@@ -27,3 +27,15 @@ tests/closures.json merge=ledgermerge
 # entry after the same last one, so two in flight conflict in a line merge
 # (dev/audit/rca/R9-RCA-bugclasses.md). The same driver merges it key by key.
 dev/audit/config/bugclasses.json merge=ledgermerge
+
+# R11-CI-CASE-SELECT's per-span table: tests/case_select.py's own three-way
+# merge, reached through the same driver (tools/merge/ledger_merge.py _TABLE_ARMS).
+tests/case_closures.json merge=ledgermerge
+
+# The D6 register, claims.py's committed output: one row per claim, and the rows
+# carrying a count derived from the tree conflicted on every pair of branches
+# that both moved it. Merged row by row (tools/merge/d6_register.py), and a pick
+# neither tree derives is refused at the gate by tests/harness_headers.py, which
+# re-runs claims.py and requires the register byte-identical.
+dev/audit/rounds/round4/D6/claims.json merge=ledgermerge
+dev/audit/rounds/round4/D6/claims.md merge=ledgermerge

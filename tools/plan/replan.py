@@ -7,7 +7,8 @@
     python3 tools/plan/replan.py --measure-ci
 
 What it reads
-    `--roster-ref` (default `origin/handoff/audit-r10-roster`) and the newest
+    `--roster-ref` (default `roster_lib.default_roster_ref`'s answer: the newest
+    round's roster branch, else main, its note on stderr) and the newest
     `dev/programme/rosters/wave-r<N>-groups.json` in that ref's tree, read with
     `git show`; `tools/plan/durations.json` (the measured, cached durations);
     `VERSION` from the checkout. No network and no GitHub state: the same
@@ -102,6 +103,9 @@ import roster_lib  # noqa: E402 -- the one owner of which roster a tool reads
 sys.path.insert(0, str(Path(roster_lib.__file__).resolve().parents[2] / "release"))
 import stamp  # noqa: E402 -- the one owner of the version a stamp assigns
 
+sys.path.insert(0, str(Path(roster_lib.__file__).resolve().parents[2] / "ci"))
+import shards  # noqa: E402 -- the one owner of the fast lane's job names, sharded or not
+
 SELF = "tools/plan/replan.py"
 
 # Production lanes cut a stamp. Instrument, Replay and Docs work does not, on
@@ -151,6 +155,8 @@ def load_roster(repo: str, ref: str | None = None, path: str | None = None,
                 file: str | None = None) -> tuple[dict, str, str]:
     """(roster, roster_ref, blob) -- `file` wins for a self-test fixture;
     otherwise the roster is read at `ref` with `git show`, never from disk.
+    No `ref` is `roster_lib.reader_ref`'s: no round is named here (owner
+    ruling 2026-11-22).
 
     WHICH roster and its filename grammar are `tools/audit/seat/roster_lib.py`'s
     to own (`roster_path`, `show_roster`); re-declaring the
@@ -159,8 +165,7 @@ def load_roster(repo: str, ref: str | None = None, path: str | None = None,
     """
     if file:
         return json.loads(Path(file).read_text(encoding="utf-8")), file, ""
-    if not ref:
-        ref = "origin/handoff/audit-r10-roster"
+    ref = roster_lib.reader_ref(repo, ref)
     try:
         path = roster_lib.roster_path(repo, ref, path)
         roster = roster_lib.show_roster(repo, ref, path)
@@ -2244,6 +2249,65 @@ def selftest() -> int:
         expect("a plan pinning no roster blob is refused as unknowable",
                "unknowable" in why, why)
 
+    # The default roster ref is roster_lib's (owner ruling 2026-11-22: no round
+    # is named in a default). A scratch repo whose main carries rounds N and
+    # N+1, each with its remote-tracking roster branch: no --roster-ref reads
+    # round N+1's BRANCH (a group only the branch holds proves the branch, not
+    # main, was read). Null control: remotes of round N only resolve to round
+    # N's branch through the same call. A literal round ref restored in
+    # load_roster reads neither (that mutant is the body's proof).
+    def default_ref_repo(td: str, rounds: tuple) -> Path:
+        repo = Path(td) / "r"
+        throwaway_git_init(repo, "-q", "-b", "main")
+        git = lambda *a: subprocess.run(["git", "-C", str(repo), *a], check=True,
+                                        capture_output=True, text=True).stdout.strip()
+        rdir = repo / roster_lib.ROSTERS_DIR
+        rdir.mkdir(parents=True)
+        for n in rounds:
+            (rdir / f"wave-r{n}-groups.json").write_text(
+                json.dumps({"groups": [dict(roster["groups"][0], group=f"R{n}-MAIN")]}))
+        git("add", "-A")
+        git("commit", "-q", "-m", "rosters")
+        git("update-ref", "refs/remotes/" + roster_lib.MAIN_REF, "HEAD")
+        for n in rounds:
+            rel = f"{roster_lib.ROSTERS_DIR}/wave-r{n}-groups.json"
+            git("checkout", "-q", "-b", f"r{n}", "main")
+            r = json.loads((repo / rel).read_text())
+            r["groups"].append(dict(roster["groups"][0], group=f"R{n}-BRANCH-ONLY"))
+            (repo / rel).write_text(json.dumps(r))
+            git("commit", "-q", "-am", f"round {n} roster edit")
+            git("update-ref", "refs/remotes/origin/" + roster_lib.round_branch(rel), "HEAD")
+            git("checkout", "-q", "main")
+        return repo
+
+    newest = 12  # past the round a literal once named; the null control is it
+    for rounds, want in (((newest - 1, newest), newest),
+                         ((newest - 3, newest - 2), newest - 2)):
+        tag = "" if want == newest else " (null control: an older newest round)"
+        with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
+            repo = default_ref_repo(td, rounds)
+            want_ref = "origin/" + roster_lib.round_branch(
+                f"{roster_lib.ROSTERS_DIR}/wave-r{want}-groups.json")
+            try:
+                r_, ref_, _ = load_roster(str(repo))
+                got = (ref_, sorted(roster_lib.groups_of(r_)))
+            except PlanError as exc:
+                got = ("PlanError", str(exc)[:160])
+            expect(f"no --roster-ref reads round {want}'s roster branch{tag}",
+                   got == (want_ref, [f"R{want}-BRANCH-ONLY", f"R{want}-MAIN"]), str(got))
+            if want != newest:
+                continue  # round 10's roster carries CARRY_CUTOVER's real commit,
+                # which a scratch repo has not: the null stays at load_roster
+            out = Path(td) / "plan.json"
+            cli = subprocess.run([sys.executable, "-I", __file__, "--repo", str(repo),
+                                  "--out", str(out), "--start", "2026-01-05T00:00:00Z"],
+                                 capture_output=True, text=True)
+            gen = (json.loads(out.read_text()).get("generated", {})
+                   if cli.returncode == 0 and out.is_file() else {})
+            expect(f"the CLI with no --roster-ref plans from round {want}'s branch",
+                   gen.get("roster_ref") == want_ref,
+                   f"rc={cli.returncode} {gen.get('roster_ref')} {cli.stderr[-200:]}")
+
     # The six behaviours whose deletion the reviewer will attempt: each gets
     # an arm that names it, and the mutation harness below proves the arm goes
     # red when the line is removed.
@@ -2255,6 +2319,17 @@ def selftest() -> int:
     expect("a rerun does not replace the first attempt (earliest started_at)",
            ing.get("closures", {}).get("job") == 1
            and ing["closures"]["minutes"] == 20.0, str(ing))
+    sharded = [  # #3902 review: a sharded fast lane, two shards, the second re-run once
+        "fast (3.14, 2/2)\t13\t2026-01-05T02:00:00Z\t2026-01-05T02:10:00Z\tsuccess",
+        "fast (3.14, 2/2)\t12\t2026-01-05T00:01:00Z\t2026-01-05T00:40:00Z\tfailure",
+        "fast (3.14, 1/2)\t11\t2026-01-05T00:00:00Z\t2026-01-05T00:30:00Z\tsuccess",
+    ]
+    ing = _ingest_check_runs(sharded, ("fast (3.14)",))
+    expect("#3902: a sharded fast lane is one row, first shard start to last shard end, red when one is",
+           ing == {"fast (3.14)": {"job": 11, "minutes": 40.0, "conclusion": "failure",
+                                   "started": dt.datetime(2026, 1, 5, tzinfo=dt.timezone.utc)}}, str(ing))
+    ing = _ingest_check_runs(sharded[2:], ("fast (3.14)",))
+    expect("#3902: a commit missing one shard of its count has no fast row (its null)", ing == {}, str(ing))
 
     coord3 = {"groups": [
         {"group": f"K{i}", "size": "S", "lane": "Core model", "kind": "defect",
@@ -3224,6 +3299,10 @@ def selftest() -> int:
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("ci = round((len(batch_rows) + len(stamps)) ", "* gate_report, 1)"),
              "ci = round(len(batch_rows) * gate_report, 1)"),
+            ("roster-ref-default",
+             _m("def load_roster(repo: str, ", "ref: str | None = None, path: str | None = None,"),
+             _m("ref = roster_lib.reader_ref(", "repo, ref)"),
+             "ref = ref or " + repr(_m("origin/handoff/audit-r", "10-roster"))),
             ("freshness",
              _m("def stale_reason(plan: dict, ", "repo: str, ref: str | None = None,"),
              _m("if have != ", "want:"), "if False:"),
@@ -3283,6 +3362,9 @@ def _ingest_check_runs(lines, want) -> dict:
     earliest `started_at` is the invariant: a median over gates counts each
     tree's first attempt once, and a cancelled first attempt stays cancelled
     (its rerun is what `cancelled_rate` prices, not a replacement result).
+
+    A sharded fast lane lists one `fast (3.14, K/N)` run per shard: each shard
+    keeps its own earliest attempt, and the lane is their fold (_fold_fast).
     """
     best = {}
     for line in lines:
@@ -3292,7 +3374,8 @@ def _ingest_check_runs(lines, want) -> dict:
         if len(parts) != 5:
             continue
         name, job, began, ended, concl = parts
-        if name not in want or began in ("", "null") or ended in ("", "null"):
+        lane = shards.FAST if shards.is_fast(name) and not name.startswith("tests / ") else name
+        if lane not in want or began in ("", "null") or ended in ("", "null"):
             continue
         started = dt.datetime.fromisoformat(began.replace("Z", "+00:00"))
         finished = dt.datetime.fromisoformat(ended.replace("Z", "+00:00"))
@@ -3303,8 +3386,25 @@ def _ingest_check_runs(lines, want) -> dict:
                 "minutes": round((finished - started).total_seconds() / 60.0, 1),
                 "conclusion": concl,
                 "started": started,
+                "finished": finished,
             }
-    return best
+    return _fold_fast(best)
+
+
+def _fold_fast(best: dict) -> dict:
+    """The rows without their end, the fast lane's shards folded into one `fast (3.14)` row: from
+    the first shard's start to the last one's end, green only when every shard is. A commit missing
+    any shard of the count it lists has no fast row, as an unfinished unsharded job has none."""
+    sh = {n: r for n, r in best.items() if n != shards.FAST and shards.is_fast(n)}
+    out = {n: {k: v for k, v in r.items() if k != "finished"} for n, r in best.items() if n not in sh}
+    if sh and sorted(shards.owed_fast(list(sh), prefix="")) == sorted(sh):
+        first = min(sh.values(), key=lambda r: r["started"])
+        end = max(r["finished"] for r in sh.values())
+        bad = [sh[n]["conclusion"] for n in sorted(sh) if sh[n]["conclusion"] != "success"]
+        out.setdefault(shards.FAST, {"job": first["job"],
+                                     "minutes": round((end - first["started"]).total_seconds() / 60.0, 1),
+                                     "conclusion": bad[0] if bad else "success", "started": first["started"]})
+    return out
 
 
 def measure_ci(repo: str, repo_owner: str, merges: int) -> dict:
@@ -3385,7 +3485,7 @@ def parse_args(argv=None):
     p = argparse.ArgumentParser(description="Mechanical replanner for the wave roster.")
     p.add_argument("--repo", default=".", help="repository to read the roster from")
     p.add_argument("--roster-ref", default=None,
-                   help="default: origin/handoff/audit-r10-roster to build; "
+                   help="default: roster_lib.default_roster_ref's answer to build; "
                         "the plan's own generated.roster_ref to --check")
     p.add_argument("--roster-path", default=None)
     p.add_argument("--roster-file", default=None, help="a fixture roster (self-tests)")

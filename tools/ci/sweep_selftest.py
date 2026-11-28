@@ -35,7 +35,7 @@ class World:
         if m := re.search(r"/actions/runs/(\d+)$", path):
             r = self.runs[int(m[1])]
             return 200, {}, dict(r, head_sha="H", pull_requests=[{"number": 7}])
-        if path.endswith("/actions/runs"):
+        if path.endswith("/actions/runs") or path.endswith("/actions/workflows/ci.yml/runs"):   # sweep's, prelude's
             self.listings += 1
             return 200, {}, {"workflow_runs": [dict(r, path=sweep.CI_PATH) for r in self.runs.values()]}
         if re.search(r"/pulls/7$", path):
@@ -88,6 +88,23 @@ def finish(rid, g):
 
 
 BOT = "github-actions[bot]"     # the login of gate-sweep.yml's github.token, the recorded runs' triggering_actor
+
+
+def bot(r):
+    """A run whose actor is the bot: only its own sweep-self sweeps it (sweep.self_swept), so its gate is polled."""
+    r["actor"] = {"login": BOT}
+    return r
+
+
+def own_completion(w, rid, fn):
+    """#3885 L3 W2: the first sweep leaves run `rid`'s unfinished gate; `fn` finishes it, and the sweep of
+    its own completion runs. Returns the first sweep's (posts, sleeps, out), then the second's posts."""
+    rc, out = w.sweep()
+    first = (list(w.posts), list(w.sleeps), out)
+    fn(w)
+    w.v_id = rid
+    w.sweep()
+    return first, w.posts
 
 # #3308 at head 6016f9dd, recorded 2026-11-08 from `gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/attempts/<n>/jobs`
 # (the state the sweep for run 42471173865's attempt 24 read at 11:48:1x, after which runs 42470642055 and
@@ -217,10 +234,15 @@ def run_checks():
     w = World([v_run(rid=1, created="1"), run(2, "1")], 1)     # an edit run numbered below its code run
     rc, out = w.sweep()
     ok("a red gate on a HIGHER-id run is re-run (an id orders nothing)", rc == 0 and w.posts == ["repos/o/r/actions/jobs/20/rerun"])
-    w = World([v_run(rid=1, created="1"), run(2, "1", status="in_progress", gstatus="in_progress")], 1,
+    w = World([v_run(rid=1, created="1"), bot(run(2, "1", status="in_progress", gstatus="in_progress"))], 1,
               {2: finish(2, "failure")})
     w.sweep()
-    ok("a HIGHER-id gate still waiting is polled, and re-run once it expires red", w.posts == ["repos/o/r/actions/jobs/20/rerun"])
+    ok("a HIGHER-id bot-actor gate still waiting is polled, and re-run once it expires red",
+       w.posts == ["repos/o/r/actions/jobs/20/rerun"])
+    w = World([v_run(rid=1, created="1"), run(2, "1", status="in_progress", gstatus="in_progress", started="5")], 1)
+    (posts, sleeps, out), then = own_completion(w, 2, finish(2, "failure"))
+    ok("W2: a HIGHER-id gate still waiting is left, unpolled, and its own completion re-runs it red",
+       posts == [] and sleeps == [] and "its completion sweeps" in out and then == ["repos/o/r/actions/jobs/20/rerun"])
     w = World([run(1, "1"), run(9, "3", g="failure", started="4")], 9)
     rc, out = w.sweep()
     ok("a triggering run whose gate is red re-runs nothing (no source finished after either gate started)",
@@ -239,25 +261,55 @@ def run_checks():
     w = World([run(1, "5"), v_run(created="3")], 9)     # V's gate started at "4", before run 1 was created
     ok("a gate that does not cover the newest event sweeps nothing", "reruns=0" in w.sweep()[1] and w.posts == [])
     for st in ("queued", "waiting", "pending", "requested", "in_progress"):
-        w = World([run(1, "1", status=st, gstatus=st), v_run()], 9, {2: finish(1, "failure")})
+        w = World([bot(run(1, "1", status=st, gstatus=st)), v_run()], 9, {2: finish(1, "failure")})
         w.runs[1]["status"] = "in_progress"
         w.script[2] = lambda w: (finish(1, "failure")(w))
         w.sweep()
-        ok(f"a {st} gate is polled, and re-run once it completes red", w.posts == ["repos/o/r/actions/jobs/10/rerun"])
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9, {3: finish(1, "failure")})
+        ok(f"a {st} bot-actor gate is polled, and re-run once it completes red", w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+        w = World([run(1, "1", status="in_progress", gstatus=st, started="5"), v_run()], 9)
+        (posts, sleeps, out), then = own_completion(w, 1, finish(1, "failure"))
+        ok(f"W2: a {st} gate is left unpolled, and its own completion re-runs it red",
+           posts == [] and sleeps == [] and then == ["repos/o/r/actions/jobs/10/rerun"])
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9, {3: finish(1, "failure")})
     rc, out = w.sweep()
     ok("polls are >= 60 s apart, one runs listing each", min(w.sleeps) >= 60 and w.listings == len(w.sleeps) + 1 == 4)
     ok("a polled run is re-run at most once", len(w.posts) == 1)
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9)
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9)
     rc, out = w.sweep()
     ok("a run still going at the bound is left, red, after at most 600 s", w.posts == [] and w.t <= 600 and "still" in out)
     ok("the bound is reached by polling", len(w.sleeps) == 10)
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9, {1: lambda w: (setattr(w, "live_head", "H2"), finish(1, "failure")(w))})
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9, {1: lambda w: (setattr(w, "live_head", "H2"), finish(1, "failure")(w))})
     rc, out = w.sweep()
     ok("a push that moved the head stops the poll without a re-run", w.posts == [] and "SWEEP stop" in out)
-    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9, {1: finish(1, "success")})
+    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9)
+    (posts, sleeps, out), then = own_completion(w, 1, lambda w: (setattr(w, "live_head", "H2"), finish(1, "failure")(w)))
+    ok("W2: a push that moved the head before the left run completed: its own sweep re-runs nothing", then == [])
+    w = World([bot(run(1, "1", status="in_progress", gstatus="in_progress")), v_run()], 9, {1: finish(1, "success")})
     w.sweep()
     ok("a polled run that completes green is not re-run", w.posts == [])
+    w = World([run(1, "1", status="in_progress", gstatus="in_progress"), v_run()], 9)
+    (posts, sleeps, out), then = own_completion(w, 1, finish(1, "success"))
+    ok("W2: a left run that completes green is not re-run by its own sweep", then == [])
+    w = World([run(1, "1", started="5"), v_run()], 1)      # run 1's red gate completed after run 9's green one
+    rc, out = w.sweep()
+    ok("W2 completion arm: a red run's own sweep re-runs its gate where another run's green gate covers the newest event",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.sleeps == [] and "its own completion" in out)
+    w.runs[1].update(run_attempt=2, triggering_actor={"login": BOT})
+    w.runs[1]["gate"].update(started_at="6", completed_at="6")
+    w.posts = []
+    rc, out = w.sweep()
+    ok("W2 completion arm null: the bot's re-run of it, red again after every source finished, is left (no loop)",
+       w.posts == [] and "the bot's re-run" in out)
+    w = World([run(1, "1", started="5"), run(9, "6", g="success", started="4")], 1)
+    rc, out = w.sweep()
+    ok("W2 completion arm null: a green gate that does not cover the newest event re-runs nothing",
+       w.posts == [] and "reruns=0" in out)
+    w = World([run(1, "1", g="success", started="4", units=["3"]), run(3, "1", started="2"),
+               run(9, "3", status="in_progress", started="5")], 9)
+    w.caller = 9        # V's own sweep-self: V still in progress, its red gate after run 1's covering green one
+    rc, out = w.sweep()
+    ok("W2 completion arm null: a run still in progress is no completion; settle re-runs the red that judged early",
+       w.posts == ["repos/o/r/actions/jobs/30/rerun"] and "still busy" not in out)
     w = World([run(1, "1", status="in_progress", g="failure"), v_run()], 9)
     w.runs[1]["gate"]["status"] = "completed"
     out = w.sweep()[1]
@@ -302,9 +354,10 @@ def run_checks():
     w.runs[9]["status"] = "completed"
     w.runs[9]["units"][-1].update(completed_at="9", conclusion="skipped")
     w.runs[11] = run(11, "5", status="in_progress", gstatus="in_progress", started="9")
-    w.script[1] = finish(11, "success")
-    w.sweep()
-    ok("sweep-self null: the workflow_run sweep polls that gate as before", w.sleeps == [POLL_FLOOR])
+    (posts, sleeps, out), then = own_completion(w, 11, finish(11, "success"))
+    ok("sweep-self null, W2: the workflow_run sweep leaves that gate unpolled, and its own green completion "
+       "re-runs the deferral", posts == [] and sleeps == [] and out.startswith("SKIP")
+       and then == ["repos/o/r/actions/jobs/100/rerun"])
     w = self_world("6")
     w.runs[10]["status"] = "in_progress"        # the edit run's own sweep-self still running
     w.script[1] = lambda w: w.runs[10].update(status="completed")
@@ -379,7 +432,7 @@ def run_checks():
             w = pair()
             for t, path in enumerate(sorted(posts)):
                 r = w.runs[int(re.search(r"/jobs/(\d+)/", path)[1]) // 10]
-                r["run_attempt"] = 2
+                r["run_attempt"], r["triggering_actor"] = 2, {"login": BOT}     # the sweep's own re-run
                 r["gate"].update(started_at=f"{7 + t}0", completed_at=f"{7 + t}1")
             w.v_id = v
             w.sweep()
@@ -400,11 +453,16 @@ def run_checks():
         ok(f"settle: a run whose gate is still {st} owns convergence (SKIP, nothing re-run)",
            w.posts == [] and out.startswith("SKIP") and w.sleeps == [])
     w = World([run(1, "1", started="2", units=["1"]),
-               run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"])], 1,
+               bot(run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"]))], 1,
               {1: finish(9, "failure")})
     w.sweep()
-    ok("settle: a gate still running is polled, then the deferral it leaves red is re-judged",
+    ok("settle: a bot-actor gate still running is polled, then the deferral it leaves red is re-judged",
        w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.sleeps == [POLL_FLOOR])
+    w = World([run(1, "1", started="2", units=["1"]),
+               run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"])], 1)
+    (posts, sleeps, out), then = own_completion(w, 9, finish(9, "failure"))
+    ok("settle, W2: a gate still running is left unpolled (SKIP), and its own red completion re-judges the deferral",
+       posts == [] and sleeps == [] and out.startswith("SKIP") and then == ["repos/o/r/actions/jobs/10/rerun"])
     w = World([run(1, "1", started="2", units=["1"])], 1)
     rc, out = w.sweep()
     ok("settle null: a lone red gate at its head is never re-run", w.posts == [] and "reruns=0" in out)
@@ -452,6 +510,84 @@ def run_checks():
     w.sweep()
     ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
        w.posts == [dispatch])
+    # #3885: a code unit already red at the head. The fresh run re-grades the same code. On 2026-11-22/23 the 17
+    # STALE-PIN dispatches graded heads a pull_request run had graded already, and none ended green.
+    def code_red(name="tests / fast (3.14)", concl="failure", at="3"):
+        decider = run(3, "1", started="4")
+        decider["units"] = [{"name": name, "conclusion": concl, "started_at": "2", "completed_at": at}]
+        return decider
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(), v=2)
+    rc, out = w.sweep()
+    ok("stale pin, #3885: a code unit red at the head is no stale verdict: nothing dispatched or re-run, "
+       "the red named", rc == 0 and w.posts == [] and "STALE-PIN P0" in out and "tests / fast (3.14)" in out
+       and "dispatches=0" in out)
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
+               code_red(name="tests / fast (3.14, 2/3)"), v=2)
+    rc, out = w.sweep()
+    ok("stale pin, #3902: a red fast shard is the fast unit's red: nothing dispatched, the shard named",
+       rc == 0 and w.posts == [] and "tests / fast (3.14, 2/3)" in out and "dispatches=0" in out)
+    for label, edit in (("a body unit's red (the fresh run re-reads the body)", dict(name="pr-contract / pr-contract")),
+                        ("arch-score's red (a body unit no pin restores)", dict(name="arch-score / arch-score")),
+                        ("a code unit red then green in a later run at the head",
+                         dict(at="3")),
+                        ("a code unit cancelled, not failed", dict(concl="cancelled"))):
+        rs = [run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(**edit)]
+        if label.startswith("a code unit red then green"):
+            later = run(4, "1", started="4")
+            later["units"] = [{"name": "tests / fast (3.14)", "conclusion": "success", "started_at": "3",
+                               "completed_at": "4"}]
+            rs.append(later)
+        w = pinned(*rs, v=2)
+        w.sweep()
+        ok(f"stale pin, #3885 null: {label} still takes one dispatch", w.posts == [dispatch])
+    # #3895: a unit whose workflow restores its grader from the event's base sha is graded by origin/<base>'s copy in
+    # the fresh run (dispatch 45005979443 turned three of four such reds green): one case per pinned kind dispatches.
+    for name in ("tests / briefs", "governance / policy-docs", "governance / env-matrix", "governance / wave-script",
+                 "codeql / Analyze (python)"):
+        w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red(name=name), v=2)
+        rc, out = w.sweep()
+        ok(f"stale pin, #3895: {name} red (its grader restored from the stale pin) still takes one dispatch",
+           w.posts == [dispatch] and "left:" not in out)
+    ok("#3895: pinned_graders reads the tree's workflows: briefs, policy-docs, env-matrix, wave-script and codeql's "
+       "analyses are pinned, fast (3.14) and mutation are not",
+       {"tests / briefs", "governance / policy-docs", "governance / env-matrix", "governance / wave-script",
+        "codeql / Analyze ("} <= set(sweep.pinned_graders() or ())
+       and not any(n.startswith(sweep.pinned_graders()) for n in ("tests / fast (3.14)", "tests / mutation")))
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, "u.yml"), "w", encoding="utf-8") as f:
+            f.write("on: push\njobs:\n  plain:\n    runs-on: x\n    env:\n      PINNED: ${{ github.sha }}\n"
+                    "  named:\n    name: Leg (${{ matrix.l }})\n    steps:\n      - env:\n"
+                    "          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}\n"
+                    "  keyed:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha }}\n")
+        ok("#3895: pinned_graders takes a job's name up to its first expression, else its key, and only a PINNED "
+           "naming the event's base sha (null: one naming github.sha alone)",
+           sweep.pinned_graders(d) == ("u / Leg (", "u / keyed"))
+    w = pinned(run(1, "1", started="5", units=["6"]), code_red(), v=1)
+    ok("#3895: unreadable workflows pin nothing and fail closed: code_red reads no red beside a red fast (3.14), "
+       "so the dispatch stands (null: the tree's workflows read it)",
+       sweep.pinned_graders("/nonexistent-hpo-dir") is None
+       and sweep.Sweep("o/r", w.get, w.post).code_red(list(w.runs.values()), workflows="/nonexistent-hpo-dir") == []
+       and sweep.Sweep("o/r", w.get, w.post).code_red(list(w.runs.values())) == ["tests / fast (3.14)"])
+    # M6/M7 (#3895 review): a newer job still running does not hide an older red (only completed jobs read), and
+    # "newest" is the job's start, never the run id (a re-run executes a lower run's unit afresh).
+    rs = [run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), code_red()]
+    busy = run(4, "1", started="4")
+    busy["units"] = [{"name": "tests / fast (3.14)", "status": "in_progress", "conclusion": None, "started_at": "3",
+                      "completed_at": None}]
+    w = pinned(*rs, busy, v=2)
+    w.sweep()
+    ok("stale pin, #3885: a code unit red beside a newer attempt still running is left, nothing dispatched",
+       w.posts == [])
+    lower = code_red(concl="success")
+    lower["units"][0]["started_at"] = "3"
+    higher = run(4, "1", started="4")
+    higher["units"] = [{"name": "tests / fast (3.14)", "conclusion": "failure", "started_at": "2", "completed_at": "3"}]
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), lower, higher, v=2)
+    w.sweep()
+    ok("stale pin, #3885 null: the newest-started job decides, not the highest run id (a lower run's re-run green "
+       "after a higher run's red): one dispatch", w.posts == [dispatch])
     w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
                run(5, "6", g="success", started="7"), v=2)
     w.runs[5]["event"] = "workflow_dispatch"
@@ -490,6 +626,7 @@ def run_checks():
     def shape3400():
         f = run(5, "5", status="in_progress", g="success", started="6", units=["5"])
         f["event"] = "workflow_dispatch"
+        bot(f)      # github.token's dispatch: its sweep-self runs, gate-sweep.yml never fires for it
         f["units"].append({"name": sweep.SELF_JOB, "completed_at": None})
         w = pinned(run(1, "1"), run(2, "1", started="3"), run(3, "1", g="success", started="4"), f, v=5)
         w.caller = 5
@@ -701,6 +838,54 @@ def run_checks():
     rc, out = w.sweep()
     ok("#3544 bound: D, green, sweeping itself, re-runs each deferral at the head once in place and dispatches nothing",
        w.posts == [rerun_of(i) for i in sorted(REC3544) if i != D3544 and i != R2_3544] and "dispatches=0" in out)
+    # #3885 L3 W1: a deferred run (its prelude failed on DEFER_STEP, holding no runner) is re-run by its
+    # failed jobs once no source at the head is busy, by prelude.busy_sources, the prelude's own predicate.
+    def deferring(rid, created="1", attempt=1, started="5"):
+        r = run(rid, created, attempt=attempt, started=started)
+        r["units"] = [{"name": "prelude", "status": "completed", "conclusion": "failure", "completed_at": "1",
+                       "steps": [{"name": sweep.DEFER_STEP, "conclusion": "failure"}]}]
+        return r
+    undeferred = "repos/o/r/actions/runs/1/rerun-failed-jobs"
+    w = World([deferring(1), v_run()], 9)
+    rc, out = w.sweep()
+    ok("W1: a decider's green completion re-runs the deferred run's failed jobs, once, never its gate alone",
+       rc == 0 and w.posts == [undeferred] and "deferred run 1" in out)
+    w = World([deferring(1), v_run()], 9)
+    w.runs[1]["units"][0]["steps"] = [{"name": "Derive kind, PR, base, scope and legs", "conclusion": "failure"}]
+    w.sweep()
+    ok("W1 null: a prelude that failed on another step is no deferral: its gate is re-run as before",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    w = World([deferring(1), run(9, "1", status="in_progress", gstatus="in_progress", started="4")], 1)
+    rc, out = w.sweep()
+    ok("W1: a deferred run whose decider is still busy is left, nothing posted; the decider's completion sweeps",
+       w.posts == [] and "run(s) [9] still adding sources" in out)
+    w = World([deferring(1), run(2, "2", status="in_progress", gstatus="in_progress", started="6"),
+               run(9, "3", g="success", started="4")], 9)
+    rc, out = w.sweep()
+    ok("W1: a deferred run left while its sources are busy is not re-judged by its gate alone from a green sweep",
+       w.posts == [] and "run(s) [2] still adding sources" in out and "re-ran gate of run 1" not in out)
+    w = World([deferring(1), v_run()], 1)
+    w.sweep()
+    ok("W1: the deferred run's own completion, its decider already concluded, re-runs it (the race closed)",
+       w.posts == [undeferred])
+    w = World([deferring(1), run(9, "1", g="cancelled", started="4")], 9)
+    w.sweep()
+    ok("W1: a decider cancelled at the live head still re-runs the run that deferred to it", w.posts == [undeferred])
+    w = World([deferring(1, attempt=44), v_run()], 9)
+    rc, out = w.sweep()
+    ok("W1 bound: a deferred run at attempt 44 is left at the cap", w.posts == [] and "at the cap" in out)
+    w = pinned(deferring(1), v_run())
+    rc, out = w.sweep()
+    ok("W1 stale pin: a deferred run pinned before a tools/ci change on its base takes ONE dispatch, no re-run",
+       w.posts == [dispatch] and "STALE-PIN P0" in out and "dispatches=1" in out)
+    w = pinned(deferring(1), v_run(), files=("docs/x.md",))
+    w.sweep()
+    ok("W1 stale pin null: the same deferred run at a current pin is re-run by its failed jobs, nothing dispatched",
+       w.posts == [undeferred])
+    w = pinned(deferring(1), run(2, "1", started="5", units=["6"]), code_red(), v=2)
+    rc, out = w.sweep()
+    ok("W1 stale pin, fresh's leave-rule: a code unit red at the head leaves the deferred run, its line printed",
+       w.posts == [] and "STALE-PIN P0: run 1 left: tests / fast (3.14) failed at this head" in out)
     return checks
 
 

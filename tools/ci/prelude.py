@@ -4,10 +4,10 @@
     python3 -I tools/ci/prelude.py [--changed-from FILE] >> "$GITHUB_OUTPUT"
     python3 -I tools/ci/prelude.py --self-test
 
-Prints `key=value` lines: kind, pr, base, head, scope, legs, workset,
-machinery, selftests. It reads
-the event from GITHUB_EVENT_NAME / GITHUB_EVENT_PATH and nothing else of the
-run. `derive` and `title` are also the gate's (gate.py derives the event's kind
+Prints `key=value` lines: kind, pr, base, head, scope, range_base, light,
+stand_down, legs, workset, machinery, selftests. It reads the event from
+GITHUB_EVENT_NAME / GITHUB_EVENT_PATH, and on a push the runs listing and the
+checkout (`push_range`), and nothing else of the run. `derive` and `title` are also the gate's (gate.py derives the event's kind
 itself and only cross-checks this job's outputs) and `run-name`'s: ci.yml's
 title is the string `title` returns, `sha=` token included (rev2 item 5).
 
@@ -27,17 +27,21 @@ repository, headed by this SHA, based on `base`) or the prelude fails, and the
 gate, which re-verifies, fails with it. A verified one is scoped like that PR's
 pull_request run (CI-2): its legs, machinery and self-tests read the three-dot
 diff against origin/<base>, which `dispatch_diff` reads from the checkout; an
-unreadable or empty diff leaves it unscoped. A non-code run waits (`wait_sources`)
-until no run at its head that it orders after can still add a source: every
+unreadable or empty diff leaves it unscoped. A non-code run whose workset holds a
+SOURCE_READERS unit (pr-contract: an edit run) DEFERS (`busy_sources`, #3885 L3
+W1) while a run at its head that it orders after can still add a source: every
 EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
 does not number a same-second push and body edit in event order
 (R10-RCA-CODESCAN-WAIT: the edit run got the lower id in 27 of 94 pairs), so
 an id alone orders nothing; a code run never waits, so no cycle forms. A run
 can add no source once it is `judging` -- every unit ended and its gate
 listed -- not only once it has finished, because that gate may itself be
-waiting on this run (gate.py's bounded wait). Polls at POLL_S (tvofi's 60 s
-floor, 2026-10-19): one runs listing, and a jobs listing per unfinished
-run waited on. A rate limit prints `RATE-LIMITED` and fails closed (A1 item 4).
+waiting on this run (gate.py's bounded wait). The read is ONE runs listing, and a
+jobs listing per unfinished run it orders after; it never sleeps, so no runner is
+held while a source runs. A busy head prints `defer=<run ids>`, and ci.yml's step
+`Defer: sources still running` fails the prelude at once; tools/ci/sweep.py re-runs
+the failed jobs of that run when a run it deferred to completes (`sweep.undefer`).
+A failed read or a rate limit (`RATE-LIMITED`) fails closed (A1 item 4).
 """
 from __future__ import annotations
 
@@ -46,12 +50,12 @@ import os
 import re
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
+import shards  # noqa: E402  (the fast lane's job names: FAST, owed_fast)
 
 CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
 BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
@@ -64,6 +68,14 @@ BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-
 # code run's gate judges the LATEST body.
 EDIT_UNDER_CODE = BODY_ON_EDIT - {"pr-contract"}
 STARTED = ("in_progress", "completed")
+# #3885: the one unit that reads OTHER runs' sources (its red list). A non-code
+# run whose workset holds none of these -- a review (budget-raise-gate reads
+# reviews only), a label, kernel-points -- holds no runner waiting: its gate
+# defers at once on a busy head (gate.py DEFERRAL) and gate-sweep.yml re-runs
+# it when the deciding run completes, the completion-driven re-evaluation the
+# wait predates. Measured: review run 45300212967's prelude held a runner
+# 21.4 min to derive a one-unit verdict.
+SOURCE_READERS = frozenset({"pr-contract"})
 # R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests /
 # closures' recording, governance / env-matrix, governance /
 # instrument-self-tests) stand down on a pull request whose every changed file
@@ -73,17 +85,18 @@ STARTED = ("in_progress", "completed")
 # infrastructure, a new or unmeasured script, an unknown root file -- runs
 # them, and every push runs them.
 #
-# R10-CI-OWN-DELIVERY-ROW: every pull request carries its own delivery row
-# (DELIVERY_ROW with its number), which is not product, so the rule above
-# idled no pull request. `machinery_rowblind` ignores exactly that row, for
-# the lanes that read no row; another pull request's row stays machinery.
+# R10-CI-OWN-DELIVERY-ROW: every pull request carries its own delivery row,
+# which is not product, so the rule above idled no pull request.
 # dev/audit/harnesses/lane_reads_delivery.recording.json traced each lane's
-# steps: tests / arch-instrument reads no row, while tests / closures (its
-# re-record), governance / env-matrix and governance / instrument-self-tests do
-# (policy_lint and its tree-wide `git grep`), so those three keep `machinery`.
+# steps: tests / arch-instrument reads no path under DELIVERY_DIR, while tests /
+# closures (its re-record), governance / env-matrix and governance /
+# instrument-self-tests do (policy_lint and its tree-wide `git grep`), so those
+# three keep `machinery`. #3885 L4: a lane that reads no row is blind to every
+# row, its own pull request's or another's, so `machinery_rowblind` ignores every
+# path under DELIVERY_DIR -- and a record branch's list (rows only) idles it.
 PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
 PRODUCT_FILES = frozenset({"README.md"})
-DELIVERY_ROW = "dev/programme/delivery/{}.md"
+DELIVERY_DIR = "dev/programme/delivery/"
 # (workflow, job) -> the prelude output its steps gate on; the split is
 # lane_reads_delivery.py's recording, above. `lane_gates` pins it.
 LANE_GATE = {("tests.yml", "arch-instrument"): "machinery_rowblind",
@@ -91,9 +104,53 @@ LANE_GATE = {("tests.yml", "arch-instrument"): "machinery_rowblind",
              ("governance.yml", "env-matrix"): "machinery",
              ("governance.yml", "instrument-self-tests"): "machinery"}
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
+# #3885 (owner, 2026-11-25): a change that touches no PRODUCTION file is graded
+# LIGHT. Production is what an install receives or what HACS reads to publish it:
+# the package, and the root files validate-hacs reads -- its ten checks in run
+# 45328796343 (job 138271567259) are hacsjson, information (the README), license,
+# integration_manifest and six read from the repository's API, not its tree;
+# hassfest reads the package alone. `.github/` holds the lanes themselves, so a
+# change there is never light: it grades every lane it can change.
+PRODUCTION_PREFIXES = ("custom_components/",)
+PRODUCTION_FILES = frozenset({"hacs.json", "README.md", "LICENSE"})
+NEVER_LIGHT = (".github/",)
+# The required lanes that grade only the product, so a light run stands them down
+# at the step level and they report success -- unless the change reaches a file
+# the lane itself reads: the measured closure of its driver script in
+# tests/closures.json, plus the inputs no closure can record (`browser`'s node
+# lane, which is NOT_A_TEST; `typing`'s mypy configuration, typing_ruler.py's
+# CONFIG_BASENAMES; the pinned installs both lanes make).
+LIGHT_LANES = {
+    "browser": ("tests/plan_view.py", ("tests/card_browser.mjs", "tests/pwlane/", "tests/requirements-")),
+    "typing": ("tests/typing_ruler.py", ("tests/requirements-", "mypy.ini", ".mypy.ini", "setup.cfg",
+                                         "pyproject.toml")),
+    "hassfest": (None, ()),
+    "validate": (None, ()),
+    # Coverage measures the package under the suite: it moves only with the package (never
+    # light), the scripts and the tracer's own tools, which its cache key hashes. A light
+    # push it stands down carries its range base's entry forward (tests.yml).
+    "coverage": (None, ("tests/", "tools/coverage/")),
+}
+# A lane whose driver is a node script no closure records (NOT_A_TEST): its reads are
+# derived from that script's own source by node_reads -- every relative import,
+# transitively, and every repository path it joins literally -- so a read added to it
+# keeps the lane grading without a list to keep in step (rev-3888).
+NODE_DRIVERS = {"browser": "tests/card_browser.mjs"}
+_NODE_IMPORT = re.compile(r"""(?:\bfrom|\bimport\(?)\s*["'](\.{1,2}/[^"']+)["']""")
+_NODE_JOIN = re.compile(r"""path\.join\(\s*repo\s*,\s*((?:(?:"[^"]*"|'[^']*'|`[^`]*`)\s*,?\s*)+)""")
+_NODE_LITERAL = re.compile(r""""([^"]*)"|'([^']*)'|`([^`]*)`""")
+# The lanes whose every step past the first reads the stand-down; coverage keeps the
+# steps that carry its cache entry forward, and the push lanes gate by MACHINERY_IDLE.
+STEP_GATED = ("browser", "typing", "hassfest", "validate")
+# Orchestrator ruling under mandate 6893738184 (2026-11-25): a light run's python leg
+# stands down whatever its suffixes say; the next push that is not light analyzes it.
+LIGHT_SKIP_LEGS = ("python",)
+# On a light PUSH the full re-measurements its pull requests already made per
+# diff stand down as well: the closures re-record and the environment matrix.
+LIGHT_PUSH_LANES = ("closures", "env-matrix")
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
-    "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
+    "tests": (shards.FAST, "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
               "closure-scope"),
     "codeql": ("Analyze (actions)", "Analyze (javascript-typescript)", "Analyze (python)"),
     "governance": ("policy-docs", "wave-script", "env-matrix"),
@@ -104,8 +161,7 @@ UNITS = {                                          # every name a unit owes at a
     "pr-contract": ("pr-contract",),
 }
 UNFINISHED = ("queued", "pending", "waiting", "requested", "in_progress")
-POLL_S = 60
-WAIT_MAX_S = 8700       # inside the job's 150-minute timeout: the wait fails before the runner kills it
+POLL_S = 60             # tvofi's 60 s floor on a GitHub poll (2026-10-19): gate.py's
 _QUEUE_PR = re.compile(r"/pr-([0-9]+)-[0-9a-f]{40}$")
 
 
@@ -210,12 +266,16 @@ def run_jobs(get, repo: str, run_id, starts=None) -> dict:
 
 def owed_needs(run: dict) -> list[str]:
     """The unit job names a run's own title owes (judging's workset rule), `tests /
-    closure-scope` aside when the title names no PR; [] for an unreadable title."""
+    closure-scope` aside when the title names no PR; [] for an unreadable title. The fast
+    lane owes the shards its listing names, each `tests / fast (3.14, K/N)` of their one N
+    (shards.owed_fast), else the one unsharded job (#3902 review)."""
     t = parse_title(run.get("title") or "")
     if t is None:
         return []
-    return [f"{u} / {n}" for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
-            if not (u == "tests" and n == "closure-scope" and not t[1])]
+    listed = list(run.get("jobs") or {})
+    return [k for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
+            if not (u == "tests" and n == "closure-scope" and not t[1])
+            for k in (shards.owed_fast(listed) if (u, n) == ("tests", shards.FAST) else [f"{u} / {n}"])]
 
 
 #: A previous attempt's conclusion that still stands while its re-queued need runs again (R4):
@@ -311,31 +371,23 @@ def waits_on(run_id: int, run: dict) -> bool:
     return run["id"] != run_id and (run["id"] < run_id or t is None or t[0] == "code")
 
 
-def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
-    """'' once no run this one waits on can still add a source; else why it stopped."""
-    t0 = now()
-    while True:
-        st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
-                         {"head_sha": ctx["head"], "per_page": 100})
-        if st != 200 or not isinstance(doc, dict):
-            return f"runs at {ctx['head'][:12]}: HTTP {st}"
-        busy = []
-        for r in doc.get("workflow_runs", []):
-            run = {"id": r["id"], "title": r.get("display_title") or "", "attempt": r.get("run_attempt"),
-                   "run_started_at": r.get("run_started_at"), "starts": {}}
-            if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
-                try:
-                    run["jobs"] = run_jobs(get, ctx["repo"], r["id"], run["starts"])
-                    run["prior"] = prior_jobs(get, ctx["repo"], run)
-                except ghapi.ApiError as e:
-                    return str(e)
-                if not judging(run):
-                    busy.append(r["id"])
-        if not busy:
-            return ""
-        if now() - t0 + POLL_S > WAIT_MAX_S:
-            return f"run(s) {sorted(busy)} still adding sources after {WAIT_MAX_S} s"
-        sleep(POLL_S)
+def busy_sources(ctx: dict, get) -> list[int]:
+    """The runs at this head that this one waits on (`waits_on`) and that can still add a
+    source (not `judging`), read ONCE: [] when none can. A failed read raises ghapi.ApiError."""
+    st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                     {"head_sha": ctx["head"], "per_page": 100})
+    if st != 200 or not isinstance(doc, dict):
+        raise ghapi.ApiError(f"runs at {ctx['head'][:12]}", st)
+    busy = []
+    for r in doc.get("workflow_runs", []):
+        run = {"id": r["id"], "title": r.get("display_title") or "", "attempt": r.get("run_attempt"),
+               "run_started_at": r.get("run_started_at"), "starts": {}}
+        if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
+            run["jobs"] = run_jobs(get, ctx["repo"], r["id"], run["starts"])
+            run["prior"] = prior_jobs(get, ctx["repo"], run)
+            if not judging(run):
+                busy.append(r["id"])
+    return sorted(busy)
 
 
 def _product(closures_json: Path):
@@ -348,25 +400,51 @@ def _product(closures_json: Path):
     return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
 
 
-def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, pr: str = "") -> bool:
-    """Whether the machinery lanes run: False only for a changed list that,
-    less pull request `pr`'s own delivery row, is non-empty and all product
-    (C7(a)); an unreadable script table runs them."""
-    own = DELIVERY_ROW.format(pr) if pr.isdigit() else None
-    files = [f for f in (changed or []) if f.strip() and f != own]
+def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, rowblind: bool = False) -> bool:
+    """Whether the machinery lanes run: False only for a non-empty changed list
+    whose every file is product (C7(a)) or, for the lanes that read no row
+    (`rowblind`), a path under DELIVERY_DIR; an unreadable script table runs them."""
+    files = [f for f in (changed or []) if f.strip()]
     is_product = _product(closures_json)
-    return not files or is_product is None or not all(map(is_product, files))
+    if not files or is_product is None:
+        return True
+    return not all(is_product(f) or (rowblind and f.startswith(DELIVERY_DIR)) for f in files)
+
+
+#: (workflow, job) -> the `stand_down` lane name its steps gate on; `light_gates` pins it.
+LIGHT_GATE = {("tests.yml", "browser"): "browser", ("tests.yml", "typing"): "typing",
+              ("tests.yml", "closures"): "closures", ("governance.yml", "env-matrix"): "env-matrix",
+              ("hassfest.yml", "hassfest"): "hassfest", ("validate.yml", "validate-hacs"): "validate",
+              ("tests.yml", "coverage"): "coverage", ("tests.yml", "coverage-ratchet"): "coverage"}
+
+
+def _job_text(workflows: Path, wf: str, job: str) -> str:
+    m = re.search(rf"\n  {re.escape(job)}:\n(.*?)(?=\n  [A-Za-z][\w-]*:\n|\Z)", (workflows / wf).read_text(), re.S)
+    return m.group(1) if m else ""
+
+
+def light_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
+    """(workflow, job) -> the lane names its job-level `env:` reads from `inputs.stand_down`,
+    and for a LIGHT_LANES job whether every step past its first reads that variable."""
+    pat = r"\n      (\w+): \$\{\{[^\n]*contains\(format\(' \{0\} ', inputs\.stand_down\), ' ([\w-]+) '\)"
+    got = {}
+    for k, lane in LIGHT_GATE.items():
+        text = _job_text(workflows, *k)
+        env = re.search(r"\n    env:\n((?:      [^\n]*\n)+)", "\n" + text)
+        reads = re.findall(pat, "\n" + env.group(1)) if env else []
+        names = {n for _, n in reads}
+        if lane in STEP_GATED:
+            steps = re.split(r"\n      - ", text.split("\n    steps:\n", 1)[-1])[2:]
+            var = reads[0][0] if reads else "-"
+            names |= {"every step reads it"} if steps and all(f"env.{var} != 'true'" in s for s in steps) else set()
+        got[k] = names
+    return got
 
 
 def lane_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
     """(workflow, job) -> the set of machinery inputs the job's text names
     (`inputs.machinery`, `inputs.machinery_rowblind`), for each LANE_GATE job."""
-    got = {}
-    for wf, job in LANE_GATE:
-        text = (workflows / wf).read_text()
-        m = re.search(rf"\n  {re.escape(job)}:\n(.*?)(?=\n  [A-Za-z][\w-]*:\n|\Z)", text, re.S)
-        got[(wf, job)] = set(re.findall(r"inputs\.(machinery\w*)", m.group(1))) if m else set()
-    return got
+    return {k: set(re.findall(r"inputs\.(machinery\w*)", _job_text(workflows, *k))) for k in LANE_GATE}
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -440,9 +518,145 @@ def dispatch_diff(ctx: dict, cwd: Path = HERE.parents[1]) -> "tuple[str, list[st
         return None
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
-            selftests=selftest_scope, dispatch_diff=dispatch_diff) -> tuple[dict, str]:
-    """(the outputs, '' or why the prelude fails)."""
+def light(changed: "list[str] | None") -> bool:
+    """#3885: whether a run's changed list is graded light -- readable, non-empty, and
+    holding no production file and nothing under NEVER_LIGHT. A git-quoted entry (a
+    path git C-quoted, which no prefix can read) is never light (rev-3888)."""
+    files = [f for f in (changed or []) if f.strip()]
+    return bool(files) and not any(f.startswith(PRODUCTION_PREFIXES + NEVER_LIGHT + ('"',))
+                                   or f in PRODUCTION_FILES for f in files)
+
+
+def node_reads(entry: str, root: Path = HERE.parents[1]) -> "tuple[set[str], tuple[str, ...]] | None":
+    """(files, prefixes) a node script reads: itself and every relative import,
+    transitively, as files; each `path.join(repo, ...)` whose leading arguments are
+    literals as that path (a file, or a directory: a prefix too), cut at a template's
+    first `${` (a prefix only). None when a script in the chain is unreadable."""
+    files: set[str] = set()
+    prefixes: list[str] = []
+    todo = [entry]
+    while todo:
+        rel = todo.pop()
+        if rel in files:
+            continue
+        try:
+            src = (root / rel).read_text()
+        except (OSError, UnicodeDecodeError):
+            return None
+        files.add(rel)
+        for imp in _NODE_IMPORT.findall(src):
+            todo.append(os.path.normpath(os.path.join(os.path.dirname(rel), imp)))
+        for args in _NODE_JOIN.findall(src):
+            parts, cut = [], False
+            for a, b, t in _NODE_LITERAL.findall(args):
+                part = a or b or t
+                if t and "${" in t:
+                    parts.append(t.split("${")[0])
+                    cut = True
+                    break
+                parts.append(part)
+            joined = "/".join(p.strip("/") for p in parts if p.strip("/"))
+            if cut:
+                prefixes.append(joined + ("/" if parts[-1].endswith("/") else ""))
+            elif joined:
+                files.add(joined)
+                prefixes.append(joined + "/")
+    return files, tuple(sorted(set(prefixes)))
+
+
+def stand_down(changed: "list[str] | None", push: bool, closures_json: Path = CLOSURES_JSON,
+               root: Path = HERE.parents[1]) -> list[str]:
+    """The lanes a run stands down: none unless `light(changed)`; then every LIGHT_LANES
+    lane the change does not reach (and LIGHT_PUSH_LANES on a push). An unreadable
+    script table, or node driver, stands nothing down."""
+    if not light(changed):
+        return []
+    try:
+        closures = json.loads(closures_json.read_text())["closures"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
+    lanes = []
+    for lane, (driver, extra) in LIGHT_LANES.items():
+        reads = set(closures.get(driver) or ()) if driver else set()
+        if driver and not reads:
+            return []                        # the driver's closure is unrecorded: nothing is proven
+        node = node_reads(NODE_DRIVERS[lane], root) if lane in NODE_DRIVERS else (set(), ())
+        if node is None:
+            return []                        # the node driver is unreadable: nothing is proven
+        if not any(f in reads or f in node[0] or f.startswith(extra + node[1]) or Path(f).name in extra
+                   for f in changed):
+            lanes.append(lane)
+    return sorted(lanes + (list(LIGHT_PUSH_LANES) if push else []))
+
+
+def _quote_probe() -> tuple[list[str], list[str]]:
+    """(the changed list, git's default listing) over a throwaway repo
+    (tests/throwaway_git.py) whose one commit adds `custom_components/\u00fc.py`."""
+    import tempfile
+    sys.path.insert(0, str(HERE.parents[1] / "tests"))
+    from throwaway_git import throwaway_git_init
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q")
+
+        def git(*a: str) -> str:
+            return subprocess.run(["git", *a], cwd=td, env=env, capture_output=True, text=True, check=True).stdout
+        Path(td, "a.md").write_text("a\n")
+        git("add", "-A")
+        git("commit", "-qm", "base")
+        base = git("rev-parse", "HEAD").strip()
+        Path(td, "custom_components").mkdir()
+        Path(td, "custom_components", "\u00fc.py").write_text("x = 1\n")
+        git("add", "-A")
+        git("commit", "-qm", "non-ASCII production path")
+        # quote-null-control: git's default listing on purpose, the form rev-3888 found.
+        porcelain = [l for l in git("diff", "--name-only", f"{base}...HEAD").splitlines() if l]
+        return _codeql_scope().changed_files(base, "HEAD", cwd=td, env=env), porcelain
+
+
+def _is_ancestor(base: str, head: str, cwd: Path) -> bool:
+    return subprocess.run(["git", "merge-base", "--is-ancestor", base, head], cwd=cwd,
+                          capture_output=True).returncode == 0
+
+
+def push_range(ctx: dict, get, diff=None, ancestor=None,
+               cwd: Path = HERE.parents[1]) -> "tuple[str, list[str]] | None":
+    """(base, the files changed base..head) for a push to main, or None (graded in full).
+    The base is the head of the newest EARLIER push run on main that completed, was not
+    cancelled and whose prelude succeeded, so its units ran: main-cancel.yml cancels a
+    superseded run, so HEAD^1 would leave the cancelled run's commits graded by no
+    run, and a production commit among them must never fall into a light range. A run
+    whose prelude failed graded nothing, and its range stays in ours. None when the
+    listing is unreadable, no such run is on its first page, or its head is not an
+    ancestor of this one."""
+    st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                     {"branch": "main", "event": "push", "per_page": 100})
+    if st != 200 or not isinstance(doc, dict):
+        return None
+    for r in sorted(doc.get("workflow_runs") or [], key=lambda r: -r["id"]):
+        if (r["id"] >= ctx["run_id"] or r.get("event") != "push" or r.get("head_branch") != "main"
+                or r.get("status") != "completed" or r.get("conclusion") == "cancelled"):
+            continue
+        try:
+            if run_jobs(get, ctx["repo"], r["id"]).get("prelude") != ("completed", "success"):
+                continue
+        except ghapi.ApiError:
+            return None
+        base = r.get("head_sha") or ""
+        if not base or not (ancestor or _is_ancestor)(base, ctx["head"], cwd):
+            return None
+        try:
+            return base, (diff or _codeql_scope().changed_files)(base, ctx["head"])
+        except subprocess.CalledProcessError:
+            return None
+    return None
+
+
+def outputs(ctx: dict, changed: list[str] | None, get, proof=proof_scope,
+            selftests=selftest_scope, dispatch_diff=dispatch_diff, push_range=push_range,
+            fast=None) -> tuple[dict, str]:
+    """(the outputs, '' or why the prelude fails). `fast` is shards.outputs (main passes it):
+    the fast lane's shards, sized by the list the scope reads, its timings read at the base.
+    `defer` names the runs a SOURCE_READERS run defers to (`busy_sources`), else ''."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
     out = {"kind": kind, "pr": pr, "base": base, "head": ctx["head"],
@@ -461,14 +675,34 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
         got = dispatch_diff(ctx)
         if got and got[1]:
             scoped, changed, ctx = "pull_request", got[1], {**ctx, "base_sha": got[0]}
+    # #3885: a push is graded over its RANGE (push_range). A light range is graded as a pull
+    # request over it would be -- scoped, its legs, machinery and self-tests from that list --
+    # and every other push in full, as before: `range_base` alone feeds the coverage restore.
+    out["range_base"], out["light"] = "", "false"
+    if ev == "push":
+        rng = push_range(ctx, get)
+        if rng:
+            out["range_base"] = rng[0]
+            if light(rng[1]):
+                scoped, changed, ctx, out["scope"] = "pull_request", rng[1], {**ctx, "base_sha": rng[0]}, "auto"
+    if scoped == "pull_request" and light(changed):
+        out["light"] = "true"
+    out["stand_down"] = " ".join(stand_down(changed, ev == "push") if out["light"] == "true" else [])
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if scoped != "pull_request" or machinery(changed) else "false"
-    # R10-CI-SELFTEST-SCOPE: only a pull request is scoped; every other event,
-    # a push to main above all, runs every step and re-measures them.
+    # R10-CI-SELFTEST-SCOPE: only a pull request (and a light push, graded as one) is
+    # scoped; every other event, a push touching production above all, runs every step
+    # and re-measures them.
     out["selftests"] = selftests(ctx) if scoped == "pull_request" else "all"
-    out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, pr=pr) else "false"
-    out["legs"] = json.dumps({leg: codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
+    out["machinery_rowblind"] = "true" if scoped != "pull_request" or machinery(changed, rowblind=True) else "false"
+    # Both keys always: ci.yml declares them as prelude outputs; empty is one unsharded job.
+    out.update({"fast_shards": "", "fast_plan": "", "defer": ""})
+    if fast is not None:
+        out.update(fast(changed if scoped == "pull_request" else None,
+                        ctx.get("base_sha") or ctx.get("before") or ctx["head"]))
+    out["legs"] = json.dumps({leg: "skip" if out["light"] == "true" and leg in LIGHT_SKIP_LEGS
+                              else codeql_scope.decide(leg, scoped, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     if not why and kind == "edit":
         try:
@@ -477,8 +711,11 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
                 return out, ""
         except ghapi.ApiError as e:
             return out, str(e)
-    if not why and kind != "code":
-        why = wait_sources(ctx, get, sleep)
+    if not why and kind != "code" and set(out["workset"].split()) & SOURCE_READERS:
+        try:
+            out["defer"] = " ".join(str(i) for i in busy_sources(ctx, get))
+        except ghapi.ApiError as e:
+            why = str(e)
     return out, why
 
 
@@ -493,7 +730,7 @@ def main(argv: list[str], get=ghapi.get, env=os.environ) -> int:
         return 2
     ev = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text())
     try:
-        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get)
+        out, why = outputs(context(env["GITHUB_EVENT_NAME"], ev, env), changed, get, fast=shards.outputs)
     except ghapi.RateLimited as e:
         print(f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", file=sys.stderr)
         return 3
@@ -569,25 +806,39 @@ def self_test() -> int:
             rid = int(path.split("/runs/")[1].split("/")[0])
             return 200, {}, {"jobs": next(r["jobs"] for r in frame if r["id"] == rid)}
         return get, naps
-    tick = iter(range(0, 10 ** 6, 3000))
-    get, naps = timeline([run(40, "code", "in_progress", done("code", gate=False)), run(60, "edit", "queued")],
-                         [run(40, "code", "completed"), run(45, "code", "action_required"),
-                          run(60, "edit", "queued")])
-    check("waits for an earlier run, not a later non-code or held one",
-          (wait_sources(rctx, get, naps.append, lambda: next(tick)), naps), ("", [POLL_S]))
-    get, naps = timeline([run(60, "code", "in_progress", done("code", gate=False))],
-                         [run(60, "code", "in_progress", done("code"))])
-    check("M1: waits for a LATER code run (a same-second pair numbered out of order) until it is judging",
-          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", [POLL_S]))
-    get, naps = timeline([run(40, "edit", "in_progress", done("edit"))])
-    check("a run whose gate is listed and units ended adds no source: not waited on (its gate may wait on us)",
-          (wait_sources(rctx, get, naps.append, iter(range(0, 10 ** 6, 3000)).__next__), naps), ("", []))
-    check("poll floor is 60 s", POLL_S >= 60, True)
-    clock = iter(range(0, 10 ** 6, 3000))
-    get, _ = timeline([run(1, "code", "queued")])
-    w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
-    check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
-    # GATE-BUSY-REQUEUED-NEEDS through the wait: a re-run's re-queued need, finished in attempt 1, is no wait.
+    reads = []
+
+    def once(*frame):
+        """A get over ONE listing, counting the runs listings it serves: the defer reads once."""
+        get = timeline(list(frame))[0]
+
+        def counted(path, params=None):
+            reads.append(path) if path.endswith("ci.yml/runs") else None
+            return get(path, params)
+        return counted
+    check("W1: names an earlier busy run, not a later non-code one",
+          busy_sources(rctx, once(run(40, "code", "in_progress", done("code", gate=False)), run(60, "edit", "queued"))),
+          [40])
+    check("W1: the defer is one runs listing, never a poll", len(reads), 1)
+    check("W1 null: that run finished, beside a held later code run: defers to nothing",
+          busy_sources(rctx, once(run(40, "code", "completed"), run(45, "code", "action_required"),
+                                  run(60, "edit", "queued"))), [])
+    check("M1: names a LATER code run (a same-second pair numbered out of order) until it is judging",
+          busy_sources(rctx, once(run(60, "code", "in_progress", done("code", gate=False)))), [60])
+    check("M1 null: that later code run, judging, is no source",
+          busy_sources(rctx, once(run(60, "code", "in_progress", done("code")))), [])
+    check("a run whose gate is listed and units ended adds no source: not deferred to (its gate may wait on us)",
+          busy_sources(rctx, once(run(40, "edit", "in_progress", done("edit")))), [])
+    check("poll floor is 60 s (gate.py's)", POLL_S >= 60, True)
+
+    def down(path, params=None):
+        return 502, {}, {}
+    try:
+        got = busy_sources(rctx, down)
+    except ghapi.ApiError as e:
+        got = str(e)
+    check("W1: an unreadable runs listing fails closed (raises), never reads as idle", got, "runs at H: HTTP 502")
+    # GATE-BUSY-REQUEUED-NEEDS through the defer: a re-run's re-queued need, finished in attempt 1, is no source.
     rqfx = json.loads((HERE / "fixtures" / "gate_requeued_needs_runs.json").read_text())
 
     def rq_get(path, params=None):
@@ -595,8 +846,8 @@ def self_test() -> int:
             return 200, {}, {"workflow_runs": [{**rqfx["run"], "id": 40, "status": "in_progress"}]}
         att = "1" if "/attempts/1/" in path else "2"
         return 200, {}, {"jobs": rqfx["attempts"][att]}
-    check("requeued needs: wait_sources does not wait on a lower run whose only unfinished job is a need finished "
-          "in attempt 1", wait_sources(rctx, rq_get, lambda s: None, iter(range(0, 10 ** 6, 3000)).__next__), "")
+    check("requeued needs: busy_sources does not name a lower run whose only unfinished job is a need finished "
+          "in attempt 1", busy_sources(rctx, rq_get), [])
 
     def rq_failed_get(path, params=None):          # re-run failed jobs: `tests / mutation` failed in attempt 1
         if path.endswith("ci.yml/runs"):
@@ -606,9 +857,8 @@ def self_test() -> int:
                                       for j in rqfx["attempts"]["1"]]}
         return 200, {}, {"jobs": [dict(j, status="queued", conclusion=None, started_at=None)
                                   if j["name"] == "tests / mutation" else j for j in rqfx["attempts"]["2"]]}
-    check("requeued needs null: wait_sources still waits on a lower run re-running a unit that failed in attempt 1",
-          wait_sources(rctx, rq_failed_get, lambda s: None, iter(range(0, 10 ** 6, 3000)).__next__).startswith(
-              "run(s) [40] still adding sources"), True)
+    check("requeued needs null: busy_sources still names a lower run re-running a unit that failed in attempt 1",
+          busy_sources(rctx, rq_failed_get), [40])
     # C3 (option A): an edit run beside a code run that has not started its
     # pr-contract exits at once with the body units less pr-contract; beside one
     # whose pr-contract has started, or a finished one, it waits as before.
@@ -618,19 +868,13 @@ def self_test() -> int:
     contract = lambda st: in_units + [{"name": "pr-contract / pr-contract", "status": st, "conclusion": None}]  # noqa: E731
 
     def edit_out(*frames):
+        """outputs() of the edit run over the first frame (no defer reads twice), and the deferral."""
         get, naps = timeline(*frames)
 
-        def nap(s):                         # bounded: a wait the frames never end is a failed check, not a hang
-            naps.append(s)
-            if len(naps) > 5:
-                raise TimeoutError("waited past the frames")
-
         def run_it():
-            try:
-                return outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
-                               else get(path, params), nap)
-            except TimeoutError as e:
-                return {"workset": f"UNBOUNDED: {e}"}, ""
+            o, why = outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
+                             else get(path, params))
+            return {**o, "workset": o["workset"]}, why or o["defer"]
         return run_it, naps
     f, naps = edit_out([run(40, "code", "in_progress", in_units)])
     check("C3: beside a code run in its units, the edit run exits at once without pr-contract",
@@ -643,19 +887,30 @@ def self_test() -> int:
           ("arch-score budget-raise-gate", []))
     f, naps = edit_out([run(40, "code", "in_progress", contract("in_progress"))],
                        [run(40, "code", "in_progress", done("code"))])
-    check("C3: beside a started pr-contract (it may have read the old body) the edit run waits and owns pr-contract",
-          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", ""), [POLL_S]))
+    check("C3: beside a started pr-contract (it may have read the old body) the edit run defers and owns pr-contract",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", "40"), []))
     f, naps = edit_out([run(40, "code", "completed", done("code"))])
-    check("C3: beside a finished code run, the full edit workset and no wait", ((lambda o: o[0]["workset"])(f()), naps),
-          ("arch-score budget-raise-gate pr-contract", []))
+    check("C3: beside a finished code run, the full edit workset and no deferral", ((lambda o: (o[0]["workset"], o[1]))(f()),
+          naps), (("arch-score budget-raise-gate pr-contract", ""), []))
     other = title("code", "8", "main", "M")
     f, naps = edit_out([{**run(40, "code", "in_progress", in_units), "display_title": other}],
                        [{**run(40, "code", "in_progress", done("code")), "display_title": other}])
-    check("C3: a code run for another PR at this head is no deferral; it is waited on (null control)",
-          (f()[0]["workset"], naps), ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    check("C3: a code run for another PR at this head is no C3 deferral; the defer names it (null control)",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", "40"), []))
     f, naps = edit_out([run(40, "edit", "in_progress", in_units)], [run(40, "edit", "in_progress", done("edit"))])
-    check("C3: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
-          ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    check("C3: an unfinished EDIT run is no C3 deferral; the defer names it", ((lambda o: (o[0]["workset"], o[1]))(f()),
+          naps), (("arch-score budget-raise-gate pr-contract", "40"), []))
+    def no_wait(c):
+        """(why, defer) of outputs() for `c` beside a busy code run: no outputs() argument can sleep."""
+        o, why = outputs(c, None, timeline([run(40, "code", "in_progress", done("code", gate=False))])[0])
+        return why, o["defer"]
+    check("#3885: a review run beside a busy code run holds no runner: no defer, no failure (its gate defers)",
+          no_wait(rctx), ("", ""))
+    lctx = ctx("pull_request", action="labeled", label={"name": "x"}, pull_request=pr)
+    check("#3885: a label run beside a busy code run holds no runner", no_wait(lctx), ("", ""))
+    check("#3885 null control, W1: an edit run (pr-contract) beside the same busy code run defers to it, at once",
+          no_wait(ctx("pull_request", action="edited", pull_request=pr)), ("", "40"))
+    check("#3885: only pr-contract reads other runs' sources", SOURCE_READERS <= set(BODY_UNITS), True)
     check("C3: a review run never defers (only an edit does)",
           outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
     # C7(a): the machinery lanes stand down only on an all-product pull request.
@@ -675,31 +930,45 @@ def self_test() -> int:
             check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
         check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
         check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
-        # The pull request's own delivery row is ignored: neither product nor
-        # machinery. Exactly that row, keyed on the number the event names.
+        # The row-blind lanes ignore every delivery row (#3885 L4): the lane reads no
+        # path under DELIVERY_DIR (lane_reads_delivery.recording.json), so no row's
+        # change can move it, whichever pull request the row belongs to.
         own = "dev/programme/delivery/3300.md"
-        check("C7a-row: a package file plus its own delivery row idles them",
-              machinery([cc, own], cj, "3300"), False)
+        other = "dev/programme/delivery/3299.md"
+        check("C7a-row: a package file plus its own delivery row idles the row-blind lanes",
+              machinery([cc, own], cj, rowblind=True), False)
+        check("C7a-row: ... and ANOTHER pull request's row idles them too",
+              machinery([cc, other], cj, rowblind=True), False)
         check("C7a-row: ... the row beside tools/ still runs them (null control)",
-              machinery([cc, own, "tools/ci/gate.py"], cj, "3300"), True)
-        check("C7a-row: ANOTHER pull request's row still counts as machinery",
-              machinery([cc, "dev/programme/delivery/3299.md"], cj, "3300"), True)
-        check("C7a-row: ... and so does the row when the event names no number",
-              machinery([cc, own], cj, ""), True)
-        check("C7a-row: the own row alone is nothing product to stand on: runs them",
-              machinery([own], cj, "3300"), True)
-        check("C7a-row: an empty list still runs them", machinery([], cj, "3300"), True)
-        check("C7a-row: an unread changed list still runs them", machinery(None, cj, "3300"), True)
+              machinery([cc, own, "tools/ci/gate.py"], cj, rowblind=True), True)
+        check("C7a-row: a row runs the row-READING lanes (rowblind off)", machinery([cc, own], cj), True)
+        check("L4: a record branch's list (rows only) idles the row-blind lanes",
+              machinery([own, other], cj, rowblind=True), False)
+        check("L4: ... and runs the row-reading lanes", machinery([own, other], cj), True)
+        check("L4: ... a file beside the rows outside product runs them (null control)",
+              machinery([own, other, "dev/programme/HANDOVER.md"], cj, rowblind=True), True)
+        check("L4: ... and so does a path beside delivery/ that only shares its stem (null control)",
+              machinery([own, "dev/programme/delivery.md"], cj, rowblind=True), True)
+        check("C7a-row: an empty list still runs them", machinery([], cj, rowblind=True), True)
+        check("C7a-row: an unread changed list still runs them", machinery(None, cj, rowblind=True), True)
         check("C7a-row: an unreadable script table still runs them",
-              machinery([cc, own], Path(td) / "none.json", "3300"), True)
+              machinery([own], Path(td) / "none.json", rowblind=True), True)
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                      ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"], g(live))
-    check("C7a-row: the prelude passes the event's number: package + row 7 on pull request 7 idles the row-blind lanes",
+    check("C7a-row: package + row 7 on pull request 7 idles the row-blind lanes",
           out["machinery_rowblind"], "false")
     check("C7a-row: ... and runs the lanes that read rows", out["machinery"], "true")
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                      ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/8.md"], g(live))
-    check("C7a-row: ... and row 8 on pull request 7 runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
+    check("C7a-row: ... and row 8 on pull request 7 idles them too", (out["machinery_rowblind"], out["machinery"]), ("false", "true"))
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["dev/programme/delivery/8.md", "dev/programme/delivery/9.md"], g(live))
+    check("L4: a record pull request (other PRs' rows only) is light, idles the row-blind lanes, runs the row readers",
+          (out["light"], out["machinery_rowblind"], out["machinery"]), ("true", "false", "true"))
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["dev/programme/delivery/8.md", "tools/ci/gate.py"], g(live))
+    check("L4: ... the same list plus tools/ci/gate.py runs them (null control)",
+          (out["light"], out["machinery_rowblind"]), ("true", "true"))
     out = outputs(ctx("push"), ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"],
                   g(live))[0]
     check("C7a-row: a push with the row still runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
@@ -708,6 +977,23 @@ def self_test() -> int:
     check("C7a: the prelude's output on a product-only pull request", (out["machinery"], out["machinery_rowblind"]),
           ("false", "false"))
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
+    # R11-CI-CASE-SELECT P2: the fast shards are sized by the list the scope reads -- a pull
+    # request's diff, nothing on a full push -- and read their timings at the event's base.
+    seen = []
+
+    def fast(changed, ref):
+        seen.append((changed, ref))
+        return {"fast_shards": '["1/2","2/2"]', "fast_plan": "{}"}
+    bpr = {**pr, "base": {"ref": "main", "sha": "BASE"}}
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=bpr), ["README.md"], g(live), fast=fast)
+    check("P2: the prelude emits the planner's two outputs", (out.get("fast_shards"), out.get("fast_plan")),
+          ('["1/2","2/2"]', "{}"))
+    out, _ = outputs(ctx("push", before="B"), None, g(live), fast=fast)
+    check("P2: a pull request's plan reads its diff at its base; a full push reads all at `before`",
+          seen, [(["README.md"], "BASE"), (None, "B")])
+    check("P2: with no planner both outputs are still printed, empty (one unsharded job)",
+          {k: outputs(ctx("push"), None, g(live))[0].get(k) for k in ("fast_shards", "fast_plan")},
+          {"fast_shards": "", "fast_plan": ""})
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.
@@ -786,7 +1072,7 @@ def self_test() -> int:
 
         def get(path, params=None):
             if path.endswith("ci.yml/runs"):
-                return 200, {}, {"workflow_runs": runs.get(params["head_sha"], [])}
+                return 200, {}, {"workflow_runs": runs.get((params or {}).get("head_sha"), [])}
             return 200, {}, {"jobs": jobs[int(path.split("/runs/")[1].split("/")[0])]}
         return get
     all3 = ("actions", "javascript-typescript", "python")
@@ -846,6 +1132,167 @@ def self_test() -> int:
                                  .replace("inputs.machinery ", "inputs.machinery_rowblind "))
         check("C7a-row: ... and a row-reading lane moved to the row-blind input is seen (null control)",
               lane_gates(wd)[("tests.yml", "closures")] >= {"machinery_rowblind"}, True)
+    # #3885: light grading. The production predicate, and NEVER_LIGHT beside it.
+    rec = "dev/programme/delivery/3884.md"
+    check("#3885: a records-only list is light", light([rec, "tools/ci/gate.py", "tests/entities.py"]), True)
+    for f in ("custom_components/heatpump_optimizer/const.py", "hacs.json", "README.md", "LICENSE",
+              ".github/workflows/tests.yml"):
+        check(f"#3885: ... and {f} beside it is not light (null control)", light([rec, f]), False)
+    check("#3885: an empty or unread list is not light (fail closed)", (light([]), light(None), light([" "])),
+          (False, False, False))
+    # rev-3888 (2): git C-quotes a path with a non-ASCII or special byte unless told not to.
+    quoted = '"custom_components/heatpump_optimizer/\\303\\274.py"'
+    check("#3885: a git-quoted path is not light (fail closed)", light([rec, quoted]), False)
+    check("#3885: ... while an unquoted tools path beside it is (null control)", light([rec, "tools/ci/x.py"]), True)
+    q_listed, q_porcelain = _quote_probe()
+    check("#3885: the changed list names a non-ASCII production path unquoted, and it is not light",
+          (q_listed, light(q_listed)), (["custom_components/\u00fc.py"], False))
+    check("#3885: ... where git's default listing quotes it (null control: the probe reaches the quoting)",
+          q_porcelain, ['"custom_components/\\303\\274.py"'])
+    with tempfile.TemporaryDirectory() as td:
+        cj = Path(td) / "closures.json"
+        cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/harness.py", "tests/plan_view.py"],
+                                               "tests/typing_ruler.py": ["tests/typing_budgets.json"]}}))
+        prod_lanes = ["browser", "coverage", "hassfest", "typing", "validate"]
+        check("#3885: a light pull request stands the product lanes down",
+              stand_down([rec], False, cj), prod_lanes)
+        check("#3885: a light push also stands down the re-measurements its pull requests made",
+              stand_down([rec], True, cj), sorted(prod_lanes + ["closures", "env-matrix"]))
+        for f, lane in (("tests/harness.py", "browser"), ("tests/card_browser.mjs", "browser"),
+                        ("tests/pwlane/package.json", "browser"), ("tests/typing_budgets.json", "typing"),
+                        ("pyproject.toml", "typing"), ("tests/requirements-ci.txt", "typing"),
+                        ("tests/other.py", "coverage"), ("tools/coverage/coverage_tree.sh", "coverage")):
+            check(f"#3885: {f}, a file {lane} reads, keeps {lane} grading", lane in stand_down([rec, f], False, cj),
+                  False)
+        check("#3885: a file no lane reads keeps none (null control)", stand_down([rec, "tools/ci/gate.py"], False, cj),
+              prod_lanes)
+        # rev-3888 (1): the node driver's own reads, derived from its source, keep browser grading.
+        for f in ("tests/card_rig.mjs", "tests/dom_stub.mjs", "docs/img/card/pages.json"):
+            check(f"#3885: {f}, a file tests/card_browser.mjs reads, keeps browser grading",
+                  "browser" in stand_down([rec, f], False, cj), False)
+        check("#3885: ... while a docs file it does not read stands browser down (null control)",
+              "browser" in stand_down([rec, "docs/img/other.png"], False, cj), True)
+        nd = Path(td) / "tests"
+        nd.mkdir()
+        (nd / "drv.mjs").write_text('import { a } from "./lib.mjs";\nimport fs from "node:fs";\n'
+                                    'const repo = 1;\nconst M = path.join(repo, "docs/img", NAME);\n'
+                                    'const T = path.join(repo, `pkg/translations/${l}.json`);\n')
+        (nd / "lib.mjs").write_text('import { b } from "../tests/leaf.mjs";\n')
+        (nd / "leaf.mjs").write_text("export const b = 1;\n")
+        check("#3885: node_reads follows relative imports transitively and reads literal repo joins",
+              node_reads("tests/drv.mjs", Path(td)),
+              ({"tests/drv.mjs", "tests/lib.mjs", "tests/leaf.mjs", "docs/img"},
+               ("docs/img/", "pkg/translations/")))
+        check("#3885: an unreadable node driver reads as unknown (fail closed)",
+              node_reads("tests/none.mjs", Path(td)), None)
+        check("#3885: ... and an unreadable node driver stands nothing down",
+              stand_down([rec], True, cj, Path(td) / "nowhere"), [])
+        check("#3885: a tests/ file keeps coverage and stands the rest down",
+              stand_down([rec, "tests/other.py"], False, cj), ["browser", "hassfest", "typing", "validate"])
+        check("#3885: a production file stands nothing down", stand_down([rec, "hacs.json"], True, cj), [])
+        check("#3885: an unreadable script table stands nothing down", stand_down([rec], True, Path(td) / "x"), [])
+        cj.write_text(json.dumps({"closures": {"tests/plan_view.py": ["tests/plan_view.py"]}}))
+        check("#3885: a lane driver with no recorded closure stands nothing down", stand_down([rec], True, cj), [])
+    # The push range. Run 50 is this one; GitHub lists the newest first.
+    pctx0 = context("push", {}, {**env, "GITHUB_REF": "refs/heads/main"})
+
+    def listing(*runs, prelude="success", jobs_status=200):
+        def get(path, params=None):
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{"event": "push", "head_branch": "main", "status": "completed", **r}
+                                                   for r in runs]}
+            if jobs_status != 200:
+                return jobs_status, {}, {"message": "boom"}
+            rid = int(path.split("/runs/")[1].split("/")[0])
+            pre = prelude.get(rid, "success") if isinstance(prelude, dict) else prelude
+            return 200, {}, {"jobs": [{"name": "prelude", "status": "completed", "conclusion": pre}]}
+        return get
+    files_since = {"B": [rec, "custom_components/heatpump_optimizer/const.py"], "P": [rec], "Q": [rec]}
+    rng = lambda get, anc=True: push_range(pctx0, get, lambda b, h: files_since[b], lambda b, h, c: anc)  # noqa: E731
+    replaced = listing({"id": 49, "head_sha": "P", "conclusion": "cancelled"},
+                       {"id": 48, "head_sha": "B", "conclusion": "failure"})
+    check("#3885: a replaced (cancelled) pending run is no base: its production commit stays in the range",
+          (rng(replaced), light(rng(replaced)[1])), (("B", files_since["B"]), False))
+    check("#3885: ... null control: had it run, its head is the base and the range is light",
+          rng(listing({"id": 49, "head_sha": "P", "conclusion": "failure"},
+                      {"id": 48, "head_sha": "B", "conclusion": "failure"})), ("P", [rec]))
+    check("#3885: a run whose prelude failed graded nothing and is no base",
+          rng(listing({"id": 49, "head_sha": "P", "conclusion": "failure"}, {"id": 48, "head_sha": "B",
+                       "conclusion": "success"}, prelude={49: "failure"}))[0], "B")
+    check("#3885: a later run, this run and an unfinished one are no base",
+          rng(listing({"id": 51, "head_sha": "Q", "conclusion": "success"},
+                      {"id": 50, "head_sha": "Q", "conclusion": "success"},
+                      {"id": 49, "head_sha": "Q", "conclusion": None, "status": "in_progress"},
+                      {"id": 47, "head_sha": "B", "conclusion": "success"}))[0], "B")
+    for name, got in (("an unreadable listing", rng(lambda p, q=None: (502, {}, None))),
+                      ("no earlier run", rng(listing({"id": 51, "head_sha": "Q", "conclusion": "success"}))),
+                      ("an unreadable jobs listing", rng(listing({"id": 48, "head_sha": "B", "conclusion": "success"},
+                                                                 jobs_status=502))),
+                      ("a base that is no ancestor", rng(listing({"id": 48, "head_sha": "P", "conclusion": "success"}),
+                                                         anc=False))):
+        check(f"#3885: {name} leaves the push unranged (graded in full)", got, None)
+
+    def push_out(r):
+        return outputs(pctx0, None, lambda p, q=None: (200, {}, live), push_range=lambda c, g: r,
+                       selftests=lambda c: f"sel {c['base_sha']}..{c['head']}")[0]
+    o = push_out(("P", [rec]))
+    check("#3885: a light push is graded as a pull request over its range",
+          (o["scope"], o["light"], o["range_base"], o["selftests"], o["stand_down"], set(json.loads(o["legs"]).values())),
+          ("auto", "true", "P", "sel P..H", "browser closures coverage env-matrix hassfest typing validate", {"skip"}))
+    o = push_out(("B", files_since["B"]))
+    check("#3885: a push whose range holds production is graded in full, its range base kept (null control)",
+          (o["scope"], o["light"], o["range_base"], o["selftests"], o["stand_down"], set(json.loads(o["legs"]).values())),
+          ("full", "false", "B", "all", "", {"analyze"}))
+    o = push_out(None)
+    check("#3885: an unranged push is graded in full", (o["scope"], o["light"], o["range_base"]), ("full", "false", ""))
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec], g(live))[0]
+    check("#3885: a light pull request keeps its scope and stands only the product lanes down",
+          (o["scope"], o["light"], o["stand_down"]), ("auto", "true", "browser coverage hassfest typing validate"))
+    py = "tools/ci/gate.py"
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec, py], g(live))[0]
+    check("#3885: a light pull request touching python stands the python leg down",
+          json.loads(o["legs"])["python"], "skip")
+    # codeql_scope analyzes every leg when its own file changes; light still stands python down,
+    # since the next push that is not light analyzes it, and leaves the other legs to the scoper.
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr), [rec, _codeql_scope().SELF], g(live))[0]
+    check("#3885: ... even where codeql_scope would analyze it, the other legs kept",
+          json.loads(o["legs"]), {"actions": "analyze", "javascript-typescript": "analyze", "python": "skip"})
+    o = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                [py, "custom_components/heatpump_optimizer/const.py"], g(live))[0]
+    check("#3885: ... and a production python file beside it analyzes (null control)",
+          (o["light"], json.loads(o["legs"])["python"], o["stand_down"]), ("false", "analyze", ""))
+    o = outputs(ctx("merge_group", merge_group={"head_ref": "refs/heads/gh-readonly-queue/main/pr-12-" + "a" * 40}),
+                [rec], g(live))[0]
+    check("#3885: a merge-queue run is never light", (o["light"], o["stand_down"]), ("false", ""))
+    check("#3885: each light lane's job env reads exactly its own stand_down name, and every step of a "
+          "product lane past its first reads that variable",
+          light_gates(), {k: {v} | ({"every step reads it"} if v in STEP_GATED else set())
+                          for k, v in LIGHT_GATE.items()})
+    check("#3885: the step-gated lanes are light lanes", set(STEP_GATED) <= set(LIGHT_LANES), True)
+    check("#3885: the light lanes are exactly LIGHT_LANES and LIGHT_PUSH_LANES",
+          sorted(set(LIGHT_GATE.values())), sorted(set(LIGHT_LANES) | set(LIGHT_PUSH_LANES)))
+
+    # #3902 review: a sharded run lists `tests / fast (3.14, K/N)` jobs in place of the one fast
+    # job; judging(), owed_needs() and requeued() owe exactly those shards.
+    def shard_run(fast, unfinished=(), attempt=1):
+        jobs = {"prelude": ("completed", "success"), "gate": ("completed", "success")}
+        for u in sorted(workset("code", "7") & set(UNITS)):
+            for nm in UNITS[u]:
+                for f in (fast if (u, nm) == ("tests", shards.FAST) else [nm]):
+                    jobs[f"{u} / {f}"] = ("in_progress", None) if f in unfinished else ("completed", "success")
+        return {"id": 1, "title": title("code", "7", "main", "abc"), "attempt": attempt, "jobs": jobs,
+                "run_started_at": "2026-11-25T10:00:00Z", "starts": {"prelude": "2026-11-25T09:00:00Z"}}
+    three = [f"fast (3.14, {k}/3)" for k in (1, 2, 3)]
+    check("#3902: a completed unsharded run is judging (null control)", judging(shard_run([shards.FAST])), True)
+    check("#3902: a completed sharded run is judging", judging(shard_run(three)), True)
+    check("#3902: a sharded run missing one shard from its listing is not judging",
+          judging(shard_run(three[:2])), False)
+    check("#3902: a sharded run with one shard unfinished is not judging",
+          judging(shard_run(three, unfinished=(three[1],))), False)
+    check("#3902: owed_needs owes every shard of the listed count, not the unsharded name",
+          [k for k in owed_needs(shard_run(three)) if "fast" in k], [f"tests / {f}" for f in three])
+    check("#3902: a re-run's re-queued shard is requeued",
+          requeued(shard_run(three, unfinished=(three[2],), attempt=2)), [f"tests / {three[2]}"])
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
