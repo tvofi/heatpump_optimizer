@@ -479,18 +479,11 @@ def cache_key_inputs(repo: str, ref_sha: str, everything: bool) -> dict:
     is worse than no cache, so the caller turns the cache off instead.
     """
     driver = os.path.abspath(__file__)
-    tree = subprocess.run(
-        ["git", "rev-parse", f"{ref_sha}^{{tree}}"],
-        cwd=repo, capture_output=True, text=True, check=True,
-    ).stdout.strip()
-    if not tree:
-        raise ValueError(f"{ref_sha} has no tree")
     return {
         "cache_format": CACHE_FORMAT,
         "mode": "all" if everything else "sensitive",
         "sensitive": list(SENSITIVE),
-        "baseline_commit": ref_sha,
-        "baseline_tree": tree,
+        **_baseline_identity(repo, ref_sha),
         "driver_sha256": _sha256_file(driver),
         "interpreter": {
             "executable": os.path.realpath(sys.executable),
@@ -511,6 +504,92 @@ def cache_key_inputs(repo: str, ref_sha: str, everything: bool) -> dict:
         "numeric_probe": _numeric_probe(),
         "environment": _relevant_environment(),
     }
+
+
+def _baseline_identity(repo: str, sha: str) -> dict:
+    """The two key components naming the baseline commit; raises on a missing tree."""
+    tree = subprocess.run(
+        ["git", "rev-parse", f"{sha}^{{tree}}"],
+        cwd=repo, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    if not tree:
+        raise ValueError(f"{sha} has no tree")
+    return {"baseline_commit": sha, "baseline_tree": tree}
+
+
+#: actions/cache takes at most ten keys in one restore (the key and nine
+#: restore-keys), so a baseline resolves across at most this many commits.
+BASELINE_KEYS_MAX = 10
+
+
+def capture_reaches(files: list[str], base: dict | None = None) -> bool:
+    """Whether tests/closure.py's own selection runs this script for `files`,
+    `base` the closures of the commit they are changed from, as run.sh passes.
+
+    False is the gate's claim that a capture cannot read any of them: the rule
+    that stood this script down on the light push (#3885) that changed them,
+    so its capture was never taken and never warmed.
+    """
+    import closure  # beside this script; imported only on the cache path
+
+    plan = closure.select(files, base)
+    return plan["mode"] != "scoped" or "tests/env_drift.py" in plan["run"]
+
+
+def _closures_at(repo: str, sha: str) -> dict | None:
+    shown = subprocess.run(["git", "show", f"{sha}:tests/closures.json"],
+                           cwd=repo, capture_output=True, text=True)
+    try:
+        return json.loads(shown.stdout)["closures"] if shown.returncode == 0 else None
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def baseline_candidates(repo: str, ref_sha: str, reaches=capture_reaches,
+                        limit: int = BASELINE_KEYS_MAX) -> list[str]:
+    """`ref_sha`, then each first-parent ancestor whose capture the gate holds
+    equal to its own -- no file changed between them is one `reaches` says the
+    capture reads -- nearest first. A pull request forked at a light main
+    commit thereby finds the baseline the nearest recording push warmed.
+
+    The walk ends at the first ancestor that fails, at `limit` commits, and on
+    any git error. A checkout whose tests/closures.json differs from
+    `ref_sha`'s never starts it: the default `reaches` reads the checkout's.
+    """
+    out = [ref_sha]
+
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=repo, capture_output=True, text=True)
+
+    if git("diff", "--quiet", ref_sha, "--", "tests/closures.json").returncode != 0:
+        return out
+    chain = git("rev-list", "--first-parent", f"--max-count={limit}", ref_sha)
+    if chain.returncode != 0:
+        return out
+    for sha in chain.stdout.split()[1:]:
+        changed = git("diff", "--no-renames", "--name-only", sha, ref_sha)
+        files = changed.stdout.split("\n") if changed.returncode == 0 else None
+        files = [f for f in files or () if f]
+        if changed.returncode != 0 or files and reaches(files, _closures_at(repo, sha)):
+            break
+        out.append(sha)
+    return out
+
+
+def cache_resolve(repo: str, directory: str, inputs: dict,
+                  candidates: list[str]) -> tuple[str, dict, str, dict | None, str]:
+    """(commit, key inputs, key, payloads, '') for the nearest candidate whose
+    entry loads, every component but the baseline's own the same as `inputs`;
+    when none does, `inputs`' own (commit, inputs, key, None, why not)."""
+    why_first = ""
+    for sha in candidates:
+        at = {**inputs, **_baseline_identity(repo, sha)}
+        key = cache_key(at)
+        payloads, why_not = cache_load(cache_entry_path(directory, key), key)
+        if payloads is not None:
+            return sha, at, key, payloads, ""
+        why_first = why_first or why_not
+    return inputs["baseline_commit"], inputs, cache_key(inputs), None, why_first
 
 
 def _canonical(value) -> str:
@@ -2806,7 +2885,7 @@ def main() -> int:
         rest = sys.argv[2:]
         return check_fixtures(repo, rest[0] if rest else None)
 
-    if len(sys.argv) >= 2 and sys.argv[1] == "--cache-key":
+    if len(sys.argv) >= 2 and sys.argv[1] in ("--cache-key", "--cache-keys"):
         # Print the key a run with these arguments would look up, and
         # nothing else. CI uses it to key actions/cache; a human uses it to
         # see why two runs did or did not share a baseline. It is the same
@@ -2818,7 +2897,13 @@ def main() -> int:
         if ref_sha is None:
             print(f"cannot resolve {ref}", file=sys.stderr)
             return 1
-        print(cache_key(cache_key_inputs(repo, ref_sha, "--all" in sys.argv[2:])))
+        inputs = cache_key_inputs(repo, ref_sha, "--all" in sys.argv[2:])
+        # `--cache-keys`: one key per line for each commit a lookup resolves
+        # the ref across (baseline_candidates), nearest first, so CI can pass
+        # the rest as restore-keys.
+        shas = baseline_candidates(repo, ref_sha) if sys.argv[1] == "--cache-keys" else [ref_sha]
+        for sha in shas:
+            print(cache_key({**inputs, **_baseline_identity(repo, sha)}))
         return 0
 
     if len(sys.argv) >= 2 and sys.argv[1] == "--drop-inherited":
@@ -2952,9 +3037,14 @@ def main() -> int:
         else:
             try:
                 key_inputs = cache_key_inputs(repo, ref_sha, everything)
-                key = cache_key(key_inputs)
+                hit_sha, hit_inputs, hit_key, cached_baseline, why_not = cache_resolve(
+                    repo, directory, key_inputs, baseline_candidates(repo, ref_sha))
+                # A hit is read under the key it was written with; a miss
+                # keeps the ref's own, under which the capture is stored.
+                if cached_baseline is not None:
+                    key_inputs = hit_inputs
+                key = hit_key
                 entry_path = cache_entry_path(directory, key)
-                cached_baseline, why_not = cache_load(entry_path, key)
             except Exception as err:  # noqa: BLE001 - never fail the gate for a cache
                 print(f"DRIFT BASELINE CACHE OFF: could not build a key "
                       f"({err.__class__.__name__}: {err}); capturing from scratch")

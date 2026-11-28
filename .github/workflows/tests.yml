@@ -389,7 +389,14 @@ jobs:
           && steps.drift.outputs.owns == 'true'
         env:
           PYTHONPATH: tests/hastub
-        run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
+        # A fork at a light main commit (#3885) restores the entry the nearest
+        # recording push warmed: --cache-keys prints the ref's key, then those
+        # of the ancestors env_drift resolves it across, nearest first.
+        run: |
+          keys=$(python tests/env_drift.py --cache-keys "$GOLDEN_REF" --all) || keys=""
+          echo "key=$(head -n 1 <<< "$keys")" >> "$GITHUB_OUTPUT"
+          { echo "restore<<RESTORE_KEYS"; tail -n +2 <<< "$keys" | sed 's/^/drift-baseline-/'
+            echo "RESTORE_KEYS"; } >> "$GITHUB_OUTPUT"
 
       - name: Restore the drift baseline
         if: >-
@@ -402,6 +409,7 @@ jobs:
         with:
           path: ~/.cache/heatpump_optimizer/drift-baseline
           key: drift-baseline-${{ steps.driftkey.outputs.key }}
+          restore-keys: ${{ steps.driftkey.outputs.restore }}
 
       # Warm the cache for the PRs that fork from this main commit
       # (issue #94). A merge moves every open PR's merge-base at once, so

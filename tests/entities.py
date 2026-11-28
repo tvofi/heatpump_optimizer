@@ -44774,4 +44774,79 @@ R.check(
     (_csel_run.stdout + _csel_run.stderr)[-600:],
 )
 
+
+# #3885 carry 2: a pull request forked at a light main commit looks its drift
+# baseline up at the nearest first-parent ancestor the gate holds equal to it,
+# where a push recorded one, instead of capturing the fork point cold.
+_bl_repo = _tempfile.mkdtemp(prefix="bl_walk_")
+
+
+def _bl_git(*args):
+    return _subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=_bl_repo,
+        check=True, capture_output=True, text=True).stdout.strip()
+
+
+def _bl_commit(path, text):
+    Path(_bl_repo, path).write_text(text)
+    _bl_git("add", path)
+    _bl_git("commit", "-qm", path)
+    return _bl_git("rev-parse", "HEAD")
+
+
+_bl_git("init", "-q")
+_bl_root = _bl_commit("core.py", "a = 1\n")
+_bl_heavy = _bl_commit("core.py", "a = 2\n")
+_bl_light1 = _bl_commit("notes.md", "one\n")
+_bl_light2 = _bl_commit("notes.md", "two\n")
+
+
+def _bl_reaches(files, base):
+    return "core.py" in files
+
+
+R.check(
+    "a light fork point resolves through its light ancestors to the heavy commit, nearest first (#3885)",
+    _env_drift.baseline_candidates(_bl_repo, _bl_light2, _bl_reaches)
+    == [_bl_light2, _bl_light1, _bl_heavy],
+    str(_env_drift.baseline_candidates(_bl_repo, _bl_light2, _bl_reaches)),
+)
+R.check(
+    "a heavy fork point resolves to itself alone, and the walk stops at its limit (#3885 null control)",
+    _env_drift.baseline_candidates(_bl_repo, _bl_heavy, _bl_reaches) == [_bl_heavy]
+    and _env_drift.baseline_candidates(_bl_repo, _bl_light2, _bl_reaches, limit=2)
+    == [_bl_light2, _bl_light1],
+    str(_env_drift.baseline_candidates(_bl_repo, _bl_heavy, _bl_reaches)),
+)
+_bl_inputs = _env_drift.cache_key_inputs(_bl_repo, _bl_light2, True)
+_bl_dir = _tempfile.mkdtemp(prefix="bl_cache_")
+_bl_heavy_inputs = _env_drift.cache_key_inputs(_bl_repo, _bl_heavy, True)
+_env_drift.cache_store(
+    _env_drift.cache_entry_path(_bl_dir, _env_drift.cache_key(_bl_heavy_inputs)),
+    _env_drift.cache_key(_bl_heavy_inputs), _bl_heavy_inputs, _bl_heavy, '{"s": 1}')
+_bl_hit = _env_drift.cache_resolve(
+    _bl_repo, _bl_dir, _bl_inputs, [_bl_light2, _bl_light1, _bl_heavy])
+_bl_miss = _env_drift.cache_resolve(_bl_repo, _bl_dir, _bl_inputs, [_bl_light2])
+R.check(
+    "the lookup takes the entry the heavy push warmed, under the key that push wrote; "
+    "the fork point alone misses and keeps its own key (#3885)",
+    _bl_hit[0] == _bl_heavy and _bl_hit[3] == {"s": 1}
+    and _bl_hit[1] == _bl_heavy_inputs
+    and _bl_miss[0] == _bl_light2 and _bl_miss[3] is None
+    and _bl_miss[2] == _env_drift.cache_key(_bl_inputs),
+    f"hit={_bl_hit[0][:12]} {_bl_hit[3]} miss={_bl_miss[0][:12]} {_bl_miss[4]}",
+)
+_bl_ed = set(json.loads(_closure.CLOSURES.read_text())["closures"]["tests/env_drift.py"])
+_bl_other = sorted(
+    _f for _c in json.loads(_closure.CLOSURES.read_text())["closures"].values()
+    for _f in _c if _f not in _bl_ed and not _closure.is_gate_file(_f)
+    and not _f.startswith("custom_components/"))
+R.check(
+    "the default rule is tests/closure.py's selection: a file outside the capture's closure "
+    "does not reach it, one inside does (#3885)",
+    bool(_bl_other) and not _env_drift.capture_reaches(_bl_other[:1])
+    and _env_drift.capture_reaches(["tests/golden/claimed_drift.txt"]),
+    f"outside={_bl_other[:1]}",
+)
+
 sys.exit(R.close("ENTITY CHECKS"))
