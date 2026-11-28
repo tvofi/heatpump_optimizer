@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/circulation.py:command GUARD_OFF 2db0c25c",
+  "killed_by": "tests/structure.py",
+  "old": "    if not entity_id or record.get(entity_id) == on or not delivers_to(hass.states.get(entity_id)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

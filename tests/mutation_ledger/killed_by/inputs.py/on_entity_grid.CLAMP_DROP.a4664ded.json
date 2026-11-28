@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:on_entity_grid CLAMP_DROP a4664ded",
+  "killed_by": "tests/features.py",
+  "old": "        out = max(out, _on_step(low, step, \"up\"))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`out = (out)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

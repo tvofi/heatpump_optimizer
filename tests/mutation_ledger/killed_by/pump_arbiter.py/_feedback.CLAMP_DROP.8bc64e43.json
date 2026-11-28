@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_feedback CLAMP_DROP 8bc64e43",
-  "killed_by": "tests/features.py",
-  "old": "    minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`minutes = (0.0) / 60.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

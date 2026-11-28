@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_step_writes BOOLOP a58d6275",
+  "killed_by": "tests/features.py",
+  "old": "    held.step_cut, held.step_pending = step, bool(run is not None and await run(**tail))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`held.step_cut, held.step_pending = step, bool(run is not None or await run(**tail))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

@@ -37,10 +37,10 @@ from heatpump_optimizer.dhw_planner import DhwPlanner
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.price_model import PriceShapeModel
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters
+from heatpump_optimizer import arbiter_record, topology
 from heatpump_optimizer import grid_fee as grid_fee_mod
 from heatpump_optimizer import price_model as price_model_mod
 from heatpump_optimizer import tariff as tariff_mod
-from heatpump_optimizer import topology
 from heatpump_optimizer.wood_fuel import wood_slots_to_kw
 from homeassistant.util import dt as dt_util
 
@@ -524,8 +524,8 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
     past_grace = hold.night_writes()
     gone = Coord()
     gone.hass.states._states.pop(start_h, None)
-    restored_bool = pump_arbiter._writable("night_start_hour", True)
-    restored_int = pump_arbiter._writable("night_start_hour", 22)
+    restored_bool = arbiter_record.writable("night_start_hour", True)
+    restored_int = arbiter_record.writable("night_start_hour", 22)
     wrap = quiet_windows.next_gchv_window(at_start, "22:00-06:00")
     after = quiet_windows.next_gchv_window(at_end, "22:00-06:00")
     ids_hp = modbus_prefill.night_mode_write_ids("hp")

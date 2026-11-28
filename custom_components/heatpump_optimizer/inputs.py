@@ -616,6 +616,36 @@ def _on_step(value: float, step: float, rounding: str) -> float:
     return round(turns * step, 6)
 
 
+def delivers_to(state: Any) -> bool:
+    """Whether Home Assistant delivers a service call to the entity: it has a
+    state and that state is not ``unavailable``.
+
+    Home Assistant's entity services skip an entity that is not available, so
+    a write sent there changes nothing and is never recorded as made. An
+    ``unknown`` entity is still available and takes the call (D16-s1-05).
+    """
+    return state is not None and str(getattr(state, "state", "")) != "unavailable"
+
+
+def on_entity_grid(hass: Any, entity_id: str, value: float) -> float:
+    """``value``, in the entity's own unit, on its step inside its own range.
+
+    The nearest multiple of the entity's step (``setpoint_step``), its stated
+    minimum rounded up onto the step and its maximum down, so the result is
+    a value the entity accepts; crossed ends give the maximum. No unit
+    conversion: the caller's value and the entity's attributes
+    (:func:`_own_range`) are both in the entity's own unit.
+    """
+    step = setpoint_step(hass, entity_id)
+    out = _on_step(float(value), step, "nearest")
+    low, high = _own_range(entity_id, hass.states.get(entity_id))
+    if low is not None:
+        out = max(out, _on_step(low, step, "up"))
+    if high is not None:
+        out = min(out, _on_step(high, step, "down"))
+    return out
+
+
 def _setpoint_unit_of(hass: Any, entity_id: str) -> Any:
     reading = setpoint_and_unit(hass, entity_id)
     return (
@@ -726,23 +756,17 @@ async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     is on the entity's step (``setpoint_step``, whole degrees where it states
     none), a whole one as an integer, which a pump that takes no decimals
     accepts. It is inside the range the entity states when written
-    (:func:`_own_range`): the maximum rounded down onto the step, the minimum
-    up, whichever caller asked. A caller's own bound (``SetpointGrid.bounded``)
-    is the meaning of its value; this one is what the entity accepts. Crossed
-    ends send the maximum. ``False``, and nothing
-    called, for a domain with no set-point service.
+    (:func:`on_entity_grid`, the one clamp, reading :func:`_own_range`): the
+    maximum rounded down onto the step, the minimum up, whichever caller asked.
+    A caller's own bound (``SetpointGrid.bounded``) is the meaning of its
+    value; this one is what the entity accepts. Crossed ends send the maximum.
+    ``False``, and nothing called, for a domain with no set-point service.
     """
     domain = entity_id.split(".", 1)[0]
     service = SETPOINT_SERVICES.get(domain)
     if service is None:
         return False
-    step = setpoint_step(hass, entity_id)
-    sent = _on_step(float(value), step, "nearest")
-    low, high = _own_range(entity_id, hass.states.get(entity_id))
-    if low is not None:
-        sent = max(sent, _on_step(low, step, "up"))
-    if high is not None:
-        sent = min(sent, _on_step(high, step, "down"))
+    sent = on_entity_grid(hass, entity_id, value)
     await hass.services.async_call(
         domain, service[0],
         {"entity_id": entity_id, service[1]: int(sent) if sent.is_integer() else sent},

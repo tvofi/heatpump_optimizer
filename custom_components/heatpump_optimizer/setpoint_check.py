@@ -15,7 +15,6 @@ from .entry_config import EntryConfig
 from .issues import clear_issue, set_issue
 from .inputs import (
     read_temperature_delta_k,
-    quantise_setpoint_c,
     read_setpoint,
     setpoint_and_unit,
     setpoint_grid,
@@ -166,7 +165,10 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
     # (``dhw_hard_max_temp``, rounded down), the ceiling the arbiter bounds
     # its own write by: a Fix above it would be written back below the floor
     # at the arbiter's next step and the notice stand for good.
-    on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up", hi_c=params.dhw_hard_max_temp)
+    # The entity's own grid bounds it too, the one the arbiter writes by, so a
+    # tank capped under the floor is asked for its maximum (D12-s3-02).
+    grid = setpoint_grid(hass, entity_id)
+    on_step_c = floor if grid is None else grid.bounded(floor, rounding="up", hi=params.dhw_hard_max_temp)
     # A reading that is the pump-duty arbiter's own write is a step decision,
     # not a set-point below the disinfection floor: the arbiter writes the
     # cycle's temperature itself on a cycle step (``pump_arbiter.dhw_gated``).

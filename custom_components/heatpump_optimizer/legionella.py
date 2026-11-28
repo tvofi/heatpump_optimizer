@@ -14,10 +14,11 @@ table the pull request publishes; the residual diff per method is the proof.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import replace
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
@@ -127,6 +128,42 @@ class OffStepNotice:
         )
 
 
+class FollowerCycle:
+    """When the disinfection follower runs: once per cycle, on that cycle's tank reading.
+
+    The step tail runs it after adoption (:meth:`async_follow`), and so does
+    the step tick. A cycle that raised before its tail -- a price, weather or
+    solve fault -- runs it from its ``finally`` (:meth:`async_follow_missed`)
+    unless something followed since the observe. So the boost bound, the OFF
+    when disinfection is disabled and the idle OFF retry do not wait for a
+    cycle that succeeds, which a stale plan's tick never replaces (#3897).
+    What a follow decides is :meth:`LegionellaGuard.async_track_cycle`'s.
+    """
+
+    def __init__(self, follow: Callable[[float | None], Awaitable[None]]) -> None:
+        self._follow = follow
+        #: The last observed tank reading, the one the follower runs on.
+        self.tank_c: float | None = None
+        #: Whether the follower ran since the last observe.
+        self.followed = False
+
+    def observe(self, tank_c: float | None) -> None:
+        """A new cycle's reading, which nothing has followed yet."""
+        self.tank_c = tank_c
+        self.followed = False
+
+    async def async_follow(self) -> None:
+        """The follower on the last reading: the step tail's writer."""
+        self.followed = True
+        await self._follow(self.tank_c)
+
+    async def async_follow_missed(self, lock: asyncio.Lock) -> None:
+        """Under the step tail's ``lock``, the follower for a cycle that raised before its tail."""
+        async with lock:
+            if not self.followed:
+                await self.async_follow()
+
+
 class LegionellaGuard:
     """The disinfection cycle's state, its ceilings and its repair notices."""
 
@@ -163,6 +200,7 @@ class LegionellaGuard:
         #: The (owned switches, latch) pair as last written to the store.
         self._switch_saved: tuple[tuple[str, ...], bool] = ((), False)
         self.last_cycle: datetime | None = None
+        self.follower = FollowerCycle(lambda tank_c: self.async_track_cycle(tank_c))
         self.store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             LEGIONELLA_STORE_VERSION,
@@ -544,12 +582,12 @@ class LegionellaGuard:
         await self.disinfect.release_blind()
 
     async def async_observe(self, dhw_temp: float | None, reader: Any) -> float | None:
-        """One cycle: the observer on a reading, the cycle follower regardless; ``hours_since``."""
+        """One cycle: the observer on a reading, kept for the step tail's follower; ``hours_since``."""
         if dhw_temp is not None:
             await self.async_track(dhw_temp)
         self.disinfect.observe(reader)
         self.off_step.check(self._params(), self._config)
-        await self.async_track_cycle(dhw_temp)
+        self.follower.observe(dhw_temp)
         self.check_ceiling()
         self.check_overdue()
         return self.hours_since()
