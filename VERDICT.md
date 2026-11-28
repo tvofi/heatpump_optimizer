@@ -1,19 +1,24 @@
-Fix review: merge 3f7c5c524ec9baf808e09fb6b8e6b3b344544428
-bus-nonce: 363ab6c1258b81e0ba730083c1ca36dd
+Fix review: blocked b9a499e4ba5abf8d537f8e93b75595385caa2976 ci-red: gate red on tests / fast (3.14, 1/4), the PR's own freeze section fails on the merge with main cb2026c3 (tests/features.py 104695 lines over the manifest's 104573)
 
-Scope: full, first round, three-dot over 7b0ddc205f...3f7c5c524e (6 files, no custom_components line).
+bus-nonce: 1463c2ddb71881017a665a1276ba1515
 
-Harness: the packet names no finder's harness; this group's judge is its approved design (revision 5, design-verdict 4ee63e99aa). I drove the design's three refusal conditions on the live tree with my own perturbations, not the fixer's entities.py controls:
-- one line appended to tests/features.py: `lines` refusal, 104574 > 104573, rc 1;
-- one section title renamed (`Input staleness watchdog (item 12b)`): `span` refusal by name;
-- a new tests/features_plan.py whose only span imports thermal_model: `seam` refusal naming tests/features_model.py; the same text as tests/features_model.py: HOLDS;
-- unperturbed tree: `FEATURES FREEZE: HOLDS (0 refusal(s))`. The manifest equals the tree (104573 lines, 252 spans); origin/main has not touched tests/features.py since the merge base.
-Seam table: no module listed under two seams; every listed module exists in the package. Home counts sum to 252.
-tests/closures.json: tests/entities.py's closure adds exactly the harness and the manifest and already holds tests/features.py, so an edit to the frozen file selects the freeze check.
+## Block
 
-Raise (mandate 6893738184, scope all): sound. The raise is the creation of a new FROZEN manifest; no existing cap moves, and the new file only tightens. The body's `## Raise justification` lists three payments tried (a non-budget manifest name, constants in entities.py, the split itself), each refused for a stated reason, and carries `Architecture score: dS +0.0000 NULL`, which I reproduce at the head. The only payment that would improve the architecture is the split, refused on a priced cost; that decision is recorded as pending owner confirmation, as it must be.
+- `merge_train.py classify b9a499e4ba5abf8d537f8e93b75595385caa2976 --pr 3940` printed `RED b9a499e4ba5abf8d537f8e93b75595385caa2976 pending: none red: gate` (rc=1). The red under `gate` is `tests / fast (3.14, 1/4)` (job 140920667426, merge ref 031fad164d over main cb2026c3): `3 of 2800 ENTITY CHECKS FAILED`, all three in this PR's new section "The tests/features.py freeze (R11-OWNER-FEATURES-SPLIT)": the live check (`lines: tests/features.py has 104695 lines, above the 104573 tests/features_frozen_budgets.json records`), `null control (span ids)` and `null control (seam home)`. `tests / fast (3.14)` and `gate` are both in `merge_train.py owed-reds`.
+- Cause: #3914 (R11-SEAM-wallclock-dst, merged as cb2026c3) grew `tests/features.py` from 104573 to 104695 lines after the manifest was recorded. It adds no new span. On a local `git archive` of the clean merge tree 8c0eac53, `features_freeze.py --check` printed the same single `lines:` refusal and `FEATURES FREEZE: REFUSED (1 refusal(s))`. The body's own "At the merge" paragraph predicted this. The repair is a `--record` on a head that merges main. That re-record is itself a `lines` raise, which budget-raise-gate reads and which needs approval at the new head.
+- `git merge-tree --write-tree origin/main <head>` is clean (rc 0, `LEDGER-MERGE: resolved tests/closures.json`), so this is not a conflict block. It is a test red on this head's merge ref, from a check this PR adds.
 
-CI at the head: budget-raise-gate red by design (two RAISE lines, both this manifest); tests / mutation red on the inherited flow_lift 04143c3f stale pin (main's, #3939); nightly-status red on last night's nightly. tests / fast 1-4 all success on Linux, `ALL 2800 ENTITY CHECKS PASSED`: the two Darwin timing failures the fixer reported do not reproduce on CI.
+## Findings
 
-Note: carry-residual: Carry 0's part for R11-PRE-SHARED-FILES, R11-OWNER-CARD-EXTERNAL-HEAT and R11-SEAM-learners is not built and is recorded honestly as kept on this group's carry, with roster_edit.py's refusal quoted; it must be written to those briefs when they leave carries-open. Carry: R11-OWNER-FEATURES-SPLIT
-Note: seam-closure: tests/entities.py reads tests/features_*.py by glob, so a later PR that edits only a seam script selects that script, not tests/entities.py, until entities.py's closure is re-measured with the seam script present; the brief text for the appending groups names only the new script's own closure. Carry: R11-OWNER-FEATURES-SPLIT
+- The null controls in the new entities section are not isolated from the live tree. `null control (span ids)` gives the loose manifest `lines + 50` room, and `null control (seam home)` uses the live `_FFZ_MAN`, so any drift of the live file past the manifest also reddens them. On main cb2026c3 one `lines` drift turned into three FAIL lines, though the section's comment says each control isolates one condition. Building each control's manifest from `_ffz.measure(_FFZ_SRC)` rather than the recorded manifest would leave the live check as the only one that moves on drift. Carry: R11-OWNER-FEATURES-SPLIT
+- Two seam-rule mutants survive, so the step-A rule in `home()` that the body and docstring state is pinned only in part: R1 (`next(p for p in ORDER ...)` changed to `reversed(ORDER)`, the tie-break) and R2 (`MOD2SEAM.get(m, "surface")` changed to `"cycle"`, the unlisted-module default). Each printed `ALL 6 ENTITY CHECKS PASSED`. The body names neither as a pinned mutant (its six target `refusals`). The seam-table-drift carry relies on the `surface` default ("adding a module moves no placed span"), and no check reads that default. Carry: R11-OWNER-FEATURES-SPLIT
+
+## Evidence
+
+- Head reviewed: b9a499e4ba5abf8d537f8e93b75595385caa2976 (`ev/HEAD.txt`). Merge base 265e061f65. origin/main is cb2026c3b5. Review scope: full (the packet says no verdict names 3f7c5c52). This is the first verdict at this head.
+- At the head, the freeze span alone printed `ALL 6 ENTITY CHECKS PASSED` (`ev/span_unmutated.txt`), `features_freeze.py --check` printed `HOLDS (0 refusal(s))`, and `budget_raise_gate.py --self-test` printed `305 checks, 0 failed`.
+- Figures re-derived at the head (`ev/figures.txt`): `wc -l` is 104573, equal to the manifest's `lines`. Spans: 252, equal to the 252 manifest ids. `seam_pins` is `{}`. The `--seam` counts are actuation 15, cycle 28, dhw 9, inputs 37, model 92, plan 48 and surface 23, which sum to 252. `--check-body` on the live body printed `the body's arch_score figure is the measured one, dS +0.0000 NULL`.
+- Mutation proof (`ev/mutants.txt`, driver `ev/mut_driver.py`, each mutant restored, tree clean afterwards): the body's M1–M6 were all KILLED, each by the named null control. Also KILLED: M2b (`>` changed to `>=`), R3 (the import branch of `_names_frozen`), R4 (line count minus 1), M8 (`lines` MAX changed to FROZEN) and M10 (`spans` FROZEN changed to FREE). R1 and R2 SURVIVED (Findings).
+- No `VERSION`, manifest-version, `RELEASE_NOTES.md`, golden or claim-file change in the three-dot diff. No `custom_components/` line changed. `dev/governance/roles/` has not moved on main since the merge base.
+- CI log excerpt of the three freeze reds: `ev/ci_fast1_freeze_reds.txt`. The classify poll history is in `ev/classify_poll.log`.
+- `budget-raise-gate / budget-raise-gate` is red pending a raise approval at the head, as the body says. That red is not the block.

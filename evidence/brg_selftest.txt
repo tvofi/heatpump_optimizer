@@ -1,0 +1,2 @@
+  ok   e2e: --check-body: --base without --head exits 2
+budget_raise_gate self-test: 305 checks, 0 failed
