@@ -369,11 +369,13 @@ def _bash(uid: str, t: str, cmd: str, rc: int, out: str, **kw) -> str:
 
 def _load(t: str, rule: str) -> str:
     return json.dumps({"type": "attachment", "timestamp": t, "attachment": {
-        "type": "nested_memory", "path": f"/home/x/repo/.claude/rules/{rule}",
+        "type": "nested_memory", "path": str(Path("checkout") / RULES_DIR / rule),
         "displayPath": f".claude/rules/{rule}", "content": "..."}}) + "\n"
 
 
 def self_test() -> int:
+    sys.path.insert(0, str(HERE.parents[2] / "tests"))
+    from throwaway_git import throwaway_git_init
     passed = failed = 0
 
     def check(name: str, cond: bool) -> None:
@@ -389,15 +391,15 @@ def self_test() -> int:
                   ".claude/rules/gate-scoping.md", ".claude/rules/claim-files.md"):
             (repo / f).parent.mkdir(parents=True, exist_ok=True)
             (repo / f).write_text("x\n")
-        subprocess.run(["git", "init", "-q", str(repo)], check=True)
-        subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+        env = throwaway_git_init(repo, "-q")
+        subprocess.run(["git", "add", "-A"], cwd=repo, env=env, check=True)
         files = tracked(repo)
 
         check("simple commands: `2>&1` is no separator, `|`, `&&`, `;` and a newline are",
               [w[0] for w in simple_commands("cd /x && bash tools/pr/prepr.sh 2>&1 | tail -3\necho ok; ls")]
               == ["cd", "bash", "tail", "echo", "ls"])
         check("an instrument is a tracked file, by relative, ./ or absolute path; an untracked one is none",
-              instrument_of(["python3", "-I", "/root/wt/tools/audit/seat/x.py"], files) == "tools/audit/seat/x.py"
+              instrument_of(["python3", "-I", str(repo / "tools/audit/seat/x.py")], files) == "tools/audit/seat/x.py"
               and instrument_of(["./tools/pr/push.sh"], files) == "tools/pr/push.sh"
               and instrument_of(["python3", "tools/audit/seat/nope.py"], files) is None)
         check("a run is the command word or an interpreter's script, past assignments and wrappers; a file "

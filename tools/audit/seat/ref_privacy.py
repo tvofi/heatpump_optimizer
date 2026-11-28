@@ -525,6 +525,9 @@ PUSHERS = {
                                       "step before refuses any TAG not matching ^v[0-9]+\\.[0-9]+\\.[0-9]+$, "
                                       "so no host text reaches the name (round 3)"),
     "tools/policy/fragments_sync.mjs": ("fixture", "a `git push` string fed to its own lint as a fixture"),
+    "tools/audit/seat/session_yield.py": ("fixture", "reads a transcript's `git push` commands as text to "
+                                          "classify a refusal's outcome; its self-test's are fixture lines, "
+                                          "and the module runs no git"),
     "tools/policy/check-wave-script.mjs": ("fixture", "the P3 driver's assertion that the handoff "
                                             "prompt names the constant plan/r<round> push; a literal "
                                             "matched by a regex, never run"),

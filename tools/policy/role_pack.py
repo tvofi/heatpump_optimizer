@@ -227,10 +227,10 @@ def check(role: str, pack: str, root: Path = ROOT) -> list[str]:
             errs.append(f"{rel}: not byte-equal to the file")
         if rel not in [r for r, _, _ in want]:
             errs.append(f"{rel}: framed, but not in the role's plan")
-    body = sum(len(t) for _, t in got)
-    whole = sum(len(_read(root, r)) for r in dict.fromkeys(got_paths) if (root / r).is_file())
-    if body > whole:
-        errs.append(f"the framed text ({body} chars) exceeds the files it frames ({whole})")
+    # By path, not by size: a byte-equal copy framed twice exceeded the files only while
+    # INSTRUMENTS.md was shorter than the contract plus its entries (R11-NO-READ-BUILDERS-C).
+    errs += [f"{rel}: framed {got_paths.count(rel)} times" for rel in dict.fromkeys(got_paths)
+             if got_paths.count(rel) > 1]
     return errs
 
 
@@ -316,7 +316,7 @@ def self_test() -> int:
         module.role_files = kept
     refuses(render_blocks(role, blocks) + "a sentence of paraphrase\n",
             "a line outside every frame", "a line outside every frame")
-    refuses(blocks[:1] + blocks, "the contract framed twice (each copy byte-equal)", "exceeds the files")
+    refuses(blocks[:1] + blocks, "the contract framed twice (each copy byte-equal)", "framed 2 times")
     try:
         role_files("planner")
         t(False, "an unknown role is refused")
