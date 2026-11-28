@@ -1,0 +1,2 @@
+2026-11-28T05:56:49.4009902Z   WORKSET: arch-score budget-raise-gate
+2026-11-28T05:56:51.5295166Z FAIL run(s) [46113911461] at this head are still being judged; their gate decides

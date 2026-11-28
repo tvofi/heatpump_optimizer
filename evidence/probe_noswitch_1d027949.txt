@@ -6,3 +6,7 @@ switch=None       out=  5.0 gate(False)->False  frost_holding=False holding=Fals
 switch=None       -3C idle OFF: frost_holding=True _served(duty=None)->'space' freeze_reason->'frost_hold'
 switch=switch.hp  -3C idle OFF: frost_holding=True _served(duty=None)->'space' freeze_reason->'frost_hold'
 null control, no switch +5C: False False
+take_off switch=switch.hp  out= -3.0 ->True frost_holding=True
+take_off switch=switch.hp  out=  5.0 ->False frost_holding=False
+take_off switch=None       out= -3.0 ->True frost_holding=True
+take_off switch=None       out=  5.0 ->False frost_holding=False
