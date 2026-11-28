@@ -122,7 +122,7 @@ def get(path: str, params=None, headers=None, meter=None):
     is credited each attempt's time as API time and each backoff's as sleep."""
     clock = meter.clock if meter else None
     for nap in RETRY_5XX + (None,):
-        t0 = clock() if clock else 0.0
+        t0 = clock and clock()
         try:
             resp = _request("GET", path, params, headers=headers)
         except TRANSPORT:
@@ -134,7 +134,7 @@ def get(path: str, params=None, headers=None, meter=None):
         finally:
             if clock:
                 meter.api_s += clock() - t0
-        t0 = clock() if clock else 0.0
+        t0 = clock and clock()
         _sleep(nap)
         if clock:
             meter.slept(path, clock() - t0)
@@ -357,7 +357,7 @@ def self_test() -> int:
                                                          serve(next(seq), b"{}")(req))[1]
             _sleep = lambda s: t.__setitem__(0, t[0] + s)  # noqa: E731
             m = Meter(clock=lambda: t[0])
-            check("Meter: a 502 then a 200 answers the 200", m("repos/o/r/actions/runs/1/jobs", {"page": 1})[0], 200)
+            check("Meter: a 502 then a 200 answers the 200", m("repos/o/r/actions/runs/1/jobs")[0], 200)
             check("Meter: two attempts' transport time is API time, the backoff is sleep",
                   (m.calls, m.api_s, m.sleep_s, m.naps), (1, 1.0, float(RETRY_5XX[0]),
                                                           [("repos/o/r/actions/runs/1/jobs", RETRY_5XX[0])]))
