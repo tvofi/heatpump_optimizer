@@ -15705,6 +15705,7 @@ _FR_STORES = {
     "debug": "kept: a diagnostics collection",
     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
     "room_history": "kept: measured room readings; the report is re-derived on every read",
+    "fault_log": "kept: the pump's own fault reports, a record of what happened, nothing learned",
 }
 _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
@@ -62078,6 +62079,9 @@ _G7B_EXPECTED = {
     _g7_c.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: (
         f"switch.{_G7B_SLUG}_night_mode_silent", 1.0),
     "r404": (f"number.{_G7B_SLUG}_dhw_setpoint", 1.0),
+    # R11-OWNER-FAULT-TEXT: the Fault Alarm and the dp 20 Fault Description.
+    _g7_c.CONF_HEAT_PUMP_FAULT_ENTITY: (f"binary_sensor.{_G7B_SLUG}_fault_alarm", 1.0),
+    _g7_c.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: (f"sensor.{_G7B_SLUG}_fault_description", 1.0),
 }
 _g7b_resolved = _g7b_dp.resolve(_g7b_records())
 R.check(
@@ -70912,6 +70916,8 @@ _P6_READ_ONLY = {
     # #3616: room thermostats' attributes are read by inputs.read_room; phase 1
     # writes no room thermostat.
     hp_const.CONF_ROOM_TEMPERATURE_ENTITIES: "room thermostats inputs.read_room reads",
+    # R11-OWNER-FAULT-TEXT: a text or input_text helper may hold the fault text.
+    hp_const.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: "the pump's fault text fault_log's listener reads",
 }
 
 
@@ -103672,6 +103678,568 @@ R.check(
     f"before={_rh_ul_before} after={_rh_ul_doc}",
 )
 
+# ---------------------------------------------------------------------------
+# R11-OWNER-FAULT-TEXT (#3857): the pump's fault record, shown in diagnostics
+# ---------------------------------------------------------------------------
+R.section("The pump's fault record (R11-OWNER-FAULT-TEXT)")
+import asyncio as _fl_aio  # noqa: E402
+import types as _fl_types  # noqa: E402
+from datetime import datetime as _fl_dt, timezone as _fl_tz  # noqa: E402
+from homeassistant.const import CONF_NAME as _FL_CONF_NAME, EVENT_HOMEASSISTANT_STOP as _FL_STOP  # noqa: E402
+from homeassistant.helpers import storage as _fl_storage  # noqa: E402
+from harness import FakeEntry as _fl_entry  # noqa: E402
+from heatpump_optimizer import diagnostics as _fl_diag  # noqa: E402
+from heatpump_optimizer import const as _FL_C  # noqa: E402
+from heatpump_optimizer import fault_log as _fl  # noqa: E402
+from heatpump_optimizer.entry_config import EntryConfig as _FlConfig  # noqa: E402
+from heatpump_optimizer import replay_doc as _fl_rd  # noqa: E402
+from heatpump_optimizer.store import admitted as _fl_storage_admitted  # noqa: E402
+
+
+def _fl_feed(readings, log=None):
+    """``(seconds, [member states])`` readings into a record, through code_text and note."""
+    log = log or _fl.Log(0)
+    for t, states in readings:
+        _fl.note(log, t, _fl.code_text(states))
+    return log
+
+
+# 1 and 2: rows from a single member.
+_fl_one = _fl_feed([(0, ["OK"]), (10, ["E5"]), (50, ["OK"])])
+_fl_null = _fl_feed([(0, ["OK"]), (40, ["OK"])])
+R.check(
+    "OK, E5, OK 40 s apart is one row of 40 s with E5; null control, OK then OK makes no row; "
+    "ok, Ok and OK all read healthy",
+    _fl_one.episodes == [[10, 50, "E5", False]] and _fl_one.open is None and _fl_null.episodes == []
+    and _fl_null.open is None and all(_fl.code_text([w]) is None for w in ("ok", "Ok", "OK", " OK "))
+    and _fl.note(_fl.Log(0), 5, None) is False and _fl.note(_fl.Log(0), 5, "E5") is True
+    and _fl.note(_fl.Log(0, open=[1, "E5"]), 5, "E5") is False,
+    f"{_fl_one.episodes} {_fl_null.episodes}",
+)
+_fl_two = _fl_feed([(0, ["E5"]), (10, ["E5, P3"])])
+R.check(
+    "E5 then E5, P3 closes the E5 row and opens the next at the same instant",
+    _fl_two.episodes == [[0, 10, "E5", False]] and _fl_two.open == [10, "E5, P3"],
+    f"{_fl_two.episodes} {_fl_two.open}",
+)
+
+# 3: several members, truncation.
+_FL_B3 = "IPM protection (P6), 3x high discharge temp in 100 min (H6)"
+_fl_gchv = _fl.code_text(["Low pressure (P3)", "OK", _FL_B3, "OK"])
+_fl_many_items = [f"item {i} (E{i})" for i in range(30)]
+_fl_many = _fl.code_text([", ".join(_fl_many_items)])
+_fl_kept = _fl_many.rsplit(" +", 1)[0].split(", ")
+_fl_long = "x" * 200 + " overheat (H9)" + "y" * 86
+_fl_tail = _fl.code_text([_fl_long])
+_fl_at = _fl.code_text(["a" * 79 + ", " + "b" * 79 + ", c"])
+_fl_over = _fl.code_text(["a" * 79 + ", " + "b" * 80])
+_fl_whole = _fl.code_text(["z" * 160])
+R.check(
+    "the 160-character budget is inclusive: two items joining to exactly 160 characters are both kept, "
+    "one character more drops the second; a single item of exactly 160 is kept whole, without an ellipsis",
+    _fl_at == "a" * 79 + ", " + "b" * 79 + " +1" and _fl_over == "a" * 79 + " +1" and _fl_whole == "z" * 160,
+    f"{_fl_at[-6:]!r} {_fl_over[-6:]!r} {len(_fl_whole)}",
+)
+R.check(
+    "two faulted GCHV members keep their items in slot order and the (P6) and (H6) names whole; "
+    "30 items keep a whole-item prefix with +N counting the rest, within 168 characters; a single "
+    "300-character item keeps its last 160 characters behind an ellipsis",
+    _fl_gchv == "Low pressure (P3), " + _FL_B3
+    and _fl_kept == _fl_many_items[:len(_fl_kept)] and _fl_many.endswith(f" +{30 - len(_fl_kept)}")
+    and len(_fl_kept) < 30 and len(_fl_many) <= 168
+    and _fl_tail == "…" + _fl_long[-160:] and len(_fl_tail) == 161,
+    f"{_fl_gchv!r} {_fl_many!r} {len(_fl_many)} {_fl_tail[:12]!r}",
+)
+
+# 4 and 5: the flag slot's strict reading, and the text slot's decision.
+R.check(
+    "the flag slot: on and off on a binary sensor read as a flag fault and healthy; 2080 and 2080.0 "
+    "give 0x0820; heating on a sensor fault slot is no reading (strict); null control, the same "
+    "state on a binary_sensor reads through the flag path",
+    _fl.flag_text("binary_sensor.f", "on") == ("flag", _fl.NO_CODE)
+    and _fl.flag_text("binary_sensor.f", "off") == ("flag", None)
+    and _fl.flag_text("sensor.f", "2080") == _fl.flag_text("sensor.f", "2080.0") == ("bitmap", "0x0820")
+    and _fl.flag_text("sensor.f", "1.5") == ("flag", _fl.NO_CODE)
+    and _fl.flag_text("sensor.f", "1") == ("bitmap", "0x0001")
+    and _fl.flag_text("sensor.f", "-5") == ("bitmap", _fl.NO_CODE)
+    and _fl.flag_text("sensor.f", "0") == ("bitmap", None)
+    and _fl.flag_text("sensor.f", str(0xFFFFFFFF)) == ("bitmap", "0xFFFFFFFF")
+    and _fl.flag_text("sensor.f", str(0x100000000)) == ("bitmap", _fl.NO_CODE)
+    and _fl.flag_text("sensor.f", "heating") is None
+    and _fl.flag_text("binary_sensor.f", "heating") == ("flag", _fl.NO_CODE),
+    f"{_fl.flag_text('sensor.f', 'heating')} {_fl.flag_text('binary_sensor.f', 'heating')}",
+)
+R.check(
+    "the text slot: heating and idle record nothing; defrosting and Unit in heat mode are recorded as codes",
+    _fl.code_text(["heating"]) is None and _fl.code_text(["idle"]) is None
+    and _fl.code_text(["defrosting"]) == "defrosting"
+    and _fl.code_text(["Unit in heat mode"]) == "Unit in heat mode",
+    f"{_fl.code_text(['defrosting'])}",
+)
+R.check(
+    "an empty item between or after commas records nothing: E5, reads E5 and E5,,E6 reads E5, E6; "
+    "null control, a lone comma is no item, so the member reads healthy",
+    _fl.code_text(["E5,"]) == "E5" and _fl.code_text(["E5,,E6"]) == "E5, E6"
+    and _fl.code_text([" , "]) is None and _fl.code_text(["E5, E6"]) == "E5, E6",
+    f"{_fl.code_text(['E5,'])!r} {_fl.code_text(['E5,,E6'])!r} {_fl.code_text([' , '])!r}",
+)
+
+# 7: the ring and the tally.
+_fl_ring = _fl.Log(0)
+for _fl_i in range(250):
+    _fl.note(_fl_ring, 100 * _fl_i, f"E{_fl_i % 40}")
+    _fl.note(_fl_ring, 100 * _fl_i + 7 + _fl_i % 3, None)
+R.check(
+    "250 episodes keep the newest 200 and count 50 dropped; 40 texts tally 32 plus other, and the "
+    "tallied seconds equal the sum over all 250 episodes",
+    len(_fl_ring.episodes) == _fl.EPISODES_MAX == 200 and _fl_ring.dropped == 50
+    and _fl_ring.episodes[0][0] == 5000
+    and len(_fl_ring.codes) == 33 and _fl.OTHER in _fl_ring.codes
+    and sum(c[0] for c in _fl_ring.codes.values()) == 250
+    and sum(c[1] for c in _fl_ring.codes.values()) == sum(7 + i % 3 for i in range(250)),
+    f"{len(_fl_ring.episodes)} {_fl_ring.dropped} {len(_fl_ring.codes)}",
+)
+_fl_back = _fl.Log(0, open=[100, "E5"])
+_fl.note(_fl_back, 40, None)
+_fl_fwd = _fl.Log(0, open=[100, "E5"])
+_fl.note(_fl_fwd, 130, None)
+R.check(
+    "a reading stamped before the open row's start closes it at its start: zero seconds, never a "
+    "negative row or tally; null control, a reading 30 s after the start closes a 30 s row",
+    _fl_back.episodes == [[100, 100, "E5", False]] and _fl_back.codes == {"E5": [1, 0, 100]}
+    and _fl_fwd.episodes == [[100, 130, "E5", False]] and _fl_fwd.codes == {"E5": [1, 30, 130]},
+    f"{_fl_back.episodes} {_fl_back.codes} {_fl_fwd.episodes}",
+)
+_fl_short = _fl.loaded({**_fl.stored(_fl_ring), "episodes": [[1, 2, "E5"], [3, 4, "P3", False]]}, 77)
+_fl_off = _fl.loaded({**_fl.stored(_fl_ring), "dropped": -1}, 77)
+_fl_bare = _fl.loaded({"since_s": 5}, 77)
+R.check(
+    "the store round-trips the record and declares every field; a row of the wrong shape is dropped "
+    "alone; a field outside its declaration starts the record afresh at the load's time",
+    _fl.stored(_fl.loaded(_fl.stored(_fl_ring), 1)) == _fl.stored(_fl_ring)
+    and _fl_storage_admitted("fault_log", _fl.stored(_fl_ring))
+    and _fl_short.episodes == [[3, 4, "P3", False]] and _fl_short.since_s == 0
+    and _fl_off.episodes == [] and _fl_off.since_s == 77 and _fl_off.codes == {}
+    and (_fl_bare.since_s, _fl_bare.dropped, _fl_bare.episodes, _fl_bare.open) == (5, 0, [], None),
+    f"{_fl_short.episodes} {_fl_off.since_s}",
+)
+_FL_ROWS = [[i, i + 1, "E5", False] for i in range(250)]
+_fl_big = _fl.loaded({**_fl.stored(_fl_ring), "episodes": _FL_ROWS}, 77)
+_fl_cap = _fl.loaded({**_fl.stored(_fl_ring), "episodes": _FL_ROWS[:200]}, 77)
+R.check(
+    "a stored document of 250 rows, which the store's declaration admits, loads as its newest 200; "
+    "null control, a document of exactly 200 rows loads whole",
+    _fl_storage_admitted("fault_log", {**_fl.stored(_fl_ring), "episodes": _FL_ROWS})
+    and _fl_big.episodes == _FL_ROWS[-200:] and _fl_cap.episodes == _FL_ROWS[:200],
+    f"{len(_fl_big.episodes)} {_fl_big.episodes[0]} {len(_fl_cap.episodes)}",
+)
+
+
+# 6: the listener, the save limiter, stop, unload and restart, through async_setup.
+class _FlHass(FakeHass):
+    """Runs the record's save tasks on the test's loop, as Home Assistant does."""
+
+    def async_create_task(self, coro):
+        return _fl_aio.get_running_loop().create_task(coro)
+
+
+_FL_CLOCK = [1000.0]
+_fl.time = _fl_types.SimpleNamespace(monotonic=lambda: _FL_CLOCK[0])
+_FL_T0 = _fl_dt(2026, 11, 1, tzinfo=_fl_tz.utc)
+_FL_TEXT = {_FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}
+
+
+def _fl_state(text, seconds):
+    return FakeState(text, last_updated=_fl_dt.fromtimestamp(_FL_T0.timestamp() + seconds, _fl_tz.utc))
+
+
+async def _fl_fire(hass, entity_id, text, seconds):
+    for ids, action in list(getattr(hass, "state_listeners", [])):
+        if entity_id in ids:
+            action(_fl_types.SimpleNamespace(data={"entity_id": entity_id, "new_state": _fl_state(text, seconds)}))
+    for _ in range(3):
+        await _fl_aio.sleep(0)
+
+
+def _fl_key(entry):
+    return f"heatpump_optimizer_{entry.entry_id}_fault_log"
+
+
+async def _fl_flaps(entry_id, min_s):
+    _fl.SAVE_MIN_S, saved_min = min_s, _fl.SAVE_MIN_S
+    try:
+        hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id=entry_id)
+        await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+        for k in range(120):
+            _FL_CLOCK[0] += 1.0
+            await _fl_fire(hass, "sensor.fd", "E5" if k % 2 == 0 else "OK", k + 1)
+        timers = list(getattr(hass, "timers", []))
+        _FL_DELAYS[entry_id] = [delay for delay, _a in timers]
+        for _delay, action in timers:
+            action(None)
+        for _ in range(3):
+            await _fl_aio.sleep(0)
+        doc = _fi_json.loads(_fl_storage._DISK.get(_fl_key(entry), "{}"))
+        saves = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
+        live = _fl.stored(_fl._RECORDS[entry].log)
+        _FL_CLOCK[0] += 61.0
+        await _fl_fire(hass, "sensor.fd", "P3", 200)
+        _FL_AFTER[entry_id] = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - saves
+        return saves, doc.get("data", doc), live
+    finally:
+        _fl.SAVE_MIN_S = saved_min
+
+
+_FL_DELAYS, _FL_AFTER = {}, {}
+_fl_saves, _fl_last_doc, _fl_live = _fl_aio.run(_fl_flaps("fl_flap", _fl.SAVE_MIN_S))
+_fl_saves0, _, _ = _fl_aio.run(_fl_flaps("fl_flap_null", 0.0))
+R.check(
+    "120 flaps in 120 s write at most 3 saves, the last state saved by the deferred timer; null "
+    "control, with the limiter's window at zero every one of the 120 opens and closes is a save",
+    1 <= _fl_saves <= 3 and _fl_last_doc == _fl_live and len(_fl_live["episodes"]) == 60
+    and _fl_saves0 == 120 and _FL_DELAYS["fl_flap"] == [_fl.SAVE_MIN_S - 1.0] == [59.0]
+    and _FL_AFTER["fl_flap"] == 1,
+    f"saves={_fl_saves} null={_fl_saves0} rows={len(_fl_live['episodes'])}",
+)
+
+
+async def _fl_restart():
+    hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_restart")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    await _fl_fire(hass, "sensor.fd", "E5", 30)
+    unavailable_open = None
+    await _fl_fire(hass, "sensor.fd", "unavailable", 40)
+    unavailable_open = list(_fl._RECORDS[entry].log.open or [])
+    stops = hass.bus.listeners_for(_FL_STOP)
+    before = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
+    for stop in stops:
+        await stop(None)
+    _FL_STOPPED.extend([_fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - before, len(hass.state_listeners)])
+    hass2, entry2 = _FlHass({"sensor.fd": _fl_state("E5", 30)}), _fl_entry(entry_id="fl_restart")
+    await _fl.async_setup(hass2, entry2, _FlConfig.from_mapping(_FL_TEXT))
+    continued = _fl._RECORDS[entry2].log
+    return len(stops), unavailable_open, continued.open, continued.episodes
+
+
+_FL_STOPPED = []
+_fl_stops, _fl_unav, _fl_cont_open, _fl_cont_rows = _fl_aio.run(_fl_restart())
+_FL_S30 = int(_FL_T0.timestamp()) + 30
+R.check(
+    "unavailable mid-episode does not close the row; open, the stop event, then a reload whose first "
+    "read is the same code: the row continues with its original start",
+    _fl_stops == 1 and _fl_unav == [_FL_S30, "E5"] and _fl_cont_open == [_FL_S30, "E5"] and _fl_cont_rows == []
+    and _FL_STOPPED == [1, 0],
+    f"stops={_fl_stops} unavailable={_fl_unav} open={_fl_cont_open} rows={_fl_cont_rows}",
+)
+
+
+async def _fl_unload():
+    hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_unload")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    _FL_CLOCK[0] += 1000.0
+    await _fl_fire(hass, "sensor.fd", "P3", 10)
+    action = hass.state_listeners[0][1]
+    await _fl.async_close(entry)
+    await _fl.async_close(entry)
+    saves = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
+    action(_fl_types.SimpleNamespace(data={"entity_id": "sensor.fd", "new_state": _fl_state("OK", 20)}))
+    for _ in range(3):
+        await _fl_aio.sleep(0)
+    rec = _fl._RECORDS[entry]
+    return (saves, _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0), rec.log.open, rec.log.episodes,
+            hass.state_listeners, getattr(hass, "timers", []))
+
+
+_fl_ul = _fl_aio.run(_fl_unload())
+R.check(
+    "open, then unload, then an event fired after close: no row and no save, the listener is gone "
+    "and a second close saves nothing",
+    _fl_ul[0] == _fl_ul[1] == 2 and _fl_ul[2] == [int(_FL_T0.timestamp()) + 10, "P3"] and _fl_ul[3] == []
+    and _fl_ul[4] == [] and _fl_ul[5] == [],
+    f"{_fl_ul}",
+)
+
+
+async def _fl_failed_setup(failed):
+    """An open row closed inside the save window, the entry's end, a second setup, one event."""
+    hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id=f"fl_failed_{failed}")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    _FL_CLOCK[0] += 1000.0
+    await _fl_fire(hass, "sensor.fd", "P3", 5)
+    await _fl_fire(hass, "sensor.fd", "OK", 6)  # deferred: only the entry's end saves this row
+    if not failed:  # the unload path: async_unload_entry closes, then Home Assistant runs the callbacks
+        await _fl.async_close(entry)
+    # A setup that raises after fault_log's runs only the entry's on_unload callbacks.
+    for unload in list(entry._on_unload):
+        unload()
+    entry._on_unload.clear()
+    left = len(hass.state_listeners), len(getattr(hass, "timers", []))
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))  # no yield first
+    restored = [list(r) for r in _fl._RECORDS[entry].log.episodes]
+    for _ in range(3):
+        await _fl_aio.sleep(0)
+    _FL_CLOCK[0] += 1000.0
+    before = _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0)
+    await _fl_fire(hass, "sensor.fd", "E5", 10)
+    return (*left, restored, len(hass.state_listeners),
+            _fl_storage.SAVE_COUNTS.get(_fl_key(entry), 0) - before)
+
+
+_fl_fs = _fl_aio.run(_fl_failed_setup(True))
+_fl_fs_null = _fl_aio.run(_fl_failed_setup(False))
+_FL_P3 = [[int(_FL_T0.timestamp()) + 5, int(_FL_T0.timestamp()) + 6, "P3", False]]
+R.check(
+    "a setup that fails after the record's (only the entry's on_unload callbacks run) releases the "
+    "listener and the deferred save, and its last save lands before the next setup loads: that setup "
+    "holds the P3 row watched to its end, one listener, and one event is one save; null control, the "
+    "unload path (close, then the callbacks) reads the same, the callbacks releasing nothing twice",
+    _fl_fs == _fl_fs_null == (0, 0, _FL_P3, 1, 1),
+    f"failed={_fl_fs} unload={_fl_fs_null}",
+)
+
+
+async def _fl_late():
+    hass, entry = _FlHass({"sensor.fd": _fl_state("P3", 5)}), _fl_entry(entry_id="fl_late")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    await _fl.async_close(entry)
+    hass2, entry2 = _FlHass({"sensor.fd": _fl_state("OK", 500)}), _fl_entry(entry_id="fl_late")
+    await _fl.async_setup(hass2, entry2, _FlConfig.from_mapping(_FL_TEXT))
+    await _fl_fire(hass2, "sensor.fd", "E5", 600)
+    await _fl_fire(hass2, "sensor.fd", "OK", 640)
+    return _fl._RECORDS[entry2].log
+
+
+_fl_late_log = _fl_aio.run(_fl_late())
+R.check(
+    "a stored P3 whose first read after a restart is OK closes at that read, marked late; the next row, "
+    "watched from start to end, is not",
+    _fl_late_log.open is None
+    and _fl_late_log.episodes == [[int(_FL_T0.timestamp()) + 5, int(_FL_T0.timestamp()) + 500, "P3", True],
+                                  [int(_FL_T0.timestamp()) + 600, int(_FL_T0.timestamp()) + 640, "E5", False]],
+    f"{_fl_late_log.episodes}",
+)
+
+
+async def _fl_members():
+    states = {"sensor.b1": _fl_state("OK", 0), "sensor.b3": _fl_state(_FL_B3, 0)}
+    hass, entry = _FlHass(dict(states)), _fl_entry(entry_id="fl_members")
+    config = {_FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.b1", "sensor.b3"]}
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(config))
+    await _fl.async_close(entry)
+    hass2, entry2 = _FlHass(dict(states)), _fl_entry(entry_id="fl_members")
+    await _fl.async_setup(hass2, entry2, _FlConfig.from_mapping(config))
+    return _fl._RECORDS[entry2].log
+
+
+_fl_mem = _fl_aio.run(_fl_members())
+R.check(
+    "a restart whose first member reads OK and second still carries the code continues the row: the "
+    "slot is read whole, never its first member alone",
+    _fl_mem.episodes == [] and _fl_mem.open == [int(_FL_T0.timestamp()), _FL_B3],
+    f"{_fl_mem.episodes} {_fl_mem.open}",
+)
+
+
+async def _fl_none():
+    hass, entry = _FlHass({}), _fl_entry(entry_id="fl_none")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({}))
+    return _fl.diagnostics_view(entry), getattr(hass, "state_listeners", []), hass.bus.listeners
+
+
+_fl_no = _fl_aio.run(_fl_none())
+R.check(
+    "no fault source: no record, no listener, no stop hook, no store, and the section is null",
+    _fl_no == (None, [], []) and _fl_key(_fl_entry(entry_id="fl_none")) not in _fl_storage._DISK,
+    f"{_fl_no}",
+)
+
+
+async def _fl_view():
+    hass, entry = _FlHass({"binary_sensor.alarm": _fl_state("off", 0)}), _fl_entry(entry_id="fl_view")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({_FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.alarm"}))
+    await _fl_fire(hass, "binary_sensor.alarm", "on", 60)
+    await _fl_fire(hass, "binary_sensor.alarm", "off", 90)
+    rec = _fl._RECORDS[entry]
+    rec.log.episodes.append([int(_FL_T0.timestamp()) + 100, int(_FL_T0.timestamp()) + 160, "Pumphouse", False])
+    rec.log.codes["Pumphouse"] = [1, 60, int(_FL_T0.timestamp()) + 160]
+    return _fl.diagnostics_view(entry)
+
+
+_fl_v = _fl_aio.run(_fl_view())
+_fl_private = frozenset(_fl_diag._private_values([{_FL_CONF_NAME: "Pumphouse"}, {}]))
+_fl_red = _fl_diag._without_values({"fault_log": _fl_v}, _fl_private)["fault_log"]
+R.check(
+    "the flag slot's section: source flag, the 30 s row with a null code, newest last; a code text "
+    "equal to the entry's name comes out redacted, row and tally key alike, while E-codes are kept",
+    _fl_v["source"] == "flag" and _fl_v["entities"] == ["binary_sensor.alarm"]
+    and _fl_v["episodes"][0]["seconds"] == 30 and _fl_v["episodes"][0]["code"] is None
+    and _fl_v["episodes"][0]["start"] == _fl_dt.fromtimestamp(_FL_T0.timestamp() + 60, _fl_tz.utc).isoformat()
+    and len("Pumphouse") >= _fl_rd.LEAK_MIN_CHARS
+    and _fl_red["episodes"][1]["code"] != "Pumphouse" and "Pumphouse" not in _fl_red["codes"]
+    and _fl_v["open"] is None and _fl_v["dropped"] == 0 and set(_fl_v["codes"]) == {"Pumphouse"},
+    f"{_fl_v} {_fl_red}",
+)
+
+async def _fl_bitmap():
+    hass, entry = _FlHass({"sensor.fault_code": _fl_state("0", 0)}), _fl_entry(entry_id="fl_bitmap")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({_FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "sensor.fault_code"}))
+    await _fl_fire(hass, "sensor.fault_code", "2080", 10)
+    mid = list(_fl._RECORDS[entry].log.open or [])
+    await _fl_fire(hass, "sensor.fault_code", "heating", 20)
+    held = list(_fl._RECORDS[entry].log.open or [])
+    await _fl_fire(hass, "sensor.fault_code", "0", 30)
+    return mid, held, _fl.diagnostics_view(entry)
+
+
+_fl_bm_mid, _fl_bm_held, _fl_bm = _fl_aio.run(_fl_bitmap())
+_FL_S10 = int(_FL_T0.timestamp()) + 10
+R.check(
+    "a sensor fault slot reading a register: 2080 opens a 0x0820 row, heating mid-episode is no reading "
+    "and leaves it open, 0 closes it after 20 s; the section names the source bitmap",
+    _fl_bm_mid == _fl_bm_held == [_FL_S10, "0x0820"] and _fl_bm["source"] == "bitmap"
+    and [(e["seconds"], e["code"]) for e in _fl_bm["episodes"]] == [(20, "0x0820")],
+    f"{_fl_bm_mid} {_fl_bm_held} {_fl_bm}",
+)
+
+async def _fl_edges():
+    hass, entry = _FlHass({"sensor.fd": _fl_state("OK", 0)}), _fl_entry(entry_id="fl_edges")
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    rec = _fl._RECORDS[entry]
+    rec.saved_at = _FL_CLOCK[0] - (_fl.SAVE_MIN_S - 1.0)
+    _fl._request_save(rec)
+    delays = [delay for delay, _a in getattr(hass, "timers", [])]
+
+    class _Refusing:
+        async def async_save(self, data):
+            raise OSError("disk full")
+
+    rec.store = _Refusing()
+    await _fl._save(rec)
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping({}))
+    return delays, _fl.diagnostics_view(entry)
+
+
+_fl_edge_delays, _fl_edge_view = _fl_aio.run(_fl_edges())
+R.check(
+    "one second before the save window ends a change waits one second, never saves at once; a save that "
+    "raises is logged, not raised; setting the entry up again with no fault slot drops the old record",
+    _fl_edge_delays == [1.0] and _fl_edge_view is None,
+    f"{_fl_edge_delays} {_fl_edge_view}",
+)
+
+
+async def _fl_v1(version):
+    """A record an install saved at store ``version``, then a setup whose first read is the same code."""
+    hass, entry = _FlHass({"sensor.fd": _fl_state("E5", 900)}), _fl_entry(entry_id=f"fl_v{version}")
+    _fl_storage._DISK[_fl_key(entry)] = _fi_json.dumps(
+        _fl.stored(_fl.Log(7, source="text", episodes=[[1, 2, "P3", False]], open=[100, "E5"],
+                           codes={"P3": [1, 1, 2]})))
+    _fl_storage._VERSIONS[_fl_key(entry)] = version
+    await _fl.async_setup(hass, entry, _FlConfig.from_mapping(_FL_TEXT))
+    log = _fl._RECORDS[entry].log
+    await _fl.async_close(entry)
+    return log.since_s, log.episodes, log.open, _fl_storage._VERSIONS[_fl_key(entry)]
+
+
+_fl_v1_read = _fl_aio.run(_fl_v1(1))
+_fl_v2_read = _fl_aio.run(_fl_v1(2))
+R.check(
+    "a fault record saved at store version 1 loads whole and saves back at 1: its row, its open E5 "
+    "continued by an E5 read, its start; null control, a document stamped version 2 is refused, so the "
+    "record starts afresh with the E5 opened at the read",
+    _fl_v1_read == (7, [[1, 2, "P3", False]], [100, "E5"], 1)
+    and _fl_v2_read[1] == [] and _fl_v2_read[2] == [int(_FL_T0.timestamp()) + 900, "E5"]
+    and _fl_v2_read[0] != 7,
+    f"v1={_fl_v1_read} v2={_fl_v2_read}",
+)
+
+_fl_now_real = _fl._now_s
+_fl._now_s = lambda: 5000  # noqa: E731
+_fl_entry_key = _fl_entry(entry_id="fl_skew")
+try:
+    _fl._RECORDS[_fl_entry_key] = _fl._Record(
+        None, None, "text", ["sensor.fd"], _fl.Log(4000, source="text", open=[5300, "E5"]))
+    _fl_skew = _fl.diagnostics_view(_fl_entry_key)["open"]
+    _fl._RECORDS[_fl_entry_key].log.open = [4970, "E5"]
+    _fl_skew_null = _fl.diagnostics_view(_fl_entry_key)["open"]
+finally:
+    _fl._now_s = _fl_now_real
+R.check(
+    "an open row stamped 300 s after the view's clock (a state's last_changed ahead of this host) shows "
+    "0 open seconds, never a negative span; null control, one stamped 30 s before shows 30",
+    _fl_skew["seconds"] == 0 and _fl_skew["code"] == "E5" and _fl_skew_null["seconds"] == 30,
+    f"{_fl_skew} {_fl_skew_null}",
+)
+
+# 9: the prefill rows (the device route's roles are pinned in W1067-G7b-1's table above).
+_fl_dev = {"sensor.rw_fault_description": FakeState("OK"), "binary_sensor.rw_fault_alarm": FakeState("off")}
+_fl_dev_roles = {
+    _FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: _g7_mp.ResolvedRole(("sensor.rw_fault_description",)),
+    _FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: _g7_mp.ResolvedRole(("binary_sensor.rw_fault_alarm",)),
+}
+_fl_dev_snap = _g7_mp.snapshot(_fl_dev.get, _fl_dev_roles)
+_fl_gchv_snap = _g7_mp.snapshot({"binary_sensor.hp_alarm": FakeState("off")}.get, _g7_mp.candidates("hp"))
+_fl_set = {_FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.mine",
+           _FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.mine"]}
+R.check(
+    "pre-fill: a signed Tuya device suggests a one-member text list and its fault binary sensor; a GCHV "
+    "prefix suggests binary_sensor.<p>_alarm and no text slot; null controls, slots already set are not "
+    "suggested, and a device whose records lack the signature resolves neither",
+    {k: v for k, v in _g7_mp.infer(_fl_dev_snap, {}).items() if "fault" in k} == {
+        _FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.rw_fault_description"],
+        _FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.rw_fault_alarm"}
+    and {k: v for k, v in _g7_mp.infer(_fl_gchv_snap, {}).items() if "fault" in k} == {
+        _FL_C.CONF_HEAT_PUMP_FAULT_ENTITY: "binary_sensor.hp_alarm"}
+    and not any("fault" in k for k in _g7_mp.infer(_fl_dev_snap, _fl_set))
+    and not any("fault" in k for k in _g7b_dp.resolve(_g7b_records(drop={
+        f"{_G7B_SLUG}_T4", f"{_G7B_SLUG}_Tin", f"{_G7B_SLUG}_night_mode", f"{_G7B_SLUG}_DHWSET"}))),
+    f"{_g7_mp.infer(_fl_dev_snap, {})} {_g7_mp.infer(_fl_gchv_snap, {})}",
+)
+
+# The entry's own path: setup subscribes, the download carries the section, unload saves.
+async def _fl_entry_path(entry_id, options):
+    hass = FakeHass({"sensor.fd": FakeState("E5")})
+    _seed_prices(hass)
+    entry = FakeEntry(data=_LC_DATA, options=options, entry_id=entry_id)
+    await _ha_setup_entry(_integ, hass, entry)
+    diag = await _fl_diag.async_get_config_entry_diagnostics(hass, entry)
+    unloaded = await _ha_unload_entry(_integ, hass, entry)
+    doc = _fi_json.loads(_fl_storage._DISK.get(_fl_key(entry), "null") or "null")
+    return diag["coordinator"].get("fault_log", "missing"), unloaded, doc
+
+
+_fl_ep_view, _fl_ep_ok, _fl_ep_doc = _fl_aio.run(
+    _fl_entry_path("fl_entry", {_FL_C.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES: ["sensor.fd"]}))
+_fl_ep_null = _fl_aio.run(_fl_entry_path("fl_entry_none", {}))
+R.check(
+    "through async_setup_entry: the download's coordinator.fault_log shows the open E5 read at setup, and "
+    "async_unload_entry saves it; null control, an entry with no fault slot has a null section and no store",
+    _fl_ep_ok and _fl_ep_view["source"] == "text" and _fl_ep_view["open"]["code"] == "E5"
+    and (_fl_ep_doc or {}).get("data", _fl_ep_doc or {}).get("open", [None, None])[1] == "E5"
+    and _fl_ep_null[0] is None and _fl_ep_null[1] and _fl_ep_null[2] is None,
+    f"view={_fl_ep_view} doc={_fl_ep_doc} null={_fl_ep_null}",
+)
+
+# 10: a synthetic day (no install data): one multi-hour P3 and twelve sub-minute E5s.
+_fl_day = [(0, ["OK"]), (2 * 3600, ["P3"]), (6 * 3600, ["OK"])]
+for _fl_h in range(8, 20):
+    _fl_day += [(_fl_h * 3600 + 600, ["E5"]), (_fl_h * 3600 + 640, ["OK"])]
+
+
+def _fl_state_at(t):
+    return next(s for at, s in reversed(_fl_day) if at <= t)
+
+
+_fl_events = _fl_feed(_fl_day)
+_fl_cycles = _fl_feed([(t, _fl_state_at(t)) for t in range(0, 86400, 1800)])
+R.check(
+    "a synthetic day of one 4-hour P3 and twelve 40-second E5s gives 13 rows and an E5 tally of 12; "
+    "null control, sampling the same day once per 30-minute cycle, today's path, sees at most 2",
+    len(_fl_events.episodes) == 13 and _fl_events.codes["E5"][0] == 12 and _fl_events.codes["P3"][1] == 4 * 3600
+    and _fl_events.codes["E5"][2] == 19 * 3600 + 640
+    and len(_fl_cycles.episodes) <= 2,
+    f"events={len(_fl_events.episodes)} cycles={len(_fl_cycles.episodes)}",
+)
 
 # --- R11-SEAM-learners: one freeze predicate (ADR-008, design/R11-SEAM-learners
 # at bee723ac). ``learning_freeze.reason`` owns which interval a learner may

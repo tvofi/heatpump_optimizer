@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/fault_log.py:note CLAMP_DROP 240a7557",
+  "killed_by": "tests/features.py",
+  "old": "        end_s = max(now_s, start_s)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`end_s = (now_s)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

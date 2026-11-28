@@ -1743,6 +1743,50 @@ async def options_room_list():
     )
 
 
+async def options_fault_text_list():
+    """R11-OWNER-FAULT-TEXT: the fault-text list on Heat pump telemetry, capped at four."""
+    R.section("options: the fault-text list saves up to four entities and refuses a fifth")
+    key = const.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES
+    flow, entry, _ = fresh_options()
+    shown = await flow.async_step_entities_pump(None)
+    widget = next((v for k, v in shown["data_schema"].schema.items() if str(k) == key), None)
+    check(
+        "opt_fault_text",
+        "happy",
+        "the telemetry page renders the fault-text field, a selector taking several sensor, text or "
+        "input_text entities, beside the fault alarm",
+        shows(shown, "entities_pump") and widget is not None and widget.config.get("multiple") is True
+        and widget.config["filter"][0]["domain"] == ["sensor", "text", "input_text"]
+        and [str(k) for k in shown["data_schema"].schema].index(key)
+        == [str(k) for k in shown["data_schema"].schema].index(const.CONF_HEAT_PUMP_FAULT_ENTITY) + 1,
+        f"{shown.get('step_id')!r}",
+    )
+    members = [f"sensor.hp_alarm_bitmap_{i}" for i in range(1, 6)]
+    refused = await submit(flow, "entities_pump", {key: members})
+    check(
+        "opt_fault_text",
+        "error",
+        "five fault-text entities are refused with their own error; null control, four save",
+        shows(refused, "entities_pump")
+        and refused.get("errors", {}).get(key) == "too_many_fault_text_entities"
+        and key not in entry.options
+        and shows_menu(await submit(flow, "entities_pump", {key: members[:4]}), "advanced")
+        and entry.options.get(key) == members[:4],
+        f"errors={refused.get('errors')!r} saved={entry.options.get(key)!r}",
+    )
+    await recover(flow, "entities_pump", {key: members[:4], **SAVE_CLOSE})
+    flow2, entry2, _ = fresh_options(pre_options={key: ["sensor.fd"]})
+    await flow2.async_step_entities_pump(None)
+    await submit(flow2, "entities_pump", {})
+    check(
+        "opt_fault_text",
+        "happy",
+        "an emptied submit clears the stored list (null control: the list was stored)",
+        key in entry2.options and entry2.options[key] is None,
+        f"options={entry2.options.get(key, 'absent')!r}",
+    )
+
+
 async def options_menus():
     R.section("options: the two menus")
     flow, entry, _ = fresh_options()
@@ -3673,12 +3717,10 @@ async def residual_statement_branches():
         f"suggested={suggested_value(form, const.CONF_HOUSE_POWER_ENTITY)!r}",
     )
 
-    # _user_sensors_sections' forgotten-field fallback: a picker the grouping
-    # table does not name stays visible and flat rather than vanishing from
-    # the setup page. The grouping table is rebound for this one check -- it
-    # is the only seam the function reads -- and restored immediately; the
-    # intact-table control beside it is what makes the fallback's firing
-    # specific to a forgotten field rather than unconditional.
+    # One table: the setup page's flat fields and its sections are both built
+    # from _USER_SENSORS_GROUPS. A picker cannot sit in one and not the other,
+    # the drift #824's flat fallback guarded against. Rebinding the table moves
+    # both alike; the intact table beside it is the control.
     real_groups = config_flow._USER_SENSORS_GROUPS
     try:
         config_flow._USER_SENSORS_GROUPS = (
@@ -3687,28 +3729,31 @@ async def residual_statement_branches():
                 (const.CONF_INDOOR_TEMP_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY),
             ),
         )
-        forgotten = config_flow._user_sensors_sections(FakeHass())
+        one_sections = config_flow._user_sensors_sections(FakeHass())
+        one_flat = {str(getattr(k, "schema", k)) for k in config_flow._user_sensors_fields(FakeHass())}
     finally:
         config_flow._USER_SENSORS_GROUPS = real_groups
-    forgotten_keys = {str(getattr(k, "schema", k)) for k in forgotten}
-    intact_keys = {
+    intact = config_flow._user_sensors_sections(FakeHass())
+    intact_flat = {str(getattr(k, "schema", k)) for k in config_flow._user_sensors_fields(FakeHass())}
+    in_sections = {
         str(getattr(k, "schema", k))
-        for k in config_flow._user_sensors_sections(FakeHass())
+        for value in intact.values() for k in value.schema.schema
     }
     check(
         "user_sensors",
         "happy",
-        "a picker the grouping table forgot stays on the page, flat",
-        const.CONF_SOLAR_RADIATION_ENTITY in forgotten_keys
-        and const.CONF_HEAT_PUMP_MODE_ENTITY in forgotten_keys,
-        f"flat top-level keys={sorted(forgotten_keys)}",
+        "the flat fields and the sections are one table: rebound to one group, both hold exactly its two pickers",
+        set(one_sections) == {"indoor"}
+        and one_flat == {const.CONF_INDOOR_TEMP_ENTITY, const.CONF_OUTDOOR_TEMP_ENTITY},
+        f"sections={sorted(one_sections)} flat={sorted(one_flat)}",
     )
     check(
         "user_sensors",
         "happy",
-        "the intact grouping table hides nothing: only the three sections",
-        intact_keys == {"indoor", "solar", "plant"},
-        f"keys={sorted(intact_keys)}",
+        "the intact grouping table hides nothing: only the three sections, holding every flat field",
+        set(intact) == {"indoor", "solar", "plant"} and in_sections == intact_flat and len(intact_flat) == 14
+        and all(value.options == {"collapsed": False} for value in intact.values()),
+        f"keys={sorted(intact)} missing={sorted(intact_flat - in_sections)}",
     )
 
     # _omit_unstored_computed's recompute-failure arm: a value whose computed
@@ -4794,6 +4839,8 @@ async def registry_walk_recurses():
         const.CONF_HEAT_PUMP_DEFROST_ENTITY,
         const.CONF_HEAT_PUMP_ONLINE_ENTITY,
         const.CONF_HEAT_PUMP_FAULT_ENTITY,
+        # R11-OWNER-FAULT-TEXT: the fault's code text, a list beside the alarm.
+        const.CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES,
         # #1067: the pump's own electric heat and its night mode, on the same
         # page. Named here rather than counted for the reason above -- a
         # count would go on agreeing while a picker stopped rendering.
@@ -5904,7 +5951,9 @@ _NOOP_ALT = {
 }
 # diagnostics.py echoes the stored entry verbatim, so every key differs there
 # by construction; config_flow.py is the writer under test; const.py names.
-_NOOP_STATIC_SKIP = ("config_flow.py", "const.py", "diagnostics.py")
+# device_prefill.py reads no configuration: it is handed registry records, and
+# a key there is a role its tables resolve.
+_NOOP_STATIC_SKIP = ("config_flow.py", "const.py", "device_prefill.py", "diagnostics.py")
 
 
 def _noop_hass(now):
@@ -8176,10 +8225,16 @@ def _page_stored_entities(step, base):
 
 def _stored_seed(row, tag):
     """A distinct stored value for a ``_STORED`` row: an entity id for a
-    picker, an in-range number for the one optional number
-    (``space_setpoint_high_limit_c``), which clears the same way."""
+    picker (a one-element list for a list slot), an in-range number for the
+    one optional number (``space_setpoint_high_limit_c``), which clears the
+    same way."""
     if isinstance(row.widget, selector.NumberSelector):
         return float(row.widget.config["min"]) + 1.0
+    # A list slot (a selector taking several entities) stores a list: a
+    # string seeded there is a value no save writes, and the page's own
+    # cap check refuses every submit carrying it.
+    if row.widget.config.get("multiple"):
+        return [f"sensor.stored_{tag}"]
     return f"sensor.stored_{tag}"
 
 
@@ -8777,6 +8832,7 @@ async def main() -> int:
     await options_rejected_page_rerenders_the_clear()
     await options_cleared_price_entity_is_refused()
     await options_room_list()
+    await options_fault_text_list()
     stored_options_of_the_wrong_type()
 
     rendered, recovered = LEDGER.error_triples()

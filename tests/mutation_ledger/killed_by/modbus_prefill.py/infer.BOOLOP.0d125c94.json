@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:infer BOOLOP 0d125c94",
+  "killed_by": "tests/features.py",
+  "old": "    if listed is not None and not current.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if listed is not None or not current.get(CONF_HEAT_PUMP_FAULT_TEXT_ENTITIES):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

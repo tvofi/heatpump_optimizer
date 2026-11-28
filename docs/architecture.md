@@ -143,6 +143,7 @@ custom_components/heatpump_optimizer/
 ├── inputs.py             # Guarded state reads with a staleness watchdog
 ├── room_history.py       # Room history: the half-hour ring, its store document and the per-room identifiability report
 ├── room_record.py        # One room-history ring per coordinator, its store, saved every 6 h and at unload
+├── fault_log.py          # The pump's fault record: each fault's code, start and end, its store, the diagnostics view
 ├── rooms.py              # The room thermometer list: its reading record, mean and spread
 │                         #   and the lift a cold room gives the planned comfort floor
 ├── issues.py             # The repair-notice writer: raise, clear, the docs link
@@ -305,7 +306,7 @@ These modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `circulation`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
+`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `fault_log`, `heat_curve`, `issues`, `legionella`, `notifier`, `number_restore`, `off_restore`, `pump_arbiter`, `repairs`, `room_record`, `running_signal`, `services`,
 `store`, `supply_hold`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
