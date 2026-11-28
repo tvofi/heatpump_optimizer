@@ -264,6 +264,17 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("churn_per_kilo_product_lines",), MAX),
         (("churn_per_kilo_product_lines_band",), MAX),
     ],
+    # The tests/features.py freeze manifest (dev/audit/harnesses/
+    # features_freeze.py, R11-OWNER-FEATURES-SPLIT): `lines` is the file's
+    # line cap, and the freeze never refuses a move down; the span ids and
+    # each seam script's pins are frozen, since a new id or pin is exactly
+    # what the freeze refuses, and a re-record dropping a deleted span's id
+    # is owed nowhere (the harness reads live ids as a subset of the list).
+    "tests/features_frozen_budgets.json": [
+        (("lines",), MAX),
+        (("spans",), FROZEN),
+        (("seam_pins", "*"), FROZEN),
+    ],
     # Its declining target (card P2): a later anchor restarts the decline, a
     # longer stride or a smaller step slows it; each is a raise.
     "dev/governance/config/machinery_target_budgets.json": [
