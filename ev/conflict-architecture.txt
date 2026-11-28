@@ -1,0 +1,8 @@
+<<<<<<< origin/main
+├── flow_anchor.py        # The space flow floor's inlet: the sensors it reads,
+│                         #   and the space loop's own water for a settle span
+│                         #   after a hot-water -> space swap
+=======
+├── arbiter_record.py     # The arbiter's held record per coordinator and
+│                         #   its store: what it wrote, reloaded on restart
+>>>>>>> 755a94316f90a8fcbc441c867ea53fa4a7427410

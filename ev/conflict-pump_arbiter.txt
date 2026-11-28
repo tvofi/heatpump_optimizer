@@ -1,0 +1,99 @@
+<<<<<<< origin/main
+from . import boost, draw_range, duty_ledger, duty_switch, flow_anchor, flow_limit, issues, off_restore, pump_mode, quiet_windows
+=======
+from . import arbiter_record, boost, draw_range, duty_ledger, duty_switch, flow_limit, issues, off_restore, pump_mode, quiet_windows
+>>>>>>> 755a94316f90a8fcbc441c867ea53fa4a7427410
+<<<<<<< origin/main
+@dataclass
+class FeedbackRun:
+    """One compressor run under the power-feedback loop; never persisted.
+
+    A restart re-enters the start-hold, which writes today's target. The
+    target ``w_c`` is kept unrounded, so a move smaller than the entity's
+    step accumulates instead of rounding away.
+    """
+
+    start: datetime
+    w_c: float
+    seen: datetime
+    #: (when, measured kW) over :data:`FEEDBACK_WINDOW`.
+    samples: deque[tuple[datetime, float]] = field(default_factory=deque)
+    running: bool = False
+    #: The last value the loop sent that differs from today's target, and
+    #: the record it replaced: the bracket ``hold`` reads a clamp cut in.
+    sent_c: float | None = None
+    prev_c: float | None = None
+    #: Where the controller cut a loop write: the target never passes it.
+    cut_lo_c: float | None = None
+    cut_hi_c: float | None = None
+
+
+@dataclass
+class ArbiterState:
+    """Per-coordinator record: what was written, and what did not hold."""
+
+    #: slot -> (value written, when); the ownership record, persisted.
+    written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
+    #: slot -> the last write a loop move dropped from ``written`` to resend
+    #: (:func:`_note_sent`), read while that record is missing, until a
+    #: restore or release ends it; persisted with it. A loop run's reset
+    #: keeps it. A write lands only once the off restore is armed, which
+    #: :func:`_arm_space` no longer refuses, so no write needs to end it.
+    dropped: dict[str, Any] = field(default_factory=dict)
+    #: slot -> differing readings in a row; slot -> when a value the pump
+    #: did not hold is sent again.
+    misses: dict[str, int] = field(default_factory=dict)
+    retry: dict[str, datetime] = field(default_factory=dict)
+    step: dict[str, Any] | None = None
+    log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=log_steps()))
+    dhw_since: datetime | None = None
+    last_duty: str | None = None
+    loaded: bool = False
+    unsubs: list[Any] = field(default_factory=list)
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    #: (step start, the supply the plan commanded for that step): written by
+    #: the cycle's switch write and moved by :func:`supply_tick` (#2492).
+    supply: tuple[datetime, bool] | None = None
+    #: The step tick's listener; dropped only at unload, never by duty mode.
+    supply_unsub: Callable[[], None] | None = None
+    #: The space set-point's reading when the arbiter last armed a write to
+    #: it; ``None`` unknown (a restart, or the power switch read off since).
+    #: A later reading that is neither this nor the write is a person's edit.
+    space_before: float | None = None
+    #: The power-feedback loop's live run, and the inlet-to-target gap at
+    #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
+    feedback: FeedbackRun | None = None
+    stop_gap_k: float | None = None
+    #: A supply write ``supply_hold`` held back; the step tick retries it.
+    supply_held: bool = False
+    #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
+    held_until: datetime | None = None
+    #: ``supply_hold.ISSUE_COOLING`` is raised for this cooling episode.
+    cooling_asked: bool = False
+    #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
+    last_pass: draw_range.PassRecord | None = None
+    #: The duty last served, and the swap it read (:func:`flow_anchor.note`); never persisted.
+    served: flow_anchor.Served | None = None
+
+
+=======
+>>>>>>> 755a94316f90a8fcbc441c867ea53fa4a7427410
+<<<<<<< origin/main
+    live = _flow_inlet_c(inp)
+    anchor = live if settle is None else settle.anchor_c(
+        live, _flow_inlet_c(inp, flow_anchor.SPACE_SIDE_KEYS), now, FEEDBACK_START_HOLD, timedelta(minutes=LEASE_MINUTES))
+    floor_c = min(_or_hold(modulation_floor_flow_c(
+        c, _gate_c(inp), start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
+    ), inp.config) for c in (live, anchor))
+=======
+    floor_c = _or_hold(modulation_floor_flow_c(
+        _flow_inlet_c(inp), _gate_c(inp),
+        _floor_lift_k(inp),
+    ), inp.config)
+>>>>>>> 755a94316f90a8fcbc441c867ea53fa4a7427410
+<<<<<<< origin/main
+    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now),  # indoor: maybe no coordinator
+                          settle=_settle(state_for(coord) if _flow_unit(inp.config) else None, inp))
+=======
+    space = _space_target(inp, result, now, duty, boosted=_boost_live(coord, inp, now))
+>>>>>>> 755a94316f90a8fcbc441c867ea53fa4a7427410

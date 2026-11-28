@@ -1,0 +1,51 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/arch_score_head.py: merged as a set (152 entries)
+  closures.tests/block_duty.py: merged as a set (136 entries)
+  closures.tests/boost_drift_replay.py: merged as a set (117 entries)
+  closures.tests/card.mjs: merged as a set (130 entries)
+  closures.tests/card_drift.mjs: merged as a set (131 entries)
+  closures.tests/config_flow_steps.py: merged as a set (155 entries)
+  closures.tests/cycle_lane.py: merged as a set (116 entries)
+  closures.tests/debug_collect.py: merged as a set (127 entries)
+  closures.tests/deployment_shape.py: merged as a set (150 entries)
+  closures.tests/doc_claims.py: merged as a set (307 entries)
+  closures.tests/entities.py: merged as a set (612 entries)
+  closures.tests/env_drift.py: merged as a set (220 entries)
+  closures.tests/features.py: merged as a set (171 entries)
+  closures.tests/finite_boundary.py: merged as a set (142 entries)
+  closures.tests/golden.py: merged as a set (222 entries)
+  closures.tests/guard_pins.py: merged as a set (117 entries)
+  closures.tests/harness_headers.py: merged as a set (433 entries)
+  closures.tests/manual_plan.py: merged as a set (133 entries)
+  closures.tests/plan_view.py: merged as a set (119 entries)
+  closures.tests/solar_alignment.py: merged as a set (115 entries)
+  closures.tests/structure.py: merged as a set (111 entries)
+  closures.tests/typing_ruler.py: merged as a set (111 entries)
+  closures.tests/wood_advisor.py: merged as a set (121 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1625 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved dev/audit/rounds/round4/D6/claims.md
+  dev/audit/rounds/round4/D6/claims.md: merged by tools/merge/d6_register.py merge_md
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved dev/audit/rounds/round4/D6/claims.json
+  dev/audit/rounds/round4/D6/claims.json: merged by tools/merge/d6_register.py merge_json
+  re-run the gate that owns this file before pushing
+e98ab7304a011a51eb61731569b6d38bbf0d292d
+100644 bf842ef095e670553af72d3f182e43b85b621ae8 1	custom_components/heatpump_optimizer/pump_arbiter.py
+100644 b64b0d8a8d5fbe447bcc363ebb4dbc0783c83efd 2	custom_components/heatpump_optimizer/pump_arbiter.py
+100644 12c3ccaa3997f6275d4b7b9402c56e3a44e5d156 3	custom_components/heatpump_optimizer/pump_arbiter.py
+100644 9a8c828a66ff22b6c477627e10faa110024607b2 1	docs/architecture.md
+100644 c9441c3531a44d377905198806828a7d52897ccb 2	docs/architecture.md
+100644 078c381a980d1c34544f5ef2ef16274d87bbf6bf 3	docs/architecture.md
+
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/pump_arbiter.py
+Auto-merging dev/audit/rounds/round4/D6/claims.json
+Auto-merging dev/audit/rounds/round4/D6/claims.md
+Auto-merging docs/architecture.md
+CONFLICT (content): Merge conflict in docs/architecture.md
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json
