@@ -38,11 +38,10 @@ def vvc_should_run_at(
     and tomorrow's the lead across midnight. ``params`` ``None`` is no
     schedule: hot water is always required.
     """
-    hour = now.hour + now.minute / 60.0
     if params is None:
-        return vvc_should_run(hour, None, lead_minutes)
+        return vvc_should_run(now, None, lead_minutes)
     return vvc_should_run(
-        hour,
+        now,
         windows_in_force(params, None, now, holidays),
         lead_minutes,
         windows_in_force(params, None, now, holidays, days=1),
@@ -50,7 +49,7 @@ def vvc_should_run_at(
 
 
 def vvc_should_run(
-    hour_of_day: float, windows: list[Window] | None, lead_minutes: float,
+    now: datetime, windows: list[Window] | None, lead_minutes: float,
     tomorrow: list[Window] | None = None,
 ) -> tuple[bool, str]:
     """Whether the hot-water circulation loop should run right now.
@@ -66,15 +65,14 @@ def vvc_should_run(
     """
     if windows is None:
         return True, "no demand windows; hot water always required"
-    hour = float(hour_of_day) % 24.0
-    if hour_in_windows(hour, windows):
+    if hour_in_windows(now.hour + now.minute / 60.0, windows):
         return True, "inside a hot-water demand window"
     lead_h = max(0.0, float(lead_minutes)) / 60.0
     # "Does any window OPEN within the lead", not "is the instant now+lead
     # inside one". Probing the single instant left a hole in the final
     # approach to any window shorter than the lead — off during exactly
     # the minutes the pre-heat exists for.
-    until = hours_until_next_window(hour, list(windows), tomorrow)
+    until = hours_until_next_window(now, list(windows), tomorrow)
     if lead_h > 0.0 and until is not None and 0.0 < until <= lead_h:
         return True, f"window opens within {int(lead_minutes)} min; pre-heating the loop"
     return False, "outside every demand window"
