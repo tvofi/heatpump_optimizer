@@ -5040,6 +5040,7 @@
    "dev/audit/harnesses/r11_comments_ratchet_reconcile.py",
    "dev/audit/harnesses/r11_dead_state_mutants.sh",
    "dev/audit/harnesses/r11_denominator_planted.py",
+   "dev/audit/harnesses/r11_fabric_alpha_tie.py",
    "dev/audit/harnesses/r11_fast_shards_balance.py",
    "dev/audit/harnesses/r11_fast_shards_mutants.py",
    "dev/audit/harnesses/r11_fast_shards_random.sh",
